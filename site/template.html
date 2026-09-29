@@ -157,13 +157,19 @@ details.grp[open] .sumval{visibility:hidden}
 .adj button:hover{background:var(--fill-2)}
 .why{margin:0;color:var(--ink-2);max-width:72ch;font-size:var(--t3);line-height:1.6}
 #scenario:empty{display:none}
+.scpre{font:600 var(--t4)/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:0 0 2px}
+/* the description opens the frame; a hairline under it separates it from the controls */
+.scframe>#scenario{padding-bottom:22px;box-shadow:0 1px 0 var(--line);gap:10px}
+.scframe>#scenario .why{color:var(--ink);font-size:var(--t3);line-height:1.65}
 /* the scenario's controls: one frame, two labelled sections (features, scale) */
 .scframe{margin-top:12px;background:var(--wash);padding:20px 24px 24px;display:flex;flex-direction:column;gap:28px}
 .scsec{display:flex;flex-direction:column;gap:14px;margin:0}
 .sclab{margin:0;font:600 var(--t4)/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
 .sclab span{margin-left:8px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-2)}
 .scframe .mh{gap:8px}
-.scframe .mhk{background:var(--bg);padding:8px 12px}
+/* chips: fills, no outlines (optional = frame-contrast fill, required = darker fill + ✓) */
+.scframe .mhk{background:var(--bg);box-shadow:none;padding:8px 12px;text-decoration:none}
+.scframe .mhk[aria-pressed="false"]:hover{box-shadow:none;background:var(--fill)}
 .scframe .mhk[aria-pressed="true"]{background:var(--fill-2)}
 .scframe .dials{margin-top:0;gap:20px 32px}
 .sumline{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:8px 24px 12px;color:var(--ink-2)}
@@ -478,7 +484,9 @@ details.more-in[open]>summary{display:none}
   .usage-grid,.atlas,.provgrid{gap:0}
   .scenario{background:var(--wash);padding:24px 20px;gap:14px}
   .scframe{background:var(--bg);padding:20px 18px 22px;margin:4px -4px 0;gap:28px}
-  .scframe .mhk[aria-pressed="true"]{background:var(--fill)}
+  .scframe .mhk{background:var(--wash)}
+  .scframe .mhk[aria-pressed="false"]:hover{background:var(--fill)}
+  .scframe .mhk[aria-pressed="true"]{background:var(--fill-2)}
   .scframe .dials{grid-template-columns:1fr;gap:22px}
   .grp{padding:18px 20px}
   .grp:nth-child(even){background:var(--wash)}
@@ -632,8 +640,8 @@ details.more-in[open]>summary{display:none}
       </details>
     </aside>
     <div class="results">
-      <div class="tile scenario"><label class="wlpick"><span id="presetName"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg><select id="presetSel" aria-label="Workload"></select></label><div id="scenario"></div>
-        <div class="scframe"><section class="scsec" id="scFeatSec"><h4 class="sclab">Features <span>tap to require or drop</span></h4><div id="scchips" class="mh"></div></section>
+      <div class="tile scenario"><div class="scpre" id="scPreLabel">Usecase preset:</div><label class="wlpick" aria-labelledby="scPreLabel"><span id="presetName"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg><select id="presetSel" aria-label="Usecase preset"></select></label>
+        <div class="scframe"><div id="scenario"></div><section class="scsec" id="scFeatSec"><h4 class="sclab">Features <span>tap to require or drop</span></h4><div id="scchips" class="mh"></div></section>
         <section class="scsec" id="scDialSec"><h4 class="sclab">Scale <span>same settings as the panel</span></h4><div id="dials" class="dials"></div></section></div></div>
       <div class="tile sumline"><div id="summary"></div>
         <div class="viewctl"><label class="tog" data-tip="Show each billing regime of a provider as its own row (up to 3 per provider)."><input type="checkbox" id="perRegime" checked> per regime</label>
@@ -911,7 +919,7 @@ function run(){
     $('#scFeatSec').hidden=!$('#scchips').innerHTML;
     $('#scenario').innerHTML=`${pp&&pp.why?`<p class="why">${esc(pp.why)}</p>`:''}${pp&&edited?`<div class="adj">Adjusted from the scenario's defaults <button type="button" id="scReset">Reset</button></div>`:''}${W.sessions>0&&W.concurrency>W.sessions?`<div class="adj">Only ${nf(W.sessions)} sessions a month, so at most ${nf(Math.ceil(W.sessions))} can run at once: priced that way.</div>`:''}`;
     if($('#scReset')) $('#scReset').onclick=()=>applyPreset(curPreset);
-    syncDials(); $('#scDialSec').hidden=!$('#dials').innerHTML; $('.scframe').hidden=$('#scFeatSec').hidden&&$('#scDialSec').hidden;
+    syncDials(); $('#scDialSec').hidden=!$('#dials').innerHTML; $('.scframe').hidden=!$('#scenario').innerHTML.trim()&&$('#scFeatSec').hidden&&$('#scDialSec').hidden;
     // every feature chip is a toggle: same state as the Must have section
     $$('#scchips .mhr').forEach(b=>b.onclick=()=>{$('#region').value='any'; run();});
     $$('#scchips .mhk:not(.mhr)').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); dirty(); $$('#reqs .chip').forEach(x=>x.setAttribute('aria-pressed',req.has(x.dataset.k))); run();}); }
