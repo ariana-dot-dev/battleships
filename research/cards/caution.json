@@ -165,66 +165,77 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
-    "gpu": null,
-    "snapshot": null,
-    "pause_resume": null,
-    "fork": null,
-    "persistent_disk": null,
+    "windows": false,
+    "macos": false,
+    "arm64": false,
+    "gpu": false,
+    "snapshot": "none",
+    "pause_resume": false,
+    "fork": false,
+    "persistent_disk": false,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": false,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": null,
-    "desktop": null,
-    "computer_use": null,
+    "browser": false,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
-    "ssh": null,
+    "agent_harnesses": false,
+    "ssh": true,
     "public_ipv4": true,
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": true,
     "private_network": null,
     "self_host": true,
     "byoc": true,
     "open_source": true,
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
     "gpu_types": [],
     "regions": null,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "harness_api": false,
     "ingress_rules": true,
-    "secret_proxy": false
+    "secret_proxy": false,
+    "isolation": "dedicated-vm",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "volume_attach": false,
+    "volume_shared": false,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -286,6 +297,293 @@
       "quote": "The Caution CLI encrypts these values from a local .env file into .asc files, which are committed with the app and decrypted inside the enclave after the quorum is met.",
       "note": "Secrets (Locksmith, Shamir quorum, attested key delivery) are delivered INTO the enclave and exposed as env vars via env::vault(...); protected from the host, not from the workload. No credential-injecting egress proxy.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "dedicated-vm",
+      "source": "https://docs.caution.co/reference/debug-enclave/running/",
+      "quote": "SSH access is to the host EC2 instance, not the enclave itself. The enclave runs in an isolated VM.",
+      "note": "AWS Nitro Enclaves: a hardware-isolated VM carved out of vCPU/RAM from the parent EC2 (Nitro) host, with its own kernel/memory, no persistent storage, and only vsock connectivity.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://docs.caution.co/reference/byoc/",
+      "quote": "Caution builds from the repository root with docker build -f <containerfile> . ; it does not run a custom build command or pass extra Docker build arguments.",
+      "note": "You bring a Containerfile/Docker image; Caution builds it into the enclave image (EIF).",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/fully-managed/",
+      "quote": "enclave \"main\" { unit \"default\" { command = \"/app/server\" } }",
+      "note": "not offered: outside the product's scope — the enclave runs one built application process (an EIF derived from your Docker image); no documented way to run Docker/containers inside the running enclave workload itself.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.caution.co/concepts/security-assumptions/",
+      "quote": "Caution currently supports deployments on AWS Nitro Enclaves. That means current deployments rely on: AWS Nitro Enclaves for enclave isolation and memory protection",
+      "note": "not offered: outside the product's scope — AWS Nitro Enclaves have no /dev/kvm passthrough; the enclave itself is the isolation layer, not a general-purpose VM host.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://caution.co/llms.txt",
+      "quote": "Caution makes it simple to deploy workloads to trusted execution environments (TEEs) and lets anyone cryptographically verify exactly what software is running.",
+      "note": "not offered: outside the product's scope — a headless confidential-app-hosting platform, not a desktop/VNC product.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/deployment-configuration/",
+      "quote": "Client integration : Use the native Rust SDK, generated Swift/UniFFI facade, STEVE CLI, or browser SDK and pin the deployment's key-exchange suite",
+      "note": "not offered: outside the product's scope — the 'browser SDK' is a client-side JS library end users load in their own browser to talk to STEVE; Caution does not provide/manage a browser inside the sandbox.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://caution.co/llms.txt",
+      "quote": "Caution makes it simple to deploy workloads to trusted execution environments (TEEs) and lets anyone cryptographically verify exactly what software is running.",
+      "note": "not offered: outside the product's scope — no screenshot/click desktop-driving API exists for this confidential-app-hosting platform.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://caution.co/llms.txt",
+      "quote": "Caution helps teams deploy workloads to AWS Nitro Enclaves, verify source-to-enclave integrity with reproducible builds and hardware attestation, and optionally protect application data all the way into the enclave with end-to-end encryption.",
+      "note": "not offered: outside the product's scope — no browser-automation/anti-detection feature for a confidential-compute app-hosting platform.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://caution.co/llms.txt",
+      "quote": "Caution helps teams deploy workloads to AWS Nitro Enclaves, verify source-to-enclave integrity with reproducible builds and hardware attestation, and optionally protect application data all the way into the enclave with end-to-end encryption.",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://docs.caution.co/reference/fully-managed/",
+      "quote": "A stable managed DNS target that follows the app's current Elastic IP",
+      "note": "Deployments get an AWS Elastic IP (static datacenter IP) on the parent EC2 instance; the vsock network proxy routes the enclave's outbound traffic through that same host, so egress is a fixed AWS datacenter IP.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://docs.caution.co/reference/debug-enclave/running/",
+      "quote": "To SSH into the EC2 instance running the enclave, add your public key to the ssh_keys list ... ssh ec2-user@<instance-ip>",
+      "note": "SSH reaches only the host EC2 instance (not the enclave itself), and is a debug-mode-only feature you're told to disable in production.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.caution.co/concepts/security-assumptions/",
+      "quote": "Debug-mode deployments AWS Nitro Enclaves zero out PCR values in debug mode, so production verification is not meaningful while debug mode is enabled.",
+      "note": "not offered: no documented snapshot/checkpoint capability; enclaves are stateless application processes rebuilt from source/image on each deploy, with secrets re-derived via Locksmith on boot.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/deployment-models/",
+      "quote": "Caution runs on AWS Nitro Enclaves and supports multiple deployment options depending on how much infrastructure ownership and operational control you want.",
+      "note": "not offered: no documented auto-snapshot-on-stop feature.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/deployment-models/",
+      "quote": "Caution runs on AWS Nitro Enclaves and supports multiple deployment options depending on how much infrastructure ownership and operational control you want.",
+      "note": "not offered: no documented on-demand snapshot/checkpoint API.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/byoc/",
+      "quote": "A one-time setup script creates isolated AWS infrastructure and a scoped IAM identity limited to resources tagged for Caution, then Caution manages deployments within that environment.",
+      "note": "not offered: no documented machine-clone/fork API; each deployment is built fresh from source via Docker + nitro-cli.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/byoc/",
+      "quote": "A one-time setup script creates isolated AWS infrastructure and a scoped IAM identity limited to resources tagged for Caution, then Caution manages deployments within that environment.",
+      "note": "not offered: no documented running-clone feature.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.caution.co/concepts/security-assumptions/",
+      "quote": "The workload runs inside a confidential compute enclave isolated from the host.",
+      "note": "not offered: no documented memory-snapshot clone; would also conflict with Nitro Enclave memory isolation guarantees.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/byoc/",
+      "quote": "Create new instances via the ASG (automatically tagged) ... Start/stop/terminate EC2 instances with the deployment tag",
+      "note": "Only full start/stop/terminate of the host EC2 instance via the Auto Scaling Group is documented; no explicit pause-with-reduced-billing feature.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/byoc/",
+      "quote": "Ec2[\"EC2 parent instance<br/>launched by ASG\"]",
+      "note": "not offered: app runs continuously on an ASG-managed EC2 instance; no documented sleep/wake-on-request model.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://docs.caution.co/concepts/key-services/",
+      "quote": "Caution's secret management system for enclaves offers services for managing keys that are never exposed outside of enclave memory and are portable.",
+      "note": "not offered: no documented persistent-disk feature for the enclave workload; the docs describe secrets delivery (Locksmith) and public env vars, not a mounted persistent filesystem.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/caution-hcl/",
+      "quote": "resources { } # cpu / memory ... cpu = 2 memory_mb = 512",
+      "note": "not offered: caution.hcl configuration surface covers cpu/memory/ports/build/debug; no volume/disk attachment block is documented.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/caution-hcl/",
+      "quote": "resources { } # cpu / memory ... cpu = 2 memory_mb = 512",
+      "note": "not offered: no documented shared-volume feature.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/byoc/",
+      "quote": "Ec2[\"EC2 parent instance<br/>launched by ASG\"]",
+      "note": "not offered: no documented idle-timeout auto-stop; the ASG keeps the app instance running.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/caution-hcl/",
+      "quote": "cpu = 2 memory_mb = 512 ... cpu Number of vCPUs. memory_mb Memory allocation in MB.",
+      "note": "CPU/RAM are set in caution.hcl and applied via redeploy; no documented API to resize a running machine in place.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.caution.co/guides/build-with-an-ai-agent/",
+      "quote": "Caution publishes a set of agent skills for Claude Code and Codex. Once installed, your agent knows how to package and debug an app for Caution and StageX without you having to paste in the docs.",
+      "note": "These are SKILL.md files for a developer's local coding agent to help author caution.hcl/Containerfiles; no coding-agent harness is preinstalled inside the enclave/sandbox itself.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://caution.co/llms.txt",
+      "quote": "Caution makes it simple to deploy workloads to trusted execution environments (TEEs) and lets anyone cryptographically verify exactly what software is running.",
+      "note": "not offered: outside the product's scope — no first-party browser/computer-use/research task agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.caution.co/guides/build-with-an-ai-agent/",
+      "quote": "Each skill is a SKILL.md — the format originated by Anthropic for Claude Code and now also read natively by Codex.",
+      "note": "Only SKILL.md agent-skill files are offered; no MCP server for controlling Caution deployments is documented.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/fully-managed/",
+      "quote": "Caution builds from the repository root with docker build -f <containerfile> . . It does not run a custom build command or pass extra Docker build arguments",
+      "note": "not offered: no managed language runtime out of the box — every deployment must bring its own Containerfile/image regardless of language.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/fully-managed/",
+      "quote": "Caution builds from the repository root with docker build -f <containerfile> . . It does not run a custom build command or pass extra Docker build arguments",
+      "note": "not offered: no managed language runtime out of the box — every deployment must bring its own Containerfile/image regardless of language.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/debug-enclave/running/",
+      "quote": "# Network proxy (provides enclave internet access) sudo systemctl status vsock-network.service",
+      "note": "not offered: the documented vsock network proxy just gives the enclave general internet access; no allow/deny-list or no-internet-mode egress control is documented.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.caution.co/reference/debug-enclave/running/",
+      "quote": "# Network proxy (provides enclave internet access) sudo systemctl status vsock-network.service",
+      "note": "not offered: no documented HTTP method/path-level egress rules.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://docs.caution.co/reference/byoc/",
+      "quote": "Eip[\"Elastic IP<br/>assigned during deploy\"] ... A stable Caution-managed DNS target that follows the app's current Elastic IP",
+      "note": "An AWS Elastic IP is assigned per deployment and is the address the app (and its egress via the same host) is reachable/routed through.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://caution.co/pricing.html",
+      "quote": "m5.xlarge (4/16 GB host, enclave up to 2 vCPU/14 GB), m5.2xlarge (8/32, up to 6/30), m5.4xlarge (16/64, up to 14/62), m5.8xlarge (32/128, up to 30/126)",
+      "note": "not offered: outside the product's scope — AWS Nitro Enclaves run on general-purpose m5 instances; Nitro Enclaves do not support GPU passthrough.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.caution.co/quickstart/fully-managed/",
+      "quote": "CLI Supported today on Linux (x86_64) or macOS (arm64)",
+      "note": "not offered: outside the product's scope — AWS Nitro Enclaves and the demo apps are Linux-only; there is no Windows enclave/host option.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.caution.co/quickstart/fully-managed/",
+      "quote": "CLI Supported today on Linux (x86_64) or macOS (arm64)",
+      "note": "not offered: macOS is only a supported platform for running the local Caution CLI/developer tooling, not a hosting target — deployed enclaves run on AWS Nitro (Linux).",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://caution.co/pricing.html",
+      "quote": "m5.xlarge (4/16 GB host, enclave up to 2 vCPU/14 GB), m5.2xlarge (8/32, up to 6/30), m5.4xlarge (16/64, up to 14/62), m5.8xlarge (32/128, up to 30/126)",
+      "note": "not offered: the documented BYOC/managed host instance types (m5.*) are x86_64; macOS arm64 is only supported as a CLI development platform, not as an enclave architecture.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://caution.co/security-controls.html",
+      "quote": "Does Caution certify compliance? No. The Caution platform provides technical controls and evidence that may support a security or assurance program.",
+      "note": "The page maps evidence to SOC 2 TSC criteria but explicitly states Caution does not itself certify/attest compliance.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://caution.co/security-controls.html",
+      "quote": "Does Caution certify compliance? No. The Caution platform provides technical controls and evidence that may support a security or assurance program.",
+      "note": "No HIPAA-eligibility or BAA is documented; compliance certification is explicitly stated to be the customer's responsibility.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.caution.co/quickstart/fully-managed/",
+      "quote": "Passkey Browser or platform passkey, password manager passkey, or security key or smart card (YubiKey, NitroKey, or LibremKey)",
+      "note": "Account auth is documented as passkey-based (WebAuthn/FIDO2); no SAML/OIDC SSO is mentioned anywhere in the docs or FAQ.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://docs.caution.co/reference/byoc/",
+      "quote": "You control: Your AWS account and billing Network configuration and VPC Where your data resides",
+      "note": "Under bring-your-own-compute, the customer's own AWS account/region choice (including EU regions) determines data residency; not established for the fully managed mode, whose region is not documented.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.caution.co/reference/byoc/",
+      "quote": "Ec2[\"EC2 parent instance<br/>launched by ASG\"] --> Enclave[\"AWS Nitro Enclave<br/>application runtime\"]",
+      "note": "No documented session/runtime time limit; the app runs continuously on an Auto-Scaling-Group-managed EC2 instance until the deployment is stopped/terminated.",
+      "checked": "2026-09-30"
     }
   }
 }

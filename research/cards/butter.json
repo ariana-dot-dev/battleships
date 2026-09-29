@@ -3,7 +3,7 @@
   "name": "Butter",
   "url": "https://butter.dev",
   "category": "agent-sandbox",
-  "isolation": null,
+  "isolation": "gvisor",
   "modes": [
     {
       "key": "native",
@@ -82,70 +82,77 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
+    "windows": false,
+    "macos": false,
     "arm64": true,
-    "gpu": null,
-    "snapshot": null,
-    "pause_resume": null,
-    "fork": null,
-    "persistent_disk": null,
+    "gpu": false,
+    "snapshot": "none",
+    "pause_resume": false,
+    "fork": false,
+    "persistent_disk": false,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": false,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": false,
+    "nested_virt": false,
     "root": false,
     "systemd": null,
-    "browser": null,
-    "desktop": null,
-    "computer_use": null,
+    "browser": false,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
-    "ssh": null,
-    "public_ipv4": null,
+    "agent_harnesses": false,
+    "ssh": false,
+    "public_ipv4": false,
     "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
-    "byoc": null,
+    "byoc": false,
     "open_source": true,
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
     "gpu_types": [],
     "regions": null,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
     "harness_api": false,
     "ingress_rules": false,
     "guest_firewall": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "gvisor",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "own_agent_api": false,
+    "secret_proxy": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -219,6 +226,272 @@
       "quote": "Isolation is achieved via a copy-on-write overlay on top of the host filesystem. Files opened with write flags are copied to a sandbox-local directory. Read-only files are passed through to the real filesystem.",
       "note": "All sandboxes on a host read the same host filesystem (read-only passthrough), but writes are private per sandbox; no first-party shared volume.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "gvisor",
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "Inspired by gVisor, bVisor runs programs directly on the host machine, providing isolation by intercepting and virtualizing Linux syscalls from userspace.",
+      "note": "Not actually gVisor and not a VM/container: bVisor is a local in-process seccomp-user-notifier syscall interceptor embedded in the calling application, running on the host's own kernel with a COW filesystem overlay. Closest listed category by mechanism (userspace syscall virtualization) but there is no separate customer machine at all -- isolation is process-level within one host, not multi-tenant machine isolation. derived.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is imageless, meaning it does not require a base image to run. It runs with direct visibility to the host filesystem.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "mount/unshare/setns/bpf/chroot/pivot_root syscalls are explicitly blocked (privilege escalation category), so a Docker daemon cannot run inside a bVisor sandbox.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "| Privilege escalation | `ptrace`, `mount`, `umount2`, `chroot`, `pivot_root`, `reboot`, `setns`, `unshare`, `seccomp`, `bpf` |",
+      "note": "No KVM/VM support; sandboxes run as plain unprivileged host processes via seccomp interception, not machines with /dev/kvm.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope (a local bash-execution library, not a machine with a GUI)",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope (no browser product at all)",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope (no remote machine to SSH into; it runs in-process on the caller's own host)",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/src/sdks/node/src/sandbox.ts",
+      "quote": "runCmd(command: string) {",
+      "note": "SDK surface is only constructor, setLogLevel, runCmd; no snapshot/checkpoint/restore API of any kind.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/src/sdks/node/src/sandbox.ts",
+      "quote": "runCmd(command: string) {",
+      "note": "No clone/fork API in the SDK.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/src/sdks/node/src/sandbox.ts",
+      "quote": "runCmd(command: string) {",
+      "note": "No fork capability exists at all, so a running-clone variant is also absent.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/src/sdks/node/src/sandbox.ts",
+      "quote": "runCmd(command: string) {",
+      "note": "No snapshot or fork mechanism exists, so memory-preserving forks are unavailable.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/src/sdks/node/src/sandbox.ts",
+      "quote": "runCmd(command: string) {",
+      "note": "No pause/resume method exists; a sandbox is just a live in-process object for the life of the host process.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope (there is no hosted machine to sleep/wake -- it runs inline in the calling app)",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "Isolation is achieved via a copy-on-write overlay on top of the host filesystem. Files opened with write flags are copied to a sandbox-local directory.",
+      "note": "Sandbox-local writes live in a COW overlay tied to the host process; there is no documented persistence mechanism across sandbox instances/restarts.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor runs programs directly on the host machine, providing isolation by intercepting and virtualizing Linux syscalls from userspace.",
+      "note": "not offered: outside the product's scope (no billed hosted machine that idles; lifecycle is tied to the embedding process)",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor runs programs directly on the host machine, providing isolation by intercepting and virtualizing Linux syscalls from userspace.",
+      "note": "not offered: outside the product's scope (no provisioned CPU/RAM sizing at all -- it borrows the host process's resources)",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope (a syscall-interception bash-exec library, not a template/marketplace product)",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope (no first-party task/browser agent product)",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope; the README lists no MCP server.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "[Running Python](src/sdks/node/examples/python-hello.ts) - Write and execute a Python script",
+      "note": "bVisor is imageless and passes through to the host filesystem/binaries, so any Python present on the host works inside a sandbox, as shown by the shipped example.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "The bVisor runtime ships wrapped in a Typescript SDK, installed via npm.",
+      "note": "Primary SDK is a TypeScript/Node package (npm install bvisor); Node is the native runtime.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "| Server sockets | `bind`, `listen`, `accept`, `accept4` |",
+      "note": "not offered: outside the product's scope. Server-socket syscalls (bind/listen/accept) are explicitly blocked, so sandboxes cannot expose any listening service, let alone get a public IPv4.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope; no HTTP-method/path-level egress control is documented.",
+      "checked": "2026-09-30"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope; no credential-injection proxy is documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor runs programs directly on the host machine, providing isolation by intercepting and virtualizing Linux syscalls from userspace.",
+      "note": "not offered: outside the product's scope; there is no provider-hosted egress path to make static, since the sandbox shares the host's own network egress.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor currently ships for Linux hosts only, with support for ARM and X86 architectures and glibc/musl ABIs.",
+      "note": "not offered: outside the product's scope (a CPU syscall-interception library; no GPU machines are sold)",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "**Compatibility**: bVisor currently ships for Linux hosts only, with support for ARM and X86 architectures and glibc/musl ABIs.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "**Compatibility**: bVisor currently ships for Linux hosts only, with support for ARM and X86 architectures and glibc/musl ABIs.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "not offered: outside the product's scope; there is no managed service to deploy into a customer cloud account -- it's an embeddable open-source library the customer runs themselves (which is broader than BYOC, i.e. self_host).",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://www.ycombinator.com/companies/butter",
+      "quote": "Butter — Winter 2025 YC batch, embedded bVisor runtime for agent sandboxing.",
+      "note": "not offered: outside the product's scope; no compliance/trust page exists for an early-stage open-source proof-of-concept library. No SOC 2 attestation is published.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://www.ycombinator.com/companies/butter",
+      "quote": "Butter — Winter 2025 YC batch, embedded bVisor runtime for agent sandboxing.",
+      "note": "not offered: outside the product's scope; no HIPAA/BAA offering is published for this early-stage local library.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor",
+      "quote": "bVisor is an early proof-of-concept and should not yet be used in production.",
+      "note": "not offered: outside the product's scope; there is no hosted account/service with a login system at all -- it's an npm package.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor",
+      "quote": "bVisor is an early proof-of-concept and should not yet be used in production.",
+      "note": "not offered: outside the product's scope; there is no hosted infrastructure/region at all -- code runs on the customer's own host.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor runs programs directly on the host machine, providing isolation by intercepting and virtualizing Linux syscalls from userspace.",
+      "note": "No hosted session to time-limit: a sandbox is an in-process object that lives as long as the embedding application process runs, with no provider-side stop policy documented. derived.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "Networking | socket, socketpair, connect, shutdown, sendto, recvfrom, sendmsg, recvmsg",
+      "note": "Outbound connect/send syscalls are virtualized/passed through with no documented allow/deny-list controls.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -3,7 +3,7 @@
   "name": "Windmill",
   "url": "https://www.windmill.dev/pricing",
   "category": "paas",
-  "isolation": null,
+  "isolation": "container",
   "modes": [
     {
       "key": "cloud-team",
@@ -195,67 +195,77 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
-    "gpu": null,
-    "snapshot": null,
-    "pause_resume": null,
-    "fork": null,
-    "persistent_disk": null,
+    "windows": false,
+    "macos": false,
+    "arm64": true,
+    "gpu": false,
+    "snapshot": "none",
+    "pause_resume": false,
+    "fork": false,
+    "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": null,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": false,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": null,
-    "desktop": null,
-    "computer_use": null,
+    "browser": true,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
-    "ssh": null,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "agent_harnesses": true,
+    "ssh": false,
+    "public_ipv4": false,
+    "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
     "open_source": true,
-    "soc2": null,
-    "hipaa": null,
+    "soc2": true,
+    "hipaa": true,
     "sso": true,
     "gpu_types": [],
     "regions": null,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": true,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": true,
     "harness_api": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "container",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "own_agent_api": false,
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -310,6 +320,293 @@
       "quote": "Only one job can use a given volume at a time. Windmill acquires an exclusive lease (60-second TTL, auto-renewed every 10 seconds) on each volume before downloading.",
       "note": "Exclusive lease per volume; concurrent jobs wait. Workspace object storage (S3) itself can be accessed concurrently by jobs through the SDK/API, but not as a shared mount.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "NSJAIL is a process isolation tool from Google that provides: Filesystem isolation ... Network restrictions ... Resource limits ... User namespace",
+      "note": "Windmill jobs run on shared Linux worker hosts, optionally confined by NSJAIL (Linux namespaces + seccomp, like gVisor's underlying primitives) or PID-namespace 'unshare'. No hypervisor/VM boundary; kernel is shared with the worker host. Both isolation layers are disabled by default.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "Windmill can run any container image directly from a Bash script with the `# sandbox <image>` annotation. It is daemonless (no Docker socket, no Docker-in-Docker sidecar) and runs the image inside the job's own nsjail sandbox",
+      "note": "crane pulls/extracts the OCI image's rootfs and nsjail runs the command with that rootfs as its /; supported on Windmill Cloud.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "It is daemonless (no Docker socket, no Docker-in-Docker sidecar) and runs the image inside the job's own nsjail sandbox",
+      "note": "OCI images can be run via the `# sandbox <image>` annotation, but there is no Docker daemon/socket or Docker-in-Docker inside jobs, so the `docker` CLI itself does not work inside a job.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "Windmill provides multiple layers of process isolation to protect your infrastructure from potentially malicious or buggy code execution.",
+      "note": "not offered: outside the product's scope. Jobs run under nsjail/PID-namespace process isolation on shared workers; no /dev/kvm or nested virtualization is documented.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://www.windmill.dev/pricing",
+      "quote": "Windmill is an open-source and self-hostable workflow engine and developer platform to build, orchestrate, and monitor internal software at scale.",
+      "note": "not offered: outside the product's scope (workflow/job execution platform, no graphical desktop/VNC/RDP).",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/advanced/browser_automation",
+      "quote": "By default, a worker group named `reports` is available which will handle jobs with the `chromium` tag. Workers assigned to this group will install chromium on start... The chromium binary will be available on these workers at `/usr/bin/chromium`.",
+      "note": "A managed Chromium browser can be run headless on a dedicated worker group for scraping/testing scripts (sandbox required to disable Chromium's own sandbox flag).",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/browser_automation",
+      "quote": "Windmill makes it easy to perform browser automation tasks, such as testing or web scraping.",
+      "note": "not offered: outside the product's scope. Browser automation is script/code driven (Playwright-style), no screenshot+click computer-use API.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/browser_automation",
+      "quote": "Windmill makes it easy to perform browser automation tasks, such as testing or web scraping.",
+      "note": "not offered: outside the product's scope; no stealth/fingerprinting features documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/browser_automation",
+      "quote": "Windmill makes it easy to perform browser automation tasks, such as testing or web scraping.",
+      "note": "not offered: outside the product's scope; no built-in CAPTCHA solving documented.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/ssh_execution",
+      "quote": "Windmill can run a Bash script on a remote host that the worker can only reach over SSH... the worker reroutes execution to the remote host",
+      "note": "not offered: outside the product's scope. This SSH feature is outbound (the worker SSHes to a separate target host to run a script); there is no inbound SSH access into the Windmill worker/job itself.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "Windmill workers execute user-provided code in various languages.",
+      "note": "Jobs are ephemeral script/flow executions on shared workers; there is no per-job VM/disk/memory machine snapshot concept (DuckLake 'snapshots' are data versioning, unrelated to machine state).",
+      "checked": "2026-09-30"
+    },
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "Windmill workers execute user-provided code in various languages.",
+      "note": "not offered: outside the product's scope; no machine to auto-checkpoint.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "Windmill workers execute user-provided code in various languages.",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/core_concepts/dev_workspaces",
+      "quote": "Developers want sandboxes to test risky changes without affecting anyone else.",
+      "note": "'Forks' in Windmill are git-branch-style workspace forks for code review, not clones of a running machine. No machine-cloning feature; not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/core_concepts/dev_workspaces",
+      "quote": "Developers want sandboxes to test risky changes without affecting anyone else.",
+      "note": "not offered: outside the product's scope (no running-machine cloning).",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/core_concepts/dev_workspaces",
+      "quote": "Developers want sandboxes to test risky changes without affecting anyone else.",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/core_concepts/autoscaling",
+      "quote": "Autoscaling automatically adjusts the number of workers based on your workload demands.",
+      "note": "not offered: outside the product's scope. Workers autoscale up/down but there is no per-session pause/resume of a customer machine.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/core_concepts/autoscaling",
+      "quote": "Autoscaling automatically adjusts the number of workers based on your workload demands.",
+      "note": "not offered: outside the product's scope. Autoscaling reacts to queue depth, not an individual sleeping sandbox waking on an inbound request.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/core_concepts/volumes",
+      "quote": "Volumes provide persistent file storage that can be attached to scripts via code annotations.",
+      "note": "Named volumes (object-storage-backed) persist files across separate job runs, functioning like persistent disk across a stateless worker fleet.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/core_concepts/autoscaling",
+      "quote": "Configure autoscaling to scale up when queue depth increases and scale down when occupancy drops below 25%.",
+      "note": "Enterprise autoscaling scales worker count down (toward the configured minimum) when idle; jobs themselves are ephemeral so there is no persistent 'idle machine' to stop in the sandbox sense.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/core_concepts/autoscaling",
+      "quote": "Autoscaling automatically adjusts the number of workers based on your workload demands.",
+      "note": "not offered: outside the product's scope; scaling changes worker count, not CPU/RAM of a running job/machine in place.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/core_concepts/ai_sandbox",
+      "quote": "Windmill includes a built-in template for Claude Code using the @anthropic-ai/claude-agent-sdk... docs give skeletons for Codex and OpenCode/custom agents.",
+      "note": "Preinstalled/offered templates for Claude Code, Codex, and OpenCode running inside the nsjail 'AI sandbox' pattern.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://www.windmill.dev/pricing",
+      "quote": "Windmill is an open-source and self-hostable workflow engine and developer platform to build, orchestrate, and monitor internal software at scale.",
+      "note": "not offered: outside the product's scope. Windmill offers AI Agent flow steps and an MCP server to drive Windmill/coding harnesses, but has no first-party browser/computer-use/research task agent of its own.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/core_concepts/mcp",
+      "quote": "Windmill's MCP server allows AI tools to interact directly with a Windmill workspace. It supports: Accessing Windmill documentation; Executing scripts and flows; Creating, updating, listing, and deleting resources",
+      "note": "First-party MCP server exposes Windmill's own sandboxed script/flow execution as MCP tools.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://www.windmill.dev/llms.txt",
+      "quote": "Full flexibility of code with 20+ languages",
+      "note": "Python is one of Windmill's core first-class script languages (Python quickstart docs).",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://www.windmill.dev/llms.txt",
+      "quote": "Full flexibility of code with 20+ languages",
+      "note": "TypeScript/JavaScript run via Bun and Deno runtimes as core first-class script languages.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://www.windmill.dev/pricing",
+      "quote": "Windmill is an open-source and self-hostable workflow engine and developer platform to build, orchestrate, and monitor internal software at scale.",
+      "note": "not offered: outside the product's scope. Jobs run on shared multi-tenant worker infrastructure, not a per-customer machine with its own public IPv4.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/core_concepts/4_webhooks",
+      "quote": "HTTP routes ... to serve the stream on a custom path.",
+      "note": "Scripts/flows can be exposed over HTTPS via webhooks and HTTP routes (custom paths) on the Windmill instance/cloud domain.",
+      "checked": "2026-09-30"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/triggers/http_routing",
+      "quote": "When calling an HTTP trigger with Windmill Auth, the token must have `http_triggers:read` access to the trigger path.",
+      "note": "HTTP routes support scoped-token auth and per-route allowed-origins configuration, giving provider-side control over who can call an exposed endpoint.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "Network restrictions - Optional network isolation",
+      "note": "NSJAIL can optionally restrict network access per job, but no documented allow/deny list or no-internet mode; not a provider-managed egress allowlist product feature.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "Network restrictions - Optional network isolation",
+      "note": "not offered: outside the product's scope; no HTTP method/path-level egress rules documented.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "NSJAIL is a process isolation tool from Google that provides ... User namespace - Jobs run as unprivileged users even when worker runs as root",
+      "note": "not offered: outside the product's scope. Windmill is namespace/process isolation on a shared kernel (not a full VM/microVM), and jobs run unprivileged, so a guest-side nftables/iptables firewall is not the model.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://www.windmill.dev/pricing",
+      "quote": "Windmill is an open-source and self-hostable workflow engine and developer platform to build, orchestrate, and monitor internal software at scale.",
+      "note": "not offered: outside the product's scope; no fixed outbound IP product documented for Windmill Cloud.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/core_concepts/worker_groups",
+      "quote": "This feature is useful if you want to run some scripts on a GPU machine, or if you want to run some scripts on high-memory machine.",
+      "note": "GPU is only a worker-group tag you can point at your own self-hosted/BYO GPU hardware; Windmill Cloud does not sell managed GPU instances (no GPU pricing/plan).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "Linux only - Not supported on Windows or macOS",
+      "note": "not offered: outside the product's scope. Windmill workers (and their job isolation) run on Linux; Windows is not an offered execution OS.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/advanced/security_isolation",
+      "quote": "Linux only - Not supported on Windows or macOS",
+      "note": "not offered: outside the product's scope; no macOS execution environment.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/misc/deploy_gcp",
+      "quote": "Choose Linux as the operating system. We recommend using either default (x86_64) or ARM64 architecture.",
+      "note": "Self-hosted deployment guides explicitly support ARM64 worker instances; Windmill Docker images are multi-arch.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/misc/security_compliance",
+      "quote": "Windmill is SOC 2 Type II compliant. You can download the SOC 2 report from the Customer Portal once your subscription is active.",
+      "note": "SOC 2 Type II, covers the Enterprise Edition (Windmill Cloud).",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": true,
+      "source": "https://trust.windmill.dev",
+      "quote": "Compliance overview: SOC 2 Type 2 Compliant, HIPAA Compliant",
+      "note": "Trust center lists HIPAA compliance status as Compliant, alongside PHI-specific controls (PHI access/disclosure/amendment handling).",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/misc/self_host",
+      "quote": "Windmill is an open-source and self-hostable workflow engine and developer platform.",
+      "note": "Windmill Cloud's own region(s) are not documented, but the self-hosted mode (this card's 'self-host' plan) lets customers deploy the full stack in any region including the EU, satisfying EU data residency.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://www.windmill.dev/docs/core_concepts/jobs",
+      "quote": "Default timeout for individual jobs, in seconds.",
+      "note": "Job/session length is governed by a configurable timeout (job_default_timeout), self-set by the operator with no documented hard platform ceiling; treated as 'none' (operator-controlled).",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -3,7 +3,7 @@
   "name": "ScitiX Agent Sandbox",
   "url": "https://scitix.github.io/Agent-Sandbox/",
   "category": "agent-sandbox",
-  "isolation": null,
+  "isolation": "container",
   "modes": [
     {
       "key": "self-hosted",
@@ -121,43 +121,43 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
+    "windows": false,
+    "macos": false,
     "arm64": null,
     "gpu": null,
     "gpu_types": [],
-    "snapshot": null,
-    "pause_resume": null,
-    "fork": null,
-    "persistent_disk": null,
+    "snapshot": "none",
+    "pause_resume": false,
+    "fork": false,
+    "persistent_disk": false,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": null,
-    "desktop": null,
-    "computer_use": null,
+    "browser": false,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
     "agent_harnesses": true,
-    "ssh": null,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "ssh": false,
+    "public_ipv4": false,
+    "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
     "open_source": true,
     "regions": null,
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
     "lang_python": true,
     "lang_node": true,
     "lang_go": true,
@@ -166,14 +166,14 @@
     "gpu_desktop": null,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -185,7 +185,15 @@
     "ingress_rules": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "container",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "guest_firewall": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -275,6 +283,230 @@
       "quote": "PersistentVolumeClaims mounted into every sandbox",
       "note": "An env's PVCs are mounted into every sandbox claimed from that env simultaneously; read-write sharing requires a ReadWriteMany storage class in the operator's cluster (not stated in docs). Derived from the env override semantics.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
+      "quote": "a sandbox is a claimed Pod, not a microVM, so there is no memory image",
+      "note": "Default runtime is a Kubernetes Pod (runc container, envd runtime). A kata (Firecracker microVM) runtime class is an opt-in template choice for untrusted-code isolation, but the base/default product isolation is a shared-kernel container.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/templates",
+      "quote": "an env can serve any image you can pull, and changing that image does not rebuild anything",
+      "note": "The image a sandbox runs is chosen per Sandbox.create() call and can be any pullable OCI/Docker image.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/plugin/skills/abx-sandbox-docker/SKILL.md",
+      "quote": "A sandbox can run `docker` and `docker compose`. It is not on by default: the template decides it",
+      "note": "Provided via a dedicated 'E2B Docker' template running dockerd (kata microVM or privileged runc), opt-in per SandboxEnv/template.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/examples/templates/e2b-kata",
+      "quote": "runs the sandbox Pod privileged... the same privileged dockerd is confined to a guest VM instead of sharing the node's kernel",
+      "note": "No /dev/kvm passthrough into the sandbox is documented; nested containers are provided via a kata microVM at the platform level, not KVM exposed to the guest workload.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "Give your AI agents a secure, isolated environment to execute code, interact with APIs, and use tools in the real world.",
+      "note": "not offered: outside the product's scope (a headless code-execution sandbox engine, no VNC/RDP/stream desktop documented)",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "Give your AI agents a secure, isolated environment to execute code, interact with APIs, and use tools in the real world.",
+      "note": "not offered: outside the product's scope; no managed/first-party browser is documented",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "Give your AI agents a secure, isolated environment to execute code, interact with APIs, and use tools in the real world.",
+      "note": "not offered: outside the product's scope; no screenshot/click desktop-driving API documented",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "Give your AI agents a secure, isolated environment to execute code, interact with APIs, and use tools in the real world.",
+      "note": "not offered: outside the product's scope (code-execution sandbox, not a browsing/scraping stealth product)",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "Give your AI agents a secure, isolated environment to execute code, interact with APIs, and use tools in the real world.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/designs/egress",
+      "quote": "installs one `nat` OUTPUT chain in the Pod's network namespace... the egress-proxy sidecar substitutes the real one as the request leaves",
+      "note": "Egress is via the cluster/node's own datacenter IPs through an egress-proxy sidecar; no residential/mobile IP product is offered.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
+      "quote": "Every sandbox runs **envd**: the agent the E2B SDK talks to. Process exec, ... PTY",
+      "note": "Access is via the envd runtime through the E2B-compatible SDK (exec/PTY/files over the gateway), not an SSH server/protocol; no SSH access documented.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
+      "quote": "pause / resume / snapshots / fork (a sandbox is a claimed Pod, not a microVM, so there is no memory image)",
+      "note": "Snapshot/pause/resume/fork endpoints are refused with HTTP 501/400 as architecturally unsupported.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
+      "quote": "architectural | No counterpart here; the caller should stop asking | pause / resume / snapshots / fork",
+      "note": "E2B fork calls are answered HTTP 501, listed as architectural (no memory image to fork).",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
+      "quote": "architectural | No counterpart here; the caller should stop asking | pause / resume / snapshots / fork",
+      "note": "Fork is unsupported entirely, so forking a running machine is also unsupported.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
+      "quote": "a sandbox is a claimed Pod, not a microVM, so there is no memory image",
+      "note": "No memory image exists to include in a fork/clone.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
+      "quote": "`autoPause`, `autoResume`, ... [refused] Refused at create (HTTP 400)",
+      "note": "E2B autoPause/autoResume are refused at create; on idle the Pod is restarted onto the idle image and state is discarded, not paused.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/pools",
+      "quote": "Running --> Idle : killed, or the idle timeout expires",
+      "note": "An idle/killed sandbox's state is discarded (Pod recycled to the idle image), not resumed automatically on the next request — a fresh sandbox must be created instead.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
+      "quote": "a sandbox is a claimed Pod, not a microVM, so there is no memory image",
+      "note": "A sandbox's own filesystem does not survive stop/reclaim (Pod is recycled onto the idle image); only env-level shared PersistentVolumeClaims persist across sandboxes, not a given sandbox's own disk state.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": true,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/pools",
+      "quote": "**Idle** | from the last activity to the sandbox being reclaimed | `timeout=` on the create, `sbx.set_timeout(…)` to extend, the env's default otherwise",
+      "note": "Sandboxes are automatically reclaimed after an idle timeout.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/templates",
+      "quote": "Resizing a workload means another pool, not another Pod",
+      "note": "Pods in one pool share identical resource requests/limits; changing CPU/RAM requires moving to a different pool, not resizing the running Pod.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/tutorials/managed-agents/brain-hands",
+      "quote": "The brain keeps running wherever you run it; the hands become a sandbox bound to the conversation.",
+      "note": "The 'Brain and Hands' integration lets your own coding-agent harness (Claude Agent SDK, OpenCode, etc.) drive tools inside the sandbox; there is no first-party ScitiX browser/computer-use/research agent product to drive via API.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/designs/cross-cluster",
+      "quote": "ExtProc sits in that path and rewrites the request before Envoy routes it",
+      "note": "Sandbox ports are reached only through the Envoy/ExtProc gateway data plane, not a public IPv4 address bound to the machine.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": true,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/tutorials/e2b",
+      "quote": "the gateway that sandbox ports are reached through",
+      "note": "Sandbox ports are published and reached via the Envoy/ExtProc gateway; the public URL is HTTPS regardless of the sandbox's own plaintext HTTP listener.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/designs/egress",
+      "quote": "`egress-init` (init) | installs one `nat` OUTPUT chain in the Pod's network namespace | needs `CAP_NET_ADMIN`",
+      "note": "derived: iptables rule installation requires CAP_NET_ADMIN, granted only to a separate egress-init sidecar, not documented as available inside the sandbox's own container; default isolation is a shared-kernel container, not a full VM.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/designs/egress",
+      "quote": "installs one `nat` OUTPUT chain in the Pod's network namespace",
+      "note": "Egress flows out through the cluster/node's own network path via an egress-proxy sidecar; no dedicated/fixed outbound IP per sandbox is documented.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "\"operatingSystem\":\"Kubernetes / VirtualMachine\"",
+      "note": "not offered: outside the product's scope; the platform runs Linux container/microVM Pods only, no Windows machines documented",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "Give your AI agents a secure, isolated environment to execute code, interact with APIs, and use tools in the real world.",
+      "note": "not offered: outside the product's scope; Kubernetes Pod / microVM based Linux sandboxes only",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "Open-Source Sandbox Engine ... Deploy across any cloud. Leverage the infrastructure your team already trusts.",
+      "note": "not offered: the product is self-hosted open-source software (Apache-2.0) deployed into the operator's own cluster, not a hosted service that could hold its own SOC 2 attestation; none is published.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "Open-Source Sandbox Engine ... Deploy across any cloud.",
+      "note": "not offered: self-hosted open-source software; no HIPAA/BAA program is published",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "Open-Source Sandbox Engine ... a unified console for sandbox operations",
+      "note": "No SAML/OIDC SSO is documented for the console or API; auth is via API keys per the E2B-compatible API.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/",
+      "quote": "Deploy sandbox pools across multiple clouds or regions. ... Supported cloud providers: AWS, Google Cloud, Azure, Alibaba Cloud, Volcengine, Cloudflare.",
+      "note": "Residency depends entirely on which clusters/regions the operator deploys into; no first-party EU-region guarantee or offering is published by ScitiX itself.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/pools",
+      "quote": "**Idle** | from the last activity to the sandbox being reclaimed | `timeout=` on the create, `sbx.set_timeout(…)` to extend, the env's default otherwise",
+      "note": "Only an idle timeout (extendable indefinitely via set_timeout) is documented; no absolute maximum session length/ceiling is stated, so a continuously active sandbox has no documented cap.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -3,7 +3,7 @@
   "name": "Chronicle Labs",
   "url": "https://chronicle-labs.com",
   "category": "agent-sandbox",
-  "isolation": null,
+  "isolation": "qemu-kvm",
   "modes": [
     {
       "key": "native",
@@ -82,55 +82,55 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
-    "gpu": null,
-    "snapshot": null,
-    "pause_resume": null,
-    "fork": null,
-    "persistent_disk": null,
+    "windows": false,
+    "macos": false,
+    "arm64": true,
+    "gpu": false,
+    "snapshot": "mem",
+    "pause_resume": true,
+    "fork": true,
+    "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": null,
-    "docker_inside": null,
+    "docker_inside": true,
     "nested_virt": null,
     "root": null,
     "systemd": null,
-    "browser": null,
-    "desktop": null,
-    "computer_use": null,
+    "browser": false,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
-    "ssh": null,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "agent_harnesses": false,
+    "ssh": false,
+    "public_ipv4": false,
+    "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
-    "self_host": null,
+    "self_host": false,
     "byoc": null,
-    "open_source": null,
+    "open_source": false,
     "soc2": null,
     "hipaa": null,
     "sso": null,
     "gpu_types": [],
     "regions": null,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": true,
+    "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
@@ -138,13 +138,21 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_on_demand": true,
     "egress_allowlist_level": "both",
     "ingress_rules": true,
     "guest_firewall": true,
     "secret_proxy": "any-http",
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "qemu-kvm",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "snapshot_auto": false,
+    "volume_attach": true,
+    "harness_api": false,
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -213,6 +221,251 @@
       "quote": "Isolated: one run must never see another workspace's data or mutate another trial's state.",
       "note": "Strict per-VM isolation by design; branches are copy-on-write children, not a shared read-write filesystem mounted by several running machines. No shared/network volume documented.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "qemu-kvm",
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "Each workload runs in a hardware-virtualized VM with its own guest kernel on Hypervisor.framework (macOS), KVM (Linux)... libkrun is the VMM",
+      "note": "Trials run in per-trial smolvm microVMs (libkrun VMM on KVM/Linux), a full hardware-isolated VM with its own guest kernel - closest taxonomy bucket is full VM on KVM, though the actual VMM is libkrun (a lightweight microVM library), not literally QEMU.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "Images use the OCI format, so anything on Docker Hub, ghcr.io or another registry boots as a microVM, with no Docker daemon.",
+      "note": "Chronicle's own worlds are also published/pulled as OCI artifacts (.smolmachine via OCI registry per the engineering blog).",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/examples/docker-in-vm/docker.smolfile",
+      "quote": "Runs Docker Engine in a bare Alpine VM. Init commands run directly in the VM as root via VmExec, so Docker gets full kernel privileges without any capability restrictions.",
+      "note": "Documented example runs dockerd (and even k3d/k3s) inside the smolvm guest kernel that Chronicle's trials use.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "Chronicle Labs is an AI agent testing and validation platform that turns production data into staging environments...runs agents against replicated production environments",
+      "note": "not offered: outside the product's scope. A generic Wayland/VNC desktop example exists in the underlying open-source smolvm substrate, but Chronicle's own testing/backtesting product exposes no GUI/desktop to customers.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "Chronicle Labs is an AI agent testing and validation platform...runs agents against replicated production environments derived from real traffic",
+      "note": "not offered: outside the product's scope. Chronicle mocks vendor APIs (worldd) rather than driving a real browser; a headless-browser example exists in the smolvm substrate but is not a Chronicle product feature.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "Chronicle Labs is an AI agent testing and validation platform...runs agents against replicated production environments",
+      "note": "not offered: outside the product's scope - no screenshot/click desktop-driving API found.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "Chronicle Labs is an AI agent testing and validation platform that turns production data into staging environments",
+      "note": "not offered: outside the product's scope - this is an internal agent evaluation platform, not a web-scraping/bot-evasion product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "Chronicle Labs is an AI agent testing and validation platform that turns production data into staging environments",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "runs agents against replicated production environments derived from real traffic",
+      "note": "not offered: outside the product's scope - trials are ephemeral, orchestrator-driven sandboxes (created/destroyed per trial) rather than machines customers interactively SSH into.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "mem",
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "Save a running machine mid-execution, rewind it, or branch it into copies that keep running from the same point. Checkpoints capture RAM, CPU state and disks",
+      "note": "smolvm checkpoints capture RAM + CPU state + disk (full memory snapshot), matching Chronicle's card feature_evidence for snapshot_on_demand.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "smolvm machine checkpoint --name agent -o agent.checkpoint        # save it, processes and all",
+      "note": "Checkpointing requires an explicit CLI/API call; no documented automatic save-on-stop/idle/timeout behavior.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "smolvm machine branch --from agent --name try-1                   # live copy-on-write child",
+      "note": "Branching (forking) a machine into new copy-on-write copies is a core documented feature.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "smolvm machine start --name agent --branchable\nsmolvm machine branch --from agent --name try-1                   # live copy-on-write child",
+      "note": "Branch is taken from a running (--branchable) machine without stopping it.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "Save a running machine mid-execution, rewind it, or branch it into copies that keep running from the same point.",
+      "note": "Live branches are copy-on-write clones of a running machine, so they include memory/process state (clones keep running from the same point).",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "stop without losing execution with [pause and resume](docs/pause-resume.md)",
+      "note": "Explicit pause/resume documented.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://chronicle-labs.com/blog/how-we-run-thousands-of-isolated-agent-trials-with-smolvm",
+      "quote": "A trial begins when the orchestrator selects the next case from the pinned Dataset Version and asks the sandbox driver for an environment.",
+      "note": "not offered: outside the product's scope - trials are explicitly created by the orchestrator per test case, not woken automatically by an inbound network request.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "Machines persist across restarts, and any OCI image works, including ones you build locally.",
+      "note": "Disk state survives stop/start.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "Declare a machine in a Smolfile: image, resources, ports, mounts and network policy in one checked-in file.",
+      "note": "Smolfile 'mounts' plus -v host-dir mount flags document attachable volumes/directories.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": true,
+      "source": "https://chronicle-labs.com/blog/how-we-run-thousands-of-isolated-agent-trials-with-smolvm",
+      "quote": "When the trial finishes, the machine is destroyed.",
+      "note": "derived: trial VMs are ephemeral by design and are torn down automatically once the run ends, functioning like an auto-stop rather than a persistent always-on VM.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "Defaults: 4 vCPUs, 8 GiB RAM. Memory is elastic via virtio balloon and idle vCPUs sleep in the hypervisor... Override with --cpus and --mem.",
+      "note": "CPU/RAM are set at machine-creation time (--cpus/--mem); memory ballooning is automatic elasticity, not a customer-triggered live resize API for a running machine.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "runs agents against replicated production environments derived from real traffic",
+      "note": "not offered: outside the product's scope - customers bring their own agent/run command; no preinstalled coding-agent harness templates (Claude Code, Codex, etc.) documented.",
+      "checked": "2026-09-30"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "runs agents against replicated production environments derived from real traffic",
+      "note": "not offered: outside the product's scope - no first-party API to drive a preinstalled coding harness.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "Chronicle Labs is an AI agent testing and validation platform",
+      "note": "not offered: outside the product's scope - Chronicle evaluates the customer's own agent; it does not offer its own browser/computer-use/research task agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://api.github.com/orgs/chronicle-labs-ai/repos",
+      "quote": "docs, chronicle-typescript, chronicle-python, chronicle-go, chronicle-java, chronicle-dotnet, chronicle-rust, studio-desktop",
+      "note": "No MCP-server repo/package found in Chronicle Labs' public GitHub org or docs as of check date.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://pypi.org/pypi/chroniclelabs/json",
+      "quote": "pip install chroniclelabs ... The ChronicleLabs Python library provides convenient access to the ChronicleLabs APIs from Python.",
+      "note": "First-party Python SDK (chroniclelabs on PyPI, chronicle-labs-ai/chronicle-python on GitHub) for the Chronicle API.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/chronicle-labs-ai/chronicle-typescript/main/README.md",
+      "quote": "npm i -s @chroniclelabs/api-client ... The ChronicleLabs TypeScript library provides convenient access to the ChronicleLabs APIs from TypeScript.",
+      "note": "First-party TypeScript/Node SDK (@chroniclelabs/api-client).",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://chronicle-labs.com/blog/how-we-run-thousands-of-isolated-agent-trials-with-smolvm",
+      "quote": "networking is disabled by default, and enabling it requires an explicit domain allowlist.",
+      "note": "not offered: outside the product's scope - trial microVMs run with no network by default and no public-IP exposure documented.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://chronicle-labs.com/blog/how-we-run-thousands-of-isolated-agent-trials-with-smolvm",
+      "quote": "networking is disabled by default, and enabling it requires an explicit domain allowlist.",
+      "note": "not offered: outside the product's scope - no documented feature to reach a port on the trial VM via a public HTTPS URL; egress-only allowlisting is the documented network model.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "smolvm machine run --net --image alpine --allow-host-pattern registry.npmjs.org -- wget -qO- https://registry.npmjs.org   # exact host only",
+      "note": "Egress control is documented at the domain/hostname-pattern and CIDR level (--allow-host, --allow-host-pattern, --allow-cidr); no HTTP method/path-level rule granularity is documented.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://chronicle-labs.com/blog/how-we-run-thousands-of-isolated-agent-trials-with-smolvm",
+      "quote": "We are also watching smolvm's GPU path—Vulkan through virtio-gpu and CUDA API remoting—as a way to bring heavier scoring models inside the isolation boundary rather than running them beside it.",
+      "note": "GPU support in the smolvm substrate is exploratory/roadmap per Chronicle's own blog, not a currently shipped Chronicle product feature.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "Chronicle Labs integrates with 100+ production tools",
+      "note": "not offered: outside the product's scope - trial guests are Linux-only microVMs (card already sets linux:true, others null); no Windows guest machines.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "Each workload runs in a hardware-virtualized VM with its own guest kernel on Hypervisor.framework (macOS), KVM (Linux), or the Windows Hypervisor Platform (Windows)",
+      "note": "macOS/Windows are only supported as smolvm *hosts*; the guest is always Linux, so no macOS guest machines are offered.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "macOS Apple Silicon | arm64 Linux ... Linux aarch64 | aarch64 Linux | KVM (/dev/kvm)",
+      "note": "The smolvm substrate supports arm64 Linux guests on both Apple Silicon and Linux aarch64 hosts.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "Chronicle Labs is an AI agent testing and validation platform that turns production data into staging environments",
+      "note": "not offered: outside the product's scope - Chronicle Labs itself is a hosted SaaS platform (sign up / book a demo); only the separate open-source smolvm substrate tool is self-hostable, not the Chronicle product.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://chronicle-labs.com/llms.txt",
+      "quote": "Chronicle Labs is a Y Combinator-backed company building infrastructure for teams running AI agents in production.",
+      "note": "Chronicle Labs' own platform is closed-source SaaS. Its VM substrate, smolvm, is separately open source under Apache-2.0, but that is a different project (smol-machines), not the Chronicle Labs product.",
+      "checked": "2026-09-30"
     }
   }
 }
