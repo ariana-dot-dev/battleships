@@ -727,7 +727,12 @@
         const fl = flagsOf(m);
         if (fl.includes('stock')) c.push({ t: `stock-limited${m.stock_note ? ': ' + m.stock_note : ' (often sold out)'}`, s: 1 });
         if (fl.includes('commit')) c.push({ t: `${m.commit_term || 'term'} commitment`, s: 1 });
-        if (fl.includes('burstable')) c.push({ t: m.baseline_pct ? `burstable CPU: ${m.baseline_pct}% of each vCPU guaranteed, throttled above that` : noGuarantee(), s: W.cpuUtil > num(m.baseline_pct, 100) / 100 ? 2 : 1 });
+        // only a mismatch when this workload actually needs more CPU than the tier guarantees: a mostly idle agent on a
+        // burstable / no-reserved-cores tier runs the same (same rule as the shared-vCPU line above)
+        if (fl.includes('burstable')) {
+          if (m.baseline_pct) { if (W.cpuUtil > m.baseline_pct / 100) c.push({ t: `burstable CPU: ${m.baseline_pct}% of each vCPU guaranteed, throttled above that`, s: 2 }); }
+          else if (W.cpuUtil > 0.5) c.push({ t: noGuarantee(), s: 1 });
+        }
         if (m.gpu_min_count > 1 && W.gpu && W.gpu !== 'none' && W.gpuCount < m.gpu_min_count) c.push({ t: `${m.gpu_min_count}-GPU nodes only`, s: 2 });
       }
       // personas who call a sandbox API (interpreters, platforms, RL, CUA) can't just use a raw VM: boot time, quotas, no API
