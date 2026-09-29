@@ -127,7 +127,18 @@ details.grp[open] .sumval{visibility:hidden}
 .mhk{color:var(--ink-2);background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
 .mhk[aria-pressed="true"]{color:var(--ink);background:var(--fill);box-shadow:none}
 .mhk[aria-pressed="true"]::before{content:"✓ "}
-.mhk[aria-pressed="false"]{text-decoration:line-through}
+.mhk[aria-pressed="false"]::before{content:"+ "}
+.mhk[aria-pressed="false"]:hover{color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink-2)}
+.dials{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px 24px;margin-top:8px}
+.dials:empty{display:none}
+.dial{display:flex;flex-direction:column;gap:6px;cursor:pointer}
+.dial .dh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.dial .dl{font-size:var(--t4);color:var(--ink-2)}
+.dial .dv{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dial input[type=range]{width:100%;margin:0;accent-color:var(--ink);height:20px;background:transparent;padding:0}
+.adj{display:flex;gap:8px;align-items:center;font-size:var(--t4);color:var(--ink-2)}
+.adj button{font-size:var(--t4);padding:2px 8px;border:0;background:var(--fill);color:var(--ink);cursor:pointer}
+.adj button:hover{background:var(--fill-2)}
 .why{color:var(--ink-2);max-width:80ch}
 .sumline{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:8px 24px 12px;color:var(--ink-2)}
 .sumline b{color:var(--ink);font-weight:600}
@@ -385,7 +396,7 @@ header.top{display:none}
 .md table{border-collapse:collapse;font-size:var(--t4);margin:12px 0;width:auto;max-width:100%}
 /* no column may take over a table: cells wrap at a readable width; a table wider than its box scrolls inside it */
 .md table{display:block;overflow-x:auto;width:max-content;max-width:100%}
-.md th,.md td{max-width:40ch;min-width:6ch;overflow-wrap:anywhere}
+.md th,.md td{max-width:40ch;min-width:6ch}
 .md td:first-child{max-width:24ch}
 .md hr,hr.sep{border:0;border-top:1px solid var(--line);margin:24px 0}
 .md p,.md li,.md h1,.md h2,.md h3{overflow-wrap:anywhere}
@@ -429,6 +440,28 @@ details.more-in[open]>summary{display:none}
   .grouphead{padding-left:16px}
   .more{padding-left:52px}
 }
+/* phones: every section is its own card with air around it, and a faint band marks where each part starts */
+@media (max-width:720px){
+  .tile{margin:16px 0 0 !important}
+  .usage-grid,.atlas,.provgrid{gap:0}
+  .scenario{background:var(--wash);padding:20px 16px}
+  .grp{padding:16px}
+  .grp:nth-child(even){background:var(--wash)}
+  .grouphead{background:var(--wash);padding:16px;margin-top:16px}
+  .r{padding:12px 16px}
+  .sumline{padding:16px}
+  .lq{padding:16px}
+  .lq:nth-child(even){background:var(--wash)}
+  .md h2{margin:32px -16px 12px;padding:12px 16px;background:var(--wash)}
+  .md h2:first-child{margin-top:0}
+  .md h3{margin-top:24px}
+  .md p,.md ul,.md ol{margin:12px 0}
+  .ucard{gap:20px}
+  .uhead{gap:16px}
+}
+/* table cells never break inside a word; the table scrolls sideways instead */
+.md th,.md td{overflow-wrap:break-word;word-break:normal;hyphens:none}
+@media (max-width:720px){.md th,.md td{min-width:14ch}.md th:first-child,.md td:first-child{min-width:0}}
 /* one line where two boxes meet: first/last children never draw a line against their container's border */
 #rank>.r:first-child,#rank>.grouphead:first-child{border-top:0}
 .tbl tbody tr:last-child td{border-bottom:0}
@@ -559,7 +592,7 @@ details.more-in[open]>summary{display:none}
       </details>
     </aside>
     <div class="results">
-      <div class="tile scenario"><label class="wlpick"><span id="presetName"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg><select id="presetSel" aria-label="Workload"></select></label><div id="scenario"></div></div>
+      <div class="tile scenario"><label class="wlpick"><span id="presetName"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg><select id="presetSel" aria-label="Workload"></select></label><div id="scenario"></div><div id="dials" class="dials"></div></div>
       <div class="tile sumline"><div id="summary"></div>
         <div class="viewctl"><label class="tog" data-tip="Show each billing regime of a provider as its own row (up to 3 per provider)."><input type="checkbox" id="perRegime" checked> per regime</label>
           <div class="seg" id="barmode"><button data-m="total" aria-pressed="true">Total</button><button data-m="split" aria-pressed="false">Split</button></div></div></div>
@@ -689,7 +722,7 @@ const GPUS=[...new Set(CARDS.flatMap(c=>(c.modes||[]).flatMap(m=>Object.keys(m.g
 $('#gpu').innerHTML='<option value="none">None</option>'+GPUS.map(g=>`<option>${esc(g)}</option>`).join('');
 const req=new Set();
 $('#reqs').innerHTML=REQ_GROUPS.map(([h,ks])=>`<div class="rgrp"><div class="rh">${esc(h)}</div><div class="chips">${ks.map(k=>`<button class="chip" data-k="${k}" aria-pressed="false">${esc(PM.FEATURE_LABELS[k]||k)}</button>`).join('')}</div></div>`).join('');
-$$('#reqs .chip').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); b.setAttribute('aria-pressed',req.has(k)); run();});
+$$('#reqs .chip').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); b.setAttribute('aria-pressed',req.has(k)); dirty(); run();});
 // each preset is a whole scenario: fleet size, load, state, what you're shopping for — say so on hover
 const PROFS=(U&&U.profiles)||[];
 const SHOPNAME={any:'anything',sandbox:'a sandbox API',interp:'a code interpreter',agent:'agent machines',machine:'a machine',ci:'CI runners',gpu:'GPU instances',desktop:'desktops / browsers',browser:'browser infrastructure',stealth:'stealth browser infrastructure',mac:'macOS machines',rl:'a rollout fleet'};
@@ -729,10 +762,64 @@ function applyPreset(k){const p=PRESETS.find(x=>x.k===k); curPreset=k; const sc=
   const hasProf=PROFS.some(x=>x.id===p.prof);
   $('#profile').value=hasProf?p.prof:'custom';
   if(hasProf) applyProfile(); else { $('#cpuUtil').value=p.cpu??30; $('#ramUtil').value=p.ramu??60; $('#cpuPeak').value=Math.min(100,(p.cpu??30)*1.6); $('#ramPeak').value=Math.min(100,(p.ramu??60)*1.3); $('#idleShare').value=p.idle??20; applyProfile(); }
-  $$('#presets .chip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k)); $('#presetSel').value=k; fitSel(); showAll.meets=showAll.soft=false; run();}
+  $$('#presets .chip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k)); $('#presetSel').value=k; fitSel(); showAll.meets=showAll.soft=false; edited=false; run();}
 $$('#presets .chip').forEach(b=>b.onclick=()=>applyPreset(b.dataset.k));
 $('#scale').onchange=()=>{ if(curPreset) applyPreset(curPreset); else run(); };
-function dirty(){$$('#presets .chip').forEach(b=>b.setAttribute('aria-pressed','false')); $('#presetSel').value=''; fitSel();}
+// editing a control keeps you in the scenario (its sliders and toggles stay), marked as adjusted with a way back
+let edited=false;
+function dirty(){ edited=true; }
+
+// ---- scenario dials: a few sliders per scenario, each bound 1:1 to one field of the filter panel
+// [field id, label, low, high, kind]  kinds: n = count, min = minutes, pct = percent, gib = GiB, cpu = vCPU, gpu = GPUs
+const DIAL_SETS={
+  agents:[['concurrency','Agents running at once',1,5000,'n'],['sessions','Agent sessions a month',10,500000,'n'],['sessionMin','Length of a session',5,1440,'min']],
+  browsers:[['concurrency','Browsers open at once',1,5000,'n'],['sessions','Tasks a month',100,5000000,'n'],['sessionMin','Length of a task',1,120,'min'],['egress','Data downloaded a month',1,100000,'gib']],
+};
+const SCEN={
+  fullstack:{opt:['persistent_disk','snapshot_mem','fork','ssh','browser','eu_data_residency'],dials:[...DIAL_SETS.agents,['snapshotGiB','Saved workspaces',0,20000,'gib']]},
+  agents:{opt:['docker_inside','pause_resume','snapshot_mem','fork','ssh','agent_harnesses'],dials:[...DIAL_SETS.agents,['idleShare','Time the machine sits idle',0,100,'pct']]},
+  agentsbusy:{opt:['docker_inside','pause_resume','snapshot_mem','fork','ssh','agent_harnesses'],dials:[...DIAL_SETS.agents,['cpuUtil','How busy the CPU is',1,100,'pct']]},
+  interp:{opt:['code_interpreter','lang_python','lang_node','egress_allowlist','snapshot_mem'],dials:[['sessions','Code runs a month',1000,50000000,'n'],['sessionMin','Length of a run',1,60,'min'],['concurrency','Runs at once',1,20000,'n'],['vcpu','vCPU per run',0.5,16,'cpu']]},
+  platform:{opt:['custom_image','pause_resume','fork','inbound_https','egress_allowlist','scoped_api_keys','spend_limits'],dials:[['sessions','User sessions a month',100,5000000,'n'],['sessionMin','Length of a session',1,480,'min'],['concurrency','Users active at once',1,20000,'n'],['vcpu','vCPU per sandbox',0.5,16,'cpu']]},
+  rl:{opt:['fork','snapshot_mem','memory_snapshot_fork','custom_image','docker_inside'],dials:[['sessions','Rollouts a month',1000,100000000,'n'],['sessionMin','Length of a rollout',1,120,'min'],['concurrency','Rollouts at once',1,50000,'n'],['vcpu','vCPU per rollout',0.5,16,'cpu']]},
+  ci:{opt:['docker_inside','nested_virt','custom_image','root','egress_allowlist'],dials:[['sessions','Jobs a month',100,1000000,'n'],['sessionMin','Length of a job',1,240,'min'],['concurrency','Jobs at once',1,5000,'n'],['vcpu','vCPU per runner',1,64,'cpu']]},
+  devbox:{opt:['persistent_disk','wake_on_request','public_ipv4','custom_domain','docker_inside','nested_virt'],dials:[['alwaysOn','Dev boxes',1,1000,'n'],['idleShare','Time it sits idle',0,100,'pct'],['vcpu','vCPU per box',1,64,'cpu'],['ram','Memory per box',1,256,'gib']]},
+  devloop:{opt:['persistent_disk','public_ipv4','custom_domain','docker_inside','nested_virt'],dials:[['alwaysOn','Machines',1,1000,'n'],['cpuUtil','How busy the CPU is',1,100,'pct'],['vcpu','vCPU per machine',1,64,'cpu'],['ram','Memory per machine',1,256,'gib']]},
+  cua:{opt:['computer_use','desktop_control','browser_control','gpu_desktop','residential_ip'],dials:DIAL_SETS.browsers},
+  browseruse:{opt:['anti_bot','captcha_solving','residential_ip','credential_injection'],dials:DIAL_SETS.browsers},
+  scrape:{opt:['anti_bot','captcha_solving','residential_ip','static_egress_ip'],dials:[['sessions','Page visits a month',1000,10000000,'n'],['concurrency','Browsers at once',1,5000,'n'],['sessionMin','Minutes per visit',0.5,30,'min'],['egress','Data downloaded a month',1,100000,'gib']]},
+  scrapemass:{opt:['static_egress_ip','browser_control'],dials:[['sessions','Page visits a month',100000,500000000,'n'],['concurrency','Browsers at once',10,50000,'n'],['sessionMin','Minutes per visit',0.5,30,'min'],['egress','Data downloaded a month',10,1000000,'gib']]},
+  redteam:{opt:['nested_virt','docker_inside','egress_allowlist','private_network','audit_logs','fork'],dials:[['concurrency','Attack agents at once',1,5000,'n'],['sessions','Attack runs a month',10,1000000,'n'],['sessionMin','Length of a run',1,480,'min'],['vcpu','vCPU per agent',0.5,32,'cpu']]},
+  gpu:{opt:['custom_image','docker_inside','persistent_disk'],dials:[['sessions','Eval jobs a month',1,100000,'n'],['sessionMin','Length of a job',1,1440,'min'],['concurrency','Jobs at once',1,1000,'n'],['gpuCount','GPUs per job',1,8,'gpu']]},
+  mac:{opt:['ssh','desktop','computer_use'],dials:[['concurrency','Macs at once',1,500,'n'],['sessions','Sessions a month',10,100000,'n'],['sessionMin','Length of a session',5,1440,'min']]},
+};
+const LINEAR=new Set(['pct','gpu']);
+const dialFmt=(kind,v)=>kind==='pct'?Math.round(v)+'%':kind==='min'?(v<1?Math.round(v*60)+' s':v<60?(+v.toFixed(v<10?1:0))+' min':(v/60).toFixed(v<600?1:0)+' h'):kind==='gib'?(v>=1000?(v/1000).toFixed(v<10000?1:0)+' TiB':Math.round(v)+' GiB'):kind==='cpu'?v+' vCPU':kind==='gpu'?v+' × GPU':Math.round(v).toLocaleString('en-US');
+const sig2=v=>{ if(v<=0) return 0; const d=Math.pow(10,Math.floor(Math.log10(v))-1); return Math.round(v/d)*d; };
+const CPUS=[0.5,1,2,4,8,16,32,64];
+const dialRound=(kind,v)=>kind==='pct'||kind==='gpu'?Math.round(v):kind==='cpu'?CPUS.reduce((a,b)=>Math.abs(b-v)<Math.abs(a-v)?b:a):kind==='min'?(v<10?Math.round(v*2)/2:v<120?Math.round(v):Math.round(v/15)*15):kind==='gib'?(v<10?Math.round(v):sig2(v)):Math.max(0,Math.round(sig2(v)));
+// slider position (0..1000) <-> value; counts and sizes move on a log scale so small and huge fleets are both reachable
+const toPos=(d,v)=>{ const [, , lo, hi, kind]=d, top=Math.max(hi,v); return LINEAR.has(kind)?1000*(v-lo)/(top-lo):1000*Math.log1p(Math.max(0,v-lo))/Math.log1p(top-lo); };
+const fromPos=(d,p,cur)=>{ const [, , lo, hi, kind]=d, top=Math.max(hi,cur); return LINEAR.has(kind)?lo+(top-lo)*p/1000:lo+Math.expm1(p/1000*Math.log1p(top-lo)); };
+let dialsFor=null;
+function syncDials(){
+  const s=SCEN[curPreset], el=$('#dials');
+  if(!s||!s.dials){ el.innerHTML=''; dialsFor=null; return; }
+  if(dialsFor!==curPreset){
+    el.innerHTML=s.dials.map((d,i)=>`<label class="dial"><span class="dh"><span class="dl">${esc(d[1])}</span><b class="dv"></b></span><input type="range" min="0" max="1000" step="1" data-i="${i}" aria-label="${esc(d[1])}"></label>`).join('');
+    dialsFor=curPreset;
+    $$('#dials input').forEach(inp=>inp.addEventListener('input',()=>{
+      const d=s.dials[+inp.dataset.i], f=$('#'+d[0]), cur=parseFloat(f.value)||0;
+      f.value=dialRound(d[4],fromPos(d,+inp.value,Math.min(cur,d[3])));
+      inp.closest('.dial').querySelector('.dv').textContent=dialFmt(d[4],parseFloat(f.value)||0);
+      f.dispatchEvent(new Event('input',{bubbles:true}));
+    }));
+  }
+  // the panel is the source of truth: every run puts each slider where its field is
+  $$('#dials .dial').forEach((lab,i)=>{ const d=s.dials[i], v=parseFloat($('#'+d[0]).value)||0, inp=lab.querySelector('input');
+    if(document.activeElement!==inp) inp.value=Math.round(toPos(d,v)); lab.querySelector('.dv').textContent=dialFmt(d[4],v);
+    lab.dataset.tip=`Same setting as “${((($('#'+d[0]).closest('label')||{}).textContent)||d[0]).trim().replace(/\s+/g,' ').slice(0,60)}” in the panel`; });
+}
 $$('#controls input,#controls select').forEach(el=>{ if(el.id==='profile') return; el.addEventListener('input',()=>{ if(['cpuUtil','ramUtil','cpuPeak','ramPeak','idleShare'].includes(el.id)) $('#profile').value='custom'; if(el.id==='ram') applyProfile(); dirty(); run(); }); });
 
 function readW(scale=1){const v=id=>parseFloat($('#'+id).value)||0;
@@ -768,14 +855,16 @@ function run(){
   $('#sumReq').textContent=req.size?(req.size<=2?[...req].map(k=>PM.FEATURE_LABELS[k]||k).join(' · '):`${req.size} selected`):($('#region').value!=='any'?$('#region').value.toUpperCase():'none');
   $('#sumAssume').textContent=`${['self-serve','+ verify','+ upfront','+ email','+ sales'][+$('#maxAccess').value]} · ${['credits','amortize','perf','allowSpot','allowSales','allowAlt','allowPromo'].filter(id=>$('#'+id).checked).length} on`;
   // at-a-glance: which scenario, and which filters decide who can compete
-  { const pp=PRESETS.find(p=>{const b=$(`#presets .chip[data-k="${p.k}"]`); return b&&b.getAttribute('aria-pressed')==='true';});
+  { const pp=PRESETS.find(p=>p.k===curPreset), sopt=(SCEN[curPreset]||{}).opt||[];
     const load=W.alwaysOn?`${W.alwaysOn} machine${W.alwaysOn>1?'s':''} on 24/7`:`${nf(W.sessions)} sessions × ${W.sessionMin>=60?(W.sessionMin/60).toFixed(1)+' h':Math.round(W.sessionMin)+' min'}, up to ${nf(W.concurrency)} at once`;
     const sc=$('#scale').value!=='1'?` · fleet ×${$('#scale').value}`:'';
-    $('#scenario').innerHTML=`<div class="mh">${(()=>{const ks=[...new Set([...(pp&&pp.req||[]),...req])]; return ks.length?ks.map(k=>`<button class="mhk" data-k="${k}" aria-pressed="${req.has(k)}" data-tip="Click to ${req.has(k)?'drop':'require'} this">${esc(PM.FEATURE_LABELS[k]||k)}</button>`).join(''):'';})()}${$('#region').value!=='any'?` <button class="mhk mhr" aria-pressed="true" data-tip="Click to allow any region">${esc($('#region').value.toUpperCase())} region</button>`:''}</div>
-      ${pp&&pp.why?`<div class="why">${esc(pp.why)}</div>`:''}`;
+    $('#scenario').innerHTML=`<div class="mh">${(()=>{const ks=[...new Set([...(pp&&pp.req||[]),...req,...sopt])]; return ks.length?ks.map(k=>`<button class="mhk" data-k="${k}" aria-pressed="${req.has(k)}" data-tip="Click to ${req.has(k)?'drop':'require'} this">${esc(PM.FEATURE_LABELS[k]||k)}</button>`).join(''):'';})()}${$('#region').value!=='any'?` <button class="mhk mhr" aria-pressed="true" data-tip="Click to allow any region">${esc($('#region').value.toUpperCase())} region</button>`:''}</div>
+      ${pp&&pp.why?`<div class="why">${esc(pp.why)}</div>`:''}${pp&&edited?`<div class="adj">Adjusted from the scenario's defaults <button type="button" id="scReset">Reset</button></div>`:''}`;
+    if($('#scReset')) $('#scReset').onclick=()=>applyPreset(curPreset);
+    syncDials();
     // every feature chip is a toggle: same state as the Must have section
     $$('#scenario .mhr').forEach(b=>b.onclick=()=>{$('#region').value='any'; run();});
-    $$('#scenario .mhk:not(.mhr)').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); $$('#reqs .chip').forEach(x=>x.setAttribute('aria-pressed',req.has(x.dataset.k))); run();}); }
+    $$('#scenario .mhk:not(.mhr)').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); dirty(); $$('#reqs .chip').forEach(x=>x.setAttribute('aria-pressed',req.has(x.dataset.k))); run();}); }
   const perRegime=$('#perRegime').checked;
   const res=pool().flatMap(c=>{
     if(!perRegime) return [PM.priceSoft(c,W,O)];
