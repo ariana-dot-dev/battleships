@@ -25,7 +25,7 @@
     scoped_api_keys: 'scoped API keys', spend_limits: 'spend limits', mcp_server: 'MCP server',
     // agent infrastructure (feature pass 2026-09-29): see FEAT_WHY in the page for what each one means
     snapshot_auto: 'automatic snapshots', snapshot_on_demand: 'snapshots on demand', harness_api: 'agent harness API',
-    own_agent_api: 'hosted agent API (their own agent)',
+    own_agent_api: 'hosted agent API (their own agent)', strong_isolation: 'gVisor or VM (no shared kernel)',
     ingress_rules: 'inbound access rules', guest_firewall: 'firewall inside (nftables)', secret_proxy: 'secret proxy',
     secret_proxy_any: 'secret proxy for any API', volume_attach: 'extra volumes', volume_shared: 'shared volumes',
   };
@@ -48,6 +48,10 @@
     // "mem" = memory snapshots; an explicit snapshot_mem wins; a bare `true` says snapshots exist but not which kind
     snapshot_mem: f => typeof f.snapshot_mem === 'boolean' ? f.snapshot_mem : f.snapshot == null || f.snapshot === true ? null : f.snapshot === 'mem',
     long_sessions: f => f.max_session_h === undefined ? null : (f.max_session_h === null || f.max_session_h >= 24),
+    // not a plain shared-kernel container: a VM/microVM (own kernel), gVisor (user-space kernel in front of the host's) or a
+    // language isolate. A container escape only needs one host-kernel bug; these need a hypervisor or sandbox-kernel bug first.
+    strong_isolation: f => { const i = String(f.isolation || ''); if (!i) return null; if (FEATURE_TESTS.vm_isolation(f) === true || /gvisor|kata|isolate|wasm/.test(i)) return true;
+      return /container/.test(i) ? false : null; },
     // a proxy that adds your credentials to outbound requests, so the secret never enters the machine:
     // "any-http" covers any API you register, "ai-only" just model-provider keys
     secret_proxy: f => f.secret_proxy == null ? null : f.secret_proxy === 'any-http' || f.secret_proxy === 'ai-only' || f.secret_proxy === true,
