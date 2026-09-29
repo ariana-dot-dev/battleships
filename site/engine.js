@@ -40,7 +40,8 @@
     browser_and_desktop: f => { const b = f.browser_control ?? f.browser, d = f.desktop_control ?? f.computer_use; return b === true && d === true ? true : (b === false || d === false) ? false : null; },
     residential_ip: f => f.egress_ip_type == null ? null : /residential|mobile/.test(String(f.egress_ip_type)),
     snapshot_any: f => f.snapshot == null ? null : f.snapshot !== 'none',
-    snapshot_mem: f => f.snapshot == null ? null : f.snapshot === 'mem',
+    // "mem" = memory snapshots; an explicit snapshot_mem wins; a bare `true` says snapshots exist but not which kind
+    snapshot_mem: f => typeof f.snapshot_mem === 'boolean' ? f.snapshot_mem : f.snapshot == null || f.snapshot === true ? null : f.snapshot === 'mem',
     long_sessions: f => f.max_session_h === undefined ? null : (f.max_session_h === null || f.max_session_h >= 24),
   };
   function testFeature(features, key) {
