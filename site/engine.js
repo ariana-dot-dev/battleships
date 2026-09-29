@@ -328,6 +328,7 @@
   // ---- main ------------------------------------------------------------------
   function priceCard(card, W, opts) {
     opts = opts || {};
+    W = consistentW(W);
     const ov = (opts.overrides && opts.overrides[card.id]) || {};
     const cardReasons = [];
     if (W.ipv4 > 0 && card.network && card.network.ipv4_available === false) cardReasons.push('no dedicated IPv4');
@@ -615,7 +616,11 @@
   const SEVERITY = { plan: 1, unverified: 1, optin_sales: 1, optin_spot: 2, optin_promo: 1, optin_alt: 2, region: 1, ipv4: 1,
     always: 1, arch: 2, gpu: 2, shape: 2, unsized: 2, browser: 2, feat: 3, state: 2 };
   const usefulHours = W => W.sessions * W.sessionMin / 60 + num(W.alwaysOn) * HOURS_MONTH;
+  // A month with N sessions can never have more than N machines running at once. Without this, "150 at once, 36 sessions"
+  // is priced as 150 machines turning over all month (starts per hour, seats, quotas) for a workload that is 36 sessions.
+  const consistentW = W => (W.sessions > 0 && W.concurrency > W.sessions) ? Object.assign({}, W, { concurrency: Math.ceil(W.sessions), concurrencyAsked: W.concurrency }) : W;
   function priceSoft(card, W, opts) {
+    W = consistentW(W);
     const r0 = priceSoftInner(card, W, opts);
     // $/h is per hour of the workload the user described, even when a relaxation priced it as always-on machines
     if (r0 && r0.eligible && known(r0.total)) r0.perHour = usefulHours(W) > 0 ? r0.total / usefulHours(W) : null;
