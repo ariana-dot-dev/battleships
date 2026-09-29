@@ -1010,7 +1010,9 @@ function run(){
     const load=W.alwaysOn?`${W.alwaysOn} machine${W.alwaysOn>1?'s':''} on 24/7`:`${nf(W.sessions)} sessions × ${W.sessionMin>=60?(W.sessionMin/60).toFixed(1)+' h':Math.round(W.sessionMin)+' min'}, up to ${nf(W.concurrency)} at once`;
     const sc=$('#scale').value!=='1'?` · fleet ×${$('#scale').value}`:'';
     // description first; toggles and sliders live together in the frame below it
-    $('#scchips').innerHTML=(()=>{const ks=[...new Set([...(pp&&pp.req||[]),...req,...sopt])]; return ks.map(k=>`<button class="mhk" data-k="${k}" aria-pressed="${req.has(k)}" data-tip="Click to ${req.has(k)?'drop':'require'} this">${esc(PM.FEATURE_LABELS[k]||k)}</button>`).join('');})()+($('#region').value!=='any'?`<button class="mhk mhr" aria-pressed="true" data-tip="Click to allow any region">${esc($('#region').value.toUpperCase())} region</button>`:'');
+    $('#scchips').innerHTML=(()=>{// fixed order (the scenario's own features, then its optional ones, then anything else you required, by name) so a chip never moves when toggled
+const extra=[...req].filter(k=>!(pp&&pp.req||[]).includes(k)&&!sopt.includes(k)).sort((a,b)=>(PM.FEATURE_LABELS[a]||a).localeCompare(PM.FEATURE_LABELS[b]||b));
+const ks=[...new Set([...(pp&&pp.req||[]),...sopt,...extra])]; return ks.map(k=>`<button class="mhk" data-k="${k}" aria-pressed="${req.has(k)}" data-tip="Click to ${req.has(k)?'drop':'require'} this">${esc(PM.FEATURE_LABELS[k]||k)}</button>`).join('');})()+($('#region').value!=='any'?`<button class="mhk mhr" aria-pressed="true" data-tip="Click to allow any region">${esc($('#region').value.toUpperCase())} region</button>`:'');
     $('#scFeatSec').hidden=!$('#scchips').innerHTML;
     $('#scenario').innerHTML=`${pp&&pp.why?`<p class="why">${esc(pp.why)}</p>`:''}${pp&&edited?`<div class="adj">Adjusted from the scenario's defaults <button type="button" id="scReset">Reset</button></div>`:''}${W.sessions>0&&W.concurrency>W.sessions?`<div class="adj">Only ${nf(W.sessions)} sessions a month, so at most ${nf(Math.ceil(W.sessions))} can run at once: priced that way.</div>`:''}`;
     if($('#scReset')) $('#scReset').onclick=()=>applyPreset(curPreset);
