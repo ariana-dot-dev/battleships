@@ -186,6 +186,7 @@
     const parts = { compute: 0, memory: 0, gpu: 0, licence: 0 };
     let shape, diskIncluded = num(card.storage && card.storage.included_disk_gib, 0), monthCap = null;
     if (m.pricing === 'sizes') {
+      if (!Array.isArray(m.sizes)) return { error: 'size list not published' };
       let fits = (m.sizes || []).filter(s => s.vcpu >= W.vcpu && s.ram_gib >= W.ram && known(s.hour)), clamped = false;
       // sessions sold without a published machine size (browser-hours, agent sessions): usable, flagged
       if (!fits.length) {
@@ -475,7 +476,10 @@
     const basePlans = (card.plans && card.plans.length) ? card.plans : [{ name: 'Pay as you go', fee: 0 }];
     // plans bought per seat whose limits scale with seats (boat.dev organisations): one seat per team member, up to W.seats
     const SCALE_KEYS = ['fee', 'included_usd', 'concurrency', 'max_starts_per_min', 'max_starts_per_hour', 'max_starts_per_day', 'max_total_vcpu', 'max_total_ram_gib', 'max_gpus'];
-    const plans = basePlans.flatMap(p => !p.seat_multiplied || !known(p.fee) ? [p] : [...Array(Math.max(1, Math.min(32, Math.round(num(W.seats, 1))))).keys()].map(i => i + 1).map(k => {
+    // An organisation pays one seat per member (boat.dev: "bills $100 × members"), and seat-scaled limits follow the
+    // same count: exactly the team size, never extra seats bought only to lift limits.
+    const minSeats = Math.max(1, Math.min(32, Math.round(num(W.seats, 1))));
+    const plans = basePlans.flatMap(p => !p.seat_multiplied || !known(p.fee) ? [p] : [minSeats].map(k => {
       if (k === 1) return p;
       const q = Object.assign({}, p, { name: `${p.name} × ${k} seats`, base_name: p.name, seats_bought: k });
       for (const key of SCALE_KEYS) if (known(p[key])) q[key] = p[key] * k;

@@ -355,7 +355,7 @@
       "start_fee": 0,
       "boot_overhead_s": 45,
       "multiplier": 1,
-      "windows_vcpu_h": null,
+      "windows_vcpu_h": 0.02,
       "gpu": {},
       "note": "USD Global Price /672 for hourly rate; cap at listed monthly price. Compute charged while powered off; primary IPv4 and root disk included."
     },
@@ -736,9 +736,74 @@
       "start_fee": 0,
       "boot_overhead_s": 45,
       "multiplier": 1,
-      "windows_vcpu_h": null,
+      "windows_vcpu_h": 0.02,
       "gpu": {},
       "note": "USD Global Price /672 for hourly rate; cap at listed monthly price. Only compute stops billing on power off; storage/IP extra."
+    },
+    {
+      "key": "gpu-on-demand",
+      "label": "GPU Server (on-demand, Helsinki)",
+      "flags": [],
+      "os": [
+        "linux",
+        "windows"
+      ],
+      "regions": [
+        "eu"
+      ],
+      "gpu_only": true,
+      "plan_limits_exempt": true,
+      "pricing": "resource",
+      "vcpu_h": 0,
+      "ram_gib_h": 0,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "gpu": {
+        "L4": 0.69,
+        "L40S": 1.27,
+        "RTX-PRO-6000": 1.88,
+        "H100": 1.89,
+        "B200": 5.2,
+        "B300": 7.67
+      },
+      "min_billed_seconds": 3600,
+      "granularity_s": 3600,
+      "start_fee": 0,
+      "multiplier": 1,
+      "note": "USD on-demand $/h of the smallest 1-GPU bundle (L4 8c/64GB, L40S 8c/64GB, RTX PRO 6000 16c/80GB, H100 12c/240GB, B200 12c/240GB, B300 28c/240GB); vCPU/RAM bundled. Larger CPU/RAM bundles cost more per GPU (e.g. 1xL4 20c/256GB $1.11/h). No 672-h cap stated for GPU (monthly shown = 30-day estimate). Billed only while powered on; block storage (min one device, any tier) and IPv4 extra and billed while stopped. Only fi-hel2. H100/B200 carry the banner 'New ... pricing listed here starting from October 20th'."
+    },
+    {
+      "key": "gpu-spot",
+      "label": "GPU Server (spot, Helsinki)",
+      "flags": [
+        "spot"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": [
+        "eu"
+      ],
+      "gpu_only": true,
+      "plan_limits_exempt": true,
+      "pricing": "resource",
+      "vcpu_h": 0,
+      "ram_gib_h": 0,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "gpu": {
+        "L4": 0.68,
+        "L40S": 0.95,
+        "RTX-PRO-6000": 0.99,
+        "H100": 1.88,
+        "B200": 3.9,
+        "B300": 5.75
+      },
+      "min_billed_seconds": 3600,
+      "granularity_s": 3600,
+      "start_fee": 0,
+      "multiplier": 1,
+      "note": "USD spot $/h from pricing page 'Spot Price' column, smallest 1-GPU bundle. 30-s ACPI shutdown on reclaim; unused hour refunded only on UpCloud-initiated stops. Spot discount is tiny for L4 (0.68 vs 0.69) and H100 (1.88 vs 1.89), large for L40S/RTX PRO/B200/B300. The 2026-07-06 changelog said spot was only for L40S and B200; the pricing page now lists spot for all six."
     }
   ],
   "storage": {
@@ -776,11 +841,18 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
+    "windows": true,
     "macos": false,
     "arm64": false,
-    "gpu": null,
-    "gpu_types": [],
+    "gpu": true,
+    "gpu_types": [
+      "L4",
+      "L40S",
+      "RTX-PRO-6000",
+      "H100",
+      "B200",
+      "B300"
+    ],
     "snapshot": "fs",
     "pause_resume": false,
     "fork": true,
@@ -827,12 +899,12 @@
     "credential_injection": null,
     "egress_http_rules": null,
     "wake_on_request": null,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": null,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
-    "audit_logs": null,
+    "audit_logs": true,
     "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
@@ -853,7 +925,10 @@
     "MaxIOPS additional storage $0.250/GB-month versus Standard $0.097; card uses Standard, so Premium expanded storage needs manual adjustment.",
     "Zero transfer fees subject to Fair Transfer Policy, not unlimited guaranteed bandwidth. Cloud Native power-off differs from bundled plans.",
     "New Starter 1GB/1CPU plan limited to 5 simultaneous deployments. 7-day trial resources may be deleted without deposit.",
-    "2026-09-28 fix pass: boot_overhead_s 45 on all three plan families from the vendor claim \"launching new instances in just 45 seconds from deployment to login\" (upcloud.com/products/cloud-servers/, rendered in headless Chrome); vendor figure, not measured. Billing is per started hour (min 1 h per server), so short sessions pay a full hour each; the engine re-prices as kept-on machines when that is cheaper. Category stays hyperscaler (plain IaaS VM, no sandbox API)."
+    "2026-09-28 fix pass: boot_overhead_s 45 on all three plan families from the vendor claim \"launching new instances in just 45 seconds from deployment to login\" (upcloud.com/products/cloud-servers/, rendered in headless Chrome); vendor figure, not measured. Billing is per started hour (min 1 h per server), so short sessions pay a full hour each; the engine re-prices as kept-on machines when that is cheaper. Category stays hyperscaler (plain IaaS VM, no sandbox API).",
+    "Egress $0 is a pooled fair-transfer share (0.5 TB for Starter 1c/1GB up to 100 TB per server). Above it, bandwidth is throttled to 100 Mbps, or you can opt in to paid transfer at EUR 0.01/GB (no USD price published). egress_gib 0 stays correct for normal workloads.",
+    "The 7-day trial has no stated $ credit. It is quota-limited (2 cores/4 GB total, 60 GB per storage tier, 2 IPv4, locked firewall ports) and has no GPU or Windows. The $10 minimum deposit goes into the prepaid balance, so it is not a fee. Referral signups get $25 of credit (valid only after 2 payments and 28 days); promo-code credits expire after 60 days and need manual activation for GPUs. free.one_time_credit stays 0.",
+    "Not modelled: Private Cloud dedicated hosts (sales, from $3,669/mo; 64C/128T with 1920 or 1280 GB, or 32C with 640 GB), GPU reservations of 3+ months (sales), and B200/B300 Dedicated GPU Clusters (sales, delivery from December 2026). All are sales-only and would need flags [\"sales\"]."
   ],
   "sources": [
     "https://upcloud.com/pricing/",
@@ -876,5 +951,9 @@
       "https://upcloud.com/docs/getting-started/faq/"
     ],
     "researched": "2026-09-28"
+  },
+  "audit_2026_09_29": {
+    "applied": 12,
+    "source": "checked against the provider's live pricing and docs pages"
   }
 }

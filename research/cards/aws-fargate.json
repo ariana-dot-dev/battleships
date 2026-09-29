@@ -812,7 +812,7 @@
       "multiplier": 1,
       "windows_vcpu_h": 0.046,
       "gpu": null,
-      "note": "Price List API: Fargate-Windows-vCPU-Hours $0.046552 + Windows-OS-Hours $0.046 per vCPU + Windows-GB-Hours $0.00511175. 5-minute minimum. CONFLICT: the pricing page example 4 still implies $0.0915/vCPU-h and $0.01/GB-h (older rates); the API (2026-09-11) is used."
+      "note": "Price List API: Fargate-Windows-vCPU-Hours $0.046552 + Windows-OS-Hours $0.046 per vCPU + Windows-GB-Hours $0.00511175. 5-minute minimum. No conflict: the rate table the pricing page renders (meteredUnitMaps/ecs) shows the same $0.046552/$0.00511175; the page's Example 4 ($0.0000254167/vCPU-s = $0.0915/h, $0.01/GB-h) is stale pre-February-2024 pricing (Windows price cut of up to 49%, min billing 15 -> 5 min)."
     }
   ],
   "storage": {
@@ -949,7 +949,10 @@
     "No public HTTPS URL: an ALB (~$16+/month + LCU) or API Gateway is needed for inbound HTTPS; not modelled.",
     "AWS Free Tier: new accounts (post-July-2025 program) get up to $200 in credits; there is no always-free Fargate quota. The $200 figure comes from earlier research, not re-verified this session.",
     "Previous providers/aws-fargate.json listed Windows at $0.0915/vCPU-h and Spot as unknown; corrected here from the API/feed.",
-    "Billed boot time not encoded (boot_overhead_s null): AWS bills \"from the time you start to download your container image (Docker pull) until the task terminates\" with a 1-minute minimum (aws.amazon.com/fargate/pricing, 2026-09-28), but publishes no task-start duration and no measured cold start exists in research/benchmarks.json. Image pull + ENI attach typically adds tens of seconds per task, billed; short sessions are under-priced accordingly."
+    "Billed boot time not encoded (boot_overhead_s null): AWS bills \"from the time you start to download your container image (Docker pull) until the task terminates\" with a 1-minute minimum (aws.amazon.com/fargate/pricing, 2026-09-28), but publishes no task-start duration and no measured cold start exists in research/benchmarks.json. Image pull + ENI attach typically adds tens of seconds per task, billed; short sessions are under-priced accordingly.",
+    "Launch-rate limits (per account per region, adjustable): burst 100 tasks/pods, sustained 20 tasks/pods per second (EKS-only accounts: burst 20); RunTask API 20 calls/s, up to 10 tasks per call; ECS service scheduler max 500 tasks per service per minute (125 in Regions introduced after 2025-05-20). Plus the 6-vCPU default On-Demand and 6-vCPU default Spot running quota for new accounts.",
+    "EKS on Fargate: Fargate adds 256 MB to every Pod's memory request and rounds up to the next valid vCPU/memory combination (1 vCPU + 8 GB request is billed as 2 vCPU / 9 GB); no ARM, no Windows, no Spot, max 16 vCPU per pod, plus the EKS cluster fee. The card's rates assume ECS.",
+    "Ephemeral storage above 20 GiB is region-priced: $0.000111/GB-h in us-east-1/us-east-2/us-west-2 but $0.000122 in eu-west-1 and $0.000127 in ap-south-1 (Price List API 2026-09-11); the card's storage.disk_gib_month uses the us-east-1 figure for all regions."
   ],
   "sources": [
     "https://aws.amazon.com/fargate/pricing/",
@@ -974,5 +977,9 @@
       "https://aws.amazon.com/free/complete-signup/"
     ],
     "researched": "2026-09-28"
+  },
+  "audit_2026_09_29": {
+    "applied": 4,
+    "source": "checked against the provider's live pricing and docs pages"
   }
 }

@@ -3,7 +3,7 @@
   "name": "Thunder Compute",
   "url": "https://www.thundercompute.com/pricing",
   "category": "gpu-cloud",
-  "isolation": null,
+  "isolation": "container",
   "modes": [
     {
       "key": "gpu-bundles",
@@ -42,12 +42,74 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {
-        "H100-PCIe": 3.2,
+        "H100": 3.2,
         "A100-80GB": 1.09,
         "L40": 0.79,
         "RTX-A6000": 0.35
       },
       "note": "Per-GPU price of the 1x bundle (https://www.thundercompute.com/pricing, 2026-09-28): H100 PCIe $3.20/h (4-16 vCPU, 32-128 GB), A100 80GB $1.09/h (8-16 vCPU, 64-128 GB), L40 $0.79/h (6-12 vCPU, 48-96 GB), RTX A6000 $0.35/h (6-8 vCPU, 48-64 GB), 100 GB disk included. The bundle includes the minimum vCPU count (4 H100 / 8 A100 / 6 L40, A6000) at 8 GB RAM per core; extra vCPU $0.04/vCPU-h is NOT modelled (vcpu_h 0), so workloads above the included vCPU are understated by $0.04 per extra vCPU-h. Billed per minute. H100 multi-GPU is linear (2x $6.40, 4x $12.80, 8x $25.60); A100/L40 at 4x/8x cost more per GPU than 1x (A100 4x $5.96, 8x $11.92; L40 4x $3.96, 8x $7.92), which the per-GPU price understates."
+    },
+    {
+      "key": "gpu-sandbox",
+      "label": "GPU sandbox (Firecracker, per second, TTL)",
+      "flags": [],
+      "os": [
+        "linux"
+      ],
+      "regions": [
+        "us"
+      ],
+      "gpu_only": true,
+      "pricing": "resource",
+      "vcpu_h": 0.051,
+      "ram_gib_h": 0.016,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "min_vcpu": 3,
+      "max_vcpu": 40,
+      "max_ram_gib": 320,
+      "requires_always_on": false,
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
+      "start_fee": 0,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "gpu": {
+        "H100": 2.95
+      },
+      "gpu_min_count": null,
+      "features": {
+        "isolation": "firecracker",
+        "snapshot": "none",
+        "persistent_disk": false,
+        "pause_resume": false,
+        "egress_allowlist": true,
+        "custom_image": true,
+        "auto_stop_idle": false
+      },
+      "plan_limits_exempt": true,
+      "note": "H100 SXM only (A6000/L40/A100 'Coming soon'; API lists sandbox_a100xl $1.95 but it is not launched). Only 1 GPU per sandbox is priced on the page. Disk 18-1024 GB at $0.00012/GB-h ($0.0876/GB-month), wiped at end, not modelled by the resource fields. Billed per second 'until they stop or their TTL runs out'. Network policy open/restricted (domain/CIDR allowlist)/closed. Images from Dockerfile or registry; without an image it is a bare Firecracker VM. Min billed time and start fee are not published (assumed 0). 4 vCPU/32 GiB + 1 H100 = $3.66/h."
+    },
+    {
+      "key": "reserved",
+      "label": "Reserved clusters (8-512+ GPUs, fixed term)",
+      "flags": [
+        "sales"
+      ],
+      "gpu_only": true,
+      "gpu_min_count": 8,
+      "commit": true,
+      "commit_term": "fixed term (unpublished)",
+      "pricing": "resource",
+      "vcpu_h": null,
+      "ram_gib_h": null,
+      "gpu": {},
+      "note": "Contact sales. The page only lists the on-demand reference rates ($3.20 H100 SXM, $1.09 A100, $0.79 L40, $0.35 A6000)."
     }
   ],
   "storage": {
@@ -90,7 +152,7 @@
     "arm64": null,
     "gpu": true,
     "snapshot": "fs",
-    "pause_resume": null,
+    "pause_resume": false,
     "fork": null,
     "persistent_disk": true,
     "volumes": null,
@@ -106,16 +168,16 @@
     "computer_use": null,
     "code_interpreter": null,
     "agent_harnesses": null,
-    "ssh": null,
+    "ssh": true,
     "public_ipv4": null,
-    "inbound_https": null,
+    "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": null,
     "static_egress_ip": null,
     "private_network": null,
-    "self_host": null,
-    "byoc": null,
+    "self_host": true,
+    "byoc": true,
     "open_source": null,
     "soc2": null,
     "hipaa": null,
@@ -155,7 +217,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -169,7 +231,11 @@
     "Multi-GPU non-linear: 4×/8× A100 and L40 cost more per GPU than 1×/2×. Do not multiply single-GPU price blindly.",
     "GPU mode priced per GPU from the 1x bundles (vcpu_h/ram_gib_h 0 because base CPU/RAM is bundled). Extra vCPU ($0.04/vCPU-h) beyond the bundle minimum is not modelled; A100/L40 4x and 8x bundles cost more per GPU than 1x (understated). Running disk beyond 100 GB: $0.03 per 100 GB-hour = $0.219/GB-month at 730 h.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
-    "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate."
+    "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
+    "Instances bill 'for every minute they exist, from creation until you delete them'. There is no stop state, so an idle instance pays the full GPU bundle rate. The only cheap parked state is snapshot + delete ($0.05/GB-month; API snapshot_gb $0.00006849/GB-h).",
+    "Included disk is 100 GB PER GPU (8x instance includes 800 GB). Instance disk ranges 100-500 GB (1x) up to 100-4000 GB (8x). Disk can be expanded, not shrunk. The card's included_disk_gib 100 is right for 1 GPU only.",
+    "Multi-GPU bundles include more vCPU/RAM per GPU: A100 4x 36-60 vCPU/228-420 GB ($5.96), 8x 96-120 vCPU/648-840 GB ($11.92); H100 4x 60 vCPU/480 GB ($12.80), 8x 120 vCPU/960 GB ($25.60); L40 4x 24-40 vCPU ($3.96), 8x 48-80 ($7.92). A6000 is 1x only. Public API (GET /v2/pricing, no auth) confirms every rate, plus additional_vcpus $0.04/h and disk_gb $0.0003/GB-h.",
+    "Account restrictions: service unavailable in 18 countries (incl. Brazil, Mexico, China, Indonesia, Malaysia, Vietnam, Saudi Arabia) and B2B-only (VAT ID required) in 27 more (incl. India, South Korea, Switzerland, Turkey, UAE). One account per user. Preloaded credit never expires and is non-refundable. Promo credit is revocable. Cards are charged at rising 'threshold' checkpoints; there is no hard spend cap."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/thunder-compute",
@@ -194,5 +260,9 @@
       "https://www.thundercompute.com/pricing"
     ],
     "researched": "2026-09-28"
+  },
+  "audit_2026_09_29": {
+    "applied": 14,
+    "source": "checked against the provider's live pricing and docs pages"
   }
 }

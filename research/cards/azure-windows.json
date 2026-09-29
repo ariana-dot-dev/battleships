@@ -131,14 +131,23 @@
           "disk_gib": 0,
           "hour": 4.608,
           "month_cap": null
+        },
+        {
+          "name": "Standard_D4als_v7",
+          "vcpu": 4,
+          "ram_gib": 8,
+          "disk_gib": 0,
+          "hour": 0.161,
+          "month_cap": null,
+          "note": "Add $0.046/vCPU-h Windows licence from this mode: exact Windows East US PAYG total $0.345/h."
         }
       ],
       "pool_tiers": null,
       "requires_always_on": false,
       "always_on_month_per_instance": null,
       "commit_note": null,
-      "min_billed_seconds": 60,
-      "granularity_s": 60,
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
       "start_fee": 0,
       "boot_overhead_s": null,
       "multiplier": 1,
@@ -192,20 +201,53 @@
           "disk_gib": 0,
           "hour": 0.166,
           "month_cap": null
+        },
+        {
+          "name": "Standard_B4als_v2",
+          "vcpu": 4,
+          "ram_gib": 8,
+          "disk_gib": 0,
+          "hour": 0.136,
+          "month_cap": null,
+          "note": "Adjusted base so the existing +$0.004/vCPU-h field yields the exact Windows total $0.152/h; actual Linux meter is $0.133/h."
         }
       ],
       "pool_tiers": null,
       "requires_always_on": false,
       "always_on_month_per_instance": null,
       "commit_note": null,
-      "min_billed_seconds": 60,
-      "granularity_s": 60,
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
       "start_fee": 0,
       "boot_overhead_s": null,
       "multiplier": 1,
       "windows_vcpu_h": 0.004,
       "gpu": null,
       "note": "B-series Windows surcharge is only +$0.004/vCPU-h (B2s 0.0416 -> 0.0496, B2ms 0.0832 -> 0.0912, B4ms 0.166 -> 0.182). Burstable CPU credits: sustained high CPU is throttled to baseline."
+    },
+    {
+      "key": "spot",
+      "label": "Azure Spot VM (representative East US)",
+      "flags": [
+        "spot"
+      ],
+      "os": [
+        "windows"
+      ],
+      "pricing": "sizes",
+      "sizes": [
+        {
+          "name": "Standard_D4als_v7",
+          "vcpu": 4,
+          "ram_gib": 8,
+          "disk_gib": 0,
+          "hour": 0.06693,
+          "month_cap": null
+        }
+      ],
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
+      "note": "Variable price observed in official API; no SLA; can be evicted with 30 seconds notice."
     }
   ],
   "storage": {
@@ -213,13 +255,15 @@
     "disk_gib_month": 0.075,
     "disk_billed_when_stopped": true,
     "snapshot_gib_month": 0.05,
-    "paused_ram_billed": false
+    "paused_ram_billed": false,
+    "billing_note": "Managed disks are billed by provisioned tier, rounded up to the next offered disk size, and prorated hourly; Standard SSD also charges transactions up to a per-tier hourly cap. The linear $0.075/GiB-month card field is only exact at tier boundaries."
   },
   "network": {
     "egress_free_gib": 100,
     "egress_gib": 0.087,
     "ipv4_month": 3.65,
-    "ipv4_available": true
+    "ipv4_available": true,
+    "ipv4_billing_note": "Standard static IPv4 is charged regardless of the attached VM state; each partial IP hour is a full billed hour. Static IP billing starts in the second hour after creation and ends only when the IP resource is deleted."
   },
   "plans": [
     {
@@ -239,7 +283,9 @@
   ],
   "free": {
     "monthly_credit": 0,
-    "one_time_credit": 200
+    "one_time_credit": 200,
+    "credit_expiry_days": 30,
+    "conditions": "Free-account signup requires phone number, Microsoft or GitHub account, and non-prepaid credit/debit card; upgrade to pay-as-you-go within 30 days or after credit is used to continue. Credit cannot buy Spot VMs and cannot combine with Azure Hybrid Benefit."
   },
   "features": {
     "linux": true,
@@ -253,7 +299,7 @@
     "fork": false,
     "persistent_disk": true,
     "volumes": true,
-    "auto_stop_idle": true,
+    "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
@@ -315,12 +361,13 @@
   "knobs": [],
   "caveats": [
     "Disk: Standard SSD E10 (128 GiB) = $9.60/month -> $0.075/GiB-month; Windows OS disks default to 127 GiB and are billed per provisioned tier even when deallocated. Premium SSD P10 = $19.71/month.",
-    "Snapshots: $0.05/GB-month on Standard HDD storage; $0.132/GB-month if kept on SSD.",
+    "Snapshots/images: $0.05/GB-month on Standard LRS/ZRS based on used data; $0.12/GB-month when stored on Premium SSD. Incremental snapshots bill changed blocks.",
     "Egress: first 100 GB/month free, then $0.087/GB (Microsoft network routing, first 10 TB); $0.08/GB with Internet routing preference.",
     "IPv4: Standard static public IP $0.005/h = $3.65/month.",
     "Azure Hybrid Benefit (BYO licence) removes the Windows surcharge; reservations / savings plan / Spot not encoded.",
     "Free account: $200 credit for 30 days (encoded as one_time_credit) and 750 h/month of B2ts/B2pts/B2ats v2 for 12 months (not encoded).",
-    "Windows Server only; Windows 11 client needs AVD multi-session or Windows 365."
+    "Windows Server only; Windows 11 client needs AVD multi-session or Windows 365.",
+    "Hibernation is real memory-preserving pause/resume, but only selected D/E v5 families up to 64 GiB and selected GPU families up to 112 GiB support it; F-series and B-series sizes modeled in the card do not. Hibernated VMs stop compute billing but retain OS/data disk and networking charges; OS disk must be large enough for RAM."
   ],
   "sources": [
     "https://azure.microsoft.com/en-us/pricing/details/virtual-machines/windows/",
@@ -342,6 +389,12 @@
       "https://azure.microsoft.com/free/",
       "https://azure.microsoft.com/free/"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-09-28",
+    "vm_resource_limit_per_region": 25000,
+    "quota_mechanics": "Both Total Regional vCPU and VM-family vCPU quotas apply; allocated and deallocated VMs count. Spot has a separate pool. Quota increases use a support request, and approved quota does not guarantee capacity."
+  },
+  "audit_2026_09_29": {
+    "applied": 16,
+    "source": "checked against the provider's live pricing and docs pages"
   }
 }

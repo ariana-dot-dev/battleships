@@ -1,7 +1,7 @@
 {
   "id": "cloudflare-workers-for-platforms",
   "name": "Cloudflare Workers for Platforms",
-  "url": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/platform/pricing/",
+  "url": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/reference/pricing/",
   "category": "paas",
   "isolation": "isolate",
   "modes": [
@@ -50,7 +50,27 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Added 2026-09-28 (missing-providers audit). https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/platform/pricing/: $0.02 per additional million CPU-ms => $0.072 per CPU-hour (cpu_basis active: CPU time = wall time x utilisation); $0.30 per additional million requests => start_fee $0.0000003 (one session = one request); memory not billed. Isolate limits (https://developers.cloudflare.com/workers/platform/limits/): 128 MB memory, 30 s CPU default (up to 5 min). Duration/wall time not billed."
+      "note": "Added 2026-09-28 (missing-providers audit). https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/platform/pricing/: $0.02 per additional million CPU-ms => $0.072 per CPU-hour (cpu_basis active: CPU time = wall time x utilisation); $0.30 per additional million requests => start_fee $0.0000003 (one session = one request); memory not billed. Isolate limits (https://developers.cloudflare.com/workers/platform/limits/): 128 MB memory, WfP pricing page: max 30 s CPU per invocation (15 min per Cron Trigger/Queue consumer), unlike standard Workers Paid (default 30 s, up to 5 min). Duration/wall time not billed."
+    },
+    {
+      "key": "dynamic-workers",
+      "label": "Dynamic Workers (Worker Loader isolates), Workers Paid plan",
+      "flags": [],
+      "os": [
+        "linux"
+      ],
+      "pricing": "resource",
+      "vcpu_h": 0.072,
+      "ram_gib_h": 0,
+      "cpu_basis": "active",
+      "ram_basis": "alloc",
+      "max_vcpu": 1,
+      "max_ram_gib": 0.125,
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
+      "start_fee": 0.0020003,
+      "product_class": "code-interpreter",
+      "note": "Requires Workers Paid ($5/month minimum per account; includes 10M requests + 30M CPU-ms, shared with normal Workers). $0.002 per unique Dynamic Worker (Worker ID + code) per day beyond 1,000/month; .load(code) without ID = 1 per invocation. Requests $0.30/M, CPU $0.02/M CPU-ms incl. isolate startup. Limit: 4 distinct Dynamic Workers in flight per Worker request, 10 per Durable Object. Changelog 2026-03-24 'open beta'; docs no longer show a beta label. Could alternatively be its own card."
     }
   ],
   "storage": {
@@ -82,6 +102,18 @@
       "max_ram_gib": null,
       "sizes_allowed": null,
       "note": "$25/month incl. 20M requests ($6.00 at overage rate) + 60M CPU-ms ($1.20) + 1,000 scripts; extra scripts $0.02 each (not modelled). included_usd = $7.20."
+    },
+    {
+      "name": "Workers Paid (Dynamic Workers)",
+      "fee": 5,
+      "fee_is_credit": false,
+      "included_usd": 3.6,
+      "per_seat": 0,
+      "included_applies_to_modes": [
+        "dynamic-workers"
+      ],
+      "concurrency": null,
+      "note": "$5/month minimum per account; 10M requests ($3.00) + 30M CPU-ms ($0.60) included; 1,000 Dynamic Workers/month included (~$2 at $0.002) not encoded in included_usd."
     }
   ],
   "free": {
@@ -166,10 +198,16 @@
     "Isolates, not VMs: 128 MB memory, one thread; workloads needing more RAM are ineligible.",
     "One estimator session = one request; CPU billed on CPU time only (cpu_util x wall time), wall-clock/idle not billed.",
     "Per-script fee ($0.02 beyond 1,000 scripts) not modelled.",
-    "Dynamic Workers (Worker Loader) pricing not found on the WfP pricing page (2026-09-28)."
+    "Dynamic Workers (Worker Loader) are priced separately on the Workers Paid plan ($5/month): 1,000 unique Dynamic Workers/month included then $0.002 per Dynamic Worker per day, plus Workers Standard requests ($0.30/M beyond 10M) and CPU ($0.02/M CPU-ms beyond 30M, including isolate startup time). See additions.",
+    "Dynamic Workers concurrency: only 4 distinct Dynamic Workers can have in-flight requests per parent Worker request (10 per Durable Object); many concurrent sandboxes need fan-out across requests/DOs.",
+    "WfP bills 1 request across dispatch Worker -> user Worker -> outbound Worker; CPU is charged across all three. Custom per-customer CPU/subrequest limits can be set in the dispatch Worker (spend-control lever). Script limit is unlimited (billing $0.02/script beyond 1,000)."
   ],
   "sources": [
     "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/platform/pricing/",
     "https://developers.cloudflare.com/workers/platform/limits/"
-  ]
+  ],
+  "audit_2026_09_29": {
+    "applied": 7,
+    "source": "checked against the provider's live pricing and docs pages"
+  }
 }
