@@ -264,7 +264,7 @@
     "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
@@ -283,7 +283,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": false,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": null,
     "fork_running": false,
@@ -295,7 +295,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -340,5 +348,78 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/elastic-metal/reference-content/shared-responsibility-model/",
+      "quote": "Backups and snapshots must be configured by you. Refer to our documentation for assistance in setting up backups for Dedibox, Elastic Metal, and Apple silicon.",
+      "note": "Dedicated Mac mini; internal SSD just persists while the Mac is assigned. No stop/sleep state (billed until deleted).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "You can back up your Mac mini using a backup solution of your choice. Examples include: Restic for command-line backups. Arq Backup for graphical interface backups. Both solutions allow you to store backups on our Object Storage.",
+      "note": "Apple silicon API has only create/update/delete/reboot/reinstall/private-network/runner endpoints (Go SDK applesilicon v1alpha1); no snapshot or image endpoint. Reinstall wipes the disk. Time Machine system restore is blocked by MDM profiles.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/developers/api/apple-silicon/",
+      "quote": null,
+      "note": "API manages the bare-metal Mac lifecycle only (servers, OS, commitment, bandwidth, Private Networks, GitHub/GitLab CI runners via Dev OS). No agent-harness or exec API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/vpc/reference-content/understanding-nacls/",
+      "quote": "Network ACLs only control traffic as it enters or exits the Private Network(s) of a VPC. They do not: ... Filter traffic from/to the public internet (for this, use security groups for Instances, or equivalent features for other resource types)",
+      "note": "Security groups are an Instances (and Elastic Metal) feature; nothing equivalent is documented for Apple silicon, whose public connectivity 'cannot be disabled at any stage'. VPC Network ACLs (ip-level, stateless) can filter traffic between Private Networks only. The remove-public-IP guide routes egress via a Public Gateway, but the IP is removed inside macOS (networksetup), so a root agent can undo it.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No provider-side egress filtering of any kind for Mac minis, so no HTTP-level rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/ipam/reference-content/public-connectivity-best-practices/",
+      "quote": "For some products, e.g. Apple silicon, public connectivity cannot be disabled at any stage",
+      "note": "Mac mini always has a public IPv4 + IPv6 /128 with no security group / cloud firewall. Only guest-side controls: preinstalled fail2ban for VNC, pf rules (documented), or disabling the public interface inside macOS and reaching it via Private Network + Public Gateway SSH bastion (Private Network option EUR 9.99/mo 1 Gbps, EUR 19.99/mo 10 Gbps). VPC Network ACLs apply only between Private Networks.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/troubleshooting/cant-connect-using-vnc/",
+      "quote": "Enabling and configuring Packet Filter (pf) 1. Open the pf configuration file in a text editor to restrict access to screen sharing: sudo nano /etc/pf.conf",
+      "note": "Bare-metal Mac mini with sudo; macOS pf (not nftables/iptables). Scaleway's own docs show pf rules; SIP cannot be disabled and MDM profiles restrict some admin actions, but pf works.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting proxy for Mac minis. Secrets live on the machine (Scaleway Secret Manager exists as a separate store you fetch from, not a proxy).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/block-storage/faq/",
+      "quote": "Block Storage volumes are compatible with Scaleway Instances, Managed Dabatase for PostgreSQL and MySQL, and Kubernetes Kapsule clusters.",
+      "note": "Storage is the Mac mini's internal SSD only (256 GB to 2.05 TB by shape). Kernel-extension option allows DIY macFUSE mounts of remote storage.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/file-storage/faq/",
+      "quote": "Scaleway File Storage is designed to be used in conjunction with Scaleway Instances and Kubernetes Kapsule.",
+      "note": "No first-party shared filesystem for Mac minis; DIY via Object Storage / SMB / macFUSE.",
+      "checked": "2026-09-29"
+    }
   }
 }

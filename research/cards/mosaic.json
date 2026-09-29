@@ -187,7 +187,16 @@
     "spend_limits": false,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -257,5 +266,79 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "Automatic hibernation begins after three quiet seconds.",
+      "note": "Trigger: 3 quiet seconds with no running process (a running process or SSH session prevents it); wakes on use/SSH connect. Hibernation is a pause, and 'a pause, a fork and a snapshot capture guest memory', so memory is included. Also persist:true archives the sandbox at its TTL deadline instead of destroying it ('resume brings the same machine, disk and all, back'), kept 7 days.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "POST /v1/sandboxes/{id}/snapshots — checkpoint for rollback or branching; pass `name` to make it a reusable environment.",
+      "note": "Memory + disk (snapshot requires a quiet sandbox: 409 sandbox_busy if processes run). New sandboxes boot from it via POST /v1/sandboxes with snapshot_id; also live fork of a running sandbox into 1-32 children from its memory image (POST /v1/sandboxes/{id}/fork).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "POST /v1/sandboxes/{id}/prompt — run a coding agent in the sandbox from one prompt",
+      "note": "Agents: amp, claude (Claude Code), codex, cursor, gemini, opencode (binaries in node-22-agents template). Returns text/turns/session_id/tool_calls/usage; stream:true gives SSE events (start, message, tool, usage, result, done); reattach via /processes/{id}/logs. POST /v1/sandboxes/{id}/fanout forks once per prompt and runs an agent in each (up to 32). Each run is a finite prompt (stdin closed); no documented follow-up/resume-conversation endpoint.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "A destination is a hostname, a `*.suffix` wildcard, a hostname and port, an IPv4 or IPv6 address, or an IPv4 or IPv6 CIDR; up to 32",
+      "note": "Host-side eBPF policy: network.allow (hostnames, wildcards, host:port, IPs, CIDRs, up to 32), network.deny (IP/CIDR only), named phase presets (code-review:setup/execute/report), live changes via POST /v1/sandboxes/{id}/network (allow_all/deny_all/allowlist), optional verify_sni on TCP/443 (closes QUIC), airgapped mode network_enabled:false. Default when network omitted: unrestricted.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "Hostnames are enforced as the addresses they resolved to when the policy was set",
+      "note": "Egress policy is L3/L4 (+ optional TLS SNI check); no method/path/header egress rules. Only the credential broker grants (http-access) can be narrowed by path prefix ('paths narrows path prefixes'), which applies to brokered requests, not general egress.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "POST /v1/sandboxes/{id}/previews — create an expiring HTTP preview URL. The token is unguessable and expires, but the link works without credentials; pass `require_auth: true` to require this organization's API key instead",
+      "note": "Per-port preview URLs created explicitly, expiring (60 s-24 h), optional API-key auth, email magic-link shares for private previews, custom preview domains via CNAME. SSH is opt-in (enable_ssh), key-only. No raw TCP / public IPv4.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker v1.15.1 microVM on KVM with its own kernel; default user has passwordless sudo ('can use passwordless `sudo` inside its VM'). Not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "HTTP access can stay at the edge for any one public HTTPS host: POST `/v1/sandboxes/{id}/http-access` with `host`, an organization secret name, and an optional injection object.",
+      "note": "Edge broker injects bearer/basic/custom header; 'The secret never enters the guest or grant row'. Guest gets a sandbox-scoped bearer capability used at /http/{host}/{path} (a proxy prefix, not transparent), max 24 h, optional path prefixes, one host per grant. Also git-access (GitHub only, git over HTTPS) and cloud-access (AWS SigV4, GCP, Azure). Non-HTTP (SSH keys, database clients, mTLS) not covered: docs say use stored secrets (env vars on guest tmpfs) for those.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "POST /v1/volumes — body `{ \"name\":\"datasets\" }`; a volume is an organization-owned directory backed by Mosaic Object Storage, so two sandboxes on two hosts see the same files and the files outlive both",
+      "note": "Object-storage-backed directory mounts (not block devices), up to 4 per sandbox, default /mnt/data; slow for build trees. No published price.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "so two sandboxes on two hosts see the same files and the files outlive both",
+      "note": "Read-write by default; per-mount read_only:true option. Backed by Mosaic Object Storage.",
+      "checked": "2026-09-29"
+    }
   }
 }

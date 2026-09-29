@@ -196,7 +196,14 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "residential",
-    "ip_note": "US residential proxy on by default ($5/GB, country selectable); custom/BYO proxy on all accounts, then traffic billed $0.20/GB."
+    "ip_note": "US residential proxy on by default ($5/GB, country selectable); custom/BYO proxy on all accounts, then traffic billed $0.20/GB.",
+    "snapshot_on_demand": false,
+    "own_agent_api": true,
+    "harness_api": false,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -244,5 +251,56 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.browser-use.com/cloud/openapi/v4.json",
+      "quote": null,
+      "note": "The full V4 OpenAPI path list (runs, sessions, workspaces, browsers, profiles, integrations, share, wallets) has no snapshot/checkpoint/fork endpoint; the product is a managed Chrome over CDP plus a hosted agent. Nearest analogues: saved profiles (cookies/localStorage) that new browsers can load, and workspaces reused across sessions. No memory snapshot.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://docs.browser-use.com/cloud/agent/sessions.md",
+      "quote": "Use the session queue to send the next instruction without interrupting the active run.",
+      "note": "Harness = Browser Use's own hosted browser agent (API V4; legacy V2/V3). REST+Python/TS SDK: POST /runs with a task (choice of Claude/GPT/Gemini/Grok/GLM etc. models), GET /runs/{id}/events (\"Paginated event read. `after` is the event id cursor\"), follow-ups via sessionId or POST /sessions/{id}/queue (interrupt or queue), list/get/delete/share sessions, cancel run. Does not drive Claude Code/Codex inside the sandbox; those are integrations that call Browser Use as a tool.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.browser-use.com/cloud/agent/sessions.md",
+      "quote": "Use the session queue to send the next instruction without interrupting the active run.",
+      "note": "Harness = Browser Use's own hosted browser agent (API V4; legacy V2/V3). REST+Python/TS SDK: POST /runs with a task (choice of Claude/GPT/Gemini/Grok/GLM etc. models), GET /runs/{id}/events (\"Paginated event read. `after` is the event id cursor\"), follow-ups via sessionId or POST /sessions/{id}/queue (interrupt or queue), list/get/delete/share sessions, cancel run. Does not drive Claude Code/Codex inside the sandbox; those are integrations that call Browser Use as a tool.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "The customer gets a managed Chrome over CDP (or a hosted agent), no shell/root in the underlying machine, so cannot run nftables/iptables. Not stated explicitly in docs.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.browser-use.com/cloud/guides/secrets.md",
+      "quote": "Aliases avoid putting raw credentials in the task text. They do not guarantee that the agent cannot see the value: once typed, it is accessible to the page and to an agent with browser/CDP access.",
+      "note": "V4 secretBindings / 1Password vault bindings are typed into the page server-side by alias on allowed domains (the LLM never reads the value: 'Credentials this run may use without ever seeing them'), but the real value enters the browser, so it is not a network-level credential-injecting proxy. HTTP only (form fields); no DB/SSH/git.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.browser-use.com/cloud/agent/workspaces.md",
+      "quote": "The current V4 upload allowance is 950 MiB per workspace for every account, with 50 MiB per file. It leaves room for runtime files on the agent's 1 GiB persistent disk.",
+      "note": "No attachable block/network volumes. Workspaces are object-storage file sets synced into runs (950 MiB quota), not mounted volumes.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.browser-use.com/cloud/agent/workspaces.md",
+      "quote": "Workspace files are synchronized to storage between runs. This is not a live shared filesystem between simultaneous sessions: finish one writer before starting another run that needs its changes.",
+      "note": "A workspace can be reused by several sessions but only via sync between runs, not concurrent mounts.",
+      "checked": "2026-09-29"
+    }
   }
 }

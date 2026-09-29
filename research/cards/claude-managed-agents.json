@@ -291,7 +291,7 @@
     "lang_java": true,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": false,
@@ -305,7 +305,15 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "container",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": false,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -383,5 +391,71 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://platform.claude.com/docs/en/managed-agents/events-and-streaming",
+      "quote": "When a session goes idle, its sandbox is checkpointed, preserving the full sandbox state, including the filesystem, installed packages, and any files the agent created.",
+      "note": "Trigger: session goes idle (agent finished its turn / waiting for input or tool confirmation). Resumes on next user.message. Memory/running processes not stated (docs list filesystem, packages, files only). Sandbox state kept only 30 days after sandbox creation ('Activity does not extend this window'), then a resumed session starts from a fresh sandbox. Idle time is not billed.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://platform.claude.com/llms.txt",
+      "quote": null,
+      "note": "The full beta API list (sessions, events, threads, resources, environments, vaults, work) has no snapshot/checkpoint/fork endpoint; checkpointing only happens implicitly on idle. No boot-from-snapshot or session fork. Sessions do not share filesystem state.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://platform.claude.com/docs/en/managed-agents/overview",
+      "quote": "Send user messages as events. Claude autonomously runs tools and streams back results through server-sent events (SSE). Event history is persisted server-side and can be fetched in full.",
+      "note": "The product IS a harness API for Anthropic's own agent harness (Claude Managed Agents harness, Claude models only): create session with prompt (initial_events), stream SSE events (incl. token deltas), send follow-ups, interrupt, list/resume sessions and threads, multiagent threads, webhooks. Not Claude Code/Codex/other CLIs.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://platform.claude.com/docs/en/managed-agents/environments",
+      "quote": "`allowed_hosts` specifies domains the sandbox can reach. Specify bare hostnames or wildcard patterns (such as `*.example.com`). Do not include a URL scheme, port, or path.",
+      "note": "Per-environment networking: `unrestricted` (default for API; safety blocklist) or `limited` ('Restricts sandbox network access to the hosts in `allowed_hosts`') with optional allow_package_managers / allow_mcp_servers. Enforced outside the container. No IP/CIDR rules.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/environments",
+      "quote": "Network access is granted per host, not per operation. The sandbox can send any request to an allowed host, including uploads such as `git push` and package publishing, with any credential the command supplies.",
+      "note": "No method/path rules. (Vault credential injection_location header/body scopes where secrets are substituted, not which requests are allowed.)",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No inbound ports, preview URLs, SSH or public IP are documented at all for cloud sandboxes; the sandbox is not reachable from outside (only via the sessions API), so there is nothing to control. Effectively private-only.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://platform.claude.com/docs/en/managed-agents/vaults",
+      "quote": "each credential is keyed by a `secret_name` (the environment variable name) and stored in the sandbox as an opaque placeholder. When the agent initiates an outbound request, the opaque placeholder is substituted with the real secret at egress. The agent never sees the secret value.",
+      "note": "Vault `environment_variable` credentials: per-credential networking.allowed_hosts (which hosts get the secret) and injection_location {header, body}. 'The substitution happens at egress, not inside the sandbox.' Works only for clients that send the secret verbatim (breaks SigV4-style signing); tokens returned by exchange flows arrive unredacted. HTTP(S) only (header/body); no DB/SSH coverage documented. Also MCP credentials (mcp_oauth/static_bearer, with auto-refresh) injected by Anthropic's MCP connector. Not yet supported on self-hosted sandboxes. Max 20 credentials per vault.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://platform.claude.com/docs/en/managed-agents/memory",
+      "quote": "A **memory store** is a workspace-scoped collection of text documents optimized for Claude. When you attach a store to a session, it is mounted as a directory inside the session's sandbox.",
+      "note": "Only memory stores: up to 8 per session, mounted under /mnt/memory/<slug>/, each memory capped at 100 kB, max 10,000 memories per store (text docs, versioned). No general block/network volumes. Also GitHub repo and file resources are copied in at session start (not volumes).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://platform.claude.com/docs/en/managed-agents/memory",
+      "quote": "**Shared reference material:** one read-only store attached to many sessions (standards, conventions, domain knowledge), kept separate from each session's own read-write store.",
+      "note": "A memory store can be attached to many sessions; access read_write (default) or read_only, 'enforced at the filesystem level'; concurrent writes guarded by content_sha256 preconditions on the API. Small text-doc store, not a general shared FS. Multiagent threads in one session share one sandbox filesystem.",
+      "checked": "2026-09-29"
+    }
   }
 }

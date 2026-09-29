@@ -716,7 +716,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -750,7 +750,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -800,5 +809,72 @@
     "applied": 20,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.alibabacloud.com/help/en/ecs/user-guide/snapshots-overview",
+      "quote": "Elastic Compute Service (ECS) instances do not automatically back up data stored on cloud disks.",
+      "note": "Stop (incl. economical mode) only retains cloud disks; memory is released ('The instance's vCPUs, memory, GPUs, FPGAs, and system-assigned public IP address are released'). That is persistent_disk, not a checkpoint. Scheduled 'automatic snapshot policies' exist (periodic disk backups, not stop-triggered).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/ecs/user-guide/snapshots-overview",
+      "quote": "To batch deploy or upgrade your business on multiple sites, you can create custom images based on snapshots and then create ECS instances from the images.",
+      "note": "Per-cloud-disk snapshots (manual via console/API/CLI, snapshot-consistent groups across disks), rollback of disks, new disks and custom images from snapshots -> new instances. Disk only, no memory. Billed per GB of snapshot storage.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS VM; no first-party agent-harness API for ECS. Cloud Assistant (remote command exec) is a generic exec API and does not count.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/ecs/user-guide/security-group-rules",
+      "quote": "Basic security groups allow inbound internal traffic from instances in the same group and allow all outbound traffic by default. Enterprise security groups deny both inbound and outbound traffic by default.",
+      "note": "Security group outbound rules: destination CIDR/IP/security group/prefix list + port + protocol, Allow/Deny with priority (IP level, free). Domain level needs the separate paid Cloud Firewall: 'Configure an Internet Firewall access control policy to restrict an instance's outbound traffic to a specific domain name' (Destination Type: Domain Name) - https://www.alibabacloud.com/help/en/cloud-firewall/cloudfirewall/use-cases/configure-a-policy-to-allow-only-internet-facing-servers-to-access-a-specified-domain-name",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/ecs/user-guide/security-group-rules",
+      "quote": "Define inbound and outbound access control rules for ECS instances in a security group.",
+      "note": "Inbound rules: source IP/CIDR/security group/prefix list, destination port, protocol; instances can also be VPC-private with no public IP.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM with root and own kernel; iptables/nftables work in-guest.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting egress proxy for ECS; secrets would be delivered into the VM (user data, env, KMS/Secrets Manager fetched from inside).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/ecs/user-guide/enable-multi-attach",
+      "quote": "This step describes only how to attach a multi-attach disk to multiple instances. For other parameters, see Attach a data disk.",
+      "note": "Cloud disks (ESSD etc.) attach as data disks beyond the system disk.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/ecs/user-guide/enable-multi-attach",
+      "quote": "Attach an ESSD, ESSD AutoPL disk, or Regional ESSD to up to 16 NVMe-enabled instances in the same zone for concurrent read/write access, data sharing, and rapid failover.",
+      "note": "Read-write multi-attach block (needs cluster FS). Also File Storage NAS (NFS): 'Mount a File Storage NAS Network File System (NFS) file system on a Linux ECS instance to allow multiple ECS instances to share and access its data.' (https://www.alibabacloud.com/help/en/nas/user-guide/mount-an-nfs-file-system-on-a-linux-ecs-instance), read-write.",
+      "checked": "2026-09-29"
+    }
   }
 }

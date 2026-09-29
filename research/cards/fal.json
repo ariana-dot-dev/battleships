@@ -642,7 +642,13 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -692,5 +698,49 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://fal.ai/docs/documentation/development/use-persistent-storage",
+      "quote": "When a new runner starts and calls setup(), it can load model weights from /data instead of downloading them from scratch.",
+      "note": "Serverless runners are stateless containers: every new runner re-runs setup() (cold start); only files written to the shared /data FS persist. No checkpoint/restore of runner state or memory is documented. Compute instances (dedicated H100) have no stop/snapshot lifecycle in the API (create/list/get/delete only).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://fal.ai/docs/documentation/agent/sdk",
+      "quote": "Use `createFalClient(...).agent` to submit tasks, handle user input, and retrieve generated media.",
+      "note": "The fal Agent SDK (alpha) drives fal's own hosted creative/media agent (conversations, streamed response snapshots, plans, approvals), which uses a private per-user Python sandbox as a tool. It is not an API to run Claude Code/Codex/etc. inside your own serverless runner or Compute instance, so it does not count for the card's GPU product.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://fal.ai/docs/documentation/deployment/deploy-to-production",
+      "quote": "**Private** is the default for `fal deploy`. Only the account owner and their team members can call the app, and they must include an API key.",
+      "note": "Serverless apps are reached only via the fal.run gateway; app_auth = private (API key, default for deploy) / public (no auth, default for fal run) / shared (callers pay with own key). A custom server's single exposed_port is routed through the same gateway. No IP allowlists. Compute instances get a public IP with SSH-key login; no documented cloud firewall.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://fal.ai/docs/documentation/development/manage-secrets-securely",
+      "quote": "Secrets are injected into your runners as environment variables when they start. You access them via `os.getenv()` just like any other environment variable.",
+      "note": "Plain env-var secret store, per-environment scoping and a per-app `secrets` allowlist; FAL_KEY auto-injected for privileged apps. No outbound credential-injecting proxy. (fal Agent 'Connectors' run through a hosted integration layer so the agent never sees app passwords, but that is fal Agent's OAuth tooling, not a sandbox egress proxy.)",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://fal.ai/docs/documentation/development/use-persistent-storage",
+      "quote": "Every fal runner has access to a persistent `/data` volume. This is a distributed filesystem that is shared across all your apps and runners, linked to your fal account.",
+      "note": "One account-wide network FS (local NVMe + datacenter cache + global object store), auto-mounted; `data_mounts` can restrict an app to subpaths (e.g. [\"/data/.cache\"]). No separately sized/attachable block volumes; Compute instances only have their local 1 TB/8 TB SSD.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://fal.ai/docs/documentation/development/use-persistent-storage",
+      "quote": "Since `/data` is shared across all runners, you should be careful when multiple runners write to the same path simultaneously.",
+      "note": "read-write from all runners of all apps in the account concurrently; also reachable via fal files CLI / Platform API / dashboard.",
+      "checked": "2026-09-29"
+    }
   }
 }

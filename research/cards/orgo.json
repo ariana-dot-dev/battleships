@@ -410,7 +410,7 @@
     "lang_java": null,
     "gpu_desktop": true,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": true,
     "fork_running": true,
@@ -431,7 +431,15 @@
     "ip_note": "Computers egress from data-center IPs; BYO upstream HTTP CONNECT proxy for browser traffic via /egress/upstream (changes exit IP for browser only); no managed residential proxies documented.",
     "isolation": "vm",
     "image_oci": false,
-    "android": true
+    "android": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -497,5 +505,72 @@
       "item": "Extra computer slots",
       "price": "$1 per slot per month, up to 30 add-on slots"
     }
-  ]
+  ],
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.orgo.ai/api-reference/computers/stop",
+      "quote": "Both modes preserve disk data; stopping discards live processes and memory, and starting cold-boots with potentially different connection details.",
+      "note": "Stop (manual or per-computer auto_stop_minutes idle timer) archives the disk to object storage and cold-boots on a new host: persistent disk, not a state snapshot. A separate 'suspended' status exists ('Paused on its host. It resumes on interaction') but what triggers it and whether it survives host loss is not documented.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.orgo.ai/api-reference/computers/clone",
+      "quote": "Cloning copies the full disk: installed software, files, browser sessions. The clone gets a new UUID, a new `instance_id`, and a fresh network identity.",
+      "note": "POST /computers/{id}/clone of a running computer = disk-only fork into a new running computer (docs map Fly/DO/Hetzner 'snapshot' to clone). No named snapshot / restore-in-place endpoint in the API list; CLI has '--snapshot <id>' ('Boot from a snapshot or custom image') but no documented way to create one. Template builds produce memory+CPU 'golden snapshots' but from a spec, not from an arbitrary running computer.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://docs.orgo.ai/api-reference/chat/completions",
+      "quote": "Send a message to an AI model and have it drive an Orgo computer on your behalf. The model sees the screen, clicks, types, and runs shell commands until your request is satisfied, then returns the final assistant message.",
+      "note": "Orgo's own computer-use agent (Claude Sonnet/Opus models only) via OpenAI-compatible POST /v1/chat/completions with SSE streaming, plus /v1/threads list/get (history must be resent client-side); CLI 'orgo agent' / 'orgo run' / 'orgo resume'. The agent loop runs on Orgo's side and drives the computer, not inside it. Claude Code / Hermes / OpenClaw run inside via templates but there is no first-party API to prompt them.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.orgo.ai/api-reference/chat/completions",
+      "quote": "Send a message to an AI model and have it drive an Orgo computer on your behalf. The model sees the screen, clicks, types, and runs shell commands until your request is satisfied, then returns the final assistant message.",
+      "note": "Orgo's own computer-use agent (Claude Sonnet/Opus models only) via OpenAI-compatible POST /v1/chat/completions with SSE streaming, plus /v1/threads list/get (history must be resent client-side); CLI 'orgo agent' / 'orgo run' / 'orgo resume'. The agent loop runs on Orgo's side and drives the computer, not inside it. Claude Code / Hermes / OpenClaw run inside via templates but there is no first-party API to prompt them.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.orgo.ai/guides/templates/schema",
+      "quote": "Rules are domain patterns, exact domains, IPs, or CIDRs. Domain patterns match at the DNS layer, so `*.github.com` also covers subdomains. The VNC and Desktop API paths are always reachable. Omit the block entirely for no filtering.",
+      "note": "Template field egress_policy, 'Per-computer network filtering, enforced on the host', mode allow (default-deny) or block. Only documented as a template field, not on plain POST /computers.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.orgo.ai/guides/templates/schema",
+      "quote": "Rules are domain patterns, exact domains, IPs, or CIDRs.",
+      "note": "egress_policy rules are host/IP only (DNS-layer matching); no method/path/header rules documented. Separate BYO upstream HTTP CONNECT proxy applies to browser traffic only.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.orgo.ai/guides/migrations/digitalocean",
+      "quote": "No public per-computer IP. Reach it via the authenticated proxy: `www.orgo.ai/api/desktops/{instance_id}/proxy/<path>`",
+      "note": "Access only through Orgo's API-key/token-authenticated proxy; template app ports are private unless marked public ('Expose publicly. Defaults to `false`.' - templates/schema). No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VM (QEMU per prior research) with root desktop; not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.orgo.ai/guides/templates/secrets",
+      "quote": "At create, Orgo writes the user's matching secrets into the computer at `/root/.env` (mode `0600`). They are never baked into the shared snapshot.",
+      "note": "Vault secrets are injected as plain env/files inside the computer (also POST /computers/{id}/secrets/sync); the agent can read them. No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    }
+  }
 }

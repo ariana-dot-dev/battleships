@@ -710,7 +710,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
@@ -743,7 +743,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -790,5 +799,72 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "Each workflow run executes in a fresh, newly-provisioned virtual machine.",
+      "note": "Ephemeral per-job VMs (ubuntu-slim containers are 'automatically decommissioned' after the job); nothing is saved at job end unless the job opts into the `snapshot` keyword (see snapshot_on_demand). actions/cache and artifacts are separate storage, not machine state.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/use-custom-images",
+      "quote": "After you create an image-generation runner, run a workflow that includes the `snapshot` keyword to generate a custom image.",
+      "note": "Larger runners only (Linux x64/ARM64, Windows x64), on an image-generation runner; the disk image is captured when the job completes successfully (not at an arbitrary moment, no memory). New larger runners boot from the resulting versioned custom image. Storage billed as Actions storage.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.github.com/en/rest/agent-tasks/agent-tasks",
+      "quote": "Use the REST API to start and manage Copilot cloud agent tasks",
+      "note": "Public preview REST API: POST /agents/repos/{owner}/{repo}/tasks with `prompt`, model (incl. Claude/GPT-Codex models) and custom_agent; list/get tasks and their sessions. The Copilot cloud agent runs in 'its own ephemeral development environment, powered by GitHub Actions'. Follow-ups via PR comments/Copilot Chat; also gh CLI. Third-party Anthropic Claude and OpenAI Codex agents (public preview) are started from the Agents tab, issues, PR @mentions, not documented on this REST API. It drives GitHub's managed agent on Actions infra, not a harness in an arbitrary runner job you define.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.github.com/en/organizations/managing-organization-settings/about-azure-private-networking-for-github-hosted-runners-in-your-organization",
+      "quote": "any outbound rules applied to your VNET's network security group (NSG) also apply, giving you the ability to control outbound access for your runners.",
+      "note": "Only larger runners (2-64 vCPU Ubuntu/Windows) injected into your own Azure VNET; controls are your Azure NSG / network (customer-managed Azure, enforced outside the VM). Standard runners: open internet, only an /etc/hosts block of mining pools. The Copilot cloud agent has a domain/URL allowlist firewall, but GitHub says it 'only applies to processes started by the agent' and may be bypassed, so it is not a provider-side control.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.github.com/en/organizations/managing-organization-settings/about-azure-private-networking-for-github-hosted-runners-in-your-organization",
+      "quote": "It is recommended to explicitly block all inbound connections to the runners. GitHub will never require inbound connections to these machines.",
+      "note": "Standard hosted runners expose no inbound ports at all (no public URL/IP ingress). With Azure VNET private networking, inbound is governed by your NSG ('GitHub cannot block inbound connections'; AllowVNetInBound by default).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.github.com/en/actions/reference/runners/github-hosted-runners",
+      "quote": "The Linux and macOS virtual machines both run using passwordless `sudo`.",
+      "note": "Full Azure VMs with root via sudo (Windows: admin, UAC off). Not for ubuntu-slim, which runs in an unprivileged container.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/concepts/security/secrets",
+      "quote": "To make a secret available to an action, you must set the secret as an input or environment variable in your workflow file.",
+      "note": "Actions secrets enter the runner as inputs/env vars and are only redacted from logs. OIDC federation issues short-lived cloud tokens to the job (still inside the VM). No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "Each workflow run executes in a fresh, newly-provisioned virtual machine.",
+      "note": "No attachable persistent volumes for hosted runners; fixed SSD per size. Persistence only via actions/cache, artifacts, or custom images.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No shared filesystem between concurrent hosted runners documented; jobs share data via artifacts/cache or external storage (e.g. through Azure VNET).",
+      "checked": "2026-09-29"
+    }
   }
 }

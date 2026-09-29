@@ -296,7 +296,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -342,5 +349,56 @@
     "applied": 2,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://boxes.dev/help/sleep-wake-recover",
+      "quote": "Devboxes and Template boxes sleep when you aren't using them. Sleeping keeps the machine's files and memory, like closing a laptop's lid, so you can return to the same machine later.",
+      "note": "Trigger: ~5 min without activity ('the idle timeout itself is not configurable'), or manual Sleep / `dvb sleep`. Memory + processes included; auto-wake on returning to the thread or sending a message. Failed wake can 'Reboot… to start the machine without restoring its saved memory'.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://boxes.dev/help/template-box-snapshots",
+      "quote": "With the Template box selected, open its machine status menu and choose New snapshot , or run this in its Terminal: dvb-onbox snapshot",
+      "note": "Only the project's Template box can be snapshotted (also `dvb checkpoint <template-box>`); snapshot history kept; every new devbox boots from it (template/fork). Help page: snapshot preserves files, and 'New devboxes start their own processes' (disk-level for new devboxes), though the homepage says 'Take a snapshot—filesystem and memory'. Ordinary devboxes cannot be snapshotted, but 'Branch a conversation → New devbox' copies a devbox's current files (incl. uncommitted work) into a new devbox.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://boxes.dev/help/agent-command-reference",
+      "quote": "dvb threads start --project <fingerprint> --target new-devbox --agent codex \\ --prompt-file <path> --idempotency-key <key> --json",
+      "note": "Codex and Claude Code. CLI `dvb threads start/list/read/wait/events --jsonl (resume cursors)/send (follow-up)/interrupt`; plus HTTP automation API (POST run endpoint with Bearer secret; prompt, execution backend codex|claude, model, target existing devbox; statusUrl returns launch status only). Also Slack/Linear triggers, on-box `dvb-onbox` delegation to other agents.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://boxes.dev/help/share-running-app",
+      "quote": "Hover over the port's row and choose Share publicly . Read and accept the confirmation, then choose Copy link and send the link to your reviewer.",
+      "note": "Private by default: ports reach only the owner's laptop via desktop-app port forwarding ('The local addresses in Ports work only on your laptop'). Public per-port opt-in link (user-preview-<token>.onboxes.dev, unauthenticated capability URL), stoppable; per-project port-forwarding rules decide which ports may be shared; Project URLs route a stable URL to chosen devboxes. No IP allowlists/auth on public links.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://boxes.dev/help/environment-files",
+      "quote": "Delivered files are plaintext, and the project owner, root, processes, and agents on the machine can read them.",
+      "note": "Secrets are delivered onto the machine: environment files/member files are plaintext on disk; GitHub credential helper tokens are readable ('Code on the machine can read that token'); AWS supplies temporary credentials via a boxes-dev profile. Agent model credentials are the user's own Codex/Claude login or API key. No injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://boxes.dev/help/shared-project-storage",
+      "quote": "Every machine in the project — its Template box, if it has one, and each devbox — opens the same stored files rather than a copy synchronized onto each machine. Project storage is on by default during open beta.",
+      "note": "Only form of extra storage: the per-project /project shared folder (outlives machines; open beta; size limit not stated). No block volumes. Counted as volume_attach with medium confidence because it is a first-party persistent mount beyond the root disk.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://boxes.dev/help/shared-project-storage",
+      "quote": "Use the /project folder for files you want to read and update from several devboxes, such as reference material or notes for another agent.",
+      "note": "Read-write from all machines of a project concurrently; ~1 s propagation; no file locks/strict consistency; not for databases/build trees. Claude's project memory redirected to /project/.claude/memory. Also `dvb mount` SSHFS of remote home to laptop (not machine-to-machine).",
+      "checked": "2026-09-29"
+    }
   }
 }

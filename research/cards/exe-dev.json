@@ -564,7 +564,15 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "cloud-hypervisor",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -629,5 +637,78 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 9
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://exe.dev/docs/standalone-vms.md",
+      "quote": "A stopped standalone VM is not billed for its vCPU and memory. It keeps its disk, and it still counts toward your VM limits.",
+      "note": "State = persistent disk only; no snapshot/checkpoint/suspend mechanism anywhere in llms-full.txt (0 hits for 'snapshot'/'checkpoint'). VMs are not auto-stopped on idle. Docs say disks are 'persisted and backed up' (backups, not this feature).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://exe.dev/docs/cli-cp.md",
+      "quote": "cp <source-vm> [new-name] [--pool=<name>] [--memory=<size>] [--cpu=<count>] [--disk=<size>]",
+      "note": "No snapshot/restore command in the full CLI reference. Closest thing: `cp` = copy-on-write clone of a VM ('clone disk and config', /sandbox page) into a NEW VM, disk only, no memory. A stopped cp copy can serve as a manual disk checkpoint / template for further cp, but there is no restore-in-place or named snapshot.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://exe.dev/docs/cli-shelley.md",
+      "quote": "Send a prompt to Shelley on a VM ... shelley prompt [--model=<model>] [--reasoning=<level>] <vm> <prompt>",
+      "note": "Shelley only (exe.dev's own web coding agent). Also `new --prompt` ('initial prompt to send to Shelley after VM creation'). Driveable over SSH and the HTTPS /exec API (which runs the same command set). No documented API to stream Shelley events, list/resume conversations, or drive Claude Code/Codex/Pi (preinstalled, but only via shell exec). exe.dev also serves an MCP server at https://exe.dev/mcp (tool list not documented).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No provider-side egress controls documented anywhere in llms-full.txt (no firewall/allowlist/no-internet options on `new`, `share`, teams or pools). Treated as false (dev-env with full internet by design); could be null if strict. Secrets are protected via integrations rather than by blocking egress.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Not documented. The http-proxy integration only fixes a target host, injects headers and can strip a path prefix (`--strip-prefix`); it does not filter methods/paths, and direct internet egress is unrestricted anyway.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://exe.dev/docs/proxy.md",
+      "quote": "By default, only users with access to the VM can access the HTTP proxy. Users accessing https://vmname.exe.xyz/ for the first time will be redirected to log into `exe.dev`.",
+      "note": "Private-by-default auth-gated HTTPS proxy; `share set-public/set-private`; per-person Web or Root shares, team sharing controls; ports 3000-9999 forwarded only to authorized users; 'You may only mark a single port public'. No public IP; only HTTPS proxy + brokered SSH reach the VM. VM-scoped bearer tokens for programmatic access. No IP allowlists.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM (Cloud Hypervisor) with root and systemd; user cannot pick the kernel but the stock kernel presumably includes netfilter (Docker runs inside, which needs iptables/nftables).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://exe.dev/docs/integrations.md",
+      "quote": "Whatever the type, the secret is stored server-side and injected at the network edge when your VM calls the integration hostname. The VM — and any agent running on it — can *use* the integration but can never read the secret.",
+      "note": "Integrations: HTTP proxy (any target host; --header/--bearer/basic auth injected at <name>.int.exe.xyz), S3 SigV4 signing, GitHub App (git over HTTPS), LLM providers, Slack/Discord bots, VM-to-VM, token-mint, OCI registry pull tokens, 100+ catalog services, AWS/GCP workload identity federation. Attach per VM, per tag or auto:all. The VM calls a special hostname (explicit proxy endpoint, not transparent interception). HTTP(S) only; no DB/SSH protocol injection documented (git via GitHub integration over HTTPS).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No volume/attach commands in the CLI reference; storage = the VM's own grow-only disk (`new --disk`, `resize`). Object storage reachable via the S3 integration (HTTP, not a mount).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No shared filesystem/volume feature documented; cross-VM sharing via Tailscale/SSH/VM-to-VM integration or S3 integration.",
+      "checked": "2026-09-29"
+    }
   }
 }

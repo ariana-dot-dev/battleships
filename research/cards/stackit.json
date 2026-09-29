@@ -2192,7 +2192,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -2223,7 +2223,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -2254,5 +2263,71 @@
     "applied": 24,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No stop-triggered snapshot documented: stop keeps the volumes (persistent disk); 'shelve' (future name 'deallocation') offloads the VM and stops compute billing but keeps its volumes. Scheduled crash-consistent backups via the Server Backup Management service ('advanced custom backup schedules enable automated backups') and SFS Snapshot Schedules are time-based, not stop-triggered. No memory state.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/products/iaas-api/how-tos/create-volume-snapshots-and-backups-via-iaas-api-cli/",
+      "quote": "To restore a volume you first need to create a new volume and provide the source-type of “snapshot” or “backup” with the corresponding id.",
+      "note": "Volume snapshots and volume backups via IaaS API (POST /snapshots 'Create a new Snapshot from a Volume in a project', POST /backups) and Portal; disk only, no memory. New servers boot from a volume created from a snapshot/backup or from a cloned volume (documented 'clone a VM' flow: --boot-volume-source-type volume); volumes can also be turned into images.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS. STACKIT Run Command (via Server Agent) runs shell/PowerShell scripts on VMs from Portal/CLI/API: an exec API, not a harness API. No agent-harness endpoints in the IaaS API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/products/network/core-networking/security-groups/basics/concepts/",
+      "quote": "Egress rules control outgoing traffic from your servers. By default there is a rule that allows all egress traffic. You can create restrictive egress rules to:",
+      "note": "Stateful Security Groups on the NIC (NIC Security enabled by default): allow-only rules by direction, protocol (TCP/UDP/ICMP/any), port range and IP/CIDR or remote security group; remove the default allow-all egress rule to get default-deny. Free. No domain-level filtering. Servers can also run without public IP.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/products/network/core-networking/security-groups/basics/concepts/",
+      "quote": "Ingress (Inbound): All incoming traffic is blocked by default, with one important exception—traffic from instances within the same Security Group is allowed",
+      "note": "Inbound allow rules by protocol/port/source CIDR or security group; public IPs are optional per NIC.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/products/security/security-hardening/security-in-compute-engine/",
+      "quote": "Use a firewall, for example with iptables or firewalld, and allow only necessary ports.",
+      "note": "Full KVM/OpenStack-style VM with root.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting proxy. Secrets reach the VM via cloud-init user data, service accounts attached to servers, or the separate STACKIT Secrets Manager (read from inside the VM).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/products/storage/block-storage/getting-started/creating-additional-storage-volumes/",
+      "quote": "This tutorial will guide you through the process of creating additional storage volumes on the STACKIT portal.",
+      "note": "Block Storage volumes, same availability zone only ('only servers in the same AZ can use the volume'); attach via Portal or API (servers/{id}/volume-attachments); single-attach (Volume has one serverId); resizable; performance classes.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/products/storage/file-storage/basics/resources/",
+      "quote": "A Share Export Policy is a set of rules that control client access to the data storied in the NFS Shares. This is where you can define which IPs can mount the NFS Shares and which type of access these IPs have.",
+      "note": "STACKIT File Storage (SFS): NFS Resource Pools (500 GB-20 TB, mountable read-only) containing NFS Shares mountable read-write by any client IPs allowed by the Share Export Policy ('NFS Shares can be mounted in read and write mode'); requires a STACKIT Network Area with routing tables. Separate paid product. Block volumes themselves are single-attach.",
+      "checked": "2026-09-29"
+    }
   }
 }

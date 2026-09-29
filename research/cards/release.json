@@ -141,7 +141,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_on_demand": true,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -162,5 +167,42 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.release.com/reference-documentation/release-api/ai-sandbox-api/snapshots",
+      "quote": "Snapshots preserve the full state of the session, including filesystem contents and running processes",
+      "note": "AI Sandbox API only (POST .../sandbox_sessions/{id}/snapshots, list, get, restore). Memory/processes included per docs. Restore is documented only into the same session (roll back); no documented boot of a new session/fork from a snapshot. Not available for the classic Kubernetes environments (Instant Datasets snapshot RDS databases, not machines).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.release.com/reference-documentation/application-settings/application-template/schema-definition",
+      "quote": "An array of source client CIDRs to allow access (e.g. 10.0.0.0/24, 172.10.0.1) at the ingress.",
+      "note": "Per-app ingress ip_allow_list / ip_deny_list (nginx ingress), optional AWS WAFv2 ACL (wafv2_acl_arn), choice of which service ports are exposed via hostnames/rules; OAuth proxy / ngrok+OAuth guides for private access; cluster API server source-IP allowlist (restrict-cluster-api-access).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.release.com/reference-documentation/environment-settings/environment-specific-environment-variables/secrets",
+      "quote": "You can import environment variables from Release Secrets Manager, AWS Secrets Manager, AWS Systems Manager Parameter Store (SSM), and GCP Secret Manager",
+      "note": "Secrets are delivered into the workload as environment variables / Kubernetes secrets (also Doppler integration); no credential-injecting egress proxy documented. The AI Sandbox github_repository resource takes a token that is 'Never persisted' but it is used for cloning, not proxied.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.release.com/reference-documentation/application-settings/application-template/schema-definition",
+      "quote": "Volumes provide a means to storing information on disk. This ensures no data is lost if the Pod restarts",
+      "note": "Per-service persistent volumes (PersistentVolumeClaim) with storage type aws-efs or nfs and a size; also s3 volumes. AI Sandbox sessions mount files/repos/memory stores under /mnt/session (not block volumes).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.release.com/reference-documentation/application-settings/application-template/schema-definition",
+      "quote": "Shared Volumes creates a PersistentVolumeClaim that is written to/read from by multiple services.",
+      "note": "Read-write; 'Shared volumes are implemented using NFS in the cloud provider.' Shared among services within an application/environment. AI Sandbox memory stores can be attached read_write or read_only to sessions (vector store, not a filesystem).",
+      "checked": "2026-09-29"
+    }
   }
 }

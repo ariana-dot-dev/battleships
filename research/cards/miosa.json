@@ -397,7 +397,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": false,
     "fork_running": null,
@@ -411,7 +411,15 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -464,5 +472,72 @@
   },
   "audit_2026_09_29": {
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://miosa.ai/docs/computers/overview",
+      "quote": "Stopping a computer pauses billing (or charges at the stopped rate, depending on your plan). Restarting resumes from the snapshot.",
+      "note": "Triggers: Computer stop and inactivity auto-stop ('auto_stop_seconds': 'Seconds of inactivity before auto-stop', /docs/api-reference/computers); for Sandboxes, 'Persistent timeout pauses; non-persistent timeout destroys' and idle_timeout_sec auto-stop (default 0 = off), with pause described as 'snapshot-backed' (/docs/develop/snapshots). Memory: Computer snapshots capture 'CPU state, RAM, and filesystem', so resume-from-snapshot likely restores processes, but the stop/pause pages only promise 'filesystem state is preserved' / 'suspends guest vCPU execution ... while preserving its workspace'. Treat memory retention on auto-stop as unconfirmed.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://miosa.ai/docs/api-reference/snapshots",
+      "quote": "Snapshots capture the full in-memory state of a running computer - CPU state, RAM, and filesystem - and store it durably. Restore a snapshot to spin up an identical computer in seconds.",
+      "note": "Computers: POST /computers/{id}/snapshots (running only), restore creates a new computer; 'Snapshot-based parallelism (clone a baseline)' recipe restores N workers. Sandboxes: POST /sandboxes/{id}/fork 'creates a new sandbox from a copy-on-write snapshot of a running sandbox'; /docs/develop/snapshots also lists CLI 'miosa sandbox snapshot' + 'miosa sandbox create --snapshot', but /docs/known-limitations says 'Standalone snapshot management is not in canonical public V1' (contradictory docs; fork is the stable sandbox path). Memory included; new machines can boot from it.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://miosa.ai/docs/api-reference/agent-runs",
+      "quote": "Agent Runs are the prompt-dispatch interface for MIOSA sandboxes and computers. Use them when your product needs to send a natural-language task into a device, run it through OSA, Codex, Claude Code, Pi, Hermes, or a custom runtime, and receive a stable run response your UI can render.",
+      "note": "POST /api/v1/agent-runs (provider: osa, codex, claude/claude-code, pi, hermes, custom), durable events + SSE stream (GET /agent-runs/{id}/events?stream=true), cancel, artifacts, Agent Run Groups for multi-agent orchestration, runtime profiles; CLI 'miosa agent run --sandbox/--computer', 'miosa sandbox prompt'. Runtime-routing guide also lists Gemini CLI / OpenCode as customer-provided runtimes. No documented follow-up/resume-conversation endpoint; each run is a prompt dispatch.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://miosa.ai/docs/api-reference/egress",
+      "quote": "Pattern kinds: exact (literal host), wildcard (*.example.com), cidr (IP literal targets only).",
+      "note": "Egress policies per Computer/Sandbox with mode audit_only/enforce and default_action allow/deny ('Tenant default starts in audit_only mode'), enforced by the host-side proxy. Computers additionally have /computers/{id}/network-policy with modes unrestricted/allowlist/denylist/isolated, host+port+protocol rules: 'Network policies apply at the microVM level.' Allowlist suggestions from the audit log.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://miosa.ai/docs/api-reference/egress",
+      "quote": "\"pattern\": \"*.openai.com\",\n\"kind\": \"wildcard\",\n\"method\": \"POST\",\n\"path_glob\": \"/v1/*\",\n\"action\": \"allow\",",
+      "note": "Allowlist rules carry method and path_glob in addition to host; warn_only and priority fields. No header-level rules documented. Audit log records method/path per request.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://miosa.ai/docs/develop/previews",
+      "quote": "Requires either an authenticated MIOSA session OR a valid share token.",
+      "note": "Preview URLs per port ({port}-{slug}.sandbox.miosa.ai) with public/private visibility, short-lived share tokens (preview_token, stripped by the proxy), preview tokens for iframes, custom preview domains. No IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker microVM ('isolated microVM workspaces', /docs/api-reference/sandboxes) with root (exec default cwd /root, sudo apt-get in examples); nftables/iptables inside not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://miosa.ai/docs/security/secrets",
+      "quote": "the MIOSA proxy on your VM’s host sees the request, finds miosa-tok-7f2a8c1d4b2e6f0a in the Authorization header, and swaps it with your real sk-proj-... before forwarding to OpenAI. OpenAI sees the real key. Your sandbox never did.",
+      "note": "Any API key (example uses OpenAI and Stripe), plus OAuth Connect tokens with auto-refresh; placeholder swapped in headers, query params, URL paths and buffered bodies; rotation without restart; 5 scope levels; per-request audit. Docs claim it works with 'curl, requests, fetch, axios, gRPC' at the network layer; databases/SSH/git-over-SSH not mentioned. Per-secret host binding (which destinations may receive the real value) not documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://miosa.ai/docs/data/volumes",
+      "quote": "Create a persistent block device, attach it to a compatible computer on the same host, and preserve writes independently of the computer lifecycle.",
+      "note": "Computers (and App Engine runtime instances); local-backend ext4, max 500 GB, 10 per project, host-bound ('Cross-host attach returns a clear error'). /docs/known-limitations still labels Volumes 'Beta'. Not documented for Sandboxes.",
+      "checked": "2026-09-29"
+    }
   }
 }

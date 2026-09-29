@@ -278,7 +278,7 @@
     "lang_java": true,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": false,
@@ -292,7 +292,15 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -362,5 +370,71 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.fly.io/sprites/concepts/lifecycle.md",
+      "quote": "The VM is suspended with everything in memory frozen in place. Compute billing stops. The next request resumes it in 100–500ms, and processes pick up mid-thought, exactly where they were.",
+      "note": "Trigger: ~30 s idle -> 'warm' (memory+processes frozen, automatic resume on request/exec). Longer idle -> 'cold' (memory dropped, disk only; processes restart, Services auto-restart). User cannot choose or observe warm vs cold. Separately the platform takes automatic background filesystem checkpoints ('auto-' IDs, pruned over time; docs.fly.io/sprites/concepts/checkpoints: \"the platform creates its own in the background as you work\"). Filesystem is also continuously synced to object storage.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.fly.io/sprites/concepts/checkpoints.md",
+      "quote": "A checkpoint snapshots the writable filesystem overlay: everything you've added on top of the base image. It does not touch the base image itself, and it does not capture anything that only lives in memory.",
+      "note": "Filesystem only, no memory. Via CLI (sprite checkpoint create), REST API (POST /v1/sprites/{name}/checkpoint) or from inside (sprite-env / /.sprite/api.sock). Copy-on-write, non-interrupting, sequential v0..vN with comments; last 5 mounted read-only at /.sprite/checkpoints/. Restore is in place only (destructive); the public API has no create-from-checkpoint. Release notes (2026-04-02) mention a 'Fork a Sprite' by timestamp for 'Admins' on the 'admin sprite page' - appears to be operator/admin tooling, not in the public API/CLI docs.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/api/openapi.json",
+      "quote": null,
+      "note": "Public API surface is sprites, checkpoints, exec, fs, policies, services, connectors - no endpoint to start/prompt/stream/resume an agent harness. Claude Code, Gemini CLI, Codex, Cursor are preinstalled (agent_harnesses) and Sprites act as a sandbox backend for third-party harnesses (Claude Managed Agents self-hosted environment, Cursor Cloud Agents, OpenAI Agents SDK, Google ADK adapters, remote MCP server), but the harness is driven by those vendors' APIs, not a Sprites harness API. Tasks API (in-VM) only keeps the Sprite awake.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.fly.io/sprites/concepts/networking.md",
+      "quote": "Egress can be tightened with a **network policy**, a DNS-based allowlist that decides which domains a Sprite is allowed to reach. Applying one is opt-in and done from outside the Sprite.",
+      "note": "Per-Sprite allow/deny domain rules incl. wildcards and a 'defaults' preset; raw IP connections blocked unless resolved from an allowed domain; private IPs always blocked; live reload drops existing connections; read-only inside the Sprite (\"a Sprite can't rewrite its own egress rules\"). No IP/CIDR rules in the NetworkPolicyRule schema (domain/action/include only). Default is unrestricted.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.fly.io/sprites/concepts/connectors.md",
+      "quote": "The access policy can also restrict which provider paths a Sprite can reach through the connector.",
+      "note": "Only for traffic sent through the Connectors gateway: per-connector allowed_endpoints / blocked_endpoints path patterns (exact or trailing-* prefix; block wins), API-only. No method/header rules and no HTTP-level rules for general (non-connector) egress, which is DNS-level only.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.fly.io/sprites/concepts/networking.md",
+      "quote": "A Sprite URL is private by default. It's reachable only by members of your org, through the browser or with an org token",
+      "note": "url_settings.auth sprite|public, plus private_access admins|organization (API). URL routes to one chosen HTTP port (service --http-port); other ports only via authenticated 'sprite proxy' / WebSocket TCP proxy. No IP allowlists, no public IPv4, no raw TCP inbound.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.fly.io/sprites/concepts/connectors.md",
+      "quote": "**Custom API** is the fallback for anything without a dedicated connector: give it a base URL, a token, and where the token goes, and it wraps any token-authenticated HTTP API.",
+      "note": "Connectors: credential stored encrypted in the org, Sprite calls https://api.sprites.dev/v1/gateway/<provider>/<connection_id>/<path> with no Authorization header (identity from Fly request signature); \"Sprites never see the token.\" Not transparent: the agent must call the gateway URL (preinstalled sprite-api-gateway skill for Claude Code/Cursor/Codex/Gemini). OAuth (GitHub), BYOK and managed (OpenRouter) credentials; deny-by-default per-Sprite access by name prefix/labels. Header/query/path token placement. HTTP only; no DB/SSH/git-protocol coverage documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/lifecycle.md",
+      "quote": "Every Sprite starts with 100 GB of storage. It does not autoscale yet, so plan around that ceiling.",
+      "note": "Single fixed 100 GB ext4 filesystem per Sprite; no volume endpoints in the OpenAPI and no attach option on create. (Fly Machines have volumes, but not Sprites.)",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/lifecycle.md",
+      "quote": "It is not an object-storage shim or a network filesystem.",
+      "note": "Per-Sprite filesystem only; no shared volume or bucket mount documented (SSHFS from a laptop is DIY).",
+      "checked": "2026-09-29"
+    }
   }
 }

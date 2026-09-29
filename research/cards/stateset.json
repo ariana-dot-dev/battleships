@@ -201,7 +201,14 @@
     "mcp_server": null,
     "isolation": "gvisor",
     "image_oci": null,
-    "agent_sessions": true
+    "agent_sessions": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": "ai-only"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -245,5 +252,57 @@
     "applied": 16,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://sandbox.stateset.app/docs/agent-sessions",
+      "quote": "When a sandbox nears expiry the platform checkpoints it, creates a fresh sandbox, and restores state — seamlessly.",
+      "note": "Only for Agent Sessions (sandbox rotation before timeout, pre_rotate_buffer_seconds). Filesystem + env only: checkpoints guide says 'Process state is not captured (only filesystem)'. Plain sandboxes auto-terminate at timeout without a checkpoint.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://sandbox.stateset.app/docs/checkpoints",
+      "quote": "They capture the filesystem, environment variables, and metadata at a point in time",
+      "note": "POST /sandbox/:id/checkpoints, restore (same or a different new sandbox), clone, compare; SDK also has forkSandbox. No memory ('Process state is not captured (only filesystem)'); max 10 GB, retained 90 days.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "High-level helper for running Claude Code agents in sandboxes.",
+      "note": "SDK AgentRunner.run({prompt, systemPrompt, allowedTools, mcpServers, maxTurns}) writes a Claude Agent SDK script into the sandbox and streams typed events (message/tool_use/tool_result/done) via onEvent; one-shot, no follow-up/resume API. Built on exec streaming; injects ANTHROPIC_API_KEY as env. Only in the npm SDK README, not the docs site. Agent Sessions (docs) are exec/budget/event-log containers, not a harness driver. Claude Code CLI preinstalled.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "Set the egress policy for the organization",
+      "note": "SDK types: EgressPolicy {mode: 'allow_all'|'allowed_domains'|'denied_domains'|'allowed_ports', allowed_domains, denied_domains, allowed_ports, enforcement 'enforce'|'log_only', failure_mode} via PUT /settings/egress, plus egress audit log (host/port/decision). Organization-wide, not per sandbox; documented only in SDK typings, not on docs pages. Docs site only says 'strict network policies'.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "Create a tunnel for a sandbox port",
+      "note": "SDK createTunnel(sandboxId, {port, protocol, expires_in, public}) returns url, expires_at and optional token; per-port opt-in, expiring, public flag. SDK-only, not on docs pages. No IP allowlists.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/docs/production-guide",
+      "quote": "Non-root user execution",
+      "note": "Default isolation is gVisor Kubernetes pods, non-root, read-only root filesystem, so in-sandbox iptables/nftables is not available. SDK lists other isolation values ('container'|'gvisor'|'microvm'|'kata'|'wasm') whose availability is undocumented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "The controller decrypts the org's API key secret and injects it into the outbound request, so the API key never enters the sandbox.",
+      "note": "Inference proxy POST /sandbox/:id/inference for LLM providers only (provider + path + body), called with the StateSet API key through the control plane. General secrets are org secrets injected into the sandbox as env vars (injectSecrets ... as_env_vars: true), i.e. visible to the agent. No arbitrary-host / non-HTTP credential proxy.",
+      "checked": "2026-09-29"
+    }
   }
 }

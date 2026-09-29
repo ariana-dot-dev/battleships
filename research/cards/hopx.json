@@ -142,7 +142,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": false,
-    "egress_allowlist": false,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": false,
@@ -176,7 +176,14 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -270,5 +277,71 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.hopx.ai/core-concepts/sandboxes/timeout",
+      "quote": "When a timeout expires, the sandbox is automatically destroyed. All data in the sandbox is lost. Make sure to save important data before the timeout expires.",
+      "note": "Nothing is saved automatically: there is no idle auto-pause, and the wall-clock timeout deletes the sandbox. Pause (memory kept) and stop (filesystem kept) happen only on an explicit API call. SDK Sandbox.connect() auto-resumes a paused sandbox, but pausing itself is manual.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.hopx.ai/core-concepts/sandboxes/managing-state",
+      "quote": "Pause a running sandbox (preserves full state including memory)",
+      "note": "This is only POST /v1/sandboxes/:id/pause plus resume of the SAME sandbox. Memory and processes are included. There are no named snapshots, no fork, and no booting new sandboxes from a checkpoint (templates are built only from Docker images plus build steps). 'hopx system snapshot' is only a metrics snapshot: the CLI source says 'Get metrics snapshot for a sandbox (alias for metrics command)'.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.hopx.ai/api/control-plane/create-sandbox",
+      "quote": "| `internet_access` | boolean | No | Enable internet access (default: `true`) |",
+      "note": "This is only an on/off no-internet mode, set at create. There are no domain or IP allowlists, so level is null (neither domain nor ip). The create body's full parameter list is template, region, timeout_seconds, internet_access and env_vars.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.hopx.ai/api/control-plane/create-sandbox",
+      "quote": "| `internet_access` | boolean | No | Enable internet access (default: `true`) |",
+      "note": "The only network control is a boolean. No HTTP-level rules are documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.hopx.ai/sdk/python/sandbox",
+      "quote": "HopX automatically exposes all ports. Use this to get the public URL for any port.",
+      "note": "Every port gets a URL of the form https://<port>-<sandbox>.<region>.vms.hopx.dev. There is no documented auth token, IP allowlist or port selection for preview URLs. Only the VM-agent API on the sandbox host needs a JWT.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "It is a microVM (Firecracker-like) with its own kernel. The docs show kernel 5.10.186, /sbin/init as PID 1 and commands running as user root. iptables/nftables are never mentioned.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.hopx.ai/api/control-plane/create-sandbox",
+      "quote": "| `env_vars` | object | No | Environment variables to set in sandbox |",
+      "note": "Secrets are only env vars, set at create or through the VM-agent env API, so the plaintext is inside the VM. No credential-injection proxy is documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.hopx.ai/api/control-plane/create-sandbox",
+      "quote": "Resources (vcpu, memory, disk) are **always loaded from the template** - you cannot specify custom resources.",
+      "note": "The create API has no volume or mount parameter, and the docs never mention volumes. Storage is only the template root disk (1-250 GB).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.hopx.ai/api/control-plane/create-sandbox",
+      "quote": "Resources (vcpu, memory, disk) are **always loaded from the template** - you cannot specify custom resources.",
+      "note": "No shared volumes, network FS or bucket mounts are documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

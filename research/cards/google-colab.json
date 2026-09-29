@@ -149,7 +149,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -190,7 +190,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "secret_proxy": "ai-only",
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -228,5 +235,57 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://cloud.google.com/colab/docs/runtimes",
+      "quote": "While runtimes are shut down: Compute charges aren't generated because there isn't any CPU or GPU usage. Boot disk and data disk storage is charged.",
+      "note": "Colab Enterprise idle shutdown (default 180 min, 10-1440 or off) stops the VM and keeps only its boot + data persistent disks (persistent disk, not a checkpoint; kernel/memory state lost). Default runtimes are deleted 18 h after creation with files lost. Consumer Colab: 'Virtual machines are deleted when idle for a while, and have a maximum lifetime' (FAQ) - nothing saved except notebooks in Drive.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://aiplatform.googleapis.com/$discovery/rest?version=v1",
+      "quote": "notebookRuntimes methods: start, get, delete, list, upgrade, stop, assign",
+      "note": "Colab Enterprise runtime API has no snapshot/checkpoint/clone method; reuse is via runtime templates (config only, not state). Underlying GCE disks are Google-managed (not exposed in the user project as documented). Consumer Colab: no snapshot feature documented; users re-run install cells ('it's a good idea to include cells which install and load any custom libraries' - FAQ).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://aiplatform.googleapis.com/$discovery/rest?version=v1",
+      "quote": "notebookRuntimes methods: start, get, delete, list, upgrade, stop, assign",
+      "note": "Gemini in Colab / Data Science Agent are UI features in the notebook; no public API to prompt them or stream their events. notebookExecutionJobs runs a whole notebook headless (not an agent harness). The Colab MCP server lets an external agent drive a Colab notebook (opposite direction). Claude Code/Codex etc. can only be run via notebook cells/terminal.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://cloud.google.com/colab/docs/create-runtime-template",
+      "quote": "In the Subnetwork menu, select a subnetwork. To turn off public internet access, clear Enable public internet access .",
+      "note": "Colab Enterprise only: per runtime template choose VPC network/subnetwork, disable public internet (NetworkSpec.enableInternetAccess), and set Compute Engine networkTags so VPC firewall egress rules (IP/CIDR/port) apply; VPC Service Controls perimeter for Google APIs ('runtimes are subject to the service perimeter'). Domain-level (FQDN) filtering would need separate GCP products (Cloud NGFW / Secure Web Proxy) - not documented for Colab. Consumer Colab: no egress controls.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://aiplatform.googleapis.com/$discovery/rest?version=v1",
+      "quote": "runtimeUser : Required. The user email of the NotebookRuntime.",
+      "note": "Colab Enterprise runtimes are single-user (assigned to runtimeUser) and reached only through an authenticated Google proxy (proxyUri, DATALAB_TUNNEL_TOKEN cookie) with IAM; runtime templates carry networkTags so VPC firewall ingress rules apply; no public URL per port. Consumer Colab port forwarding (google.colab.output.serve_kernel_port_as_iframe/window): 'The URL will only be valid for the current user while the notebook is open in Colab.' (colabtools _util.py). No public/shareable port URLs first-party.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://github.com/googlecolab/colabtools/blob/main/google/colab/ai.py",
+      "quote": "Gets the model proxy token from user secrets or environment variables.",
+      "note": "Consumer Colab only: google.colab.ai calls Gemini (and other listed models) through Colab's model proxy service (MODEL_PROXY_HOST, OpenAI-compatible) with a Colab-issued MODEL_PROXY_API_KEY in the runtime, so no provider API key is needed in the notebook - a platform LLM gateway, and the proxy token itself is present in the runtime. User secrets (Colab Secrets, google.colab.userdata.get) are returned in plaintext to the kernel - not a proxy. Colab Enterprise: end-user credentials / ADC via the runtime identity, no credential-injecting proxy. No non-HTTP coverage.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://aiplatform.googleapis.com/$discovery/rest?version=v1",
+      "quote": "dataPersistentDiskSpec : Optional. The specification of persistent disk attached to the runtime as data disk storage.",
+      "note": "Colab Enterprise: a data persistent disk (type + size set in the runtime template, default 100 GiB pd-standard) in addition to the fixed 100 GiB SSD boot disk; lives and dies with the runtime ('Boot disks and data disks are deleted when the runtimes are deleted'), not independently re-attachable. Consumer Colab: Google Drive FUSE mount (drive.mount(mountpoint, ..., readonly=False)); FAQ: 'Google Drive mounting on the runtime filesystem will not work' on Colab Enterprise/GCP Marketplace runtimes.",
+      "checked": "2026-09-29"
+    }
   }
 }

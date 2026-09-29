@@ -173,7 +173,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": null,
@@ -187,7 +187,16 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -229,5 +238,79 @@
     "applied": 22,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://withruntime.com/llms.txt",
+      "quote": "A sandbox pauses itself after 60 seconds with nothing happening in it and bills only paused storage ($0.08 per decimal GB per 30-day month) until the next request wakes it, with its memory and processes intact.",
+      "note": "Trigger: idle pause (idlePauseSeconds 10-86,400, default 60, 0 = never); wakes on next exec/file call/preview visit/TCP connection. Memory + processes + files included; kept 30 days by default on paid (1-365), 7 on trial. Also AI-SDK harness pauseOnStop. Volumes get daily off-server backups (not this feature).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://withruntime.com/docs/javascript.md",
+      "quote": "A fork is a copy of a sandbox as it is now: its files, its memory and its running processes, as a new sandbox of its own.",
+      "note": "sbx.snapshot({name, retentionDays}) then sandboxes.create({snapshot}) boots new machines from it; fork gives 1-10 running copies with memory. Snapshots copied off-server encrypted. Limitation: 'a sandbox with volumes cannot be snapshotted'.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://withruntime.com/docs/vercel-ai-sdk.md",
+      "quote": "Run an AI SDK harness agent (Claude Code, Codex, OpenCode, Pi and the rest) in a Runtime sandbox, or give any AI SDK model call four sandbox tools.",
+      "note": "First-party adapter only: withruntime/ai-harness createRuntimeSandbox() is a sandbox provider for Vercel's AI SDK HarnessAgent (sessions, prompts, resume via pauseOnStop); the harness-driving API itself is Vercel's AI SDK, not a native Runtime endpoint. Harnesses: Claude Code, Codex, OpenCode, Deep Agents (bridge over WebSocket preview port), Pi. No native Runtime agent-run API found.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://withruntime.com/docs/sandbox-environment.md",
+      "quote": "`allow` narrows the sandbox to a list, on every port it may use: domains, `*.domain` for every name under one, addresses or CIDR ranges.",
+      "note": "Per sandbox: internet:false, allow list, deny list (deny always wins), connect host:port pairs; set at create or live ('applied at once, to open connections too'). Enforced by host proxy: 'The rules apply to root inside the sandbox too.' Sandbox has no NIC. Optional account-wide customer upstream proxy.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://withruntime.com/docs/sandbox-environment.md",
+      "quote": "`deny` always wins.",
+      "note": "Network rules are only internet on/off, allow/deny (domains, wildcards, IPs/CIDRs) and connect host:port. Method/path rules exist only to scope secret injection ('With `rules`, on paid accounts, the value goes only into the requests a rule allows, by method and path'), they do not block traffic. Could route through your own upstream proxy for HTTP rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://withruntime.com/docs/security.md",
+      "quote": "Inbound connections require a preview, a proved custom domain, an allocated TCP port or an authorized private tunnel. Each reaches only the sandbox port and account it was granted. A preview is private with an expiring token unless you make it public, which a paid sandbox can do; a trial sandbox's previews are always private.",
+      "note": "Per-port previews with rotatable tokens on runtimehost.com, WireGuard private network, public TCP ports (open to anyone), custom domains. No IP allowlist for inbound found.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://withruntime.com/docs/sandbox-environment.md",
+      "quote": "`sudo`, `adduser` and `useradd`, `chronyd`, `sshd` (for [SSH and editors](./editors)), `ip`, `iptables-legacy`",
+      "note": "Firecracker microVM with own kernel and passwordless sudo; iptables-legacy preinstalled. Caveat: 'A sandbox has no network card' - outbound goes to a host proxy, so guest rules act on the proxy path/Docker bridge.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://withruntime.com/docs/security.md",
+      "quote": "The host's proxy replaces the placeholder with the value in the URL and headers of HTTPS requests to the secret's hosts, and nowhere else.",
+      "note": "Account secrets bound to up to 16 hosts, placeholder env var (rtsec_...) or forced header; optional method/path rules; S3 SigV4 re-signing (used for bucket mounts). HTTPS only: 'Plain HTTP never carries a secret, and request bodies are never rewritten.' No DB/SSH/git-SSH credential injection; OIDC identity tokens for AWS/GCP as keyless alternative.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://withruntime.com/docs/javascript.md",
+      "quote": "A volume is a disk that outlives sandboxes. Attach it read-write to one sandbox at a time, or as a read-only `snapshot` copy to any number.",
+      "note": "Fixed-size volume on one server (sandbox placed on that server), daily off-server backups (7-day default retention, 1-365). Volumes block snapshots of that sandbox.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://withruntime.com/docs/javascript.md",
+      "quote": "Attach it read-write to one sandbox at a time, or as a read-only `snapshot` copy to any number.",
+      "note": "Volumes: read-only sharing only (read-write single attach). Read-write sharing possible via first-party bucket mounts of your own S3/R2/GCS (rclone): 'Two sandboxes can mount the same bucket; a file two of them write is the last one closed.'",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -138,7 +138,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -170,7 +170,16 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "container",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -219,5 +228,71 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/basics/session-management.md",
+      "quote": "After release (manual or automatic), the session cannot be recovered - the session ID becomes invalid",
+      "note": "Idle timeout / max runtime (LifecyclePolicy, console policy) RELEASES the session; nothing is checkpointed. Only Context Sync directories are uploaded to OSS on delete (file-level persistence of chosen paths, not machine state).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/basics/session-management.md",
+      "quote": "The Session Pause/Resume feature is currently in whitelist-only access.",
+      "note": "No snapshot/checkpoint/fork API anywhere in the SDK (all four languages). Closest: whitelist-only beta_pause()/beta_resume() ('All session state is preserved during beta pause and beta resume operations') - an in-place pause, not a restorable/forkable snapshot. Custom images are built in a console image builder or from a Dockerfile via CLI, not captured from a running session.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/advanced/agent-modules.md",
+      "quote": "Agent modules are specialized AI task execution units running in AgentBay windows/linux environment to execute tasks described in natural language.",
+      "note": "Provider's own agents only: ComputerUseAgent (windows_latest), BrowserUseAgent (beta), MobileUseAgent, driven via execute_task / get_task_status / terminate_task; WebSocket streaming of reasoning/tool-call events for MobileUseAgent only. Doc also says: 'for agent services ... we do not provide services for overseas users registered with alibabacloud.com' (so China-site only). No Claude Code/Codex harness API (an OpenClaw cookbook sample exists, not a first-party API).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/advanced/agent-modules.md",
+      "quote": "Agent modules are specialized AI task execution units running in AgentBay windows/linux environment to execute tasks described in natural language.",
+      "note": "Provider's own agents only: ComputerUseAgent (windows_latest), BrowserUseAgent (beta), MobileUseAgent, driven via execute_task / get_task_status / terminate_task; WebSocket streaming of reasoning/tool-call events for MobileUseAgent only. Doc also says: 'for agent services ... we do not provide services for overseas users registered with alibabacloud.com' (so China-site only). No Claude Code/Codex harness API (an OpenClaw cookbook sample exists, not a first-party API).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
+      "quote": "It supports configuring the direction (inbound or outbound), action (allow or deny), priority, protocol type, port range, authorization object (IP address or CIDR block), and rule description. By combining rules with different scopes and priorities, administrators can achieve fine-grained, whitelist-based network access control.",
+      "note": "Admin/org-level security-group policies (IP/CIDR/port) plus domain-name control policies ('add a rule that denies access to \"*\" with the lowest priority' for allowlist mode, up to 300 rules). Domain rules: 'This feature is currently only supported for sandboxes with a Windows operating system.' Aliyun domains (*.aliyun.com, *.aliyuncs.com, ...) are always allowed. Source is the security white paper, not a how-to page; per-session API control not in SDK. SDK 'Network (Beta)' is local-egress redirection, not a filter.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
+      "quote": "Sandbox instances are not assigned public IP addresses and have no network ports open to the public. By default, the security group only allows ASP protocol communication from the stream gateway, blocking all other inbound external traffic.",
+      "note": "Services are reached only via session.get_link() gateway URLs (Pro/Ultra only; 'Default open range: [30100, 30199]; other ports require whitelist approval'); whether the link URL itself is tokenized is not documented. Security-group inbound rules and custom-VPC sessions (vpc_ip/vpc_id) exist; inter-sandbox traffic denied by default.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/basics/environment-variables.md",
+      "quote": "Configure API keys or tokens for tools | `session.env.set({\"API_KEY\": \"...\"})`",
+      "note": "Secrets go into the sandbox as environment variables (session.env). No credential-injecting proxy documented. Built-in agent LLM usage is billed via platform Credits (platform keys), but that is not a user-facing secret proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/basics/data-persistence.md",
+      "quote": "Context Mount presents the context's storage as a **live mounted filesystem** — writes are persisted immediately, and reads always reflect the latest state.",
+      "note": "BetaContextMount (SDK v0.21.0, beta): OSS-backed FUSE (ossfs 1.0 STANDARD / ossfs 2.0 PERFORMANCE) mounted at create or dynamically; requires image aio-ubuntu-2404. Older Context Sync = download on start / upload on end (not a live volume). Context storage billed per GiB-h beyond plan quota.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/basics/data-persistence.md",
+      "quote": "When the same context is mounted in multiple active sessions simultaneously, changes made in one session are **immediately visible** in the other sessions — no sync or refresh needed",
+      "note": "Read-write (default) or READ_ONLY access modes. No reliable cross-session file locks; object-store FUSE semantics. Beta, aio-ubuntu-2404 image only.",
+      "checked": "2026-09-29"
+    }
   }
 }

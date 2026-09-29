@@ -620,7 +620,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -639,7 +639,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -651,7 +651,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -722,5 +731,79 @@
         }
       ]
     }
-  ]
+  ],
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://community.exoscale.com/product/compute/instances/how-to/snapshot/index.md",
+      "quote": "Snapshots provide a way to get point-in-time recovery for your instance.",
+      "note": "Snapshots are only user-initiated (portal 'CREATE SNAPSHOT', CLI, API /instance/{id}:create-snapshot). Stopping an instance just keeps its root disk (persistent_disk). No scheduled/automatic snapshot or backup feature found in docs or the v2 OpenAPI (262 paths).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://community.exoscale.com/product/compute/instances/how-to/snapshot/index.md",
+      "quote": "Snapshots are strongly tied to your instance: if you delete your instance, the snapshots will be deleted as well.",
+      "note": "Disk only (no memory); stopping the instance first is 'strongly encouraged'. Revert requires a stopped instance. New machines: export snapshot -> custom template ('used as input to create a new Custom Template'), or /snapshot/{id}:promote. Not available on storage-optimized instances. Block Storage volumes have separate snapshots (max 20/volume) that create new volumes ('forking').",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS (KVM VMs); no agent-harness API/SDK. Nothing in docs or API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://community.exoscale.com/product/networking/security-group/overview/index.md",
+      "quote": "As soon as you create an egress rule, only the matching traffic will be allowed.",
+      "note": "Security Groups 'managed at the hypervisor level' (outside the guest): egress by protocol / destination CIDR or security group / port; default allow-all egress until the first egress rule, then default-deny. Outbound SMTP blocked by default. Restricting egress requires allowing 185.19.28.0/22 and 159.100.240.0/20 on 80/8080 for password/SSH-key provisioning. No hostname rules. Changing an instance's groups requires stopping it; rules within a group can be edited live.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://community.exoscale.com/product/networking/security-group/overview/index.md",
+      "quote": "Ingress and egress IP traffic can filtered by Protocol / destination / destination port.",
+      "note": "Security groups are L2-L4 only; no HTTP-level egress filtering product.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://community.exoscale.com/product/networking/security-group/overview/index.md",
+      "quote": "The rules are managed at the hypervisor level in order to restrict incoming and outgoing network traffic.",
+      "note": "Default deny all inbound; ingress rules by protocol/port with source CIDR or source security group; external sources; IPv6 rules. Private Networks for instance-to-instance traffic. Public IPv4 per instance (no HTTPS preview URLs).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM virtual machine ('Exoscale Compute Instances are high-performance, KVM-based virtual machines') with root access; iptables/nftables inside works as on any VM.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting proxy. Secrets reach VMs via user-data/cloud-init or your own tooling; Exoscale offers a KMS (key management) and IAM API keys, not an outbound proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://community.exoscale.com/product/storage/block-storage/overview/index.md",
+      "quote": "You can attach up to five Block Storage volumes to each instance, with a maximum capacity of 10 TiB per volume.",
+      "note": "Block Storage: NVMe-backed, replicated twice in-zone, 1 GiB-10 TiB, 5K IOPS/volume, attach/detach/resize via API/CLI; min instance size Small; same-zone only.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://community.exoscale.com/product/storage/block-storage/overview/index.md",
+      "quote": "allowing only a single instance to attach a volume at any given time",
+      "note": "Block Storage is ReadWriteOnce. No managed shared file system (no SFS/NFS product in docs, pricing or the v2 API). Only DIY option: SOS (S3-compatible object storage) mounted with AWS's open-source Mountpoint client (documented how-to), which several instances could mount (read-heavy, no in-place edits); not a first-party mount.",
+      "checked": "2026-09-29"
+    }
+  }
 }

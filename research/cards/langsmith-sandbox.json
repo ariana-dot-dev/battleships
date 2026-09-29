@@ -160,7 +160,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": true,
     "live_resize": false,
     "fork_running": null,
@@ -174,7 +174,16 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -222,5 +231,79 @@
     "applied": 24,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandbox-snapshots",
+      "quote": "preserve_memory_on_stop | true suspends RAM on a voluntary stop (idle timeout or explicit stop) so the sandbox resumes where it left off when it next wakes, rather than cold-booting. Defaults to false, which keeps only the filesystem. Restarts triggered by infrastructure maintenance preserve memory either way.",
+      "note": "Opt-in per sandbox at create time (REST API field; not yet in Python/TS SDK). Trigger: idle timeout (idle_ttl_seconds, default 600 s) or explicit stop; memory + running processes included; wake is automatic on next exec/file/service-URL request. Default (false) keeps only the filesystem across stop, which is persistent_disk, not this. Stopped sandboxes are deleted after delete_after_stop_seconds (default ~14 days, max 30).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandbox-snapshots",
+      "quote": "You can also capture a snapshot from a running sandbox—install packages, write data files, or configure state, then snapshot the result and reuse it as a new starting point.",
+      "note": "SDK sb.capture_snapshot(name) / CLI `langsmith sandbox snapshot capture` / REST POST /api/v2/sandboxes/boxes/{name}/snapshot. Filesystem-only by default; REST `include_memory: true` also captures RAM ('Boot from one and the sandbox resumes where it left off, with its processes still running'), running or stopped sandbox; not supported on overlay-rootfs sandboxes (LangSmith assigns runtime). New sandboxes boot from the snapshot by id or name (template/fork).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.langchain.com/oss/deepagents/code/remote-sandboxes",
+      "quote": "Deep Agents Code uses the sandbox as tool pattern: the dcode process (LLM loop, memory, tool dispatch) runs on your machine, but agent tool calls (read_file, write_file, execute, etc.) target the remote sandbox",
+      "note": "LangChain's own agents (Deep Agents Code, Managed Deep Agents on Agent Server, which has thread/run APIs) run OUTSIDE the sandbox and use it as a tool backend. The Deep Agents docs describe an 'agent in sandbox' pattern but say 'you have to add additional infrastructure to handle communication between your application and the agent inside the sandbox' - no first-party API for driving Claude Code/Codex/etc. inside a LangSmith sandbox. Sandbox API is exec/stream/files/tunnel only. Borderline: if the coordinator counts Managed Deep Agents (public beta, US only) as a harness API, flip to true with that caveat.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandbox-auth-proxy",
+      "quote": "allow_list | Default-deny. Only listed destinations are reachable, on any protocol. List every host the sandbox needs, including the HTTP(S) hosts your rules and callbacks target.",
+      "note": "Per-sandbox proxy_config.access_control allow_list or deny_list; 'Access control is enforced per connection on the sandbox host'. Patterns: host, host:PORT, *.glob, ~regex, literal IP (with port), CIDR - but IP/CIDR entries only affect cleartext HTTP on port 80 (raw TCP/HTTPS to literal IPs is dropped), so in practice domain+port. Only TCP leaves (UDP/QUIC/ICMP dropped). Non-Enterprise orgs are on a LangSmith-managed restricted-egress allowlist by default (PyPI, npm, GitHub, OpenAI, Anthropic, LangSmith); unrestricted needs a support ticket. Private/loopback/metadata addresses always refused.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandbox-auth-proxy",
+      "quote": "full_request | When true, every request to a matched host invokes the callback (nothing is cached) and the body includes a request snapshot: method, url, scheme, host, path, query, headers, and up to 1 MiB of the body as body_base64",
+      "note": "No declarative method/path allow/deny. HTTP-level control exists via (a) header-injection rules with match_hosts + match_paths, and (b) callbacks: the proxy POSTs the full request (method/path/headers/body) to your endpoint and 'Any non-2xx response ... fails closed: the sandbox's request is rejected with 502' - so your callback can enforce arbitrary per-request policy. HTTPS to matched hosts is MITM-decrypted by the proxy (sandbox trusts its CA).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandbox-service-urls",
+      "quote": "Tokens are short-lived (default 10 minutes, max 24 hours) and there is no server-side refresh mechanism.",
+      "note": "Ports are reachable only via authenticated service URLs (per sandbox+port, X-Langsmith-Sandbox-Service-Token / browser token; share links work for anyone holding the link until expiry) or API-key-authenticated TCP tunnels (`langsmith sandbox tunnel`). No public IPs, no IP allowlists documented. Sandbox permissions control which workspace members can interact with a sandbox.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/deploy-self-hosted-full-platform",
+      "quote": "Sandbox runtime pods that run sandbox workloads on KVM-capable nodes.",
+      "note": "KVM microVMs (self-host requires /dev/kvm) with an Ubuntu 24.04 ext4 root filesystem and root access (setup scripts run apt-get). Not documented explicitly; derived. Rules inside would sit behind the host-side egress proxy.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.langchain.com/langsmith/sandbox-auth-proxy",
+      "quote": "When configured on a sandbox, an egress proxy running outside the sandbox automatically injects authentication headers into matching outbound requests using your workspace secrets or write-only credentials you provide in the proxy config.",
+      "note": "Arbitrary hosts via header rules (workspace_secret / write-only opaque values; placeholders via env_vars), dynamic credentials via signed callbacks, built-in AWS SigV4 signing (static keys or IAM role) and GCP service-account token minting; git over HTTPS works (GitHub example uses Basic auth header). Non-HTTP (PostgreSQL, SSH, Redis) 'passes through unchanged' - no injection for non-HTTP protocols.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/sandbox-mounts",
+      "quote": "Sandbox mounts attach external data sources to a sandbox filesystem when the sandbox is created. Use mounts when sandbox code needs direct file access to object storage buckets, public Git repositories, or Context Hub repos without copying the data into the sandbox image.",
+      "note": "No first-party block/network volume product: the sandbox API has boxes, snapshots, registries, files, tunnels, service URLs but no volume resource. Storage is the per-sandbox root filesystem (resizable via --rootfs-capacity / fs_capacity_bytes). Extra storage only via mounts of customer-owned S3/GCS buckets (FUSE-style VFS cache, read-write or read-only), public Git repos and read-only Context Hub repos - see volume_shared.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandbox-mounts",
+      "quote": "For writable mounts, keep writeback_seconds low when another process needs to read the objects from S3 or GCS soon after the sandbox writes them.",
+      "note": "First-party mount feature for customer-owned S3/GCS buckets (read_only true/false; writable mounts write back to the bucket), plus Git (clone) and Context Hub (read-only, one-way sync) mounts. The same bucket/prefix can be mounted by several sandboxes (bucket is 'the source of truth'), but it is object storage with a local cache and writeback delay, not a POSIX shared filesystem; concurrent multi-sandbox mounting is not stated explicitly. Mounts are set at sandbox creation.",
+      "checked": "2026-09-29"
+    }
   }
 }

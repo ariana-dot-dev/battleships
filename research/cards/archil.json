@@ -248,7 +248,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": false,
@@ -262,7 +262,16 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -318,5 +327,79 @@
   "audit_2026_09_29": {
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.archil.com/compute/sandboxes/introduction",
+      "quote": "A sandbox has a hard timeout and an optional idle timeout. Both pause the sandbox, preserving its disk, memory, and processes for `resume()`.",
+      "note": "Triggered by hard TTL (default/max 24 h) or optional idle TTL (off by default); memory + running processes included. Since Sept 2026 (changelog). Traffic to an exposed port / port token auto-resumes a paused sandbox. Plain stop() is disk-only. Planned maintenance also pauses.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.archil.com/llms.txt",
+      "quote": "Checkpoints a running source sandbox and creates an isolated writable disk branch. Forks from running or paused sources resume from the source's CPU, memory, and disk state.",
+      "note": "pause() snapshots CPU+memory+disk on demand; fork() of a running/paused/stopped sandbox creates new sandboxes from that state (memory included unless source stopped). No separate named-snapshot object for sandboxes; Archil disks additionally have branches/checkpoints.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "const execution = await sandbox.processes.start(\"python --version && pwd\");",
+      "note": "Full docs corpus (llms-full.txt) searched: only a generic processes/exec + PTY API; no Claude Code/Codex/etc. driver. AI guides use AI SDK with disk.exec as a bash tool (harness runs outside).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.archil.com/compute/sandboxes/firewall",
+      "quote": "The sandbox firewall operates on both the IP and transport layer, so you can filter both CIDR ranges and domains.",
+      "note": "default allow/deny + allow/deny lists (IPv4/CIDR, exact or *. wildcard domains); live-updatable via updateNetwork. Developer (free) plan: all egress denied and policy cannot be changed; Team+ required.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.archil.com/api-reference/sandboxes/update-sandbox-network",
+      "quote": "Allowed IPv4 addresses, CIDR ranges, exact domains, wildcard domains beginning with `*.`, or target objects with optional outbound HTTPS request transformations.",
+      "note": "Rules match on host/IP only (rule schema is closed: target, transform.headers, forward_url). Header injection and forward_url (send matching requests to your own HTTPS endpoint, which could filter) exist, but no method/path/header matching.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.archil.com/compute/sandboxes/introduction",
+      "quote": "For private access, leave the port unexposed and create a port token. Send the token in the `X-Archil-Token` header; requests without a valid token get `401`.",
+      "note": "Choose which ports to expose (public, any TCP over TLS+SNI, no auth) or keep private with expiring port tokens (HTTP/1.1 over HTTPS). Services private unless enable_service_ingress. No IP allowlists.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full Linux microVM, processes run as root (uid 0); not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.archil.com/compute/sandboxes/firewall",
+      "quote": "This means that secret credentials can live outside the sandbox, so untrusted workloads cannot access them directly. For example, you can add API keys to outgoing HTTP requests so your sandbox never sees them:",
+      "note": "Per-domain header transforms on the TLS-terminating egress proxy (Archil CA installed in sandbox). HTTP(S) only (ports 80/443); no DB/SSH/git-over-SSH coverage. Requires Team plan (egress).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.archil.com/compute/sandboxes/introduction",
+      "quote": "The Archil CLI comes prebaked into sandboxes, so you can attach an Archil disk to a sandbox by using the usual command to mount the disk:",
+      "note": "Archil disks (S3-backed elastic POSIX FS) mounted from inside via `archil mount` with a mount token; each sandbox also has its own dedicated persistent disk.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.archil.com/concepts/sharing-disks",
+      "quote": "Archil supports sharing disks between multiple connected users simultaneously.",
+      "note": "Read-write with delegations: exclusive mode (one machine), shared mode (read-only until `archil checkout <path>` write-lock), conditional mode (NFS-like, all unlocked files writable).",
+      "checked": "2026-09-29"
+    }
   }
 }

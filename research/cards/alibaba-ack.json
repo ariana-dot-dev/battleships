@@ -148,7 +148,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -183,7 +183,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_on_demand": true,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -221,5 +228,57 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/use-volume-snapshots-created-from-disks",
+      "quote": "Volume snapshots help you back up and restore application data.",
+      "note": "Disk-volume (PVC) snapshots only via Kubernetes VolumeSnapshot backed by ECS disk snapshots (billed as ECS snapshots); restore into a new PVC via dataSource, so new pods can start from it. No memory, no container rootfs. ECS worker-node disks can also be snapshotted via ECS. ACS Agent Sandbox (separate product) offers memory checkpoint and cloning.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/use-network-policies",
+      "quote": "you can use network policies to control network traffic at the IP address or port level for specific applications in your cluster",
+      "note": "Kubernetes NetworkPolicy (egress ipBlock rules) enforced by Terway eBPF (shared ENI mode only; 'ACK supports only standard Kubernetes network policies', no Calico/Cilium FQDN policies); ACK Pro GlobalNetworkPolicy via Poseidon; ECS/ECI security-group egress rules. No domain-level egress for plain ACK documented (ACS Agent Sandbox SecurityProfile does domain/URL rules).",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/use-network-policies",
+      "quote": "Each network policy can contain a whitelist of source (ingress) rules.",
+      "note": "NetworkPolicy ingress rules (podSelector/ipBlock), ECS/ECI security groups, and choice of Service type (ClusterIP vs LoadBalancer/Ingress with CLB/ALB) decide which ports are exposed.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/eci/user-guide/configure-a-security-context-for-an-elastic-container-instance-or-a-container",
+      "quote": "NET_ADMIN Perform network-related operations such as configuring interfaces and routing tables.",
+      "note": "Containers, not VMs: iptables inside the pod needs the NET_ADMIN capability added via securityContext (listed as supported for ECI pods; default containers lack it). Pods on ECS nodes follow standard Kubernetes capability rules. Rules apply to the pod's network namespace only.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/security-and-compliance/use-ack-secret-manager-to-import-alibaba-cloud-kms-service-credentials",
+      "quote": "ack-secret-manager syncs secrets from Key Management Service (KMS) to your Container Service for Kubernetes (ACK) cluster as Kubernetes Secrets.",
+      "note": "Plain ACK: secrets reach the pod as Kubernetes Secrets (env/files), also via csi-secrets-store-provider. ACS Agent Sandbox's egress gateway has a SecurityProfile 'tokenTransformation' action ('API key injection, or Alibaba Cloud STS credential replacement and re-signing', HTTP/HTTPS with TLS termination) - a real first-party credential-injection proxy, but documented for ACS Agent Sandbox, not ACK.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/use-dynamically-provisioned-disk-volumes",
+      "quote": "automatically creating and mounting a dedicated cloud disk for each application replica",
+      "note": "Cloud-disk PVs via CSI (static/dynamic), also NAS, OSS, CPFS volumes.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/mount-statically-provisioned-nas-volumes",
+      "quote": "data sharing, enabling simultaneous read and write access by multiple pods",
+      "note": "Read-write NAS (NFS) PVs with ReadWriteMany; OSS bucket mounts (ossfs) also available.",
+      "checked": "2026-09-29"
+    }
   }
 }

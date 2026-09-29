@@ -875,7 +875,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": true,
@@ -895,7 +895,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -907,7 +907,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -962,5 +971,79 @@
   },
   "audit_2026_09_29": {
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No provider product: Hetzner/OVH/Latitude rent bare metal; nothing checkpoints your guests. Self-built: an idle-stop hook calling the Firecracker snapshot API (memory + disk) is possible but is your own code.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No first-party server snapshot for Hetzner dedicated/OVH/Latitude bare metal (Hetzner Storage Box has its own snapshots of the box, not of servers). Self-built: Firecracker full/diff snapshots include guest memory and can be resumed on other hosts / used to fork ('the guest memory,' listed in snapshot contents in firecracker docs/snapshotting/snapshot-support.md); the card's snapshot='mem'/fork=true model this self-built layer.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No product; any agent-harness API is self-built.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.hetzner.com/robot/dedicated-server/firewall/",
+      "quote": "On the customer administration interface Robot, you can use the firewall feature to define your own filtering settings for incoming and outgoing traffic.",
+      "note": "Hetzner Robot stateless firewall (free), per physical server, IP/port/protocol rules; guests only get distinct treatment if they have their own additional IPs. OVH Edge Network Firewall handles incoming only; Latitude Firewall is an agent managing UFW/iptables on the host itself (not off-box). Real per-guest egress control (default-deny, domain allowlists via proxy) is self-built on the host with nftables, which a root agent inside a Firecracker guest cannot undo.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.hetzner.com/robot/dedicated-server/firewall/",
+      "quote": "With our stateless firewall, or static firewall, data packets are not unpacked; rather, the head of each individual packet is inspected",
+      "note": "Provider firewalls are L3/L4 packet filters. HTTP-level rules would be a self-built egress proxy.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.hetzner.com/robot/dedicated-server/firewall/",
+      "quote": "If you activate the firewall before entering any firewall rules, you will block all incoming traffic.",
+      "note": "Hetzner Robot firewall incoming rules (IP/port); OVH Edge Network Firewall per public IP ('only handles network traffic coming from outside the OVHcloud network'); Latitude host-agent firewall with inbound/outbound rules. Per-guest exposure, auth'd preview URLs etc. are self-built (host reverse proxy / NAT).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker/Cloud Hypervisor microVMs with root and their own kernel on hardware you control; nftables/iptables inside guests work (guest kernel config permitting). You also have root on the host itself.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No provider product; a credential-injecting egress proxy on the host would be self-built.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.latitude.sh/docs/storage/block-storage.md",
+      "quote": "Block storage gives you persistent, high performance volumes for bare metal servers.",
+      "note": "Latitude block storage over NVMe/TCP, mapped to one host (not to guests directly). Hetzner dedicated servers have no attachable block volumes (Hetzner Cloud Volumes only), only Storage Box network mounts; guest-level volumes are self-built (e.g. extra Firecracker drives on host storage).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://www.latitude.sh/docs/storage/filesystem.md",
+      "quote": "File storage gives you persistent filesystems that several servers can mount at the same time.",
+      "note": "Latitude file storage = NFSv3/v4, read-write, private preview. Hetzner Storage Box: SMB/CIFS mountable read-write from several hosts ('Up to 10 simultaneous connections per Storage Box account'), on a single shared host server, not mirrored. Shared between hosts; exposing to guests (virtiofs/NFS re-export) is self-built.",
+      "checked": "2026-09-29"
+    }
   }
 }

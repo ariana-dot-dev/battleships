@@ -168,7 +168,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -180,7 +180,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -223,5 +232,79 @@
     "applied": 1,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://orkestr.eu/docs/sandboxes/api-reference",
+      "quote": "on_timeout\tstring\tWhat happens at the deadline: kill (default) terminates the sandbox; pause snapshots it so a later /resume continues where it left off.",
+      "note": "Opt-in per sandbox at create (on_timeout=pause; default is kill). Triggered by the lifetime deadline; snapshot captures memory + disk (running processes resume). Pairs with auto_resume=true, which resumes automatically on the next exec/file call or preview-URL HTTP request. Free tier falls back to terminate when at its snapshot cap (1).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://orkestr.eu/docs/sandboxes/api-reference",
+      "quote": "POST /v1/sandboxes/{id}/pause snapshots the sandbox and stops the compute meter. ... POST /v1/sandboxes/{id}/resume restores from the most recent snapshot for that sandbox. ... The snapshot is consumed by the resume - pause again to take a new one",
+      "note": "On-demand snapshot is pause-style: memory + disk captured (security page: 'the VM's memory and disk state are captured into a snapshot'), sandbox is suspended, and the snapshot is single-use, restoring the same sandbox only. No fork / boot-new-machines-from-snapshot documented; custom templates are built from a base image + recipe, not captured from a running sandbox. Retention 7 d free / 30 d carded / no expiry enterprise.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://orkestr.eu/docs/sandboxes/claude-code",
+      "quote": "result = sbx.exec(\n    'npx claude -p \"Run the test suite and fix the first failing test\" '\n    \"--output-format json --dangerously-skip-permissions\",",
+      "note": "The official Claude Code guide drives the agent through the generic exec API (npm install, then claude -p / --resume via exec); no dedicated harness API. Separately, orkestr 'Workers' (preview) run orkestr's own ops agent on its hosted runtime with your model key (objective, skills, memory, approvals, run transcripts), but that is a platform-ops agent product, not a harness API for sandboxes.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://orkestr.eu/docs/sandboxes/networking",
+      "quote": "When you pass allow_domains, those domains become the entire allowlist for that sandbox.",
+      "note": "Three modes per sandbox: off (default, no network device), restricted (HTTPS-only forward proxy with curated default allowlist or custom allow_domains; no raw sockets/DNS), open. Enforced by a provider-side proxy; allowlist can be baked into a template. Hostname-level only; 'Custom egress allowlist: yes' on all tiers (limits page), though API ref says '(paid plans)'.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://orkestr.eu/docs/sandboxes/networking",
+      "quote": "Entries are bare hostnames - no scheme, port, path or wildcard.",
+      "note": "Allowlist is hostname-only (HTTPS port 443); no method/path/header rules documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://orkestr.eu/docs/sandboxes/networking",
+      "quote": "Pass preview_auth=True at create (previewAuth: true in JS) and the sandbox's preview URLs stop being public: every request must carry the minted preview_auth_token or the edge returns 401.",
+      "note": "Ports are exposed per port via get_host(port) at <port>-<id>.sbx.orkestr.run; public (unguessable URL) by default, token-gated with preview_auth. Needs networked mode + card on file. No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each sandbox is its own VM with its own kernel ('not a container sharing a host kernel'); recipe steps run as root and apt-get works at run time, so root is available. Egress policy is enforced outside the VM regardless (off = no NIC; restricted = proxy).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://orkestr.eu/docs/sandboxes/security",
+      "quote": "Secrets you inject (as env vars or files) are visible to whatever code runs in that sandbox - including code a model wrote.",
+      "note": "Sandbox secrets are env vars/files inside the VM (kept in memory, persisted inside pause snapshots). The Claude Code guide passes ANTHROPIC_API_KEY as an env var. (Workers product keeps git credentials in the control plane, but that is not a sandbox egress proxy.)",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://orkestr.eu/docs/sandboxes/volumes",
+      "quote": "A persistent volume is a named disk that survives a sandbox and follows you to the next one. Attach it and it mounts at /persist",
+      "note": "ext4 disk local to the host, checkpointed to EU object storage; default 10 GB, max 100 GB per volume; 1/10/50 volumes and 10 GB/200 GB/2 TB total per tier; billed GB-month on provisioned size; optional max_lifetime auto-destroy.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://orkestr.eu/docs/sandboxes/volumes",
+      "quote": "A volume can back only one running (or paused) sandbox at a time. Attaching a volume that's already in use returns a 409 volume_in_use",
+      "note": "Single writer by design (ext4 RW); no read-only multi-attach or shared FS documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

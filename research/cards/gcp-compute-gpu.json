@@ -698,7 +698,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -717,7 +717,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -729,7 +729,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -770,5 +779,79 @@
   "audit_2026_09_29": {
     "applied": 16,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://cloud.google.com/compute/docs/instances/suspend-resume-instance",
+      "quote": "Instances that have GPUs or TPUs attached.",
+      "note": "Quote is from the list of instances you can't suspend: GPU VMs cannot even use the manual suspend (memory-preserving) feature. Stop keeps the boot/data disks only (persistent_disk); no stop-triggered checkpoint. Snapshot schedules (scheduled-snapshots) are scheduled backups, not this feature.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://cloud.google.com/compute/docs/machine-images",
+      "quote": "You can use a machine image in many system maintenance, backup and recovery, and instance cloning scenarios.",
+      "note": "Disk-only: machine images capture config + all disks but 'Data in memory' and Local SSD data are not collected. Standard disk snapshots also on demand ('You can create snapshots from disks even while they are attached to running instances.'). New VMs can boot from machine images / snapshots / custom images.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain Compute Engine GPU VMs; Compute API has no agent-harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://cloud.google.com/firewall/docs/firewalls",
+      "quote": "Use FQDN objects in firewall policy to filter incoming or outgoing traffic from or to specific domains.",
+      "note": "VPC firewall rules: 'Each firewall rule applies to incoming (ingress) or outgoing (egress) connections' by IP range/protocol/port/tag/service account. FQDN objects need Cloud NGFW firewall policies (Standard tier data-processing charges).",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://cloud.google.com/secure-web-proxy/docs/cel-matcher-language-reference",
+      "quote": "apply to application attributes such as request headers, request method, and request path",
+      "note": "Via Secure Web Proxy (separately billed, 'default deny-all setting that blocks all outbound traffic until you explicitly allow it'); HTTPS path/method/header matching needs TLS inspection. In explicit-proxy mode, direct egress must also be blocked by firewall rules for it to be non-bypassable.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://cloud.google.com/firewall/docs/firewalls",
+      "quote": "Each firewall rule applies to incoming (ingress) or outgoing (egress) connections, not both.",
+      "note": "VPC firewall rules / firewall policies with source ranges, tags, service accounts; external IP optional.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM with root.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://cloud.google.com/secret-manager/docs/overview",
+      "quote": "Secret Manager is a secrets and credential management service that lets you store and manage sensitive data such as API keys",
+      "note": "Secrets are fetched by the workload (service account / metadata server); no credential-injecting egress proxy for Compute Engine.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://cloud.google.com/compute/docs/disks/add-persistent-disk",
+      "quote": "You can use Persistent Disk as a boot disk for a compute instance, or as a data disk that you attach to an instance.",
+      "note": "Persistent Disk and Hyperdisk data disks (Local SSD is ephemeral, bundled on some GPU shapes).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://cloud.google.com/compute/docs/disks/sharing-disks-between-vms",
+      "quote": "You can attach a disk in read-only mode or multi-writer mode to an instance.",
+      "note": "Read-only multi-attach, or multi-writer (Hyperdisk, needs cluster-aware FS); Filestore NFS read-write shared ('multiple reader, multiple writer access'); Cloud Storage FUSE bucket mounts also first-party.",
+      "checked": "2026-09-29"
+    }
   }
 }

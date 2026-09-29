@@ -233,7 +233,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": false,
     "fork_running": true,
@@ -253,7 +253,15 @@
     "egress_ip_type": null,
     "ip_note": "Egress/IP options not documented; outgoing transfer is capped per plan and blocked at 100%.",
     "isolation": "microvm",
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -284,5 +292,72 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 6
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.shardflux.dev/concepts/lifecycle.md",
+      "quote": "A persistent workspace suspends itself when it has been idle for its idle timeout. Nothing is killed: the suspend keeps memory and processes like any other.",
+      "note": "Triggers: idle timeout (adaptive 10 s-4 h, default 5 min until learned; or fixed:60-604800 s / never), suspend-when-idle requests, compute allowance or spend cap. Memory + processes + disk checkpointed (Firecracker snapshot) and restored on resume; after a rare platform runtime change a resume cold-boots from disk (memory_restored:false). Session-lifetime workspaces are deleted instead.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.shardflux.dev/concepts/lifecycle.md",
+      "quote": "records a checkpoint of a running or suspended workspace without stopping it. While a running workspace is captured, reads work and writes wait. The API has no call to list or restore snapshots yet; to branch from a state, [fork](#fork-a-workspace).",
+      "note": "snapshot() exists but cannot yet be listed/restored. The usable on-demand path is fork: 'a copy of its disk and memory, restored into an independent VM' from a running or suspended workspace (memory included, boots new workspaces). Also save-as-template (disk only, new template layer) and reset keeps a 7-day recovery point.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.shardflux.dev/reference/python.md",
+      "quote": "Your harness runs the model loop and your own tools.",
+      "note": "Model is inverted: your agent/harness runs outside and gets workspace tools (TS/Python tool definitions, MCP server for Claude Code/Cursor/Codex/Claude Desktop). No API to start/stream/resume Claude Code or another harness inside the workspace was found.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.shardflux.dev/reference/http-api/endpoints.md",
+      "quote": "mode allow_all | allowlist | deny_all; rules/cidrs only with allowlist. Hosts: exact FQDN or `*.` single-label wildcard (IDNA-normalized, lower-case); IP literals and localhost-like names are rejected. Ports 1-65535 (default [443]); protocols tcp only. cidrs: public ranges only.",
+      "note": "Per project (default) and per-workspace override, versioned; template versions can set an egress ceiling the workspace cannot widen. Enforced by the host ('effective_policy: what the host enforces'), enforcement state reported. Also CLI: shard egress set. Build network for templates: auto/none/allowlist.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.shardflux.dev/reference/cli.md",
+      "quote": "A policy file is `{\"mode\": \"allow_all\" | \"allowlist\" | \"deny_all\", \"rules\": [{\"host\": \"api.github.com\", \"ports\":",
+      "note": "Rules are host + ports (TCP) plus CIDRs only; no method/path/header rules documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each workspace is a Firecracker microVM 'with its own kernel'; ubuntu-24.04 base includes sudo and template build steps run as root. iptables/nftables not mentioned in docs.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.shardflux.dev/concepts/workspaces.md",
+      "quote": "Every command and terminal in the workspace\ngets it as an environment variable, and no API ever returns the value.",
+      "note": "Secrets are write-only in the API but injected as env vars into every exec/PTY (secret_refs per process), so the value is inside the VM. Per-secret allowedWorkspaceIds/allowedTools, rotation, org secrets with access logs. No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.shardflux.dev/reference/http-api/endpoints.md",
+      "quote": "Attach a shared volume to a workspace at mount_path (ro or rw).",
+      "note": "Shared volumes are EFS access points ('Create a shared volume (EFS access point created by the cell)'); up to 8 per workspace; hot-attach into a running guest; plan limits 1x1 GiB (Free) to 100x1,000 GiB (Scale); storage not charged. Outside memory checkpoints.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.shardflux.dev/reference/http-api/endpoints.md",
+      "quote": "Persistent volumes shared between workspaces of a project.",
+      "note": "Read-write or read-only per attachment; EFS-backed; org_shared volumes attachable from every project; forks attach (not copy) the same volume: 'Shared volumes are attached, not copied: both see the same data.'",
+      "checked": "2026-09-29"
+    }
   }
 }

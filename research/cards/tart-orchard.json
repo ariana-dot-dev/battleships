@@ -169,7 +169,7 @@
     "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -186,7 +186,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -198,7 +198,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -243,5 +251,72 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://github.com/openai/orchard/blob/main/internal/command/create/vm.go",
+      "quote": "treat the VM as suspendable, disabling certain devices for suspendability support and issuing \"tart suspend\" instead of \"tart stop\" when VM's specification is updated, thus preserving the VM's state between specification generations",
+      "note": "Narrow: Orchard VMs created with --suspendable are suspended (memory + disk state saved via Virtualization.framework saveMachineStateTo) instead of stopped when their spec is updated, then restored. In plain Tart, closing the GUI window of a --suspendable VM also suspends it. No idle/time-limit auto-snapshot. Suspend works only for macOS guests on macOS 14+ hosts.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://github.com/openai/tart/blob/main/Sources/tart/Commands/Clone.swift",
+      "quote": "Creates a local virtual machine by cloning either a remote or another local virtual machine.",
+      "note": "Disk-level: tart clone (APFS copy-on-write) of a local VM, or tart push to an OCI registry, then boot new VMs from it (fork/template). Memory-level: 'tart suspend' (Suspend.swift abstract: 'Suspend a VM'; Run.swift: 'Useful for running a VM that can be suspended via \"tart suspend\"') saves the running macOS VM's state, restored on next tart run; macOS guests only. Clone.swift has handling for cloning a Suspended source VM, but cloning with memory state is not documented.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://github.com/openai/tart/blob/main/Sources/tart/Commands/Exec.swift",
+      "quote": "Execute a command in a running VM",
+      "note": "Only generic control: tart exec (guest agent), SSH/VNC, Orchard REST API with startup scripts, exec, events/logs. No agent-harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://github.com/openai/tart/blob/main/Sources/tart/Commands/Run.swift",
+      "quote": "For example --net-softnet-block=0.0.0.0/0 may be used to establish a default deny policy that is further relaxed with --net-softnet-allow.",
+      "note": "Softnet: host-side userspace packet filter (outside the VM) with CIDR allow/block lists (--net-softnet-allow / --net-softnet-block); by default blocks private ranges and allows globally routable IPv4. Lists can be replaced live via --net-softnet-control-fd. Orchard exposes the same flags per VM (orchard create vm --net-softnet-allow/--net-softnet-block). IPv4 CIDRs only, no hostnames.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://github.com/openai/tart/blob/main/Sources/tart/Commands/Run.swift",
+      "quote": "It is essentially a userspace packet filter which restricts the VM networking and prevents a class of security issues, such as ARP spoofing.",
+      "note": "Packet/CIDR-level only; no HTTP-level rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://github.com/openai/tart/blob/main/Sources/tart/Commands/Run.swift",
+      "quote": "Comma-separated list of TCP ports to expose (e.g. --net-softnet-expose 2222:22,8080:80)",
+      "note": "You choose which guest TCP ports are forwarded from the host interface (Softnet restrictions still apply); default NAT networking is not reachable from outside the host. Orchard: 'orchard port-forward vm' forwards a TCP port through the controller, which requires service-account auth (basic auth in non-dev mode). Note Softnet default says the VM will 'receive any incoming traffic' on its bridge.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full Apple Virtualization.framework VM (macOS or Linux guest) with its own kernel and admin/root access; iptables/nftables (Linux) or pf (macOS) should work.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Self-hosted VM tooling; no secret store or credential-injecting proxy documented. Credentials reach VMs via startup scripts, SSH, env, or shared dirs.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://github.com/openai/tart/blob/main/Sources/tart/Commands/Run.swift",
+      "quote": "Additional disk attachments with an optional read-only and synchronization options in the form of path[:options] (e.g. --disk=\"disk.bin\", --disk=\"ubuntu.iso:ro\", --disk=\"/dev/disk0\", --disk \"ghcr.io/cirruslabs/xcode:16.0:ro\" or --disk=\"nbd://localhost:10809/myDisk:sync=none\")",
+      "note": "Extra disks: image files, host block devices, NBD URLs (network block device), OCI disk images (ro). Also --dir virtiofs host directory shares (rw or ro); Orchard --host-dirs mounts worker-host directories into VMs. You provide the storage (self-hosted).",
+      "checked": "2026-09-29"
+    }
   }
 }

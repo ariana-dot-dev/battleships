@@ -617,7 +617,13 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": null,
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -655,5 +661,49 @@
     "applied": 9,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://huggingface.co/docs/hub/jobs-large-datasets",
+      "quote": "Ephemeral disk doesn't survive the Job, so write anything you want to keep to a [Storage Bucket](./storage-buckets) mounted read-write, or push it to the Hub as a dataset.",
+      "note": "Jobs are run-to-completion containers; state is lost when the job ends. Persistence only via bucket volume mounts.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://huggingface.co/docs/hub/jobs-configuration",
+      "quote": "You can open an interactive SSH session into a running Job to debug, inspect, or work directly inside the container.",
+      "note": "Jobs API/CLI (hf jobs run/uv run/logs/ssh) is generic container execution; no first-party API to drive Claude Code/Codex etc. hf-sandbox on PyPI ('Modal-style sandbox API on top of Hugging Face Jobs') lists no author and is not documented by HF as first-party.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://huggingface.co/docs/hub/jobs-configuration",
+      "quote": "Each exposed port is reachable at `https://<job_id>--<port>.hf.jobs` and requires an HF token with `read` access to the job's namespace",
+      "note": "Ports are only exposed when chosen with --expose; public proxy URLs are token-authenticated. SSH opt-in (--ssh), restricted to users with Write access via registered SSH keys. Network groups give private job-to-job connectivity.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://huggingface.co/docs/hub/jobs-configuration",
+      "quote": "# Pass secrets - they will be encrypted server side",
+      "note": "Secrets are encrypted server-side but delivered to the job as environment variables (script reads os.environ[\"MY_SECRET\"]). Bucket volume mounts are authorized with the user's HF identity at job creation so the script needs no token for them (jobs-manage), but that is not a general credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://huggingface.co/docs/hub/jobs-configuration",
+      "quote": "Mount Hugging Face repositories (models, datasets), [Storage Buckets](./storage-buckets), or local directories as volumes in your job container using `-v` or `--volume`.",
+      "note": "Network (object-storage-backed, lazily fetched) mounts, not block volumes. Buckets read-write by default (:ro optional); model/dataset repos always read-only. Bucket storage billed per TB.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://huggingface.co/docs/hub/storage-buckets-access",
+      "quote": "Volume mounts in [Jobs](./jobs) and [Spaces](./spaces) are the same idea as `hf-mount`, managed for you by the platform — no extra setup needed. Buckets are mounted read-write by default.",
+      "note": "Any number of jobs (and Spaces) can mount the same bucket (read-write) or dataset/model repo (read-only); concurrent multi-writer semantics are not documented explicitly. Scheduled jobs mount the same synced folder on every trigger.",
+      "checked": "2026-09-29"
+    }
   }
 }

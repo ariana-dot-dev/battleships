@@ -192,7 +192,13 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "egress_allowlist_level": "domain",
+    "secret_proxy": "ai-only",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -232,5 +238,50 @@
     "applied": 11,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.ainclave.com/faq",
+      "quote": "A self-service egress allowlist; export and tamper-evident anchoring for the session event feed; session persistence, resume and fork; a public CLI and agent skill; on-premises deployment; and an external penetration test report.",
+      "note": "Listed under 'What is not built yet?'. Sessions stop on idle timeout / lifetime cap / account runtime budget; no state is saved (session persistence and resume are roadmap).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://www.ainclave.com/solutions/engineering-teams",
+      "quote": "Session persistence, resume and fork.",
+      "note": "Under 'Roadmap — Designed and not shipped. None of the following is available today.' No snapshot/checkpoint/fork API today.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.ainclave.com/security/microvm-isolation",
+      "quote": "Egress is deny-default: the baseline policy grants no destination at all. A session reaches only what its own configuration names at create time — the repository host, the model endpoint, configured MCP endpoints. That list is fixed for the life of the session. Enforcement sits on the host datapath, not in a proxy the workload could route around.",
+      "note": "Host-enforced deny-default: host DNS resolver scoped to the session list + TLS forwarded only on exact hostname (SNI) match; cloud metadata unreachable. BUT the list is derived from the chosen configuration (repo host, model endpoint, MCP endpoints); a self-service, per-destination editable allowlist is roadmap.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://www.ainclave.com/faq",
+      "quote": "It reaches the agent process only as a placeholder: the environment variable inside the guest carries a reference, and the real bearer token is substituted on the outbound request, so only the destination server sees it. The substitution happens outside the agent process, but the proxy that performs it terminates TLS inside the same guest, and nothing separates the two.",
+      "note": "Covers the BYOT model-provider token (and apparently source-control credentials: 'Provider and source-control credentials are stored as encrypted vault references'); users cannot register credentials for arbitrary hosts (destinations follow the config). Big caveat: the substituting proxy runs INSIDE the same microVM guest and terminates TLS there, so the real secret does enter the sandbox VM (just not the agent process); the vendor says whether the agent can reach it is untested. Non-HTTP protocols not covered/documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://www.ainclave.com/design-partners",
+      "quote": "Session persistence and fork",
+      "note": "Listed under 'NOT BUILT YET'. Each session gets a repo mount (git remote cloned/mounted read/write); 'Volumes are encrypted' refers to backing storage, no attachable persistent volumes documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.ainclave.com/design-partners",
+      "quote": "Session persistence and fork",
+      "note": "No persistent or shared volumes; one repo mount per session.",
+      "checked": "2026-09-29"
+    }
   }
 }

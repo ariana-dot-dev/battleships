@@ -176,7 +176,16 @@
     "spend_limits": null,
     "mcp_server": false,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -249,5 +258,79 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 6
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.sailresearch.com/sailboxes-autosleep",
+      "quote": "Sleeping checkpoints the whole machine. Disk, memory, and running processes come back exactly as they were",
+      "note": "Autosleep is on by default: after an idle window (default 30 s, 1 s-1 h or never) with no CPU, timers or open connections, or while only waiting on a slow outbound reply, Sail checkpoints memory+disk and wakes on inbound traffic, exec/SSH, the awaited reply, a wall-clock alarm or a scheduled wake. Memory included. Caveat: 'Any wake can come back cold instead, with the disk intact and nothing running.' Explicit pause/sleep API also saves memory+filesystem. Terminate (or max_lifetime) loses everything not on a volume/checkpoint.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.sailresearch.com/sailbox-sdk",
+      "quote": "Creates a durable checkpoint handle for this Sailbox. Running Sailboxes are snapshotted first.",
+      "note": "Memory included; from_checkpoint boots any number of new Sailboxes (fork/fan-out): forking page says 'The copy gets the original's disk and its memory, so whatever was running carries on in the copy.' Checkpoint TTL default 7 days (ttl_seconds configurable). Not supported on a Sailbox with volume mounts. CLI: sail box checkpoint / sail box from-checkpoint.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.sailresearch.com/sailboxes-devboxes",
+      "quote": "installs the Claude Code, Codex, Cursor Agent, and opencode CLIs, and copies their logins from your machine where it can",
+      "note": "Agents are preinstalled on devboxes (agent_harnesses) and driven via SSH / sail box shell / generic exec (NDJSON streaming). No first-party API to start an agent with a prompt, stream its events or resume conversations found in llms-full.txt. Harbor integration runs Harbor (third-party) trials in Sailboxes. Sail's own LLM inference API is separate.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.sailresearch.com/sailboxes-egress-policy",
+      "quote": "An entry in `allowlist` or `blocked` is a hostname (`api.github.com`), a wildcard for every host below a domain (`*.github.com` matches `api.github.com` and `a.b.github.com` but not `github.com`), an IPv4 address, or an IPv4 range (`203.0.113.0/24`).",
+      "note": "Per-Sailbox policy (inline or saved), changeable at runtime on running/paused/sleeping boxes; allowlist + blocked list; {\"allowlist\": []} = no egress; {\"no_network\": true} = no network both ways. Max 128 entries. Default: any host.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.sailresearch.com/reference/egress-policy",
+      "quote": "`method` is case-sensitive, so write `GET`; give one method or a list. `path`, `headers`, and `query` values accept a plain string or `{\"equals\": \"...\"}` for an exact match, `{\"prefix\": \"...\"}`, or `{\"one_of\": [...]}`.",
+      "note": "Rules per host (HTTPS only, TLS-intercepting proxy): match on method/path/headers/query (not body); actions set/add/remove headers & query, set path, forward to another host, or respond with a fixed status/body. Up to 100 hosts / 100 rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.sailresearch.com/sailboxes-access-control",
+      "quote": "Pass an allowlist when you expose a port. An entry is an address or range, or the name of a Sail app, which admits authenticated requests from Sailboxes in that app. Anything else fails before it reaches the Sailbox.",
+      "note": "No inbound traffic until a port is exposed; HTTP ports get a public HTTPS URL; per-port IP/CIDR or app-identity allowlists; raw TCP ports allowlist by address only (unauthenticated well-known ports like Postgres rejected without explicit allowlist); SSH via org CA certificates, private boxes accept only creator's certs; no_network disables all inbound.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker microVM (per Sail engineering blog 2026-07-14 cited on card) with root and Docker inside; docs do not mention iptables/nftables.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.sailresearch.com/sailboxes-credentials",
+      "quote": "Code inside sends a normal request with no credential, and Sail adds it on the way out. Nothing on the Sailbox, including an agent running there, can read the key.",
+      "note": "Org secrets referenced as ${secrets.NAME} in egress-policy rules for any HTTPS host (headers or query params). HTTPS only: 'Rules act on HTTPS only; plain HTTP and other traffic pass through untouched' so databases/SSH/git-over-SSH are not covered (git over HTTPS is).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.sailresearch.com/sailbox-sdk",
+      "quote": "A `Volume` is a shared filesystem that belongs to one organization. One or more Sailboxes in that organization can attach it. Mounts are writable by default.",
+      "note": "Volumes are Alpha ('To pilot them, reach out in the Sail Slack'). Attach at create or to a running Sailbox (sail box mount). $0.000411/GiB-h per pricing. checkpoint() not supported on Sailboxes with volume mounts.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.sailresearch.com/sailbox-sdk",
+      "quote": "Other Sailboxes in the organization can mount the same volume writable, and a read-only mount shows the volume's current contents, including writes those Sailboxes make later.",
+      "note": "Read-write by default, per-mount read-only option; concurrent mounts across Sailboxes in one org. Alpha.",
+      "checked": "2026-09-29"
+    }
   }
 }

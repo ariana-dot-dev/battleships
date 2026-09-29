@@ -920,7 +920,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -934,7 +934,16 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": 12.96,
@@ -1024,5 +1033,79 @@
   "audit_2026_09_29": {
     "applied": 2,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://vercel.com/docs/sandbox/concepts/snapshots",
+      "quote": "When you call `stop()` or the timeout expires, the session stops. For a [persistent sandbox](/docs/sandbox/concepts/persistent-sandboxes) (the default), Vercel captures its filesystem and creates a snapshot automatically before the sandbox shuts down.",
+      "note": "Triggered by stop() or session timeout; default on (persistent:true, SDK v2+), opt out with persistent:false. Filesystem only, no memory/processes: next session boots from the snapshot and an onResume hook is provided 'to restart background services'. Auto-snapshots billed as Snapshot Storage ($0.08/GB-month), expire 30 days after last use by default.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://vercel.com/docs/sandbox/concepts/snapshots",
+      "quote": "You can also snapshot a running sandbox at any time by calling `snapshot()`, which captures its current filesystem before stopping the session.",
+      "note": "SDK/CLI/REST (POST /v2/sandboxes/sessions/{sessionId}/snapshot). Filesystem only, no memory; snapshot() stops the session. New sandboxes can boot from it ('You can create or fork any number of sandboxes from the same snapshot'); Sandbox.fork() forks from the source's latest snapshot. Region-bound.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/sdk-reference",
+      "quote": "Run untrusted code, test full Linux workflows, and manage files, ports, snapshots, drives, sessions, and network policy from Node.js applications.",
+      "note": "The full SDK reference (Sandbox, SandboxUser, Session, FileSystem, Command, NetworkPolicy, Snapshot, Drive classes) has no agent/prompt/conversation API; only runCommand exec + log streaming. Harness integrations are third-party guides (Cursor Cloud Agents, Devin Outposts, Herdr, Hermes, TanStack AI, OpenAI Agents API, Claude Managed Agents self-hosted tools, Harbor). Vercel's own agent framework 'eve' runs the agent loop outside the sandbox (sandbox = tool env), so it is not a harness-inside-sandbox API. Claude Code/Codex/OpenCode are preinstalled in the universal image (agent_harnesses).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://vercel.com/docs/sandbox/concepts/firewall",
+      "quote": "User-defined policies deny traffic by default and let you allow specific destinations. You can define:\n\n- **Allowed domains**: Allow traffic by domain (for example, `api.example.com` or `*.example.com`)",
+      "note": "Modes allow-all (default) / deny-all (incl. DNS) / user-defined: domain allowlist with wildcards (SNI-based, plus Postgres STARTTLS), CIDR allow (subnets.allow) and CIDR deny (subnets.deny). Updatable on a running sandbox without restart; enforced by the Vercel firewall outside the microVM; available on Hobby. Caveat documented: SNI-only matching allows domain fronting; allowed CIDRs bypass domain rules.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://vercel.com/docs/sandbox/concepts/firewall",
+      "quote": "Each rule can define [matchers](#matchers) on the path, method, query parameters, and headers. When defined, only matching requests are transformed.",
+      "note": "Partial: HTTP matchers (path/method/query/headers; exact/prefix/regex) select which requests get credential injection (transform) or forwarding to your own proxy (forwardURL), and transform can rewrite headers (e.g. pin Host). But 'Matchers never block traffic' - to allow only certain paths you must forward the domain to your own proxy and reject there. No native provider-side HTTP deny rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://vercel.com/docs/sandbox/sdk-reference",
+      "quote": "`sandbox.domain()` resolves a publicly accessible URL for a port you exposed during creation. It throws if the port is not registered to a route, so include the port in the `ports` array when creating the sandbox",
+      "note": "Only control is choosing which ports (up to 15) are exposed, updatable via sandbox.update({ports}). Exposed ports are public and unauthenticated ('Exposed ports are accessible via a public URL, so be mindful of what services you run'); no token/password protection or inbound IP allowlist documented. Private networking to your AWS VPC only via Enterprise Secure Compute.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each sandbox is a Firecracker microVM 'with a dedicated kernel' and sudo; docs list VPN clients, Docker and FUSE as supported system-privileged workloads, which implies NET_ADMIN in its own kernel. nftables/iptables not explicitly documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://vercel.com/docs/sandbox/concepts/firewall",
+      "quote": "Credentials brokering injects credentials into egressing traffic. The secrets never enter the sandbox, so code running inside it cannot exfiltrate them.",
+      "note": "Configured per allowed domain via networkPolicy transform (arbitrary headers, any HTTPS host, with path/method/header matchers); firewall terminates TLS for those domains with a per-sandbox CA. HTTP(S) only: 'Credentials brokering and other request transformations are not supported on Postgres connections'; SSH/non-TLS traffic passes through unmodified. forwardURL lets you add your own proxy (with a Vercel OIDC token) for other schemes.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://vercel.com/docs/sandbox/concepts/drives",
+      "quote": "Files written to a drive persist after the sandbox stops. Mount the same drive in a later run to pick up where you left off, even when starting from a different sandbox environment. You can mount up to four drives in a sandbox, each at its own path alongside the sandbox's own filesystem.",
+      "note": "Drives, public beta since 2026-09-23 (Hobby/Pro/Enterprise): network-backed, default max 1 TiB (1 GiB Hobby), up to 16 TiB, single region, $0.05/GB-month + read/write per-GB. Also user-run FUSE mounts (e.g. Mountpoint for S3).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://vercel.com/docs/sandbox/concepts/drives",
+      "quote": "Drives are mounted as read-write by default. Only one sandbox at a time can mount a given drive as read-write: use [snapshots](#snapshots) for shared access.",
+      "note": "Read-only sharing only: many sandboxes can concurrently mount point-in-time read-only drive snapshots ('Snapshots allow multiple sandboxes to mount the same drive concurrently'), which don't see later writes. Concurrent read-write sharing is not supported (except via user-run FUSE to an external store like S3).",
+      "checked": "2026-09-29"
+    }
   }
 }

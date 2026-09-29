@@ -181,7 +181,16 @@
     "anti_bot": null,
     "captcha_solving": null,
     "egress_ip_type": "datacenter+residential",
-    "ip_note": "Cloud browser can egress via an H-managed proxy (pool 'residential' default or 'datacenter', ISO country, sticky IP) or your own proxy_url; no per-GB price published. Desktop control exists only for your own machine (local control)."
+    "ip_note": "Cloud browser can egress via an H-managed proxy (pool 'residential' default or 'datacenter', ISO country, sticky IP) or your own proxy_url; no per-GB price published. Desktop control exists only for your own machine (local control).",
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "own_agent_api": true,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -227,5 +236,71 @@
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://hub.hcompany.ai/agents-api/browser/profiles.md",
+      "quote": "Sessions save back automatically. A session that follows the default profile writes its final browser state (cookies, storage) back when it ends.",
+      "note": "No machine snapshot: the cloud browser is provisioned per session and discarded. Closest thing: browser profiles. With use_default_browser_profile:true (or persist_browser_profile:true + browser_profile_id) the session's cookies/local storage are written back on session end and loaded at the next session start with no API call (best-effort, one writer at a time, last write wins). Browser state only: no disk (~/Downloads), no memory/open tabs. Judge true only if cookie/storage auto-save counts.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://hub.hcompany.ai/agents-api/browser/profiles.md",
+      "quote": "Decided at create time. Persistence can only be requested when the session is created, not when attaching to an existing session.",
+      "note": "No snapshot/checkpoint/fork API. Profiles are uploaded (zip of a Chrome user-data dir, max 1 GB) or written back at session end, not captured on demand. POST /sessions/{id}/pause 'Halt a running session without losing its state' keeps the live session (agent + browser) and resumes it, but produces no restorable/bootable artifact.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://hub.hcompany.ai/agents-api/observe-and-steer.md",
+      "quote": "By default a session ends as soon as the agent answers. Set [`idle_timeout_s`](/agents-api/sessions/create) when you create it to keep it open: after each answer the session enters [`idle`](/agents-api/sessions/overview#lifecycle) and waits that long for your next message before terminating. One session becomes a multi-turn conversation that keeps its full context and environment state across turns.",
+      "note": "Provider's own agent only (Holo-powered H agents: h/web-surfer-flash/-pro, h/web-scraper-*, h/deep-search-pro, or custom agents with instructions/skills/subagents). Agents API + hai-agents Python/TS SDKs + hai CLI + MCP server: create session with a prompt, stream events (changes long-poll / session.stream()), send follow-up/steering messages, pause/resume, force answer, cancel, list/filter sessions, webhooks, custom tools. The agent runs on H's platform driving a per-session cloud browser (or your own browser/desktop via local control). No Claude Code / Codex / OpenCode hosting; HoloDesktop CLI is the reverse (callable from Claude Code etc. over MCP/ACP/A2A).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://hub.hcompany.ai/agents-api/observe-and-steer.md",
+      "quote": "By default a session ends as soon as the agent answers. Set [`idle_timeout_s`](/agents-api/sessions/create) when you create it to keep it open: after each answer the session enters [`idle`](/agents-api/sessions/overview#lifecycle) and waits that long for your next message before terminating. One session becomes a multi-turn conversation that keeps its full context and environment state across turns.",
+      "note": "Provider's own agent only (Holo-powered H agents: h/web-surfer-flash/-pro, h/web-scraper-*, h/deep-search-pro, or custom agents with instructions/skills/subagents). Agents API + hai-agents Python/TS SDKs + hai CLI + MCP server: create session with a prompt, stream events (changes long-poll / session.stream()), send follow-up/steering messages, pause/resume, force answer, cancel, list/filter sessions, webhooks, custom tools. The agent runs on H's platform driving a per-session cloud browser (or your own browser/desktop via local control). No Claude Code / Codex / OpenCode hosting; HoloDesktop CLI is the reverse (callable from Claude Code etc. over MCP/ACP/A2A).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://hub.hcompany.ai/agents-api/sessions/share.md",
+      "quote": "Makes a session publicly accessible via a share URL. Anyone with the link can view the session without authentication. Revoke it with [Unshare](/agents-api/sessions/unshare).",
+      "note": "Not applicable: no user ports or machine endpoints are exposed. Access is only via the bearer-authenticated Agents API / Agent View; optional public share link is a read-only trajectory view, revocable.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Hosted browser only, driven by the agent's browser actions; no shell/root/CDP access for the user. File endpoints reach only ~/Downloads ('Paths outside it, including the browser profile, are rejected'). Isolation technology undocumented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://hub.hcompany.ai/agents-api/browser/configuration.md",
+      "quote": "Fill a vault-resolved secret (e.g. `password`, `totp`) into a field at coordinates so the agent can sign in on your behalf. The value is injected directly into the page and never enters the agent's context.",
+      "note": "Not an HTTP proxy: Vaults (1Password only, via service-account token, write-only, domain-gated by page URL) let the agent call fill_secret_at so the model never sees the secret, but the value is typed into the browser page (cloud browsers only). No header injection for arbitrary APIs; no non-HTTP. Managed proxy credentials are resolved server-side; BYO proxy creds go inline in proxy_url. 2FA codes via a request_otp built-in tool.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://hub.hcompany.ai/agents-api/sessions/list-files.md",
+      "quote": "Only the browser's download directory (`~/Downloads`) is reachable. Paths outside it, including the browser profile, are rejected.",
+      "note": "No storage/volume product; derived from product shape. Only per-session file read/write (base64, 8 MiB cap) in ~/Downloads.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No volumes/filesystems. Browser profiles are org-scoped and 'Any number of sessions may load the profile read-only in parallel', but that is shared cookie/storage state, not a mounted filesystem.",
+      "checked": "2026-09-29"
+    }
   }
 }

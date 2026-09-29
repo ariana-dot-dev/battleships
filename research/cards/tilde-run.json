@@ -128,7 +128,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": false,
@@ -140,7 +140,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": false
+    "mcp_server": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -180,5 +188,71 @@
       "https://lakefs.io/blog/we-recently-shut-down-tilde-run/"
     ],
     "researched": "2026-09-28"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://web.archive.org/web/20260506163459/https://docs.tilde.run/",
+      "quote": "Sandboxes run your code in fresh, isolated containers with Linux capabilities dropped and your repository mounted as a versioned volume.",
+      "note": "Container state is never saved; each run starts fresh from the image. What is automatic is a data commit: 'On clean exit, all writes commit as a single versioned snapshot tied to the agent that produced them' - that versions only the mounted /sandbox repository data (lakeFS-style commit), not the machine. Non-zero exit/cancel/timeout rolls writes back.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://web.archive.org/web/20260506163705/https://docs.tilde.run/faq/",
+      "quote": "Direct session API — for scripts that don't need a container, the SDK exposes repo.session() to stage put/delete/copy operations programmatically and commit them yourself.",
+      "note": "No container/VM snapshot or checkpoint API. Only repository data can be committed/reverted (data versioning, not machine state; no memory, no booting from it).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://web.archive.org/web/20260506175119/https://docs.tilde.run/agent-skill/",
+      "quote": "The Agent Skill works by giving Claude knowledge of the tilde CLI commands. Claude runs CLI commands on your behalf, so you see exactly what it does at every step.",
+      "note": "Reverse direction: a Claude Code skill running on your machine drives Tilde sandboxes via the CLI. The sandbox API itself is generic run-command / stream stdout / WebSocket terminal; no API to drive an agent harness inside a sandbox.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://web.archive.org/web/20260506200127/https://docs.tilde.run/sandboxes/network/",
+      "quote": "This policy is deny-by-default: any host not explicitly allowed is blocked. You can expand it by attaching additional allow policies, restrict it by attaching deny policies, or replace it entirely with your own custom policies.",
+      "note": "Forward proxy sidecar outside the container; 'There is no way for code inside a sandbox to opt out'. Rules match host (fnmatch), scheme, port; built-in baseline blocks RFC1918, link-local/metadata, loopback, CGNAT (not overridable). HTTP/HTTPS/WebSocket only; QUIC blocked. Per agent, role or repository; agent policy ANDed with creator's.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://web.archive.org/web/20260506163705/https://docs.tilde.run/faq/",
+      "quote": "Modifiers: host, scheme, port, method, path (all support fnmatch patterns).",
+      "note": "Proxy terminates TLS so method/path rules apply to HTTPS; e.g. !HttpRequest(host:\"registry.npmjs.org\", method:\"POST\"). Every request logged (method, host, path, decision) and streamable via /logs/network. No header rules documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://web.archive.org/web/20260506163433/https://docs.tilde.run/sandboxes/",
+      "quote": "Each sandbox runs in its own isolated container with all Linux capabilities dropped, configurable resource limits, and no access to the host system.",
+      "note": "No CAP_NET_ADMIN, so iptables/nftables inside cannot work. Per-sandbox network namespace, egress only via proxy.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://web.archive.org/web/20260506172726/https://docs.tilde.run/reference/api/",
+      "quote": "Secrets are encrypted key-value pairs that are automatically injected as environment variables into sandboxes.",
+      "note": "Repository and agent secrets are plain env vars inside the container. (One compute-docs example claims the key 'never appears in the trigger config or container environment', contradicting the API reference; the egress proxy does not inject credentials.)",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://web.archive.org/web/20260506163705/https://docs.tilde.run/faq/",
+      "quote": "Your repository is mounted at /sandbox by default. Set mountpoint to use a different path, and path_prefix to mount only objects under a specific prefix.",
+      "note": "First-party persistent versioned object storage (Tilde repository) FUSE-mounted into each sandbox, read-write via a transactional session. One repository per sandbox; not a block volume.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://web.archive.org/web/20260506163705/https://docs.tilde.run/faq/",
+      "quote": "Yes. Each agent works in its own session, so their changes are fully isolated until committed.",
+      "note": "Many sandboxes can mount the same repository concurrently (docs: fan out hundreds for a batch job), read-write, but each sees an isolated session snapshot; writes become visible to others only after commit (not live shared-write like NFS).",
+      "checked": "2026-09-29"
+    }
   }
 }

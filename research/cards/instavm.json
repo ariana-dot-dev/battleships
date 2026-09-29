@@ -169,7 +169,15 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -218,5 +226,65 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://api.instavm.io/openapi.json",
+      "quote": "Explicitly auto-suspend (Tier B) a running VM: snapshot to a managed\nsnapshot, free host resources, and park it as ``suspended``. It is restored\non the next request (share/execute/pty/ssh) only if the session opted into\n``auto_resume``",
+      "note": "Two opt-in mechanisms. (1) auto_suspend / auto_resume flags on VM create/update (OpenAPI VMCreateRequest; SDK README 0.26.1: 'Suspend parks a running VM by snapshotting its **memory + disk** to a managed snapshot ... resume restores it (memory and filesystem intact). Resume mints a fresh vm_id'; 'Requires the auto-suspend feature to be enabled on your InstaVM deployment'). Memory included; auto_resume wakes it on execute/pty/ssh/share traffic. The idle trigger/timeout for automatic suspend is not documented publicly (workspace/devbox runs use auto_suspend=True). (2) snapshot_on_terminate=true (docs/concepts/snapshots) snapshots disk state automatically when the VM terminates or its vm_lifetime_seconds expires; restore is NOT automatic (create a new VM with snapshot_id). Default is off for both: without them, lifetime expiry destroys all state.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://instavm.io/docs/concepts/snapshots",
+      "quote": "Snapshots capture VM disk state plus snapshot metadata so new VMs can boot from a prebuilt environment in milliseconds.",
+      "note": "POST /v1/vms/{vm_id}/snapshot of a running VM (CLI `instavm snapshot create`), or build from an OCI image (POST /v1/snapshots). Disk only (no memory). New VMs boot from it (`instavm create --snapshot snap_...`). Also `clone` of a running VM (vm-management page: 'Create a copy of a running VM'). Explicit suspend (POST /v1/vms/{id}/suspend) is an on-demand memory+disk snapshot, but it only resumes the same VM (new vm_id), not a fork. Volumes also have on-demand checkpoints.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://instavm.io/docs/concepts/egress-policies",
+      "quote": "Block all outbound traffic by default\n Allow specific domains (e.g., api.openai.com )\n Permit package managers (pip, apt, npm) while blocking everything else\n Control HTTP vs HTTPS independently\n Define CIDR-based allow lists for private networks",
+      "note": "Per-session or per-VM policies (allowed_domains, allowed_cidrs, allow_http, allow_https, allow_package_managers), set via API and updatable on a running VM; 'Network egress is deny-by-default' (sandboxes page). Plan-gated: Free = only package managers + AI APIs; Pro = 'Unrestricted egress or granular domain/CIDR allowlists' (pricing). Enforced by the platform egress proxy outside the VM.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://instavm.io/docs/concepts/shares",
+      "quote": "Public shares are accessible by anyone with the URL.\n Private shares require an access token or a later visibility change.",
+      "note": "Ports are only exposed when you create a share for a specific port; shares default to private (token) and can be switched public/private or revoked; custom domains via CNAME. No IP allowlists documented. SSH access via registered keys.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each sandbox is a Firecracker microVM with its own kernel and network stack; docs say 'Root access inside the sandbox does not grant access to the host', implying root inside. Not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://instavm.io/blog/self-hosting-claude-managed-agents-on-instavm",
+      "quote": "InstaVM routes every VM's outbound HTTPS through an egress proxy. You bind a\n vault that maps a host (for example, api.openai.com ) to a credential, and the\nproxy substitutes the real value into the request at TLS write time .",
+      "note": "Secrets Vault (SDK/CLI 0.22+, changelog 2026-07-11: 'The Secrets Vault stores API keys server-side and injects them into HTTPS requests inside the VM at TLS time'). Custom hosts allowed (`vault service add --host api.example.com`), auth types bearer, api-key (custom header) and url-path (e.g. Telegram token in path); built-in templates (openai, anthropic, stripe, github, telegram...). VM sees only a placeholder; request logs per vault. The blog says 'The real key appears only on the wire, outside the VM', though the SDK README calls it 'the in-VM transparent MITM proxy', so where exactly the proxy runs is worded inconsistently. HTTPS only; no database/SSH/git-over-SSH injection documented. Plain env vars (`env=`) and `stage_env` also exist and do put values in the VM.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://instavm.io/docs/concepts/volumes",
+      "quote": "Volumes are persistent block storage for VMs. Use them when data must outlive a VM/session lifecycle.",
+      "note": "Mount at create or hot-plug on a running VM (mount_path + mode rw/ro); volume file APIs without mounting; volume checkpoints. Blog says volumes are 'backed by object storage'. Billed on allocated quota, $0.0002/GB-h after 10 GB included.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://instavm.io/blog/introducing-volumes-on-instavm-sandboxes",
+      "quote": "Mount a Volume read-write into one sandbox and\nread-only into many others, so a fleet of agents can work against the same dataset or\nindex in parallel.",
+      "note": "One read-write writer plus many read-only readers concurrently (per launch blog). Multi-writer read-write sharing is not documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

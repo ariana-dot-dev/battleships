@@ -167,7 +167,15 @@
     "mcp_server": null,
     "isolation": "vm",
     "image_oci": true,
-    "android": true
+    "android": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -214,5 +222,72 @@
     "applied": 14,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://cloud.tencent.com/document/product/1814/137830",
+      "quote": "PAUSE：保留沙箱实例状态，并在后续请求到来时恢复，适合需要保留 Workspace 或进程状态的场景。",
+      "note": "Translation: 'PAUSE: keeps the sandbox instance state and resumes it when a later request arrives; for cases that need to keep Workspace or process state.' Trigger: Elastic Deployment (beta; Shanghai/Hong Kong only) IdleTimeoutSeconds + IdleAction=PAUSE (alternative STOP releases). Memory included: pause = snapshot of 'frozen process memory and filesystem state' (doc 129691: '系统将之前冻结的进程内存和文件系统状态原样还原'). Changelog 2026-04-09 also says plain sandbox instances got idle auto-pause + auto-resume on data request as public beta ('沙箱实例以公测形式支持空闲自动暂停、数据请求触发自动恢复'), but the instance lifecycle doc still says expiry -> stop ('到期 → 停止'). Standalone instances that time out are stopped, not saved.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://cloud.tencent.com/document/product/1814/129691",
+      "quote": "从已有快照恢复沙箱实例。系统将之前冻结的进程内存和文件系统状态原样还原。",
+      "note": "Translation: 'Restore a sandbox instance from an existing snapshot. The system restores the previously frozen process memory and filesystem state as-is.' On-demand = PauseSandboxInstance / ResumeSandboxInstance API, agr CLI and E2B pause() (doc 132323); memory included. In-place only: the public API has no create-snapshot/fork/clone action, so you cannot boot new instances from your own pause snapshot (the doc mentions '从已保存的快照创建新实例' but no API exposes it). Pause is internal-beta for billing; max 20 paused instances per account/region. Console 'clone custom sandbox' copies config, not state.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://cloud.tencent.com/document/product/1814/130978",
+      "quote": "@anthropic-ai/claude-code Claude Code CLI @openai/codex OpenAI Codex CLI @google/gemini-cli Gemini CLI",
+      "note": "All-In-One sandbox preinstalls Claude Code, Codex and Gemini CLI (agent_harnesses), but the API catalog (tools, instances, deployments, registry, session store, keys) has no action to run a harness with a prompt / stream its events. 'Session management' (doc 138347) is a cloud store for an agent app's conversation events and state, not a harness driver. DeepSeek Harness appears only as cookbook samples.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://cloud.tencent.com/document/product/1814/132217",
+      "quote": "如果目标域名、端口、路径或方法不在策略允许范围内，请求会被 Tool 级或 Instance 级 NetworkPolicy 拦截。",
+      "note": "Translation: 'If the target domain, port, path or method is outside the policy's allowed scope, the request is blocked by the Tool-level or Instance-level NetworkPolicy.' Example policy: DefaultDecision deny + Rules Hosts ['api.example.com'] Ports ['443'] (set via Cloud API UpdateSandboxTool/UpdateSandboxInstance or E2B metadata x-network-policy; changelog 2026-04-15 says gray release '当前按灰度范围开放'). Plus NetworkMode (doc 132216): PUBLIC, SANDBOX ('不提供 Internet 或 VPC 出站' = no internet/VPC egress) and VPC mode with your own subnet + security groups (IP/port egress rules).",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://cloud.tencent.com/document/product/1814/123809",
+      "quote": "沙箱工具和实例支持 NetworkPolicy 配置，可按主机、端口、路径、HTTP 方法和表达式定义流量决策与通知钩子；当前按灰度范围开放。",
+      "note": "Translation: 'Sandbox tools and instances support NetworkPolicy, defining traffic decisions and notification hooks by host, port, path, HTTP method and expressions; currently open on a gray-release basis.' (2026-04-15). Not in the public API data-structure page yet (doc 124823), so rule schema beyond Hosts/Ports is not documented publicly.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://cloud.tencent.com/document/product/1814/132216",
+      "quote": "NetworkMode 决定出站网络边界，AuthMode 决定访问实例端口时是否需要认证。两者相互独立，可以组合使用。",
+      "note": "Translation: 'NetworkMode decides the outbound boundary, AuthMode decides whether access to instance ports needs authentication; independent, can be combined.' AuthMode DEFAULT / TOKEN (token required) / PUBLIC (business ports anonymous, management port 49983 still needs sandbox access token) / NONE. Ports routed via {port}-{sandbox-id}.{region}.tencentags.com with X-Access-Token / access_token / signed access (doc 132313); business ports declared in CustomConfiguration.Ports; VPC mode uses your security groups.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Doc 123813: '虚拟化隔离：每个沙箱拥有独立内核' (virtualized isolation: each sandbox has its own kernel; Cube secure-sandbox microVM). Commands can run as root (envd default user root, doc 137275). Not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://cloud.tencent.com/document/product/1814/138791",
+      "quote": "通过存储模板（VolumeTemplate）和数据卷（Volume）两级资源模型，您可以将对象存储（COS）或文件存储（CFS）中的目录，或 AgentCBS 云硬盘挂载到沙箱工具或沙箱实例，复用存储配置并管理数据卷的生命周期。",
+      "note": "Translation: 'With VolumeTemplate and Volume resources you can mount directories in COS object storage or CFS file storage, or AgentCBS cloud disks, onto sandbox tools or instances.' Also StorageMounts (COS, CFS, image, AgentBucket/SMH, JuiceFS gray, TurboCFS gray), up to 10 mounts per tool.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://cloud.tencent.com/document/product/1814/138791",
+      "quote": "读写多（ReadWriteMany）或只读多（ReadOnlyMany）的数据卷可挂载到多个沙箱工具或实例，避免重复配置。",
+      "note": "Translation: 'ReadWriteMany or ReadOnlyMany volumes can be mounted onto multiple sandbox tools or instances.' Read-write or read-only; ReadWriteOnce also exists. Storage mount doc 132215 states goal '跨实例共享' (cross-instance sharing) with CFS for shared working dirs.",
+      "checked": "2026-09-29"
+    }
   }
 }

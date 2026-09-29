@@ -561,7 +561,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -595,7 +595,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -641,5 +650,72 @@
     "applied": 17,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.gcore.com/cloud/virtual-instances/snapshots/set-up-automatic-snapshot-creation",
+      "quote": "Snapshot Schedules automate snapshot creation for selected volumes on a recurring basis.",
+      "note": "Standard IaaS VM: nothing is captured on stop/idle; boot and data volumes simply persist (persistent_disk). Only scheduled (cron/interval) volume snapshots with retention/max count exist.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.gcore.com/cloud/virtual-instances/snapshots/take-a-snapshot-of-your-file-system",
+      "quote": "A snapshot captures the full state of a volume at a point in time. Snapshots support backup and recovery, and boot volume snapshots can deploy new Virtual Machines.",
+      "note": "Volume (disk) snapshots via portal, REST API, Terraform, Python/Go SDK; no memory. New VMs can be created from boot-volume snapshots; images can also be made for templating. Gcore recommends stopping the VM first for consistency; billed at full volume size.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.gcore.com/gclaw/getting-started",
+      "quote": null,
+      "note": "VM product has no agent-harness API. Separate product Gclaw (managed OpenClaw on a dedicated VM, EUR 5.99/mo Lite) is driven through a chat UI in the Customer Portal / Telegram / Discord; its coding-agent skill 'Delegate coding tasks to Codex, Claude Code, or Pi agents', but no documented external API to prompt/stream/resume it.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.gcore.com/cloud/networking/add-and-configure-a-firewall",
+      "quote": "A security group is a set of rules that controls incoming and outgoing network traffic for Virtual Machines. Rules define which traffic is allowed or blocked based on protocol, port, and source or destination address.",
+      "note": "Security-group outbound rules by protocol/port/destination CIDR or security group; default SG allows all outbound ('By default, all outbound traffic is allowed. Add outbound rules only if specific destinations or protocols need to be restricted.'). Not available for Bare Metal (use iptables there). No hostname-level egress control found.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.gcore.com/cloud/networking/add-and-configure-a-firewall",
+      "quote": "For Sources, specify the allowed sources for inbound traffic: IP with mask: Specify an IP address range in CIDR format (192.168.1.0/24).",
+      "note": "Security-group inbound rules (protocol, port, source CIDR or SG); default SG opens SSH 22 and RDP 3389 plus ICMP. VMs can also be private-network only (public IP via floating/reserved IP is optional); load balancers and WAAP available.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VMs with root; Gcore's own docs tell Bare Metal users to configure iptables/nftables at OS level.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.gcore.com/cloud/secrets-manager/upload-a-pkcs12-file",
+      "quote": null,
+      "note": "No credential-injecting proxy. Gcore Secrets Manager only holds TLS certificates for HTTPS load-balancer listeners; VM secrets go in via user-data/SSH. (Gclaw stores user API keys in the VM's OpenClaw config: 'API keys and tokens provided to the agent are stored in the VM configuration'.)",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.gcore.com/cloud/virtual-instances/volumes/create-and-configure-volumes",
+      "quote": "More than one volume can be attached to a Virtual Machine. However, volumes can only be used in the same region where the VM is created.",
+      "note": "Block volumes (High IOPS SSD, Standard, SSD Low-Latency), attach/detach/resize via portal, API, Terraform.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.gcore.com/cloud/file-shares/about-file-shares",
+      "quote": "The NFS protocol allows servers within a subnetwork to simultaneously read, write, and modify files on the file share, providing data consistency and facilitating team collaboration.",
+      "note": "File Shares = managed NFS mounted by many VMs / Bare Metal / K8s pods (RWX); per-CIDR access rules with access_mode rw or ro. GPU Cloud has VAST NFS shares (always read/write). Billed per GB.",
+      "checked": "2026-09-29"
+    }
   }
 }

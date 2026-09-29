@@ -157,7 +157,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -175,7 +175,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": true,
@@ -190,7 +190,12 @@
     "mcp_server": null,
     "isolation": "firecracker",
     "image_oci": null,
-    "snapshot_note": "Official homepage says snapshots preserve state, but does not specify filesystem-only versus memory+filesystem."
+    "snapshot_note": "Official homepage says snapshots preserve state, but does not specify filesystem-only versus memory+filesystem.",
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -235,5 +240,57 @@
   "audit_2026_09_29": {
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://github.com/CelestoAI/sdk/blob/main/src/celesto/sdk/client.py",
+      "quote": null,
+      "note": "Hosted Computers API/SDK/CLI exposes create, list, get, terminals, browser/display, publish/unpublish port, exec, exec_stream, command history, stop, start, delete; no snapshot or fork call. Homepage claims \"Pause, resume, and snapshots preserve state\" and \"Forking: Branch a running sandbox into parallel copies\" — these match the open-source local SmolVM runtime (docs.celesto.ai/smolvm/features/snapshots: \"A full snapshot captures the VM's CPU state, memory, and disk\"), not documented for the hosted cloud. OpenAI Agents integration can persist_workspace() as a tarball (files only, client-side).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://celesto.ai/",
+      "quote": "The harness runs outside the sandbox and continuously learns from every run",
+      "note": "Managed Agents API (ManagedAgentsClient: agents, runs.create/runs.stream SSE, sessions, per-end-user budgets) drives Celesto's own hosted agent harness, which runs outside the sandbox, so it does not drive a harness inside a Computer. `celesto claude|codex|opencode|openclaw|hermes|pi start` are SmolVM CLI launchers that create a (local) sandbox with the agent preinstalled and attach a terminal (agent_harnesses, not an API).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.celesto.ai/cloud/features/network-control",
+      "quote": "Network Control currently supports these two settings. Domain and IP allowlists are not available.",
+      "note": "Only a no-internet mode: network_policy {mode: open|off} (`--no-internet`), fixed at create time and kept across stop/start/restore. No domain or IP lists (level: none/off-only). Off cannot be combined with persistent_home. Local SmolVM has internet_settings allowlists, not the hosted product.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/features/network-control",
+      "quote": "Network Control currently supports these two settings. Domain and IP allowlists are not available.",
+      "note": "Only open/off.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.celesto.ai/cloud/features/publish-ports",
+      "quote": "Services inside a Celesto computer are private by default.",
+      "note": "You choose which ports (1024-65535, max four at a time) get a public HTTPS URL and can unpublish them. Published URLs have no auth or IP allowlist: \"Treat published URLs as public. If the service exposes sensitive data or actions, add authentication to the service before sharing the URL.\"",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Hardware-isolated Firecracker microVMs with own kernel (\"Hardware-isolated microVMs\"); root inside not explicitly documented for hosted computers (user is `ohm`).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secret proxy or secret store for hosted computers: Computer.create takes only resources, template, image, persistent_home, network_policy; secrets reach the sandbox only via commands/files you send. Gatekeeper is delegated end-user OAuth (Google Drive) called from your app, not an egress proxy. The Pi cloud guide keeps model credentials on the local machine because Pi itself runs locally.",
+      "checked": "2026-09-29"
+    }
   }
 }

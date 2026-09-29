@@ -201,7 +201,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -238,7 +238,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -294,5 +299,43 @@
       "item": "Skills Execution Container",
       "price": "$0.033/hour eastus (EU $0.0363, westeurope/northeurope $0.0396); Retail Prices API, effective 2026-04-01"
     }
-  ]
+  ],
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents",
+      "quote": "If no request arrives within that window, the platform deprovisions the compute and persists the session state.",
+      "note": "Only $HOME and /files are persisted on idle deprovision (2-60 min idle timeout, default 15) and restored onto new compute on resume: 'State persistence: $HOME and /files content are persisted across turns and across idle periods.' No memory/process state and no whole-filesystem snapshot are documented, so this is a persisted home directory (persistent_disk-like), not a machine snapshot. Borderline; could be read as a filesystem-only auto snapshot of $HOME.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents",
+      "quote": "Conversational chatbot or assistant | Responses | The platform manages conversation history, streaming events, and session lifecycle—use any OpenAI-compatible SDK as the client.",
+      "note": "The platform-hosted Responses/Invocations/WebSocket/A2A endpoints drive the agent running inside the per-session sandbox: prompt, stream events, follow-ups via conversation ID, background mode, session list/terminate, and a session logstream (SSE). The harness is your own code. First-party samples wrap Claude Agent SDK (claude-agent-sdk, invocations), GitHub Copilot SDK (invocations/activity/voicelive) and Microsoft Agent Framework 'harness' samples. There is no turnkey 'run Claude Code' API: the harness adapter is sample code you deploy.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents",
+      "quote": "Conversational chatbot or assistant | Responses | The platform manages conversation history, streaming events, and session lifecycle—use any OpenAI-compatible SDK as the client.",
+      "note": "The platform-hosted Responses/Invocations/WebSocket/A2A endpoints drive the agent running inside the per-session sandbox: prompt, stream events, follow-ups via conversation ID, background mode, session list/terminate, and a session logstream (SSE). The harness is your own code. First-party samples wrap Claude Agent SDK (claude-agent-sdk, invocations), GitHub Copilot SDK (invocations/activity/voicelive) and Microsoft Agent Framework 'harness' samples. There is no turnkey 'run Claude Code' API: the harness adapter is sample code you deploy.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks",
+      "quote": "Agent subnet egress firewall allow list: If you integrate an Azure Firewall with your private network secured standard agent, add to the allow list the Fully Qualified Domain Names (FQDNs) listed under Managed Identity in the Integrate with Azure Firewall article or add the Service Tag AzureActiveDirectory. If you apply Network Security Groups (NSGs) to the delegated agent subnet or related subnets, configure matching outbound allow rules",
+      "note": "Only with VNet injection (delegated Microsoft.App/environments subnet), which for hosted agents must be set when the Foundry account is created. Egress control is the customer's own Azure Firewall (FQDN rules) and NSGs (IP/port/service tag) on that subnet, enforced outside the sandbox. It applies per agent subnet, not per session. The hosted-agents page says hosted agents 'can use a customer-provided Azure Virtual Network for outbound traffic'.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks",
+      "quote": "All accounts and their corresponding projects are protected by default with the Public network access Disabled flag, requiring explicit configuration to allow access through private endpoints. These rules apply to all protocols, including REST and WebSocket.",
+      "note": "The sandbox exposes no raw ports, only the platform agent endpoint, which requires Microsoft Entra ID auth. You can make the Foundry account private-endpoint-only. In the azd path the doc notes 'The deployed agent endpoint URL stays publicly addressable. Each user's sessions are isolated by their identity.'",
+      "checked": "2026-09-29"
+    }
+  }
 }

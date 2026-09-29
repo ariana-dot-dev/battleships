@@ -183,7 +183,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -224,5 +229,43 @@
     "applied": 1,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.webapp.io/hosting/free-hosting",
+      "quote": "Our VM's automatically hibernate after 30 minutes of inactivity, but with our proprietary snapshotting technology, we are able to wake up our VM's so the response delay is less than a few seconds.",
+      "note": "Environments go Running -> Stopped 'After 3 minutes of inactivity if there are builds queued' or 'After 60 minutes in general' (docs.webapp.io/snapshots) and restart from the VM snapshot. Snapshots are also taken automatically after each Layerfile step. Memory is included: 'Running processes are snapshotted and reused' (tuning-performance/the-layerfile-cache). Unclear whether runtime changes made after the build are captured at hibernation or whether wake restores the build-time snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.webapp.io/layerfile-reference/checkpoint",
+      "quote": "The `CHECKPOINT` instruction allows you to control exactly when webapp.io will take snapshots of the pipeline.",
+      "note": "Snapshot points are declared in the Layerfile (build-time), not taken ad hoc on an arbitrary running VM; 'CHECKPOINT deploy' creates a named checkpoint 'which can be triggered as a lambda from our api'. Memory/running processes included. New VMs start from snapshots: child Layerfiles inherit via FROM, and 'We let you duplicate VMs to make copies of your stack and run acceptance tests in parallel' (SPLIT).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.webapp.io/advanced-workflows/routing",
+      "quote": "Private Deployments which prevents people from outside your organizations from viewing your site",
+      "note": "Only ports named with EXPOSE WEBSITE are published (default https://(uuid).cidemo.co or custom domain via CNAME). The docs introduction Limits table lists 'Number of private previewers' per plan (3/10/50/Custom). Debug-terminal access is gated by the 'repo.<name>.stagingterm' permission. No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Docs: 'Layerfiles define VMs, not containers - this means you can run anything (including docker) that you could run on a regular cloud server'; steps run as root by default (USER directive exists to run as non-root).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.webapp.io/layerfile-reference/secret-env",
+      "quote": "The `SECRET ENV` instruction adds values from secrets to the runner's environment.",
+      "note": "Built-in secrets manager injects secrets as env vars into the VM; no credential-injecting proxy.",
+      "checked": "2026-09-29"
+    }
   }
 }

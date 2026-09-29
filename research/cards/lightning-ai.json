@@ -658,7 +658,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -675,7 +675,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -689,7 +689,15 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": null,
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -746,5 +754,71 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://lightning.ai/docs/platform/developers/cli/sandbox.md",
+      "quote": "Stop a sandbox. For a persistent sandbox the control plane captures an auto-snapshot and returns its id; the sandbox id keeps resolving and can be brought back with [`start`](#start).",
+      "note": "Sandbox API with persistent=True: stop() auto-snapshots the filesystem (not running processes) and resume() restores it (sandbox.md: 'Sandboxes auto-save state on stop and resume right where you left off'). Whether the create-time timeout auto-stop also auto-snapshots is not stated. Studios: auto-sleep after 10 min idle keeps the home dir/system packages on persistent storage (that is persistent_disk, not a memory checkpoint; Docker images not persisted).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://lightning.ai/docs/platform/developers/sdk/sandbox/python-sandbox-sdk.md",
+      "quote": "Capture the filesystem (not running processes):",
+      "note": "sandbox.snapshot() / `lightning sandbox snapshot create` on a running sandbox, optional TTL and excludes; new sandboxes boot from it via Sandbox.create(snapshot_id=...) / `create --snapshot-id`. Filesystem only, no memory. Snapshots do not carry the network policy (restore defaults to allow-all). Studios can also be duplicated (fork).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/developers/sdk/sandbox/python-sandbox-sdk.md",
+      "quote": "Use the Lightning Sandbox Python SDK to create ephemeral sandboxes, run commands, manage files, capture snapshots, and open interactive PTY sessions from Python.",
+      "note": "SDK/CLI surface is commands, files, PTY, snapshots, network policy only; no Claude Code/Codex/agent-session API anywhere in the docs manifest. The Agents page is a tutorial for writing your own LitAI agent in a Studio and scheduling it.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://lightning.ai/docs/platform/developers/sdk/sandbox/python-sandbox-sdk.md",
+      "quote": "Egress firewall, set at create time only — no runtime mutation.",
+      "note": "Sandbox API network_policy: allow-all (default), deny-all, or NetworkPolicy(allow_cidrs=[...]) default-deny. Docs: 'enforcement is IP-based'; blocked connections are dropped and logged. Cannot be changed after create; snapshot restore defaults back to allow-all unless re-specified. No documented egress control for Studios (Enterprise BYOC/VPC only).",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/developers/sdk/sandbox/python-sandbox-sdk.md",
+      "quote": "A single `NetworkPolicy` models every mode (mirrors Vercel's `NetworkPolicy`):",
+      "note": "The only modes are allow-all, deny-all and a CIDR allowlist; no host, method, path or header rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://lightning.ai/docs/platform/build/ai-studio/deploy-on-public-ports.md",
+      "quote": "Restrict access to your endpoint by enabling security. There are 2 ways of securing an endpoint in the API builder.",
+      "note": "Studios: public URLs opened per port via API builder / Port viewer plugins, with optional token or basic auth. Sandbox API: `ports=` chooses which ports are opened but the SDK returns no public URL ('Reach the port from inside the sandbox or another box on the same network'). No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/ai-studio/managed-secrets.md",
+      "quote": "Secrets are encrypted and served securely as environment variables in studios at runtime.",
+      "note": "User/teamspace secrets are injected as env vars into Studios; the Sandbox API has only image_secret_ref for private registry pulls. No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://lightning.ai/docs/platform/data/drive.md",
+      "quote": "The Drive can also hold high-performance volumes: fixed-size volumes that Lightning AI provisions on Lightning Cloud and mounts read/write at `/teamspace/lightning_storage/<volume name>`.",
+      "note": "Studios/Jobs: high-performance volumes ($0.30/GiB-month) tied to one compute location/region, resizable up only; also EFS/Filestore cloud folders (Enterprise) and S3/GCS data connections. Sandbox API only has a storage_gb writable-disk override; Drive/volume mounts for sandboxes are not documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://lightning.ai/docs/platform/data/drive.md",
+      "quote": "All Studios in a teamspace share the same drive. This means any Studio can access the files of the other Studios.",
+      "note": "Teamspace Drive is a shared read-write filesystem across Studios, Jobs, Deployments; cloud folders 'any workflow, Studio, or cluster can mount'. Applies to Studios, not documented for Sandbox API.",
+      "checked": "2026-09-29"
+    }
   }
 }

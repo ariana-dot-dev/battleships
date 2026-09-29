@@ -201,7 +201,15 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": 14.73,
@@ -249,5 +257,64 @@
   "audit_2026_09_29": {
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.run.cloud/sandboxes/secrets.md",
+      "quote": "Pausing writes the sandbox's RAM to disk, and archiving uploads it, so both hold whatever the sandbox held.",
+      "note": "Trigger: idle auto-pause (`idlePauseSeconds` / `--idle-pause <seconds>`: 'Pause after inactivity; use `0` to keep the sandbox running', https://docs.run.cloud/cli/latest.md). Pause keeps disk AND memory (SDK: 'Halt the sandbox, keeping disk and memory; compute billing stops.', https://docs.run.cloud/sdk/latest.md); `sandbox shell` auto-resumes a paused sandbox, exec needs an explicit resume. Paused sandboxes may be 'archived' (RAM uploaded). What happens at the `--timeout` lifetime (default 300 s) is not documented (likely destroy, not pause). Deprecated product, closed to new orgs.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.run.cloud/sandboxes/snapshots.md",
+      "quote": "A snapshot captures a sandbox's filesystem so you can restore it later.",
+      "note": "Filesystem only (no memory; secrets held in memory are not included). Restore 'produces a **new** sandbox with its own id. The snapshot is not consumed, so one snapshot can fan out into as many sandboxes as you need' (fork/template). Snapshot storage 'not metered today'. Manual pause/resume separately preserves memory for the same sandbox, but is not forkable.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.run.cloud/compute/boxes.md",
+      "quote": "Persistent sandboxes boot `runcloud/agent-base`, which ships Node.js, Python, and SSH but no coding-agent CLIs. Install the one you want after connecting",
+      "note": "Full SDK/CLI reference (sdk/latest.md, cli/latest.md) exposes only create/exec/readFile/writeFile/tunnels/snapshot/pause for sandboxes; no agent-session API. 'Agent skills' are instructions for YOUR local coding agent to drive run.cloud, not a harness API. Claude Code must be installed manually via SSH.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/computesdk/computesdk/main/packages/run-cloud/README.md",
+      "quote": "Tunnel hostnames are random bearer capabilities. Do not write them to public logs.\nThey expire automatically and are removed when the tunnel or sandbox is deleted.",
+      "note": "Nothing is exposed by default; you choose the port. Two models: short-lived random-hostname tunnels (`openTunnel(id, port, { ttlSeconds })`, default TTL 1 h, max 8 per sandbox) and a stable public `<name>-box.run.cloud` hostname (`sandbox expose --port`, one per sandbox, custom domains) that appears to have no auth. SSH is carried 'over an authenticated connection' without opening port 22. No IP allowlists/security groups documented. Desktop noVNC URLs are signed temporary bearer URLs with a view-only mode.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker microVM 'with its own kernel, not a container' (sandboxes/index.md) and the card has root; whether the guest kernel ships nftables/iptables modules is not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.run.cloud/sandboxes/secrets.md",
+      "quote": "Anything running in the sandbox can read the sandbox's secrets.",
+      "note": "Secret groups are delivered as plain env vars in every exec and as files under the home directory (held in memory, not on disk, so not captured in snapshots/forks). No injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.run.cloud/sdk/latest.md",
+      "quote": "| `disk` | `number` | Writable disk quota in GiB. |",
+      "note": "Only a per-sandbox writable disk quota (`--disk <gb>` 'Set root disk capacity in GiB'); the complete CLI and SDK references list no volume/mount noun.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.run.cloud/cli/latest.md",
+      "quote": "Sandboxes are the single compute noun.",
+      "note": "No shared volume or bucket mount in the CLI/SDK references; sharing state is done via snapshots (fan-out copies, not a shared live FS).",
+      "checked": "2026-09-29"
+    }
   }
 }

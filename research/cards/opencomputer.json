@@ -215,7 +215,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -232,7 +232,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": true,
     "live_resize": true,
     "fork_running": null,
@@ -252,7 +252,16 @@
     "egress_ip_type": null,
     "ip_note": "Browser Sessions (CDP URL, stealth flag, profiles, live view) are invite-only preview; sandbox egress goes through OpenComputer's secrets proxy; no residential/proxy product documented.",
     "isolation": "microvm",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -342,5 +351,79 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/timeout.md",
+      "quote": "Snapshots the VM state (memory + disk) and stops the VM — no compute cost while hibernated.",
+      "note": "Trigger: idle timeout expiry (rolling, resets on any exec/file/agent activity); memory + disk included; any SDK call or preview request auto-wakes it (sub-second restore). Only when a timeout is set: bare SDK sandboxes default to timeout 0 = never auto-hibernate (troubleshooting page says 300 s; docs inconsistent). Managed agent sessions also 'hibernate when idle, resume where they left off' (homepage).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/checkpoints.md",
+      "quote": "A checkpoint is a named snapshot of a running sandbox. Fork new sandboxes from it to start from a known-good environment — like git branches for VMs.",
+      "note": "Full checkpoint (default) = 'Disk, memory, and CPU state'; kind 'disk_only' = rootfs + workspace disk. Restore in place or Sandbox.createFromCheckpoint() to fork many new sandboxes. Also explicit hibernate API and named template Snapshots (image builds). Current sandboxes page: 'checkpoint · fork'.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://github.com/diggerhq/opencomputer/blob/main/sdks/python/opencomputer/agent.py",
+      "quote": "\"\"\"Agent session API for running Claude Agent SDK inside a sandbox.\"\"\"",
+      "note": "sandbox.agent.start({prompt, model, systemPrompt, allowedTools, permissionMode, maxTurns, mcpServers, resume}) streams typed events (assistant/result/tool_use_summary/turn_complete), sendPrompt() follow-ups, interrupt(), attach(sessionId), list(). Harness: Claude Agent SDK only; marked @deprecated in the TS SDK in favour of the provider's own Managed/Serverless Agents Management API (https://docs.opencomputer.dev/agents/api: 'Create sessions, send turns, read the event log and manage projects over HTTP'), which runs OpenComputer's own agent loop on an agent computer (models via managed inference, BYOK or a Codex subscription).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/secrets.md",
+      "quote": "Requests to hosts not on the list are blocked by the proxy.",
+      "note": "Allowlist is set on a SecretStore attached at sandbox create (exact hosts + wildcards like *.openai.com; empty = all hosts). Enforced by the host-side MITM proxy (outside the VM). Docs inconsistent on the default: how-it-works says 'full outbound internet access via a TAP device with NAT. No firewall or allowlist to configure', while the browser guide says a sandbox without a secretStore 'has no outbound egress at all' (407 from the proxy). No IP/CIDR rules documented; non-HTTP traffic handling undocumented.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.opencomputer.dev/agents/secrets.md",
+      "quote": "OpenComputer checks the declared origin, path prefix, method, agent, and environment before sending the outbound request",
+      "note": "Only for the managed Serverless Agents product: defineConnection({origin, methods, pathPrefix, headers}) restricts secret-backed requests by method and path prefix; logged as egress.request/response events. Bare v1 sandboxes: host allowlist + per-secret allowedHosts only (no method/path rules documented).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/preview-urls.md",
+      "quote": "To require a bearer token in front of every request, opt in at create time with `previewAuth`.",
+      "note": "Preview URLs (sb-<id>-p<port>.workers.opencomputer.dev) are public by default; optional per-sandbox bearer token (Authorization or X-OC-Preview-Token), checked at the control plane before traffic reaches or wakes the VM; token rotatable. One token gates every port. No IP allowlists documented; no public IPv4.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full Linux VM per sandbox (QEMU/KVM; Firecracker backend also in source) with its own kernel and TAP NIC; docs examples write to /root. Not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/secrets.md",
+      "quote": "only revealed by a host-side proxy on outbound HTTPS requests",
+      "note": "SecretStore secrets are injected into the VM as sealed tokens (osb_sealed_...); the host-side MITM proxy swaps them for the real value on outbound HTTPS to allowed hosts; per-secret allowedHosts. Any HTTP API, not just model keys. HTTPS only; DB/SSH/git not covered (mount credentials for S3/SFTP etc. live in VM tmpfs). Managed agents: secrets 'injected after the request leaves the machine' via declared connections; GitHub App connection hands the agent a short-lived installation token directly.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://opencomputer.dev/sandboxes",
+      "quote": "Additional disks — bottomless storage that persists across sandboxes — are on the way.",
+      "note": "Announced, not available yet. Root disk only (8-32 GB by size). FUSE mounts of your own buckets exist (see volume_shared).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/mounts.md",
+      "quote": "Mount remote filesystems directly into your sandbox so your code reads and",
+      "note": "Preview Mounts API (sandbox.mounts.add) runs rclone FUSE mounts of your own S3/GCS/Azure Blob/SFTP/WebDAV/Dropbox remote; read-write; the same bucket can be mounted by many sandboxes at once (no provider-hosted shared FS; no cross-mount consistency guarantees). Credentials live in VM tmpfs, not via the secret proxy.",
+      "checked": "2026-09-29"
+    }
   }
 }

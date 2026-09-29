@@ -127,7 +127,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -145,7 +145,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -159,7 +159,16 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -189,5 +198,79 @@
     "applied": 18,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://github.com/TencentCloud/CubeSandbox/blob/master/docs/guide/lifecycle.md",
+      "quote": "**`on_timeout=\"pause\"`**: after `timeout` seconds idle, the platform schedules a pause. State flips to `paused`, the VM memory is frozen to the snapshot store.",
+      "note": "Opt-in per sandbox at create (lifecycle={on_timeout: 'pause', auto_resume: True}); default on_timeout is 'kill'. Trigger: idle timeout. Memory + processes + filesystem included ('CPU registers, process memory, TCP state (with no external peer), and filesystem mutations all survive the snapshot'; outbound sockets dropped). auto_resume=True wakes it transparently on the next HTTP/SDK request. E2B-compatible lifecycle shape. Applies to self-hosted CubeSandbox; cluster default idle TTL is operator-set (ships as -1 = never).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://github.com/TencentCloud/CubeSandbox/blob/master/docs/guide/snapshot-rollback-clone.md",
+      "quote": "`sb.create_snapshot()` persists the sandbox's current state (filesystem + memory) as a snapshot and returns a `SnapshotInfo` object. The `snapshot_id` field can be passed directly to `Sandbox.create(template=...)`.",
+      "note": "Memory included; new sandboxes boot from the snapshot (template); in-place sb.rollback(snapshot_id); sb.clone(n=N) forks a running sandbox N ways with memory+filesystem. Also explicit sandbox.pause()/connect(). Snapshots outlive the source sandbox; list/delete APIs. Cross-node restore via S3 backend (preview in v0.7.0). Filesystem-only snapshots are on the roadmap (today always memory+fs).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://github.com/TencentCloud/CubeSandbox/blob/master/docs/guide/integrations/claude-code.md",
+      "quote": "This guide shows how to keep Claude Code running **on your host** while transparently redirecting **every Bash command it runs** into an isolated CubeSandbox MicroVM, using a `PreToolUse` hook.",
+      "note": "SDK is an E2B-compatible exec/files/PTY API; no first-party API to prompt/stream/resume a harness inside the sandbox. Integrations are community guides: Claude Code and OpenCode run on the host with hooks routing bash into the sandbox; Pi agent runs inside via example host-driver scripts using commands.run; LangChain/OpenAI Agents SDK use it as a tool backend. Closest thing: the preview 'Digital Assistant (AgentHub)' in the WebUI/CubeOps, which creates/snapshots/clones OpenClaw assistant sandboxes and injects the LLM key, but users talk to OpenClaw via its own Gateway UI (port 18789) / WeCom, not a Cube prompt/stream API. Borderline if the coordinator counts AgentHub.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://github.com/TencentCloud/CubeSandbox/blob/master/docs/guide/network-policy.md",
+      "quote": "`allow_out` | `network[\"allow_out\"]` | CubeVS | Explicitly allowed IPv4 addresses, CIDRs, or DNS names. IP/CIDR targets go into `allow_out_v2`; domain targets go into `dns_allow` and become temporary IP allows through DNS query/response learning.",
+      "note": "Per sandbox at create time: allow_internet_access=false installs a 0.0.0.0/0 deny-all; allow_out (IPv4/CIDR/domain/*.wildcard), deny_out (IPv4/CIDR only), plus L7 rules (host/SNI) via CubeEgress. Enforced in the host eBPF data plane (CubeVS) on the TAP device, outside the microVM. Default is allow-all internet but private/metadata CIDRs denied by default. Limits: 8192 IP keys, 1024 domain keys. Templates can carry a network config that is merged.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://github.com/TencentCloud/CubeSandbox/blob/master/docs/guide/security-proxy.md",
+      "quote": "**Domain filtering** — allow/deny outbound requests by SNI, host, HTTP method, scheme, or exact path.",
+      "note": "CubeEgress (OpenResty TPROXY MITM proxy on each host) evaluates first-match-wins rules with match fields scheme/port/sni/host/method list/path (exact or trailing-* prefix); unmatched L7 traffic is denied (403). Custom HTTP(S) ports supported (up to 8 per host). Per-request JSONL audit log. Operators can extend with custom Lua (e.g. prompt/body filtering). No header-based match.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://github.com/TencentCloud/CubeSandbox/blob/master/docs/guide/restrict-public-access.md",
+      "quote": "Creating a sandbox with `network.allow_public_traffic = false` returns a per-sandbox `traffic_access_token` on the create response. Every inbound request to the sandbox's public URL must then carry the token in either of two equivalent headers",
+      "note": "Default: public URL <port>-<sandboxId>.<domain> reachable by anyone who knows the ID. Opt-in token (E2B-compatible e2b-traffic-access-token / cube-traffic-access-token) enforced by CubeProxy on HTTP, HTTPS and gRPC listeners; no rotation. Exposed ports are declared per template (--expose-port). No per-sandbox IP allowlist documented; being self-hosted, the operator controls the CubeProxy network exposure.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://github.com/TencentCloud/CubeSandbox/blob/master/docs/guide/introduction.md",
+      "quote": "| **Isolation Level** | Low (Shared Kernel Namespaces) | High (Dedicated Kernel) | **Extreme (Dedicated Kernel + eBPF)** |",
+      "note": "KVM microVM (Cloud Hypervisor fork) with its own guest kernel; custom OCI images. Running nftables/iptables inside the guest is not documented explicitly and depends on the guest kernel config and root/sudo in the template; derived. Host-side CubeVS eBPF policy applies regardless.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://github.com/TencentCloud/CubeSandbox/blob/master/docs/guide/security-proxy.md",
+      "quote": "The point of the inject path is that the secret stays on the operator side: it lives in the rule list, gets pushed to CubeEgress at sandbox creation, and is never exposed to the sandbox's environment, filesystem, or process space.",
+      "note": "Inject rules add static headers (format e.g. 'Bearer ${SECRET}') to any matched host/method/path; HTTPS via MITM with a CA baked into the template (--with-cube-ca). Secrets redacted from audit logs. HTTP (plaintext) injection allowed but warned against. Only HTTP(S) headers: non-HTTP TCP (databases, SSH, git over SSH) is not proxied by CubeEgress ('Direct TCP to ports no rule covers ... is invisible to CubeEgress'); git over HTTPS would work via a header rule. Used by AgentHub 'Credential hosting' and the Pi agent guide ('CubeEgress credential vault', >= v0.4.0). No dynamic/rotating credential callbacks documented (static secrets set at create).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://github.com/TencentCloud/CubeSandbox/blob/master/docs/guide/s3-volume.md",
+      "quote": "Give a sandbox storage that **survives its lifecycle**: create a Volume → mount it in a sandbox → read/write → destroy the sandbox, the data stays → remount it next time.",
+      "note": "E2B-compatible Volume API (Volume.create/connect/list/destroy, Sandbox.create(volume_mounts={...})), backed by a volume plugin: S3-compatible (bundled MinIO by default; AWS S3, Tencent COS, R2), COS, JuiceFS, NFS or custom plugins. Also host mounts (bind-mount of an allowlisted host-node directory, ro or rw) via metadata 'host-mount'. Filesystem-level (s3fs/FUSE style), not block volumes. Mounts set at sandbox creation.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://github.com/TencentCloud/CubeSandbox/blob/master/sdk/python/docs/volume.md",
+      "quote": "Multiple sandboxes can mount the same volume concurrently. Data is visible to all mounters in real time.",
+      "note": "Read-write or per-attachment read-only (VolumeMount(vol, read_only=True)); the same volume can be rw in sandbox A and ro in sandbox B. s3-volume.md: 'One Volume can be mounted by several sandboxes at once'. Host mounts are also shareable by sandboxes on the same node (no locking). Consistency depends on the backend (object store via s3fs, NFS, JuiceFS).",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -327,7 +327,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -352,7 +352,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -364,7 +364,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -423,5 +430,64 @@
     "applied": 17,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 22
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/managed-agents/sandbox-environment",
+      "quote": "These packages persist in the environment snapshot and remain available for interactions reusing the same env_id.",
+      "note": "Managed Agents API (Preview) only: the agent's sandbox environment is persisted between interactions ('Persistent file system: Securely persists files, agent logic, and execution state across multi-turn interactions'), 7-day TTL reset by each interaction; exact trigger and whether memory is included not stated. Plain Agent Sandbox has only manual pause (keeps file system state, releases compute) and manual snapshots; nothing automatic on idle; TTL expiry deletes the sandbox.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-snapshots",
+      "quote": "Save the exact state of the sandbox, including installed libraries, file system changes, and memory state.",
+      "note": "SDK snapshots.create() on a sandbox, with TTL retention; restore by creating a NEW sandbox from the snapshot ('Create multiple sandboxes from the same snapshot' = branching/fork). Memory included. Restore requires same arch, runtime version and image URI. Not supported for Code Execution sandboxes. Snapshots stored automatically in a Cloud Storage bucket (VPC-SC page). Preview.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/managed-agents",
+      "quote": "Powered by the Antigravity harness, each agent runs with a sandbox environment where it reasons, plans, uses agent skills, executes code, searches the web, and reads and writes files.",
+      "note": "Managed Agents API (Pre-GA): Agents API (control plane) + Interactions API (data plane) with SSE streaming (stream/background), follow-ups via previous_interaction_id, sandbox reuse via environment/env_id. Harness: Google's own Antigravity (prebuilt 'Antigravity base agent' or custom config); no Claude Code/Codex. Separately Agent Runtime hosts your ADK/LangGraph/LangChain/LlamaIndex/AG2/A2A agents with query/stream APIs and Sessions.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/managed-agents/sandbox-environment",
+      "quote": "By default, the sandbox operates without external network access. Explicitly enable connectivity by setting a domain allowlist in your environment configuration.",
+      "note": "Managed Agents: domain allowlist ('*' = all). Agent Sandbox: per-template egress_control_config.internet_access on/off ('Outbound internet access is off unless the template enables it'), or bridge egress into your VPC via PSC-I and govern it with Cloud NGFW rules (FQDN objects and IP ranges, default-deny) or Secure Web Proxy; Code Execution has no network. VPC-SC perimeters supported.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/configure-vpc-sc",
+      "quote": "Secure Web Proxy (application/L7): deploy Secure Web Proxy as the egress inspection point in your VPC for TLS-aware, per-URL policy, and route the PSC subnet's egress through it.",
+      "note": "Only by routing Agent Sandbox egress through PSC-I into your VPC and deploying Google's Secure Web Proxy (separate product, extra cost). No built-in method/path rules on the sandbox itself or in Managed Agents allowlists.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/configure-vpc-sc",
+      "quote": "Reach that data plane over a private Private Service Connect endpoint (PSC-E) in your VPC instead of over the public internet.",
+      "note": "Template declares which ports to expose; data plane calls are IAM-authenticated (execute_bash uses your credentials; Computer Use WebSocket/CDP needs generated headers); optional private ingress via PSC-E limited to the same project.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/shell-sandbox-quickstart",
+      "quote": "Commands run as the unprivileged user appuser; there is no sudo.",
+      "note": "'secure container sandboxing' (gVisor-style, architecture in open-source AX/Substrate); custom images 'Must not require root privileges'. No root -> no iptables/nftables.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/managed-agents",
+      "quote": "When you customize the environment with external sources, such as Cloud Storage, the system loads these files directly into the container's file system on demand, and the agent can write results back to Cloud Storage.",
+      "note": "Managed Agents only: Cloud Storage bucket (read-write, downscoped token) and Skill Registry mounts via base_environment.sources. No volume/disk attach documented for Agent Sandbox (custom containers) or Code Execution.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -1138,7 +1138,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -1160,7 +1160,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -1172,7 +1172,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1237,5 +1246,79 @@
     "applied": 7,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.oracle.com/en-us/iaas/Content/Block/Concepts/bootvolumebackups.htm",
+      "quote": "You can either manually start the backup, or assign a policy which defines a set backup schedule.",
+      "note": "Stop/start just powers the VM off; boot volume persists (persistent_disk). No stop-triggered checkpoint and no memory save. Policy-based (scheduled) boot/block volume backups exist - scheduled backup, not this feature.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/managingcustomimages.htm",
+      "quote": "You can create a custom image of an instance's boot disk and use it to launch other instances.",
+      "note": "Disk only (no memory). Manual boot-volume and block-volume backups (incremental/full, stored in Object Storage) can be restored to new volumes / new instances; boot volume clones also exist. Custom images boot new instances (template/fork of disk state).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS VM; Compute API has instance actions/run-command style agents but no agent-harness (Claude Code/Codex) API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.oracle.com/en-us/iaas/Content/network-firewall/overview.htm",
+      "quote": "Custom URL and FQDN filtering: Restrict ingress and egress traffic to a specified list of fully qualified domain names (FQDNs), including wild cards and custom URLs.",
+      "note": "IP level in the base VCN: security lists and NSGs have egress rules by CIDR/protocol/port ('A security rule allows a particular type of traffic in or out of a VNIC', securityrules.htm). Domain level requires the separately billed OCI Network Firewall (Palo Alto-based) with routing through it.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.oracle.com/en-us/iaas/Content/network-firewall/creating-lists.htm",
+      "quote": "To match URL patterns that include paths and query parameters, you must enable decryption.",
+      "note": "Only via OCI Network Firewall URL lists (host + path/query, needs SSL inspection/decryption). No method/header rules found. Security lists/NSGs are L3/L4 only.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/securityrules.htm",
+      "quote": "The Networking service offers two virtual firewall features that both use security rules to control traffic at the packet level.",
+      "note": "Security lists (per subnet) and NSGs (per VNIC) ingress rules by source CIDR/NSG, protocol, port; 'Without security rules, no traffic is allowed in and out of VNICs in the VCN.' Private subnets / no public IP possible.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VM (or bare metal) with root; iptables/nftables/firewalld inside the guest are under customer control.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.oracle.com/en-us/iaas/Content/KeyManagement/Concepts/keyoverview.htm",
+      "quote": "Vaults are logical entities where the Key Management service creates and durably stores vault keys and secrets .",
+      "note": "Secrets live in OCI Vault / Secret Management Service and are fetched by the workload (instance principals); no credential-injecting egress proxy. Network Firewall 'mapped secrets' are TLS decryption certs, not credential injection.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.oracle.com/en-us/iaas/Content/Block/Concepts/overview.htm",
+      "quote": "You can create, attach, connect, and move volumes, as well as change volume performance, as needed",
+      "note": "Block Volume (iSCSI/paravirtualized) attach/detach.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.oracle.com/en-us/iaas/Content/Block/Tasks/attachingvolumetomultipleinstances.htm",
+      "quote": "if you configure the block volume as read/write and shareable you must deploy a cluster aware system or solution on top of the shared storage",
+      "note": "Block volume multi-attach read/write shareable (needs cluster-aware FS) or read-only; plus File Storage (NFS, read-write): 'Large Compute clusters of thousands of instances can use the File Storage service for high-performance shared storage.'",
+      "checked": "2026-09-29"
+    }
   }
 }

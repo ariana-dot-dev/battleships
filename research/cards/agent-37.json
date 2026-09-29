@@ -284,7 +284,12 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "gvisor",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "ingress_rules": true,
+    "secret_proxy": "ai-only"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -336,5 +341,42 @@
     "applied": 16,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 10
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://www.agent37.com/docs/agents-api/instances",
+      "quote": "In-memory state usually survives a wake, but it is not guaranteed: treat anything that must outlive a sleep as a file.",
+      "note": "Opt-in auto_sleep: after idle_timeout_seconds (default 900 s, 5 min to 1 day) with no bytes through the instance URLs 'the platform checkpoints it' to sleeping; any request to a URL, start, exec or update restores it in a few seconds. Memory/processes included when the checkpoint restores; if the wake has to rebuild (moved host / cold storage / restore failure) it boots fresh with disk kept. Explicit stop discards the checkpoint. Also nightly disk backups in 7 rotating slots (not a snapshot_auto).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.agent37.com/docs/agents-api/instances",
+      "quote": "You can also take a backup on demand, into a separate slot that only your next on-demand backup replaces.",
+      "note": "POST /v1/instances/{id}/backups: live, crash-consistent, disk data only (/home/node and /home/linuxbrew), no memory; one manual slot, max 1 per 15 min; restore is in place only (POST /restore recreates the container, in-memory state lost). Backups belong to the instance; no fork/new-instance-from-backup documented.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://www.agent37.com/docs/agents-api/chat",
+      "quote": "The core call: POST /v1/responses on your instance URL runs a turn through your agent, streams or returns the result, and continues the thread.",
+      "note": "Harnesses: hermes, openclaw, claude-code, codex, grok, opencode, pi (selected per turn with an 'agent' field). SSE streaming with reconnect, session list/read/rename/delete (GET /v1/sessions), per-turn model/reasoning_effort, crons that fire agent turns, health probe per harness.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.agent37.com/docs/agents-api/urls",
+      "quote": "An instance needs no public IP address. Every port it listens on has its own HTTPS URL, and the platform edge checks your key.",
+      "note": "Every port URL requires the X-Agent37-Key header or a time-boxed signed URL (401 otherwise); public (unauthenticated) ports are opt-in per port via the Hosting API and platform ports (gateway, terminal, SSH 22022) cannot be made public; SSH only via authenticated WebSocket tunnel. API keys can carry an IP allowlist (up to 20 IPs/CIDRs), but signed URLs and public ports bypass it.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://www.agent37.com/docs/agents-api/budgets",
+      "quote": "Every instance ships with managed LLM, Brave search, and Composio credentials: metered at cost, gated by a per-instance budget you control.",
+      "note": "Instances get a per-instance AGENT37_MANAGED_TOKEN plus AGENT37_LLM_PROXY_URL (OpenAI-compatible, https://api.agent37.com/llm/v1), a Composio MCP proxy (Gmail/Slack/Notion etc. OAuth held by the platform) and a paid-tools MCP; real provider keys never enter the sandbox, but the per-instance platform token does. No generic register-any-credential HTTP proxy; your own keys (OpenAI/xAI/Anthropic) go in as env vars or config files on the instance. The BYO-model kit's LLM proxy is customer-hosted, not first-party. Non-HTTP protocols not covered.",
+      "checked": "2026-09-29"
+    }
   }
 }

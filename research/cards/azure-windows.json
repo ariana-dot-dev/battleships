@@ -338,7 +338,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": false,
@@ -350,7 +350,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -400,5 +409,79 @@
     "applied": 16,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/states-billing",
+      "quote": "The virtual machine has released the lease on the underlying hardware. If the machine is powered off it is shown as Stopped (Deallocated). If it has entered hibernation it is shown as Hibernated (Deallocated)",
+      "note": "Stop/deallocate keeps the managed OS/data disks (persistent disk), and memory is only preserved if you explicitly hibernate (an API/portal action, not automatic on idle/stop). No idle auto-stop-with-snapshot. Azure Backup (scheduled daily/hourly policies, snapshot then vault copy) and scheduled restore-point collections are scheduled backups, not this.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/snapshot-copy-managed-disk",
+      "quote": "To recover by using a snapshot, create a managed disk from the snapshot. Then use the managed disk as the OS disk for a new VM or attach it as a data disk to an existing VM.",
+      "note": "Managed-disk snapshots (full or incremental, portal/CLI/PowerShell/REST) of OS or data disks, running or stopped; disk only, no memory. New VMs can boot from them (also via VM restore points, which capture VM config plus all disks, and Azure Compute Gallery images). Memory state only via hibernation ('Azure stores the memory contents of the VM in the OS disk, then deallocates the VM'), which resumes the same VM and cannot be forked.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/windows/run-command",
+      "quote": "The Run Command feature uses the virtual machine (VM) agent to run PowerShell scripts within an Azure Windows VM.",
+      "note": "Only generic script execution (Run Command, Custom Script Extension); no first-party API to drive an agent harness inside the VM.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview",
+      "quote": "A network security group contains security rules that allow or deny inbound network traffic to, or outbound network traffic from, several types of Azure resources.",
+      "note": "NSG outbound rules = IP/CIDR/port/protocol/service-tag level (default AllowInternetOutBound can be overridden with deny rules), free. Domain level needs Azure Firewall (separate paid service, traffic routed via UDR): 'Application FQDN filtering rules: You can limit outbound HTTP/S traffic or Azure SQL traffic to a specified list of fully qualified domain names (FQDN) including wild cards.' Both enforced outside the guest.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/firewall/premium-features",
+      "quote": "URL filtering extends Azure Firewall’s FQDN filtering capability to consider the entire URL, such as www.contoso.com/a/c instead of just www.contoso.com.",
+      "note": "Azure Firewall Premium only (URL path filtering, HTTPS requires TLS inspection; also URL-based web categories and IDPS). No documented method- or header-based allow rules for egress. Standard SKU: 'URL filtering: Not supported (FQDN filtering only)'.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview",
+      "quote": "You can specify Any, an individual IP address, a CIDR block (for example, 10.0.0.0/24), a service tag, or an application security group.",
+      "note": "NSG inbound rules on NIC/subnet (default DenyAllInbound from Internet), public IP optional, plus Azure Firewall DNAT, Bastion, JIT VM access.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/troubleshoot/azure/virtual-machines/windows/guest-os-firewall-blocking-inbound-traffic",
+      "quote": "The guest system firewall profiles are set up to block all inbound connections, including the RDP traffic.",
+      "note": "Full Hyper-V VM with Administrator; Windows Defender Firewall inside the guest is configurable and takes effect (Microsoft troubleshooting docs cover it blocking RDP). Windows equivalent of nftables/iptables.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/extensions/key-vault-windows",
+      "quote": "When it detects a change, the extension retrieves and installs the corresponding certificates.",
+      "note": "Secrets reach the VM: Key Vault (read by the VM via managed identity tokens from IMDS) and the Key Vault VM extension install certificates into the guest. No first-party proxy that injects credentials into outbound requests (Azure API Management/App Gateway are separate and not VM egress proxies).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/windows/attach-managed-disk-portal",
+      "quote": "This article shows you how to attach a new managed data disk to a Windows virtual machine (VM) by using the Azure portal.",
+      "note": "Managed data disks (Standard HDD/SSD, Premium SSD, Premium SSD v2, Ultra), hot-attachable; count limited by VM size.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/disks-shared",
+      "quote": "Azure shared disks is a feature for Azure managed disks that allows you to attach a managed disk to multiple virtual machines (VMs) simultaneously.",
+      "note": "Shared managed disks (maxShares>1; Ultra, Premium SSD v2, Premium SSD, Standard SSD) are block-level read-write for all nodes but need a cluster manager (e.g. Windows Server Failover Cluster / SCSI PR) to coordinate writes. Simpler multi-VM read-write shared filesystem: Azure Files SMB shares mounted on Windows ('This article shows you how to mount an SMB Azure file share on Windows and Windows Server.').",
+      "checked": "2026-09-29"
+    }
   }
 }

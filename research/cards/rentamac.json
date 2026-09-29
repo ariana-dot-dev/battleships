@@ -365,7 +365,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": null,
     "fork_running": false,
@@ -377,7 +377,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -419,5 +427,78 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://rentamac.io/faq/",
+      "quote": "No. Mac instances are wiped upon subscription completion and the files are lost.",
+      "note": "No stop/sleep/idle lifecycle: the Mac runs 24/7 while the subscription is active ('Your dedicated server runs around the clock, connected or not'). The disk persists during the rental only; at expiry (or on the wipe API call) the Mac is fully wiped. No backups mentioned.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://portal.rentamac.io/dashboard/api-docs",
+      "quote": "Complete API reference for RentAmac Portal endpoints",
+      "note": "The complete API reference (Auth, Users, Devices, Scripts, Subscription, Payment, Feedback, Maintenance, Availability) has no snapshot, image, backup or clone endpoint. Device actions are only label, restart, restart-deskin, wipe, enable/disable SSH and SSH full-disk access. The FAQ adds that reinstalling macOS 'requires manual intervention from our technical team'. Physical bare-metal Mac mini, so there is no VM image to snapshot.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://portal.rentamac.io/dashboard/api-docs",
+      "quote": "Create a new startup script that will run on Mac rentals. Scripts must begin with a valid shebang (e.g., #!/bin/bash). Maximum 5 scripts per user.",
+      "note": "The only way the API runs code on the Mac is shell startup scripts (max 5, 50 KB each). There is no agent or harness endpoint. The blog has OpenClaw setup guides (self-installed by the user), but nothing is preinstalled or API-driven.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://rentamac.io/faq/",
+      "quote": "Is there a firewall or access control panel to manage inbound/outbound connections? No, we don't offer that level of control over the firewall.",
+      "note": "No provider-side egress control. Their own OpenClaw blog tells users to install LuLu or Little Snitch inside macOS to watch outbound connections, but that runs on the Mac itself, not provider-side.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://rentamac.io/faq/",
+      "quote": "No, we don't offer that level of control over the firewall.",
+      "note": "No provider-side network policy of any kind, so there are no HTTP-level rules either.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://rentamac.io/faq/",
+      "quote": "Do you provide port-forwarding? I need to run an HTTP server on the Mac. No, we don't provide port forwarding, but you can achieve the same result by using a tunnel instead.",
+      "note": "The Mac has no public IP or port exposure ('Network customization at that level is not available'), and there are no user-configurable inbound rules, preview URLs or IP allowlists. The only provider-side inbound path is the SSH gateway, which the API can switch on or off: 'Turn on reverse-tunnel SSH for a device. This queues the open-ssh script over MDM; the device then opens a reverse SSH tunnel to the RentAmac SSH gateway' (sshUrl e.g. gate1.rentamac.io:20143). DeskIn/Parsec remote desktop and user-run tunnels such as Tailscale are the other ways in. The service is private by default, not controllable, hence false.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://rentamac.io/secure-openclaw-mac-mini/",
+      "quote": "4. Enable the macOS firewall",
+      "note": "Dedicated physical Mac mini M4 (no VM) with full administrator/root, so the macOS application firewall and pf (not nftables/iptables) can be configured. The vendor's blog tells users to turn on the macOS firewall. Derived; not a product doc.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://portal.rentamac.io/dashboard/api-docs",
+      "quote": "Create a new startup script that will run on Mac rentals.",
+      "note": "No secrets, env-var or credential-injection feature anywhere in the API reference or FAQ. Credentials the user needs live on the Mac itself (their blog notes OpenClaw stores LLM keys 'in plaintext JSON under ~/.openclaw/'). Non-HTTP protocols are not covered either.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://portal.rentamac.io/dashboard/api-docs",
+      "quote": "Attach an extra (external storage drive) to a device's existing subscription. Extras are only available for Weekly plans and above.",
+      "note": "External USB drive add-on: 256 GB (+$9.90 per period) or 512 GB (+$14.90 per period). Pricing page: '512 GB 256 GB + 256 GB external +$9.90'. Available when you buy or later via add-extra, not on Daily plans, subject to per-datacenter stock (datacenter256GbDriveAvailable flag). It persists only for the life of the subscription.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://portal.rentamac.io/dashboard/api-docs",
+      "quote": "Stripe product ID for the extra: 1=Additional Storage 256GB, 2=Additional Storage 512GB",
+      "note": "The only storage product is a physical external drive attached to one device (a per-device externalDrive field). There is no network or shared filesystem product. File transfer is via the DeskIn file manager or SSH.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -319,7 +319,15 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "vm",
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -422,5 +430,78 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "Once the sandbox has no activity keeping it alive and its idle timeout expires, Railway destroys it.",
+      "note": "Sandboxes: idle timeout destroys, no automatic save. Cloud Agents (beta) sleep keeps the persistent disk but stops processes ('Sleeping stops its processes and compute billing while retaining files'); that is persistent disk, not a snapshot. Services volumes have scheduled backups (not this).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "A checkpoint is a named snapshot of a sandbox's disk, stored server-side in the environment. Capture one from a running sandbox after expensive setup, then boot new sandboxes from it by name, from any process with access to the environment.",
+      "note": "Disk only, no memory: 'a sandbox created from a checkpoint boots fresh from a copy of the disk: files are preserved, running processes are not'. New sandboxes can boot from it; fork() of a running sandbox also copies disk only. Count capped at plan sandbox limit (10/50/100 per environment); storage price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.railway.com/cli/code.md",
+      "quote": "Launch a coding tool on a [cloud agent](/cloud-agents) with your available credentials. Claude Code, Codex, Grok CLI, and Railway Agent open inside Railway CA. OpenCode prepares a cloud server and offers to connect your local terminal client.",
+      "note": "Cloud Agents only (Priority Boarding beta): CLI `railway code --claude|--codex|--grok|--railway|--opencode`, prompt passthrough (`railway code --codex -- exec \"explain this codebase\"`), `railway ca` lists/reattaches durable terminal sessions, `railway ca desktop` wires Claude/Codex Desktop over SSH and OpenCode Desktop to an authenticated HTTPS OpenCode server. Terminal/SSH-based, no structured event-stream API. The Sandboxes product itself has only generic exec (with detach/reattach sessions) plus preinstalled Claude Code, Codex, OpenCode, Pi.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "Every sandbox has outbound internet access through a NAT gateway. Whether it can reach the rest of your environment over the [private network](/networking/private-networking) depends on its network isolation mode, set when you create or fork it.",
+      "note": "Both modes (ISOLATED default, PRIVATE) keep outbound internet; isolation modes only control private-network reachability. No allowlist/deny/no-internet option documented. Only outbound control documented is SMTP blocked below Pro.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "Every sandbox has outbound internet access through a NAT gateway.",
+      "note": "No HTTP-level egress policy documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "Pass `domains` with `networkIsolation: \"PRIVATE\"` when creating a sandbox to publish its HTTP servers on Railway-provided HTTPS domains",
+      "note": "Ports are private unless you publish chosen ports (max 10) at creation; otherwise reach via SSH port forwarding (`railway sandbox forward`). ISOLATED mode blocks private-network inbound from other services. Published domains have no auth/IP allowlist. Services have a WAF (docs.railway.com/networking/waf.md, listed in llms.txt, not read).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Sandboxes are 'fully isolated virtual machine[s]' with root (examples run in /root). Services are non-privileged containers (no NET_ADMIN).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "`env` bakes environment variables into the sandbox, available to every command over both `exec` and SSH for the sandbox's lifetime. Use it for values a command needs at runtime, including secrets.",
+      "note": "Secrets enter the VM as env vars (can reference Railway shared/sealed variables). Agent guide: 'For now, you pass each agent its configuration or API key' (sign in and checkpoint, or env). Cloud Agents copy local provider credentials into the VM over SSH. No injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.railway.com/volumes.md",
+      "quote": "Volumes allow you to store persistent data for services on Railway.",
+      "note": "Services only (one volume per service, $0.15/GB-month, live resize, up to 1 TB Pro / 5 TB Enterprise). Sandbox docs do not mention volumes; card says they cannot attach to sandboxes. Cloud Agents have a persistent disk, not attachable volumes.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.railway.com/volumes/reference.md",
+      "quote": "Replicas cannot be used with volumes",
+      "note": "Also 'Each service can only have a single volume' and multiple deployments are prevented from mounting the same service volume. Storage buckets are S3-compatible object storage, not mounted.",
+      "checked": "2026-09-29"
+    }
   }
 }

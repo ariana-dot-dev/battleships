@@ -124,7 +124,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -142,7 +142,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -154,7 +154,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": false,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -178,5 +185,70 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.pipekit.io/concepts/cloud-vs-self-hosted.md",
+      "quote": "they differ in where the control plane (UI, API, database) lives.",
+      "note": "N/A by design: Pipekit is a managed control plane for Argo Workflows; compute runs as Argo pods on the customer's own Kubernetes cluster, so Pipekit has no machines to snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.pipekit.io/concepts/cloud-vs-self-hosted.md",
+      "quote": "Argo Workflows     | Runs in your cluster",
+      "note": "No machine/sandbox snapshots; only workflow retry/resubmit/restart via CLI. Any snapshotting would be the customer's cluster/storage.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.pipekit.io/ai/security-and-transports.md",
+      "quote": null,
+      "note": "Pipekit ships an MCP server (`pipekit mcp`) so external AI agents (Claude Code, Cursor, etc.) can drive Pipekit/Argo runs - the reverse direction; no API to run an agent harness inside a workload.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.pipekit.io/why-pipekit/security.md",
+      "quote": "Your workflows execute on your nodes, against your storage, using your service accounts and your secrets. Pipekit never has direct cluster credentials or inbound network access into your environment.",
+      "note": "Egress control is whatever the customer's Kubernetes cluster provides (NetworkPolicy, cloud firewall); not a Pipekit feature.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Not a Pipekit feature (BYO cluster).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.pipekit.io/why-pipekit/security.md",
+      "quote": "Pipekit never has direct cluster credentials or inbound network access into your environment.",
+      "note": "Pipekit exposes no workload ports/preview URLs; ingress is the customer's cluster. Pipekit's own access control is SSO/RBAC over the control plane (default-deny namespaces), not network ingress to workloads.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.pipekit.io/using-pipekit/pipes/edit/secrets.md",
+      "quote": "You can store key value pairs in Pipekit and have them passed to your running workflow as environment variables.",
+      "note": "Secrets are plaintext env vars inside the workflow container ('Key/value pairs are automatically mounted into your workflow as Environment variables'); no proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.pipekit.io/get-started/free-trial-cluster.md",
+      "quote": "You cannot use persistent storage in the cluster.",
+      "note": "Quote is for the Pipekit-hosted free-trial cluster. In production, PVCs/volumeClaimTemplates are standard Argo/Kubernetes on the customer's cluster and storage - not first-party Pipekit volumes.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.pipekit.io/get-started/free-trial-cluster.md",
+      "quote": "Minio does not have persistent storage. All artifacts are stored in memory and may be lost at any time.",
+      "note": "No first-party shared volume; shared RWX storage would be the customer's cluster (e.g. NFS/EFS PVCs).",
+      "checked": "2026-09-29"
+    }
   }
 }

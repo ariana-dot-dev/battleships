@@ -479,7 +479,7 @@
     "lang_java": null,
     "gpu_desktop": true,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": null,
@@ -499,7 +499,16 @@
     "egress_ip_type": "datacenter",
     "ip_note": "VMs run in AWS regions (e.g. aws-us-west-2), so egress is cloud datacenter IPs; no proxy/residential options documented.",
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -552,5 +561,79 @@
     "https://arker.ai/docs/changelog.md",
     "https://arker.ai/docs/api/fork.md",
     "https://arker.ai/docs/desktops.md"
-  ]
+  ],
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://arker.ai/docs/api/filesystems.md",
+      "quote": "Every VM's memory and disk are persistent by default on local NVMe and on remote object storage when idle.",
+      "note": "Trigger: VM goes idle (no active run) or a scaling policy suspends it (e.g. while waiting on an outbound LLM response); resumes automatically on next run / inbound request. Memory (running processes) included. Intro also says Arker can 'transparently snapshot machines at high frequency and restore to other hosts in the event of failure' (https://arker.ai/docs.md) and 'durable' VMs make every run a transaction.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://arker.ai/docs/api/fork.md",
+      "quote": "Omit it or pass `[\"disk\", \"memory\"]` for a warm fork that resumes the source filesystem and running processes.",
+      "note": "No separate named-snapshot endpoint: the checkpoint primitive is POST /v1/fork of any of your VMs (source_vm_id), which copies disk + memory into a new VM that can itself be forked again (template), or disk-only with layers ['disk']. Memory included; new machines boot from it. Can be marked public for other orgs. No explicit 'restore in place' to an earlier point.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://arker.ai/docs/api/overview.md",
+      "quote": "The Arker API is a small set of operations over machines and filesystems.",
+      "note": "Full operation list = fork, vms, policies, runs (generic command exec with durable runs, sessions, PTY), sync, mounts, filesystems. Agents (Claude Code, Codex, OpenCode, Cursor Agent, Aider) are only preinstalled in the ubuntu-coding public VM ('sign in with your own credentials'), no agent-level prompt/stream/resume API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://arker.ai/docs/api/policies.md",
+      "quote": "With a non-empty rule list, unmatched outbound traffic is denied.",
+      "note": "Per-VM policy document (PUT /v1/vms/{id}/policies), first-match rules on hosts (SNI/Host suffix match), IPs/CIDRs and ports; 'Layer-4 rules (ips/ports/hosts) are enforced in kernel' on the host side. Deny-all egress with a single rule. Added July 2026.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://arker.ai/docs/api/policies.md",
+      "quote": "layer-7 criteria and the `rewrite`/`gate`/`scaling` actions run through a managed proxy.",
+      "note": "L7 match on methods, paths (segment prefix), headers, body_contains; actions allow/deny/rewrite (host, path, headers, body)/gate (external HTTP authorization call per request, fail-closed by default).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://arker.ai/docs/api/policies.md",
+      "quote": "Only ports in an explicit inbound allow rule are exposed.",
+      "note": "Inbound rules pick exposed ports, auth 'arker' (Bearer API key of the owning org, default) or 'open' (public); match on caller source IPs/CIDRs. URL form <vm>-<port>.<provider>-<region>.arker.app.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VM (custom hypervisor) with root and systemd; not stated in docs.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://arker.ai/docs/api/policies.md",
+      "quote": "Keep an Anthropic API key out of the machine: match calls to `api.anthropic.com` and set the key from a rewrite. Code in the machine calls Anthropic with no credentials; the proxy injects it.",
+      "note": "Outbound rewrite rules work on any host match and can set headers, path, host or body with ${secret:NAME} named secrets (encrypted at rest, redacted on read). HTTP(S) only via the managed L7 proxy; no mention of databases/SSH/git-over-SSH.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://arker.ai/docs/concepts.md",
+      "quote": "A filesystem is a standalone, persistent, network-attached, object-storage-backed volume that outlives any single machine.",
+      "note": "POST /v1/filesystems then POST /v1/vms/{id}/mounts at a path. Price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://arker.ai/docs/api/filesystems.md",
+      "quote": "so one filesystem can be mounted into many machines. Reads and writes under the path land in the shared volume.",
+      "note": "read-write, object-storage-backed network filesystem; consistency semantics not documented.",
+      "checked": "2026-09-29"
+    }
+  }
 }

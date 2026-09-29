@@ -138,7 +138,7 @@
     "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": false,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -172,7 +172,14 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "container",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -212,5 +219,63 @@
     "applied": 25,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 12
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://baponi.ai/features.md",
+      "quote": "Execution finishes. The sandbox state is snapshotted and the sandbox is destroyed. Billing stops.",
+      "note": "Trigger: end of every execution that carries a thread_id; next call with the same thread_id restores it. Filesystem only: the diff of /home/baponi (not /tmp, no memory/processes: 'Between these calls, nothing is running ... It's a saved filesystem state' - how-it-works). Retention 24h/7d/30d/forever, billed as storage beyond 10 GB free.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://baponi.ai/docs/guides/claude-code/",
+      "quote": "\"code\": \"claude -p \\\"Research the current price of Bitcoin and summarize your findings\\\" --dangerously-skip-permissions\",",
+      "note": "Claude Code is run through the generic /v1/sandbox/execute endpoint (bash command, --output-format stream-json parsed by you). No first-party harness API (no prompt/session/follow-up endpoints). Claude Code appears preinstalled (/home/baponi/.local/bin/claude) -> agent_harnesses, not harness_api.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://baponi.ai/docs/getting-started/how-it-works/",
+      "quote": "**Blocked** (default): No network interface at all. No DNS, no outbound connections.",
+      "note": "Binary policy only: 'blocked' (default, no network interface) or 'unrestricted'; set per sandbox config, API key can downgrade unrestricted->blocked but never the reverse. 'Internal networks (private IPs, cloud metadata endpoints) are always blocked at the network layer.' No per-domain or per-IP allow/deny list documented, hence level null. Enforced outside the nsjail (per-sandbox network namespace).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://baponi.ai/docs/api/overview/",
+      "quote": null,
+      "note": "Not applicable in practice: sandboxes are per-call (spin up, execute, tear down) and there is no port exposure / preview URL / inbound feature anywhere in the docs or API endpoint list, so nothing inbound to control. Card: inbound_https=false.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://baponi.ai/features.md",
+      "quote": "nsjail enforces Linux namespace isolation with a strict seccomp-bpf syscall allowlist, cgroups v2 resource control, zero Linux capabilities, and per-sandbox network namespaces.",
+      "note": "nsjail container with zero capabilities (no CAP_NET_ADMIN), non-root user baponi; cannot run iptables/nftables.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://baponi.ai/docs/getting-started/how-it-works/",
+      "quote": "Baponi injects the credentials as standard config files that CLI tools expect",
+      "note": "Connectors (PostgreSQL, MySQL, BigQuery, Redis, MongoDB, S3, GCS, Azure, GitHub, Anthropic) inject the real secret INTO the sandbox as RAM-mounted config files/env vars (e.g. ANTHROPIC_API_KEY env var, GH_TOKEN, .pgpass), wiped after execution - the code can read them, so not a proxy. Exception: BYOB bucket credentials stay in a separate mount process ('never inside the sandbox'), but that is a storage mount, not an HTTP credential proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://baponi.ai/docs/getting-started/how-it-works/",
+      "quote": "Baponi gives every organization storage that works exactly like BYOB, with the first 10 GB free and expandable as you grow.",
+      "note": "Managed volumes (Baponi-hosted, $0.10/GB-mo beyond 10 GB) and BYOB S3/GCS/Azure buckets mounted at /data/{slug}/ on every execution; object-storage-backed FUSE-style mounts, not block volumes.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://baponi.ai/docs/api/files/",
+      "quote": "Shared across API keys in the organization",
+      "note": "Volumes/BYOB buckets mount into every sandbox of the org (per-key path scoping); many concurrent executions see the same bucket. Access mode 'Read-write or read-only (configurable)'. Writes sync back before the execution response returns (consistency across concurrent writers not documented).",
+      "checked": "2026-09-29"
+    }
   }
 }

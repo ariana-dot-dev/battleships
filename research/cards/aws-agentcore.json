@@ -462,7 +462,16 @@
     "egress_ip_type": "datacenter",
     "ip_note": "Browser egresses from rotating AWS IPs; bring-your-own HTTP/HTTPS proxy per session (max 5, no SOCKS, no rotation) or VPC mode; no AWS-sold residential proxies.",
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -512,5 +521,72 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-sessions.html",
+      "quote": "By default, the compute (microVM) associated with a session is ephemeral. Any data stored in memory or written to disk persists only for the compute lifecycle.",
+      "note": "Idle timeout (default 15 min) / 8 h max lifetime / StopRuntimeSession terminate the microVM; memory is lost. Optional managed session storage (Preview, microVM Runtime/harness) persists one mount path across stop/resume ('Any data not yet persisted is flushed to durable storage during graceful shutdown'; 14-day idle expiry, resets on version update) and Instances runtimes keep EBS volumes; both are persistent storage, not machine snapshots. Runtime V2 restores every new instance from an automatic per-version startup snapshot (memory included) taken at deploy, not of session state.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-how-it-works.html",
+      "quote": "On V2, AgentCore Runtime manages a snapshot for each runtime version that an endpoint points to. You do not create or delete snapshots directly.",
+      "note": "No API to snapshot/fork a running session (Runtime, Code Interpreter or Browser). Browser profiles (cookies/storage to S3) are the only user-saved state. On Instances, EBS volumes can be defined with a snapshotId (EC2 EBS snapshots, outside AgentCore).",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-get-started.html",
+      "quote": "The response streams to your terminal. Reuse the same --session-id across invocations to continue the conversation in the same environment.",
+      "note": "AgentCore harness (GA): managed, Strands Agents-powered harness declared as config (model from Bedrock/OpenAI/Gemini/LiteLLM, tools, skills, memory). CreateHarness / InvokeHarness (boto3 stream of contentBlockDelta events), follow-ups by reusing runtimeSessionId, ListHarnesses, versions/endpoints, Step Functions InvokeHarness state; each session is its own Firecracker microVM with shell/filesystem. Not Claude Code/Codex: harness is AWS's own (export to Strands code; 'Claude Agent SDK coming soon'). Also Bedrock Managed Agents (with OpenAI) in preview.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-get-started.html",
+      "quote": "The response streams to your terminal. Reuse the same --session-id across invocations to continue the conversation in the same environment.",
+      "note": "AgentCore harness (GA): managed, Strands Agents-powered harness declared as config (model from Bedrock/OpenAI/Gemini/LiteLLM, tools, skills, memory). CreateHarness / InvokeHarness (boto3 stream of contentBlockDelta events), follow-ups by reusing runtimeSessionId, ListHarnesses, versions/endpoints, Step Functions InvokeHarness state; each session is its own Firecracker microVM with shell/filesystem. Not Claude Code/Codex: harness is AWS's own (export to Strands code; 'Claude Agent SDK coming soon'). Also Bedrock Managed Agents (with OpenAI) in preview.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-vpc.html",
+      "quote": "Security groups act as virtual firewalls for your Amazon Bedrock AgentCore Runtime or built-in tool when connected to a VPC. They control inbound and outbound traffic at the instance level.",
+      "note": "VPC mode (Runtime, harness, Code Interpreter, Browser): ENIs in your subnets with security-group egress rules, route tables/NAT decide internet access. Code Interpreter also has a 'Sandbox - Environment with limited external network access' mode (code-interpreter-create.html). Domain-level filtering only via separate AWS services in your VPC (Network Firewall, Route 53 DNS Firewall; not AgentCore-native) or Chromium enterprise policies for Browser. Default Runtime/harness mode is public network with no egress controls.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-security.html",
+      "quote": "JWT configured Harness resources require callers to present a valid JWT issued by a configured identity provider before they can invoke the harness.",
+      "note": "No exposed ports: sessions are reached only via AgentCore APIs (InvokeAgentRuntime/InvokeHarness/command/shell/WebSocket) authenticated by IAM SigV4 (default) or inbound JWT, optionally via PrivateLink VPC endpoints; security groups in VPC mode.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Runtime/harness sessions are Firecracker microVMs and harness-environment.html says 'Commands run as root (uid 0) within the microVM.' Whether netfilter works inside the container is not documented. Code Interpreter is AWS-managed and not verified.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-filesystem-configurations.html",
+      "quote": "Bring-your-own file system – Attach your own Amazon S3 Files or Amazon EFS access points directly to your agent runtime. Shared across sessions and agents. VPC required. Available on microVM runtimes.",
+      "note": "Also Instances runtimes: capacity-provider EBS volumes mounted by logical name, persist across stop/resume. Up to 5 filesystem configurations per microVM runtime. Code Interpreter/Browser have their own filesystem configurations (code-interpreter-filesystem-configurations.html).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-filesystem-configurations.html",
+      "quote": "Data is shared – multiple sessions, multiple agents, or external applications can access the same file system simultaneously.",
+      "note": "Read-write: EFS (NFSv4.1, full POSIX, 'Concurrent read-write access from multiple sessions and agents') and S3 Files (NFSv4.2, bidirectional sync with S3 bucket). VPC required. Session storage is per-session only.",
+      "checked": "2026-09-29"
+    }
   }
 }

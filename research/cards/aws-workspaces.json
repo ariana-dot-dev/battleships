@@ -509,7 +509,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -600,5 +608,65 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 9
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/running-mode.html",
+      "quote": "When the WorkSpaces support hibernation, the state of the desktop is saved to the root volume of the WorkSpace. The WorkSpace resumes when a user logs in. All open documents and running programs return to their saved state",
+      "note": "AutoStop running mode only: triggered by the AutoStop timeout after disconnect (default 1 h) or a manual Stop; hibernation includes memory (running programs). Not for GPU bundles, GeneralPurpose.4xlarge/8xlarge, or Windows Server 2025 / Win11 24H2+ with nested virtualization. AlwaysOn never stops. Separately, automatic root+user volume snapshots every 12 h are used for Restore/Rebuild (scheduled backups, not this feature).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/create-custom-bundle.html",
+      "quote": "If you've launched a Windows or Linux WorkSpace and have customized it, you can create a custom image and custom bundles from that WorkSpace.",
+      "note": "Only as an image capture (CreateWorkspaceImage): disk only, root/OS volume ('A custom image contains only the OS, software, and settings'), no memory, no user volume; new WorkSpaces boot from it via a custom bundle (template). No user-triggered checkpoint of a specific WorkSpace: Restore/Rebuild only use the automatic 12-hourly snapshots.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/api/API_Operations.html",
+      "quote": null,
+      "note": "WorkSpaces API covers desktop lifecycle, images, bundles, IP groups, directories and pools only; no agent/harness operations. Seat-oriented DaaS.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-internet-access.html",
+      "quote": "you must ensure that the security group for your WorkSpaces allows outbound traffic on ports 80 (HTTP) and 443 (HTTPS) to all destinations (0.0.0.0/0)",
+      "note": "WorkSpaces sit in your VPC: security groups on the WorkSpace ENI (IP/CIDR/port egress rules), NACLs, and no-internet by omitting NAT/public IP. Domain-level via AWS Network Firewall domain-list rule groups ('You can create allow lists and deny lists with domain names', network-firewall docs) or Route 53 DNS Firewall in the same VPC; separately billed AWS services, not WorkSpaces settings.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-ip-access-control-groups.html",
+      "quote": "An IP access control group acts as a virtual firewall that controls the IP addresses from which users are allowed to access their WorkSpaces.",
+      "note": "IP access control groups (CIDR allowlist for streaming clients, up to 30 rules/group), plus VPC security-group inbound rules on the WorkSpace ENI; no public app ports by default (streaming gateway only).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VM (Windows Server-based desktop or Amazon Linux/Ubuntu/Rocky/RHEL) with its own kernel; with local admin/sudo, Windows Defender Firewall or iptables/nftables work. Not stated in docs.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injection proxy in WorkSpaces; credentials live inside the desktop (user/AD login). Not documented either way; false derived from the product scope and API surface.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/modify-workspaces.html",
+      "quote": "WorkSpace root and user volumes come in set groups that can't be changed.",
+      "note": "Storage is fixed to one root + one user volume, each resizable up to 2000 GB (increase only). No extra EBS/network volume attach feature.",
+      "checked": "2026-09-29"
+    }
   }
 }

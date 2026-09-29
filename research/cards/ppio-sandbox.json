@@ -144,7 +144,16 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -200,5 +209,72 @@
     "applied": 12,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/overview.md",
+      "quote": "在超时或空闲超时发生时,你可以选择**暂停(pause)**而不是**终止(kill)**,这样 Sandbox 之后还可以恢复(并可选自动恢复)。",
+      "note": "Opt-in per sandbox: lifecycle on_timeout='pause' (max-lifetime timeout) or idle_timeout metadata + auto_pause (no client connection for N s); optional auto_resume on activity. Pause keeps filesystem AND memory incl. running processes (sandbox-auto-persistence.md: '内存状态会被保留,包括正在运行的进程和变量'). Default without lifecycle is kill. Available in v1 and v2 regions.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/snapshot-overview.md",
+      "quote": "Snapshot 是 Sandbox 的一份可复用的已保存状态。它会捕获 Sandbox 的文件系统和内存状态,以便你之后从该时间点启动新的 Sandbox。",
+      "note": "Memory included; new sandboxes boot from a snapshot (ppio.sandbox.create(snapshot_id)); sandbox is paused while the snapshot is taken; snapshot survives deletion of origin. v2 region (cn-beijing-1) only. Manual pause/resume (memory) in both regions; archive docs also describe clone and commit-to-template.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/codex.md",
+      "quote": "下面的示例使用统一的 `PPIO` 客户端，基于 `codex` 模板创建 Sandbox，通过 `commands.run` 运行 `codex` CLI、流式输出其结果，最后销毁 Sandbox。",
+      "note": "A preinstalled 'codex' template is driven only via the generic exec API (commands.run 'codex exec ...'). OpenAI Agents API page = OpenAI's hosted harness using a PPIO sandbox as self-hosted executor (third-party API). Archived 'PPIO Agent Runtime' lets you wrap YOUR OWN agent code as an HTTP entrypoint and invoke it with a prompt/session id (streaming) - a generic agent-hosting runtime, not a harness API. PPClaw/PPHermes CLIs deploy OpenClaw/Hermes gateways (lifecycle/config/Feishu pairing), not prompt/stream APIs.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/cli-network.md",
+      "quote": "`allow-out` 和 `deny-out` 仅支持 CIDR 的配置方式，不支持域名。",
+      "note": "Per-sandbox allow_out/deny_out CIDR lists at create time or updated on a running sandbox (ppio sandbox network <id>); plus allow_internet_access=False / --no-internet. Contradiction: sandbox-internet-access.md shows a code sample with domain names in allow_out ('仅允许访问指定域名的流量') but the note on the same page says CIDR only, not domains - treat level as ip.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/sandbox-internet-access.md",
+      "quote": "（--public-traffic 使 Sandbox URL 无需访问令牌即可访问）",
+      "note": "Sandbox port URLs require an access token unless public traffic is enabled (E2B-style); mask_request_host option. No IP allowlist documented. Separate 'secure access' authenticates the envd control API.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker microVM (E2B-compatible) with its own kernel; not documented by PPIO",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://ppio.com/docs/sandbox/secret-overview.md",
+      "quote": "PPIO 会在来自沙箱的符合条件的出站 HTTPS 请求上使用该凭证，但绝不会将真实值注入沙箱本身。",
+      "note": "Team-level Secrets with a per-secret host allowlist (hostnames, *. wildcard); sandbox env var holds placeholder ppio_secret_<hex>; proxy replaces it only in HTTPS request HEADER values (not body, URL/query, plain HTTP or WebSocket payloads) and scrubs it back out of responses. No DB/SSH/git protocols. v2 region only (added 2026-09-07).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/volume-overview.md",
+      "quote": "Volume 是一种独立于沙箱生命周期的持久化存储卷。挂载到沙箱后，它会以目录形式出现在文件系统中",
+      "note": "Beta (内测), v2 region only; quota in GiB, mount at create or at runtime (mount_volume/unmount_volume). Also first-party guide to mount S3 buckets. Volume price not published.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/volume-overview.md",
+      "quote": "**跨沙箱共享**:同团队的多个沙箱可以挂载同一个 Volume,复用数据集、模型缓存、构建产物等",
+      "note": "read-write (Volume described as '独立存在,可读写'); concurrency semantics not documented",
+      "checked": "2026-09-29"
+    }
   }
 }

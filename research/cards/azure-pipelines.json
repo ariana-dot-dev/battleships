@@ -342,7 +342,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": false,
@@ -376,7 +376,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": false
+    "mcp_server": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -415,5 +423,65 @@
       "https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/github-hosted?view=azure-devops"
     ],
     "researched": "2026-09-29"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted",
+      "quote": "Microsoft-hosted agents are run in individual VMs, which are reimaged after each run.",
+      "note": "Job-scoped ephemeral CI VMs; nothing is saved at job end. Managed DevOps Pools 'Stateful' agents can be reused across jobs up to a max lifetime (e.g. 7 days) - agent reuse, not a snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted",
+      "quote": "Microsoft-hosted agents are run in individual VMs, which are reimaged after each run.",
+      "note": "No snapshot/checkpoint API for hosted agents or Managed DevOps Pools agents in the docs; state reuse is via pipeline caching/artifacts.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "CI job runner; no first-party API to drive an agent harness inside the agent VM (only pipeline runs/REST API for pipelines). Not stated explicitly.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-networking",
+      "quote": "You want to network isolate your CI/CD infrastructure by bringing your own virtual network with company-specific firewall rules.",
+      "note": "Only for Managed DevOps Pools injected into your own Azure VNet, where Azure NSGs (IP/port) and Azure Firewall (FQDN) restrict outbound traffic; docs list endpoints to allowlist when 'network security groups or firewalls ... restrict outbound connectivity'. Microsoft-hosted agents: no egress controls (only published IP ranges to allowlist on your side).",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-networking",
+      "quote": "By default, all pools use a Microsoft-provided virtual network, which restricts all inbound traffic and has the following outbound traffic configuration options.",
+      "note": "MDP: default VNet blocks all inbound; BYO VNet uses your NSG rules. Microsoft-hosted agents cannot expose ports at all: 'they aren't assigned public IP addresses. So, external entities can't target Microsoft-hosted agents.' No preview URLs.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Hosted agents are full Azure VMs (Standard_DS2_v2) and 'Run as an administrator on Windows and a passwordless sudo user on Linux', so iptables/nftables should work; not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/devops/pipelines/process/set-secret-variables",
+      "quote": "To reference secret variables in YAML pipelines, map them as environment variables.",
+      "note": "Secrets (secret variables, variable groups/Key Vault, service connections) are decrypted onto the agent and masked in logs; no injecting egress proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-storage",
+      "quote": "Managed DevOps Pools supports attaching an empty data disk to the agents in your pool.",
+      "note": "MDP only: one empty Azure managed data disk config per pool, attached to every agent; lives as long as the agent (stateless agents discarded per job). Microsoft-hosted agents: fixed ~10 GB free disk, 'We can't honor requests to increase disk space'.",
+      "checked": "2026-09-29"
+    }
   }
 }

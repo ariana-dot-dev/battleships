@@ -172,7 +172,10 @@
     "egress_ip_type": null,
     "ip_note": "Egress/IP and proxy options not documented; each microVM has its own public hostname and network.",
     "image_oci": null,
-    "ide_in_browser": true
+    "ide_in_browser": true,
+    "snapshot_auto": false,
+    "guest_firewall": true,
+    "secret_proxy": "any-http"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -221,5 +224,29 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://zipbox.ai/docs/how-things-work",
+      "quote": "Paused - the disk is archived and the meter stops ($0); Restore boots the same disk on fresh hardware",
+      "note": "Pause is a user action (dashboard/status bar), or automatic 1 h after the balance hits $0; it saves the disk only (running processes lost), i.e. a persistent disk across pause/restore, not a state checkpoint. No idle auto-pause documented. Deleted boxes keep a disk archive for 30 days (retention, not a restorable snapshot feature).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://zipbox.ai/docs/agents",
+      "quote": "Inside the box you are root.",
+      "note": "Firecracker microVM with its own kernel ('Each sandbox is a Firecracker microVM ... with its own Linux kernel', how-things-work) and root, so nftables/iptables should work; not explicitly documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://zipbox.ai/docs/api-keys",
+      "quote": "Zipbox's rule is simple: the real key never enters the machine. The box holds a public placeholder and sends it like a normal key. After the request leaves the box, the host swaps in the real key.",
+      "note": "Arbitrary user-added hosts (up to 8 hosts per key, 20 keys per store), per machine or all machines; placeholder slot types: Bearer token, custom header, URL query parameter, Basic Auth, URL path, JSON body field. Mechanism: /etc/hosts points the host at 172.16.0.1, TLS terminated by a host CA the box trusts. Plus platform-billed included services (OpenAI, Anthropic, OpenRouter, xAI, Tavily, Apify, etc.). HTTPS only; non-HTTP (DB URLs etc.) must use 'Key = value' env vars that do enter the box. Root in the box can remove /etc/hosts lines to bypass (then it just lacks the key).",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -171,7 +171,16 @@
     "spend_limits": false,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -255,5 +264,78 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://developers.cloudflare.com/sandbox/concepts/sandboxes/",
+      "quote": "After a period of inactivity (10 minutes by default, configurable via sleepAfter), the container stops to free resources. When the next request arrives, a fresh container starts. All previous state is lost and the environment resets to its initial state.",
+      "note": "Platform wipes state on sleep. Auto-save-on-idle exists only as app code you write: lifecycle hook onActivityExpired() calling createBackup() (Cloudflare's claude-managed-agents template does this), or the OpenAI Agents API template calling the private-beta container.snapshotContainer() on an idle webhook ('a confirmed idle session creates a whole-container snapshot before its container stops'). Not a platform default.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://developers.cloudflare.com/sandbox/api/backups/",
+      "quote": "Create point-in-time snapshots of sandbox directories and restore them from R2.",
+      "note": "GA (2026-02-23): createBackup({dir}) -> squashfs in your own R2 bucket; restoreBackup() mounts it as copy-on-write FUSE overlay (lost on sleep, re-restore each wake). Directory-level only (under /workspace, /home, /tmp, /var/tmp, /app), no memory/processes. Can seed other sandboxes: changelog says 'Usable across multiple instances - Fork a backup across many sandboxes for parallel work'. Whole-container snapshots (container.snapshotContainer(), restore via start({containerSnapshot})) are private beta: 'Container snapshots are currently in private beta' (openai-agents-api tutorial); no memory documented.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://github.com/cloudflare/sandbox-sdk/blob/main/packages/sandbox/src/opencode/opencode.ts",
+      "quote": "Starts an OpenCode server inside a Sandbox container.",
+      "note": "OpenCode only: first-party SDK export @cloudflare/sandbox/opencode (createOpencodeServer, createOpencode -> typed @opencode-ai/sdk client with session.create/session.prompt/events, proxyToOpencode for the web UI). Listed on docs as a first-party extension on the 1.0 preview ('OpenCode | @cloudflare/sandbox/opencode'). Claude Code tutorial just runs `claude --print` via exec (not a harness API). Codex via OpenAI Agents API and Claude Managed Agents: Cloudflare is only the self-hosted execution environment; the harness API belongs to OpenAI/Anthropic.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://developers.cloudflare.com/sandbox/guides/outbound-traffic/",
+      "quote": "When allowedHosts is set, it becomes a deny-by-default allowlist. Any host or IP not in the list is denied, and only matching destinations can reach outbound or outboundByHost handlers.",
+      "note": "Per Sandbox class plus per-instance at runtime (setAllowedHosts/allowHost/denyHost). Hostnames with globs and IPs/CIDRs (example deniedHosts includes \"141.101.64.0/18\"). enableInternet=false: 'Only ports 80, 443, and DNS are available, and DNS queries use Cloudflare's DNS servers.' Enforced by a sidecar/Workers runtime outside the sandbox.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://developers.cloudflare.com/sandbox/guides/outbound-traffic/",
+      "quote": "Add custom policy on outbound traffic (such as denying specific HTTP requests)",
+      "note": "outbound / outboundByHost handlers are arbitrary Workers code seeing the full Request (docs example blocks non-GET methods). HTTPS interception on by default (interceptHttps=true, per-instance ephemeral CA). HTTP/HTTPS only; other ports never routed through handlers.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://developers.cloudflare.com/sandbox/concepts/preview-urls/",
+      "quote": "Preview URLs are publicly accessible by default, but require a valid access token that is generated when you expose a port.",
+      "note": "Only ports you exposePort() get a URL (https://{port}-{sandbox-id}-{token}.yourdomain.com); every request goes through your own Worker (proxyToSandbox) so you can add auth; unexposePort() revokes. Quick tunnels (*.trycloudflare.com) have no auth beyond the random hostname. No IP allowlist setting; no raw TCP/UDP inbound.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://developers.cloudflare.com/sandbox/guides/docker-in-docker/",
+      "quote": "Cloudflare Containers do not support iptables manipulation.",
+      "note": "Root inside an unprivileged container (in a per-container VM); same statement on https://developers.cloudflare.com/containers/faq/. Docker-in-Docker requires dockerd --iptables=false.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://developers.cloudflare.com/sandbox/guides/outbound-traffic/",
+      "quote": "Because outbound handlers run in the Workers runtime — outside the sandbox — they can hold secrets that the sandbox itself never sees. The sandbox makes a plain HTTP request, and the handler attaches the credential before forwarding it to the upstream service.",
+      "note": "Any host, per-instance keys via ctx.containerId; HTTPS covered via TLS interception. Not covered: non-HTTP ('Outbound handlers only intercept HTTP and HTTPS traffic'), so no DB/SSH credential injection (git over HTTPS works). Also mountBucket credentialProxy:true re-signs S3/GCS requests so bucket keys never enter the container. It is a mechanism you program (Workers code), not a managed secret registry. OpenCode example injects the Anthropic key this way.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://developers.cloudflare.com/sandbox/guides/mount-buckets/",
+      "quote": "Mount S3-compatible object storage buckets as local filesystem paths.",
+      "note": "Only S3-compatible bucket mounts via FUSE (s3fs): R2 by Worker binding (no credentials in container), or S3/GCS/B2/MinIO endpoints; prefix + readOnly options. No block or network volumes; disk fixed by instance type (max 20 GB).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://developers.cloudflare.com/sandbox/guides/mount-buckets/",
+      "quote": "Multiple sandboxes access the same data",
+      "note": "Same bucket mountable in many sandboxes at once; read-write or read-only ('Protect data by mounting buckets in read-only mode'). Object-store semantics (s3fs), not POSIX network FS.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -267,7 +267,13 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -319,5 +325,49 @@
       "https://unikraft.com/docs/platform/quotas.md"
     ],
     "researched": "2026-09-28"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://unikraft.com/docs/features/scale-to-zero.md",
+      "quote": "With stateful scale-to-zero Unikraft Cloud takes a [snapshot](/features/snapshots) of the instance state before putting it into standby.",
+      "note": "Opt-in (--scale-to-zero policy=on,stateful=true). Triggered when the instance idles into standby (no TCP/HTTP traffic for the cooldown); memory included, restored lazily on wake by the next request/packet. An explicit stop does NOT snapshot (stopped instances unmount volumes). Scheduled checkpoints via cron-style scheduled operations also exist.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://unikraft.com/docs/features/checkpoints.md",
+      "quote": "A **checkpoint** captures the full state of an instance—its memory and volume state—at any moment, so you can later start new instances that resume from exactly that state.",
+      "note": "Memory + volumes; taken from a running instance (pauses only a few ms, CoW); new instances boot from it, reusable many times; checkpoint history/rollback. Also branching (clone a live instance) and instance templates. Snapshot history & rollback listed as a Pro-plan feature.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://unikraft.com/docs/features/plugins.md",
+      "quote": "The sandbox plugin lets you run commands and manipulate the filesystem inside an instance, over the plugin endpoint",
+      "note": "Only a generic exec/filesystem sandbox plugin (Enterprise); no API to drive Claude Code/Codex/etc. found in docs.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://unikraft.com/docs/platform/services.md",
+      "quote": "To connect to an instance from the Internet, you need to create a service and attach the instance to it.",
+      "note": "Instances are private by default (private IP + <name>.internal FQDN); a service maps chosen external FQDN ports to internal ports (TLS mandatory). Tunnel command for private access. No IP allowlist / auth on public URLs documented; plugin endpoints are authenticated.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://unikraft.com/docs/platform/volumes.md",
+      "quote": "A volume is a persistent storage device that keeps data across restarts and even redeployments.",
+      "note": "Block (ext4) volumes created/attached/detached via API/CLI/SDK; attach to running instance applies on next scale-to-zero cycle.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://unikraft.com/docs/platform/volumes.md",
+      "quote": "`rwx`       | Read-write many. The volume can be mounted in read-write mode by multiple instances simultaneously. This access mode is only supported for volumes with `virtiofs` filesystem.",
+      "note": "Read-write many via virtiofs volumes (slower than block); rox = read-only many for block volumes. BYOC/on-prem can add custom filesystem drivers (e.g. S3 via JuiceFS); managed host-path volumes Enterprise.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -233,7 +233,13 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -301,5 +307,50 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://codesandbox.io/docs/sdk/core-concepts",
+      "quote": "By default, when a Sandbox is hibernated, a memory snapshot is created. This allows for near-instant resumes the next time the Sandbox is accessed—typically within 0.5–2 seconds.",
+      "note": "Trigger: inactivity timeout (hibernationTimeoutSeconds, default 300 s free / 1800 s pro, max 86400 s; SDK source: 'the amount of seconds the sandbox will be kept alive without activity before it is automatically hibernated'). Memory + disk included; kept on disk up to 7 days, then may be archived (disk only, 20-60 s resume, setup tasks rerun). Optional automatic wake-up on HTTP/WebSocket.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.together.ai/docs/together-code-sandbox.md",
+      "quote": "Memory snapshot/restore (checkpointing) at any point in time.",
+      "note": "Memory included. SDK: sandboxes.hibernate(id) snapshots the whole VM on demand; sdk.sandboxes.create({id}) forks a new sandbox from a template or existing sandbox ('A template is a memory/fs snapshot of a Sandbox'), so new machines can boot from it (running processes continue). Templates built via CLI.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://codesandbox.io/docs/sdk",
+      "quote": "const output = await client.commands.run(\"echo 'Hello World'\");",
+      "note": "SDK clients are File System, Terminals, Commands, Interpreters, Ports, Hosts, Tasks, Setup; no agent-harness driver. 'Agent' in the SDK refers to CodeSandbox's in-VM Pitcher agent, not an AI harness.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://codesandbox.io/docs/sdk/create",
+      "quote": "private: Sandbox is private, hosts require tokens",
+      "note": "Privacy per sandbox: public, private (hosts need host tokens via signed URL, headers or cookies), public-hosts (default). Browser Preview API restricted to workspace-configured trusted preview hosts (regex). No IP allowlists; all ports get hostnames.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each sandbox is a Firecracker VM with root; note the user environment runs in a Docker container inside the VM (CLEAN boot: start Firecracker VM, then start the Docker container), so rules may need to be applied at the VM level; not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/codesandbox/codesandbox-sdk/main/src/types.ts",
+      "quote": "env?: Record<string, string>;",
+      "note": "Credentials are passed into the sandbox: session env vars and a git accessToken in SessionCreateOptions. No credential-injecting proxy documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

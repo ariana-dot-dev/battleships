@@ -2351,7 +2351,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -2385,7 +2385,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -2624,5 +2633,72 @@
     "applied": 18,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 9
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://cloud.ibm.com/docs/vpc?topic=vpc-snapshots-vpc-about",
+      "quote": "A snapshot is a copy of your volume that you take manually in the console or from the CLI, or create programmatically with the API, or Terraform.",
+      "note": "Nothing is snapshotted on stop; stopping a VSI just keeps its block volumes. Scheduled automatic volume backups exist via Backup for VPC policies ('With Backup for VPC, you can create backup policies to schedule regular volume backups.') - scheduled, not stop-triggered, disk only; restore is manual.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://cloud.ibm.com/docs/vpc?topic=vpc-snapshots-vpc-about",
+      "quote": "You can take a snapshot of a boot or data volume that is attached to a running virtual server instance.",
+      "note": "Block-volume snapshots only, crash-consistent, no memory. 'You can create a virtual server instance with a boot volume that is initialized from a snapshot.' so new VMs can boot from it; consistency-group snapshots across volumes; fast-restore clones.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS VM; no agent-harness API (card agent_harnesses=false).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://cloud.ibm.com/docs/vpc?topic=vpc-using-acls",
+      "quote": "With outbound rules, you can allow or deny traffic to a destination IP range, with specified protocols and ports.",
+      "note": "Security groups (stateful, per interface; outbound rules) and subnet network ACLs (allow/deny). IP/CIDR/port/protocol only, no hostname rules. Security group default: 'deny all inbound traffic and permit all outbound traffic'.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://cloud.ibm.com/docs/vpc?topic=vpc-using-security-groups",
+      "quote": "By default, a security group is set up with rules that deny all inbound traffic and permit all outbound traffic.",
+      "note": "Inbound security-group rules and subnet ACLs by IP range/protocol/port; public exposure only via floating IP / load balancer.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VM (VSI) with root; iptables/nftables in the guest work as on any Linux VM.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://cloud.ibm.com/docs/secrets-manager?topic=secrets-manager-getting-started",
+      "quote": "With Secrets Manager, you can create, lease, and centrally manage secrets that are used in IBM Cloud services or your custom-built applications.",
+      "note": "Secrets Manager is a Vault-based store the VM reads secrets from; no credential-injecting egress proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://cloud.ibm.com/docs/vpc?topic=vpc-block-storage-about",
+      "quote": "Data volumes can be created and attached during instance provisioning, or as stand-alone volumes that you can later attach to an instance.",
+      "note": "Block Storage for VPC data volumes, 1 GB to 32,000 GB (sdp profile).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://cloud.ibm.com/docs/vpc?topic=vpc-file-storage-vpc-about",
+      "quote": "Depending on the security group you choose, you can restrict access to a share to a specific instance or allow multiple virtual server instances or bare metal servers to mount the share.",
+      "note": "File Storage for VPC: NFSv4 shares, read-write, mounted concurrently by many VSIs (also cross-VPC mount targets, cross-account sharing); read-only replicas in another zone/region. Block volumes are single-attach.",
+      "checked": "2026-09-29"
+    }
   }
 }

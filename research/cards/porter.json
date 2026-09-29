@@ -176,7 +176,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -201,5 +209,64 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.porter.run/sandboxes/volumes.md",
+      "quote": "Unlike a sandbox's own filesystem, which is discarded when the sandbox exits, a volume lives independently and keeps its contents across sandboxes.",
+      "note": "Porter Sandboxes (AWS/EKS, in your own account) have no pause/sleep; the sandbox filesystem is discarded on exit/TTL. Only explicit snapshots or volumes persist state.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.porter.run/sandboxes/overview.md",
+      "quote": "A snapshot captures a running sandbox's filesystem so you can start new sandboxes from it later, with the same files in place.",
+      "note": "Filesystem only: 'A snapshot holds files only, not running processes or mounted volumes'. Sandbox must be running; capture pauses it for a few ms. New sandboxes boot from it (porter.snapshots.create / porter sandbox create --from-snapshot) -> fork/template, no memory.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.porter.run/sandboxes/getting-started.md",
+      "quote": "Bake your harness into a custom image, inject the model API key at create time, and run it as the sandbox's main process.",
+      "note": "Only generic create/exec/logs APIs; running an agent is DIY via custom image. (Porter's MCP server and dashboard DevOps Agent operate Porter itself, not a harness in a sandbox.)",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.porter.run/sandboxes/networking.md",
+      "quote": "Pass `egress` when creating a sandbox and it can only reach the destinations it lists; all other outbound traffic is blocked. Enforcement happens transparently at the network layer, so any protocol and client works without proxy configuration.",
+      "note": "Entries: exact hostname, *.wildcard, IP, CIDR, or k8s Service. 'An empty list denies all egress.' Requires cluster setting 'Enforce egress allowlists' (network policy on sandbox nodes). Default isolation also blocks private ranges, metadata endpoint, other pods.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.porter.run/sandboxes/networking.md",
+      "quote": "`public` or `private`: whether the sandbox is served publicly or inside your VPC when the cluster has both configured.",
+      "note": "A sandbox exposes nothing unless `networking` lists a port; public (internet LB) vs private (internal LB, VPC only) vs `internal: true` (cluster-internal address only). No per-URL auth tokens documented. Porter apps additionally support AWS ALB/WAF IP allowlisting.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.porter.run/sandboxes/getting-started.md",
+      "quote": "Instead of passing variables one at a time, you can inject an entire [environment group](/applications/configure/environment-groups) from the cluster at create time.",
+      "note": "Secrets are env vars / env groups (incl. Doppler/Infisical-synced) placed inside the sandbox; docs recommend injecting the model API key as an env var. No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.porter.run/sandboxes/volumes.md",
+      "quote": "Volumes are persistent storage you can mount into Porter Sandboxes.",
+      "note": "Disk volumes (cluster disks) and object volumes (S3 bucket via Mountpoint for S3, AWS only), mounted at launch via volume_mounts; files readable/writable from outside via SDK/CLI/dashboard.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.porter.run/sandboxes/volumes.md",
+      "quote": "Any number of sandboxes can mount the same object volume at once, on any sandbox cluster.",
+      "note": "Object (S3) volumes: read-write / read-only / write-only-new-files, no in-place edits or appends. Disk volumes: concurrent multi-sandbox mounts only if 'the cluster to back sandbox volumes with shared storage; without it, a volume attaches to one sandbox at a time.' Porter apps (non-sandbox) get EFS shared RW disks.",
+      "checked": "2026-09-29"
+    }
   }
 }

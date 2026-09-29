@@ -1137,7 +1137,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -1171,7 +1171,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": false
+    "mcp_server": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1207,5 +1216,72 @@
   ],
   "audit_2026_09_29": {
     "reviewed": 19
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/specify-caching-local.html",
+      "quote": null,
+      "note": "Each build/sandbox is a fresh ephemeral environment; nothing is checkpointed on stop or timeout (sandbox sample shows RUNNING_SANDBOX TIMED_OUT then STOPPED). Only build caches (S3 cache, local source/Docker-layer/custom cache) and the paid Docker image server carry data between builds - not machine-state snapshots.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_Operations.html",
+      "quote": null,
+      "note": "The full CodeBuild API operation list has no snapshot/checkpoint/image-capture action (only Start/Stop Build, Start/Stop Sandbox, StartCommandExecution, InvalidateProjectCache, fleets etc.). Reserved fleets can boot from a custom AMI, but that is not a snapshot of a running build.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sandbox.html",
+      "quote": null,
+      "note": "CodeBuild sandbox offers StartSandbox / StartCommandExecution / SSH via SSM (generic exec), no API to drive an agent harness.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/run-codebuild-in-managed-proxy-server.html",
+      "quote": "Denies outgoing traffic to all destinations by default.",
+      "note": "Managed proxy for reserved-capacity fleets: defaultBehavior ALLOW_ALL/DENY_ALL plus orderedProxyRules of type DOMAIN or IP with ALLOW/DENY (max 100, API_FleetProxyRule). 'not supported for VPC, Windows, or MacOS'; extra charge while configured; CodeBuild sets HTTP_PROXY/HTTPS_PROXY. For on-demand builds, egress control is via VPC config (subnets + security-group egress rules, NAT, or AWS Network Firewall in your VPC) - IP level.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/vpc-support.html",
+      "quote": "This includes the VPC ID, the VPC subnet IDs, and the VPC security group IDs.",
+      "note": "Builds expose no public ports (no public IPv4; CodeBuild ENIs cannot get Elastic IPs). Sandbox access is SSH over SSM Session Manager gated by IAM (ssm:StartSession on the build ARN). VPC builds are governed by your security groups.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Builds run as root; in LINUX_CONTAINER compute NET_ADMIN needs privilegedMode=true (also required for Docker-in-build), EC2-based/reserved fleet compute gives a full VM. Lambda compute has no root, so false there. Not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html",
+      "quote": "Required if you want to retrieve custom environment variables stored in AWS Secrets Manager.",
+      "note": "Secrets from Secrets Manager / Parameter Store are injected as environment variables into the build; no credential-injecting proxy. The managed fleet proxy does network ACLs only.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_ProjectFileSystemLocation.html",
+      "quote": "Information about a file system created by Amazon Elastic File System (EFS).",
+      "note": "Project fileSystemLocations mount Amazon EFS (NFS 4.1) at a mountPoint in the build container; requires VPC config; Linux only. The one supported type is EFS.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sample-efs.html",
+      "quote": "You might want to create your AWS CodeBuild builds on Amazon Elastic File System, a scalable, shared file service for Amazon EC2 instances.",
+      "note": "EFS is a network file system that concurrent builds (and EC2 instances) can mount read-write at the same time; billed separately by EFS.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -1078,7 +1078,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": false,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": null,
     "fork_running": null,
@@ -1090,7 +1090,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1158,5 +1167,78 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.digitalocean.com/products/snapshots/details/features/",
+      "quote": "Snapshots are on-demand disk images of DigitalOcean Droplets and volumes saved to your account.",
+      "note": "No save-on-stop/idle mechanism: Droplets have no auto-stop and bill while powered off; the disk simply persists (persistent_disk). Optional paid Backups are scheduled, not stop-triggered: 'Enabling backups for Droplets enables system-level backups at intervals of every 4 hours, 6 hours, 12 hours, day, or week' (https://docs.digitalocean.com/products/backups/).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.digitalocean.com/products/snapshots/details/features/",
+      "quote": "Creating a snapshot saves everything from the Droplet or volume’s disk to a disk image saved in your DigitalOcean account. [...] You can use snapshots to create new Droplets or volumes with the same contents of the snapshot.",
+      "note": "Disk only, no memory. Via API (Droplet action type=snapshot), doctl, console. Running Droplets allowed ('Take a Live Snapshot', https://docs.digitalocean.com/products/snapshots/how-to/snapshot-droplets/) but DO recommends power-off for consistency. New Droplets can boot from it (fork/template); restore-in-place also supported. Full (not incremental) images, $0.06/GB-month.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.digitalocean.com/products/droplets/details/features/",
+      "quote": null,
+      "note": "Plain VM; Droplet API/doctl expose lifecycle actions only, no API to drive an agent harness inside the Droplet. (DigitalOcean's Gradient AI agent platform and MCP servers manage cloud resources, not an in-VM harness.) No explicit 'not supported' statement.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.digitalocean.com/products/networking/firewalls/how-to/configure-rules/",
+      "quote": "Outbound firewall rules define what outgoing traffic to allow or deny, on which ports, and to which destinations. If no outbound rules are configured, no outbound traffic is permitted.",
+      "note": "Cloud Firewalls (free, network-based, stateful, enforced on the host before traffic reaches the Droplet). Destinations are IPs/CIDRs, Droplet IDs, tags, load balancers, Kubernetes clusters; no hostnames/FQDNs. Allow + deny actions since 2026-08-04.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.digitalocean.com/products/networking/firewalls/details/features/",
+      "quote": "Firewall rules can allow or deny traffic by protocol, port range, and source or destination.",
+      "note": "L3/L4 only; no HTTP method/path/header rules on Droplets.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.digitalocean.com/products/networking/firewalls/details/features/",
+      "quote": "DigitalOcean Cloud Firewalls are a network-based, stateful firewall service for Droplets provided at no additional cost. Cloud firewalls block all traffic that isn’t expressly permitted by a rule.",
+      "note": "Inbound rules by protocol/port/source (IP/CIDR, Droplet, tag, LB); VPC private networking also available. No tokenized preview URLs (plain public IPv4).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.digitalocean.com/products/networking/firewalls/details/features/",
+      "quote": "Firewalls can be host-based, which are configured on a per-server basis using services like iptables or UFW.",
+      "note": "KVM VM with root; iptables/nftables/UFW work inside the Droplet.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No first-party credential-injecting egress proxy for Droplets; secrets go in via user-data/your own tooling (card credential_injection=false). Not explicitly denied in docs.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.digitalocean.com/products/volumes/details/features/",
+      "quote": "Volumes are network-attached block storage. You can use them with Droplets or Kubernetes clusters, move or resize them, and create snapshots at any time.",
+      "note": "Up to 15 volumes per Droplet; $0.10/GiB-month; resize without power-off.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.digitalocean.com/products/nfs/details/features/",
+      "quote": "It supports NFSv4.1, POSIX permissions, and VPC-based access, allowing a single share to be mounted across multiple Droplets and Kubernetes nodes.",
+      "note": "Network File Storage (NFSv4.1), read-write ('All access points provide read and write access; there is no read-only option'); up to 32 clients per share, same region/VPC. Block Volumes are single-attach: 'You can only attach a volume to one Droplet at a time.' (volumes/details/limits).",
+      "checked": "2026-09-29"
+    }
   }
 }

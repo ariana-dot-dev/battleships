@@ -108,7 +108,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -140,7 +140,12 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": null,
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -162,5 +167,43 @@
   "audit_2026_09_29": {
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://github.com/SeaCloudAI/sandbox-python/blob/HEAD/README.md",
+      "quote": "Snapshot APIs are not exposed yet because the underlying platform does not support them.",
+      "note": "Same sentence in the Go and Node SDK READMEs. Only pause/resume and custom template builds.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://github.com/SeaCloudAI/sandbox-python/blob/HEAD/README.md",
+      "quote": null,
+      "note": "Official 'claude' / 'codex' templates only have 'the CLIs preinstalled' (agent_harnesses); SDKs and CLI expose lifecycle, files, commands, PTY, git, code interpreter, templates only. No API to prompt/stream/resume an in-sandbox agent. The seacloud CLI's 'llm run' calls hosted models, not an in-sandbox harness.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://github.com/SeaCloudAI/sandbox-go/blob/v0.3.4/control/types.go",
+      "quote": "AllowInternetAccess=false enables egress isolation. AllowOut and DenyOut accept IPv4 CIDR ranges or single IPv4 addresses",
+      "note": "Per-sandbox SandboxNetworkPolicy at create or via PUT /api/v1/sandboxes/{id}/network (seacloud CLI 'sandbox network update --allow-internet-access=false --allow-out 1.1.1.1 --deny-out 10.0.0.0/8'). IPv4/CIDR only, no domains. Enforcement point not documented. The Python SDK 0.3.2 still rejects 'network' / 'allow_internet_access' on create ('is not supported'); the Go SDK v0.3.4 and CLI expose it.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://github.com/SeaCloudAI/seacloud-cli/blob/HEAD/cmd/sandbox.go",
+      "quote": "Network policy can control public inbound traffic, internet egress, and explicit\negress allow/deny CIDR lists.",
+      "note": "allowPublicTraffic flag on the network policy; get_host(port) gives a proxy URL derived from envdUrl, with a sandbox-scoped traffic_access_token (E2B-style). No IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://github.com/SeaCloudAI/seacloud-cli/blob/HEAD/cmd/sandbox.go",
+      "quote": "Volumes are durable storage resources that can be mounted during sandbox create\nwith --volume-mount name:/path.",
+      "note": "Named volumes (POST /api/v1/volumes) mounted at create via volumeMounts name:path. Template volumeMounts also support NFS host paths, block volumes (storageClass/storageSizeGB), PVCs and object-bucket mounts with readOnly flag. Sizes/prices unpublished.",
+      "checked": "2026-09-29"
+    }
   }
 }

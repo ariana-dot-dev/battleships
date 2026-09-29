@@ -274,7 +274,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -306,7 +306,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -351,5 +360,72 @@
     "applied": 19,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.ionos.com/cloud/compute-services/cubes/dcd-how-tos/suspend-cube.md",
+      "quote": "The Cube releases the associated CPU, RAM, and IP addresses.",
+      "note": "Suspend (Cubes) / stop (vCPU servers) only keep the block storage (persistent_disk); RAM is released and the doc even suggests shutting the OS down first 'to prevent data loss'. No stop-triggered snapshot documented. Scheduled backups exist via the separate IONOS Backup Service.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.ionos.com/cloud/backup-and-storage/images-snapshots/snapshots.md",
+      "quote": "This feature is useful, for example, if you want to quickly roll out multiple Virtual Machines (VMs) with the same or similar configuration or when you need a recovery point.",
+      "note": "Per-block-storage-volume snapshots (DCD/Cloud API), of running or stopped servers ('Creating a snapshot while the server is running takes longer'); disk only - RAM not included (docs recommend sync/shutdown). Full, non-incremental; new volumes/VMs can be created from them in the same datacenter location. Only from Essential performance class volumes.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS VMs (Cubes, vCPU/Dedicated Core servers); no agent-harness API documented.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.ionos.com/cloud/security/network-security-groups.md",
+      "quote": "An NSG contains bidirectional security firewall rules that allow ingress (incoming) and egress (outgoing) network traffic for Network Interface Cards (NICs) or Virtual Machine (VM) resources configured as NSG members. For each rule, you can specify the source IP address, destination IP address, port, protocol, etc.",
+      "note": "Network Security Groups and per-NIC firewalls (Ingress/Egress/Bidirectional) with IP/CIDR, port, protocol rules. Default NSG allows all egress ('Allow all IPv4 Egress traffic'); removing that rule / activating an egress NIC firewall gives default-deny. No domain-level filtering documented.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.ionos.com/cloud/security/network-security-groups/nsg-faqs.md",
+      "quote": "As a result of these rules, all outbound traffic is allowed, while inbound traffic is blocked by default, except for the explicitly allowed IP ranges from within the VDC.",
+      "note": "NSG / NIC firewall inbound rules by source IP/CIDR, port, protocol. Suspended Cubes cannot be NSG members.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VMs with root/own kernel; iptables/nftables work in-guest.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting proxy for compute; secrets go into the VM (cloud-init/user data, env).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.ionos.com/cloud/backup-and-storage/block-storage/how-tos/set-up-block-storage.md",
+      "quote": "Drag the Storage element from the Palette onto a Server or a Cube in the Workspace to connect them together.",
+      "note": "Extra Block Storage volumes (Essential/Balanced/Performance) attach to servers and Cubes; resizable up while running.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.ionos.com/cloud/backup-and-storage/network-file-storage/overview.md",
+      "quote": "Multiple VMs from within the VDC can access the data simultaneously.",
+      "note": "Network File Storage (managed NFSv4.2 over private LAN), read-write; per-share client groups by IP network/host with squash modes.",
+      "checked": "2026-09-29"
+    }
   }
 }

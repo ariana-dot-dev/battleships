@@ -556,7 +556,15 @@
     "spend_limits": false,
     "mcp_server": true,
     "isolation": "cloud-hypervisor",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -640,5 +648,71 @@
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 9
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://www.koyeb.com/docs/run-and-scale/scale-to-zero",
+      "quote": "The Light Sleep state utilizes snapshotting to enable Instances to spin up significantly faster after scaling to zero, allowing for a 200 ms start time.",
+      "note": "Trigger: idle scale-to-zero (no inbound traffic for the idle period) with Light Sleep enabled; wake on next request. Memory included: engineering blog says pause_with_snapshot 'Saves the full VM state to disk' (https://www.koyeb.com/blog/scale-to-zero-wake-vms-in-200-ms-with-light-sleep-ebpf-and-snapshots). Opt-in; for sandboxes it is the SDK flag _experimental_enable_light_sleep (default is Deep Sleep, where the VM is discarded, 1-5 s cold start). Light Sleep is public preview, CPU only (not GPU). Free during preview.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://github.com/koyeb/koyeb-python-sdk/blob/HEAD/docs/sandbox.md",
+      "quote": "Captures the current state of the sandbox's filesystem (and optionally running processes for FULL type) so it can be restored later.",
+      "note": "Sandbox.snapshot(name, snapshot_type=FILESYSTEM|FULL); FULL includes running processes (memory). Sandbox.create_from_snapshot() / Sandbox.create(snapshot=...) boots new sandboxes from it (fork/template); Sandbox.template() declarative snapshot builder. Only in the Python SDK reference (experimental), not on koyeb.com docs; the koyeb.com 'Snapshots' page covers volume snapshots only. Snapshot price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://github.com/koyeb/koyeb-python-sdk/blob/HEAD/docs/sandbox.md",
+      "quote": null,
+      "note": "SDK reference exposes exec/launch_process/filesystem/expose_port/snapshot only; no method to start or stream an agent harness. Tutorials (Claude Agent SDK, Codex, Copilot CLI, Mistral Vibe) run agents inside sandboxes via generic exec. Koyeb MCP server and Agent Skills let agents drive Koyeb from outside, the opposite direction.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://github.com/koyeb/koyeb-python-sdk/blob/HEAD/docs/sandbox.md",
+      "quote": "`outbound_allowlist` - List of IPs/CIDRs allowed as outbound destinations;\n  all other outbound traffic is blocked. Bare IPs are normalized to\n  /32 (IPv4) or /128 (IPv6). Mutually exclusive with block_network.",
+      "note": "Also block_network=True (no internet). update_network_policy() changes it at runtime but triggers a redeployment (in-memory state lost). IP/CIDR only; no hostname entries (EgressPolicyError if an entry is not a valid IP/CIDR). JS SDK has examples/21_egress_policy.ts. Not documented on koyeb.com docs.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://github.com/koyeb/koyeb-python-sdk/blob/HEAD/docs/sandbox.md",
+      "quote": "`block_network` - If True, block all outbound network access from the sandbox",
+      "note": "The only network-policy knobs are block_network and an IP/CIDR outbound_allowlist; nothing at HTTP method/path/header level.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.koyeb.com/docs/build-and-deploy/exposing-your-service",
+      "quote": "Public: Whether the port is exposed publically. If unselected, the port will only be accessible to other Services running on Koyeb’s service mesh.",
+      "note": "Sandboxes: expose_port()/unexpose_port() choose the single public port (one at a time); optional TCP proxy; private service mesh (sandboxes excluded by default, enable_mesh). No IP allowlist for inbound documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/reference/secrets",
+      "quote": "You can attach a Secret to your Service by setting its value to an environment variable in the Service configuration.",
+      "note": "Koyeb Secrets are env vars (or registry credentials); no outbound credential-injecting proxy documented. sandbox_secret in the SDK is only executor authentication. No non-HTTP coverage.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.koyeb.com/docs/reference/volumes",
+      "quote": "Koyeb volumes are block storage devices that can be provisioned to provide persistent storage across deployments.",
+      "note": "Public preview, 1-10 GB, was/fra only, standard and GPU instances only (no eco), scale-of-one Services. Sandboxes are Services, but the sandbox SDK has no volume parameter, so attaching to a sandbox is via the Service API/console only (unverified for sandboxes).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/reference/volumes",
+      "quote": "At the moment, once a volume is attached to a Service, it cannot currently be detached except if the Service is deleted. The Volume can’t be attached to another Service.",
+      "note": "Also 'Volumes currently only work with Services with a scale of one.' Local, single-machine block device, read-write.",
+      "checked": "2026-09-29"
+    }
   }
 }

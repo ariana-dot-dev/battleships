@@ -168,7 +168,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -208,5 +216,65 @@
     "sources": [
       "https://docs.tinfoil.sh/containers/limits.md"
     ]
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.tinfoil.sh/containers/overview",
+      "quote": "The enclave filesystem is a ramdisk. You can write to it, but everything is lost when the container restarts or redeploys.",
+      "note": "Stop keeps only saved settings and attached encrypted volumes ('saved settings and persistent volumes remain'); no state capture.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.tinfoil.sh/tutorials/coding-agents",
+      "quote": null,
+      "note": "The coding-agents tutorial only points Cline/OpenCode/Hermes etc. at Tinfoil's private inference API; Tinfoil Containers is a long-running confidential-container host with no agent-harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.tinfoil.sh/containers/config-networking",
+      "quote": "`allowlist` | Outbound allowed only to the hostnames in `allow`. Everything else is blocked.",
+      "note": "Default: 'By default, containers cannot reach the internet or other containers.' Named networks with egress closed/allowlist/open (open still blocks RFC1918/link-local). Hostnames only, no wildcards, no IPs; re-resolved ~60 s; IPv4 only. Enforced by the enclave runtime from the measured, public tinfoil-config.yml (needs cvm-version >= 0.10.0), outside the workload container. Per-deployment config, not changeable at runtime.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.tinfoil.sh/containers/config-networking",
+      "quote": "Only listed HTTP paths are reachable from outside the enclave. Any request to an unlisted path is rejected with a 404 error code.",
+      "note": "shim.upstream-port + shim.paths (wildcards) + optional shim.origins (CORS) choose what is exposed; cvm-network.inbound-ports for admin SSH. But 'No inbound private networking. Your container is reachable over the public internet. You'll have to build in appropriate authentication yourself.' - no IP allowlist or built-in auth.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.tinfoil.sh/containers/config-runtime",
+      "quote": "Containers start with zero Linux capabilities. | Add only what you need with `cap_add`.",
+      "note": "Docker containers inside an AMD SEV-SNP / Intel TDX confidential VM. cap_add can grant capabilities (NET_ADMIN not named explicitly), which would allow iptables in the container's network namespace; no-new-privileges always on. Not tested.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.tinfoil.sh/containers/private-secrets",
+      "quote": "enclave injects them into your container as environment variables.",
+      "note": "Standard secrets live in AWS Secrets Manager and are injected at deploy time as env vars; private secrets are released by your own keyserver after attestation, also as env vars. No credential-injecting egress proxy. (tinfoil-proxy / local-proxy is a client-side attestation proxy for inference, unrelated.)",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.tinfoil.sh/containers/encrypted-volumes",
+      "quote": "A managed volume is a disk owned by your organization. It lives on one host, attaches to one\ncontainer instance at a time, and survives container deletion.",
+      "note": "Encrypted block volumes (tinfoil volume create --size, fixed size, bound to one host), key held by the deployment owner; attach/detach while stopped. Quote has a line break in the source markdown.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.tinfoil.sh/containers/encrypted-volumes",
+      "quote": "a filesystem attached to one enclave at a time",
+      "note": "Block volumes are single-attach. Shared data only via the open-source buckets sidecar (S3-compatible API, client-side AES-GCM encryption into your own S3 bucket, 'reachable from any number of enclaves') - object storage over an API, not a mount.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -136,7 +136,7 @@
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -173,7 +173,15 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -221,5 +229,71 @@
     "applied": 18,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://kedge.dev/docs/volumes",
+      "quote": "`idle-suspend` makes an idle machine cheap without removing it. Set a delay and a machine with no inbound traffic pauses in place, keeping its address, volume, and host; the next packet restarts it. A paused machine bills no CPU and no memory.",
+      "note": "Trigger: idle (no inbound traffic + no guest CPU) on persistent machines with idle-suspend set; workspaces 'sleep after ten quiet minutes by default and wake on the next request' (docs/agents). Running processes appear preserved (an in-flight request 'resumes within seconds and the request completes slowly'; clock stepped forward on wake), i.e. memory included, though docs say 'pauses in place' rather than 'snapshot' and memory is not billed while paused. Pooled app instances instead restore from the deploy snapshot taken at listen() (not user state).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://kedge.dev/docs/cli",
+      "quote": "`kedge fork <app> [new-name]` — Copy an app and its current state",
+      "note": "Only as fork: CLI `kedge fork` / REST POST /apps/{appID}/fork copies a running app's current state (shared.db, /shared/, 'may reuse its snapshot'); volume docs mention 'ancestors still used by forks'. No named snapshots / restore-in-place API; no evidence the fork carries live memory (the reused snapshot is the deploy snapshot). Not documented for workspaces or held sandboxes.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://kedge.dev/docs/agents",
+      "quote": "kedge workspace run design-lab \"add keyboard navigation\"\nkedge workspace ps design-lab\nkedge workspace stop design-lab <execution>\nkedge workspace archive design-lab <execution>",
+      "note": "CLI/SSH (not in the public REST OpenAPI): `kedge agent [--app] [--verbose|--claude|--codex] prompt` starts Kedge's built-in app agent, Claude Code or Codex in a persistent workspace; follow-ups at the `>` prompt; `--verbose` streams tool activity; /agents lists sessions across workspaces; subscription sessions detach and keep running; browser session UI and provider remote-control. Harnesses: Kedge built-in agent, Claude (Claude Code), Codex.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://kedge.dev/docs/sandboxes",
+      "quote": "Sandboxes have outbound network access by default. `-no-network` on `kedge eval` or `kedge sandbox` leaves the VM with only a loopback interface.",
+      "note": "Only an all-or-nothing no-internet mode for disposable sandboxes (anonymous sandboxes always networkless). No domain/IP allowlist documented for sandboxes, apps, machines or workspaces; 'custom network drivers' not exposed (docs/network).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://kedge.dev/docs/network",
+      "quote": "In Compose, `ports` publishes a service there and `expose` keeps it private. Services with persistent volumes are private by default",
+      "note": "Also app authentication policy 'protects any static site, HTML app, handler, or service at ingress' (docs/security); private account network ('Other accounts and the public internet cannot initiate traffic'); workspaces have a private session URL. Held sandboxes have no ingress. No IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each instance/sandbox/workspace is a 'hardware-isolated VM with its own Linux kernel' (docs/security); root inside workspaces not explicitly documented (GitHub runner user has passwordless sudo).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://kedge.dev/docs/security",
+      "quote": "Keep secrets out of source with `kedge env` or Compose secrets. Generated secrets are stored outside Git and mounted under `/run/secrets`",
+      "note": "Secrets are env vars or files mounted in the guest. Coding-agent sessions can use Kedge's hosted model (separate $2/month allowance) or a connected Claude/Codex subscription, but no credential-injecting egress proxy is documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://kedge.dev/docs/volumes",
+      "quote": "A persistent volume is a private filesystem for software that expects local disk, such as Postgres, Redis, or a development environment. Attaching one makes the service stable",
+      "note": "`--volume /path --volume-size 20GiB`; one volume per machine ordinal ('each volume has one writer'); retained on scale-down/app deletion; $0.05/GiB-month written data.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://kedge.dev/docs/shared-data",
+      "quote": "Both mount points refer to the same replicated file tree. One service may currently mount one shared volume path.",
+      "note": "Read-write: every app's `/shared/` (replicated POSIX tree, byte-range last-writer-wins, no advisory locks/mmap/O_DIRECT) is mounted by all instances/services/regions; Compose `x-kedge: {shared: true}` mounts it elsewhere. Scoped to one app. Persistent block volumes themselves are single-writer.",
+      "checked": "2026-09-29"
+    }
   }
 }

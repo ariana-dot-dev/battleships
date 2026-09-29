@@ -119,7 +119,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -137,7 +137,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -149,7 +149,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -188,5 +195,70 @@
     "applied": 11,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.archal.ai/api/limits-usage",
+      "quote": "Billing stops after durable teardown intent, expiry, or a policy stop. Physical runtime deletion can complete afterward.",
+      "note": "Not a machine product. Sandboxes (simulated SaaS API environments) are torn down on TTL/idle/hard expiry; nothing documents saving state automatically on expiry. Diff uses a caller-held 'before', 'not with a hidden snapshot'.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.archal.ai/integrations/coding-agents",
+      "quote": "Keep Braintrust, LangSmith, custom graders, traces, and test runners in place. Archal provides stateful provider environments. Your coding agent connects those environments to the harness you already trust.",
+      "note": "Section titled 'Archal does not own the harness'; intro: 'Archal does not replace your agent harness, model, evaluator, observability tool, or CI system.' Agent runs outside Archal; setup is via a pasted prompt + 5 repo-local skills for Claude Code/Codex/Cursor/Devin, plus a hosted lifecycle MCP (https://archal.ai/api/mcp) - not a harness-driving API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.archal.ai/concepts",
+      "quote": "A stateful environment represents one external service inside the sandbox. It keeps data across requests and exposes provider-shaped REST, MCP, or both.",
+      "note": "Not applicable: no customer code runs inside an Archal sandbox (OpenAPI has no exec/shell/network endpoints), so there is no outbound traffic to control.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.archal.ai/concepts",
+      "quote": "A stateful environment represents one external service inside the sandbox. It keeps data across requests and exposes provider-shaped REST, MCP, or both.",
+      "note": "Not applicable (no customer code executes in the sandbox). Only a 'configurable provider-call ceiling per sandbox' of 100,000 and request rate limits exist.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.archal.ai/security",
+      "quote": "Each ready environment receives a different short-lived provider credential. Give the application under test only the returned `credentials.headers` map. The data plane rejects workspace keys and credentials scoped to another sandbox or environment.",
+      "note": "Only in the sense that each environment's apiBaseUrl/mcpUrl endpoint requires a sandbox+environment-scoped, expiring credential; there are no customer ports, IP allowlists or firewall rules.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.archal.ai/sandboxes/overview",
+      "quote": "Customers are billed for ready environments, not the number of underlying runtime containers.",
+      "note": "No customer-accessible machine, shell or root: the API surface is lifecycle + state + provider-shaped REST/MCP only (checked OpenAPI paths).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.archal.ai/security",
+      "quote": "Never send a production provider credential to Archal.",
+      "note": "No real credentials are involved at all: Archal issues fake, short-lived scoped provider credentials for its simulated services; the TS client 'strips caller-supplied provider authorization and applies the scoped headers from the sandbox connection'. Not a proxy to real APIs.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.archal.ai/sandboxes/overview",
+      "quote": "State persists across provider calls until you load replacement state, reset, or destroy the sandbox. A second sandbox begins from its own declared state and cannot read the first sandbox.",
+      "note": "No volumes/storage concept; only per-environment JSON/SQL state (max 2 MiB state input).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.archal.ai/concepts",
+      "quote": "A sandbox is an isolated runtime containing one or more stateful environments. Its state and credentials do not cross into another sandbox.",
+      "note": "No shared storage across sandboxes by design; several environments within one sandbox share a lifecycle, not a filesystem.",
+      "checked": "2026-09-29"
+    }
   }
 }

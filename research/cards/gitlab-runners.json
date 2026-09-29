@@ -484,7 +484,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": false,
     "private_network": false,
     "self_host": true,
@@ -515,7 +515,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": "ai-only",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -561,5 +569,71 @@
     "applied": 18,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
+      "quote": "Ephemeral runner VMs serve a single job and are deleted right after the job execution.",
+      "note": "Single-job ephemeral GCE VMs, 3 h job timeout; state is only carried between jobs via CI cache/artifacts.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
+      "quote": "GitLab sends the command to remove the ephemeral runner VM to the Google Compute API immediately after the CI job completes.",
+      "note": "No VM snapshot/checkpoint facility for hosted runners; you control only the container image (Linux) and CI cache/artifacts.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.gitlab.com/user/duo_agent_platform/agents/external/",
+      "quote": "Then, in a project issue, epic, or merge request, you can mention that external agent in a comment or discussion and ask the agent to complete a task.",
+      "note": "GitLab Duo Agent Platform (Premium/Ultimate): foundational/custom flows and external agents (tested: Claude Code, OpenAI Codex, Amazon Q, Gemini) run as CI/CD jobs on runners (GitLab-hosted by default) via the GitLab Duo CLI executor; triggered by @mention, trigger events (MR created/ready, work item created...) or UI; progress/logs in AI > Sessions; follow-ups by mentioning again; external agents can also be added via API. It is issue/MR-driven rather than a raw prompt/stream SDK; REST API page for workflows was Cloudflare-blocked (not verified).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
+      "quote": "Firewall rules only allow outbound communication from the ephemeral VM to the public internet.",
+      "note": "Fixed GitLab firewall, no user-configurable egress rules for hosted runners. Exception: Duo Agent Platform flows can use the 'execution environment sandbox' (SRT) with agent-config.yml network_policy.allowed_domains (domain level), but that is enforced inside the job container, only for Duo flows.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
+      "quote": "Inbound communication from the public internet to the ephemeral VM is not allowed.",
+      "note": "No port exposure at all (fixed deny-inbound, VMs cannot talk to each other; only the runner manager connects in); nothing to configure.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.gitlab.com/ci/runners/hosted_runners/linux/",
+      "quote": "Runners with any of the saas-linux-<size>-<architecture> tags are configured to run in privileged mode",
+      "note": "Dedicated GCE VM per job with passwordless sudo ('The virtual machine where your job runs has sudo access with no password'); Linux jobs run in privileged Docker containers (docker+machine), so iptables/nftables in the job's netns should work. Not explicitly documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://docs.gitlab.com/user/duo_agent_platform/agents/external/",
+      "quote": "External agents use GitLab-managed credentials through an AI Gateway.",
+      "note": "Only for Duo external agents (Claude and Codex): a GitLab AI Gateway token (AI_FLOW_AI_GATEWAY_TOKEN) is injected instead of an Anthropic/OpenAI key. Ordinary CI/CD jobs get secrets as CI/CD variables (env vars/files) or via OIDC ID tokens to external secret managers; no arbitrary-HTTP credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
+      "quote": "The storage is shared by the operating system, the container image with pre-installed software, and a copy of your cloned repository.",
+      "note": "Disk fixed per machine type (30-200 GB Linux); no attachable volumes for hosted runners.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
+      "quote": "The hosted runners share a distributed cache stored in a Google Cloud Storage (GCS) bucket.",
+      "note": "Only a shared CI cache (archive upload/download, 5 GB max, 14-day expiry) — not a mounted shared filesystem.",
+      "checked": "2026-09-29"
+    }
   }
 }

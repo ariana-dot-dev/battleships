@@ -1429,7 +1429,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": false,
@@ -1441,7 +1441,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1485,5 +1494,79 @@
     "applied": 2,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/compute/docs/instances/suspend-resume-instance",
+      "quote": "If you want to keep your Compute Engine instance around, but you don't want to incur charges for it when the instance isn't in use, then you can suspend the instance.",
+      "note": "Suspend (memory saved) is a user-initiated operation; stopping a VM just keeps its persistent disks (that is persistent_disk). No idle auto-stop with state capture. Scheduled snapshot policies (periodic disk backups) exist but do not count.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/compute/docs/disks/create-snapshots",
+      "quote": "You can create snapshots from disks even while they are attached to running instances.",
+      "note": "Disk-only (no memory). Disk snapshots restore to new disks / boot new VMs; machine images ('stores all the configuration, metadata, permissions, and data from multiple disks of a Compute Engine instance') clone whole VMs. Memory state only via suspend/resume of the same VM ('Suspending an instance preserves the instance and migrates the contents of the instance's memory to storage'), not forkable.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS VMs: no first-party API to drive an agent harness inside the VM (only generic OS Login/SSH, guest attributes, startup scripts).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/firewall/docs/firewall-policies-rule-details",
+      "quote": "A list of one or more destination domain names. For more information, including how domain names are converted to IP addresses, see FQDN objects .",
+      "note": "VPC firewall rules / Cloud NGFW firewall policies: 'Each firewall rule applies to incoming (ingress) or outgoing (egress) connections' with IP/CIDR/port and deny-all egress possible; destination FQDN objects (domain level) in network firewall policies (Cloud NGFW, FQDN/geo/threat-intel objects are a paid NGFW Standard feature). Enforced by the VPC fabric outside the VM. Secure Web Proxy adds default-deny hostname/URL allowlists.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/secure-web-proxy/docs/cel-matcher-language-reference",
+      "quote": "Application attributes, described by ApplicationMatcher , apply to application attributes such as request headers, request method, and request path.",
+      "note": "Secure Web Proxy (separate paid managed egress proxy; 'default deny-all setting that blocks all outbound traffic until you explicitly allow it') with TLS inspection for HTTPS. Clients use it as explicit proxy or via next-hop routing; pair with VPC egress deny rules so a root agent cannot bypass it.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/firewall/docs/firewalls",
+      "quote": "Each firewall rule applies to incoming (ingress) or outgoing (egress) connections, not both.",
+      "note": "VPC firewall rules / firewall policies with source CIDRs, tags, service accounts, FQDN/geo objects; VMs can be private (no external IP) behind IAP / load balancers.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM with root; nftables/iptables work in the guest.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/secret-manager/docs/overview",
+      "quote": "Secret Manager is a secrets and credential management service that lets you store and manage sensitive data such as API keys, usernames, passwords, certificates, and more.",
+      "note": "Secrets are fetched into the VM (Secret Manager API, metadata-server service-account tokens). No first-party credential-injecting egress proxy for Compute Engine (Secure Web Proxy filters but does not inject credentials).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/compute/docs/disks/add-persistent-disk",
+      "quote": "This document explains how to create a blank, non-boot zonal Persistent Disk volume and attach it to your VM.",
+      "note": "Extra Persistent Disk / Hyperdisk data volumes attach to a running or stopped VM (block storage).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/compute/docs/disks/sharing-disks-between-vms",
+      "quote": "With multi-writer mode , multiple instances can read and write to the same disk.",
+      "note": "Persistent Disk / Hyperdisk read-only-many and multi-writer (READ_WRITE_MANY, same zone; needs a cluster-aware FS). Filestore managed NFS gives multi-reader/multi-writer shared filesystems; Cloud Storage FUSE bucket mounts also possible.",
+      "checked": "2026-09-29"
+    }
   }
 }

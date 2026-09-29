@@ -210,7 +210,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "guest_firewall": true,
+    "secret_proxy": "any-http"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -249,5 +254,51 @@
     "applied": 19,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 9
+  },
+  "feature_evidence": {
+    "own_agent_api": {
+      "value": true,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/packages/api/src/routes/conversations.ts",
+      "quote": "// POST /conversations — start a new exchange with a hosted agent.",
+      "note": "Harness = OneCLI's own hosted agent (bundled 'jcode' runtime behind the vendor-neutral @onecli/agent-protocol harness interface in the sandbox supervisor). Bearer-token REST routes: POST /conversations, GET /conversations?agentId=, GET /:id/events (transcript), GET /:id/stream (SSE live tail), POST /:id/turns, POST /:id/messages (follow-ups), POST /:turnId/abort. Documented UX is dashboard/Slack chat; these routes are not in the public API reference (source only). Claude Code/Codex/Cursor are not driven: 'onecli run -- claude' only wraps a local agent with gateway proxy settings.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/packages/api/src/routes/conversations.ts",
+      "quote": "// POST /conversations — start a new exchange with a hosted agent.",
+      "note": "Harness = OneCLI's own hosted agent (bundled 'jcode' runtime behind the vendor-neutral @onecli/agent-protocol harness interface in the sandbox supervisor). Bearer-token REST routes: POST /conversations, GET /conversations?agentId=, GET /:id/events (transcript), GET /:id/stream (SSE live tail), POST /:id/turns, POST /:id/messages (follow-ups), POST /:turnId/abort. Documented UX is dashboard/Slack chat; these routes are not in the public API reference (source only). Claude Code/Codex/Cursor are not driven: 'onecli run -- claude' only wraps a local agent with gateway proxy settings.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://onecli.sh/docs/how-it-works.md",
+      "quote": "Each agent lives in its own sandbox, and the only way out is the gateway, which checks every request against your policy and injects the credentials granted to that agent.",
+      "note": "Policy rules with network targets by hostPattern (plus app/connection/secret targets), first-match, each level ends in a Default Rule (Allow or Block) so default-deny is possible; org rules are a ceiling agents/projects cannot loosen; also per-app host blocklists. Self-host runner: sandboxes join an internal Docker network 'that network has NO route out', gateway dual-homed (runner README), so non-HTTP egress is simply blocked. IP/CIDR rules not documented. External agents via 'onecli run' only get proxy env vars (not enforced).",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://onecli.sh/docs/guides/rules.md",
+      "quote": "a **network** pattern (`{\"kind\":\"network\",\"hostPattern\":\"api.example.com\",\"pathPattern\":\"/v1/*\",\"method\":\"POST\"}`).",
+      "note": "Host + path pattern + HTTP method, block/allow, per-agent rate limits (429), human approval holds, request-body conditions ('Conditions narrow a rule beyond its targets by inspecting the request body'), and per-tool rules for catalog apps. HTTPS inspected via MITM.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "OneCLI Cloud: 'One micro-VM per agent ... and root on that VM' (blog Why We Gave Every Agent a Computer), own kernel. Self-hosted Docker runner: sandboxes run with CapDrop ALL, no-new-privileges and default seccomp (runner README), so iptables/nftables would NOT work there.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://onecli.sh/docs/how-it-works.md",
+      "quote": "If allowed, the gateway matches the target host and path against the credentials **granted to that agent**, decrypts the match, and injects it as a header (e.g. `Authorization: Bearer ...`) or query parameter.",
+      "note": "Core product: Rust MITM gateway; generic secrets for any host pattern (header or query-param injection, value templates), plus anthropic/openai types, OAuth app connections with token refresh (40+ apps), AWS SigV4 request signing, GitHub tokens into API calls and git-over-HTTPS (Basic auth), Bitwarden/1Password vault pull. Agents see placeholders ('onecli-managed' stubs). Non-HTTP (databases, SSH, raw git://) not covered; in sandboxes such traffic has no route out. Also usable standalone for external agents via 'onecli run' or SDK-injected Docker proxy config.",
+      "checked": "2026-09-29"
+    }
   }
 }

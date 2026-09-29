@@ -262,7 +262,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -304,5 +312,64 @@
     "applied": 19,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 10
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.hyperbolic.ai/docs/on-demand/storage-and-ports.md",
+      "quote": "Onboard storage is erased when the instance is terminated. Always save important data to persistent storage or external services before terminating an instance.",
+      "note": "No stop/pause state exists (API offers create, reboot, terminate only); nothing is checkpointed. Onboard storage survives only a platform reboot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://www.hyperbolic.ai/docs/on-demand/storage-and-ports.md",
+      "quote": "Since onboard storage is erased on termination, implement appropriate backup strategies",
+      "note": "No snapshot/image feature anywhere in llms-full.txt or the public OpenAPI 3.1 spec (0 occurrences of 'snapshot'); docs recommend rsync to a persistent volume or aws s3 sync. False rather than null because the complete public API surface is enumerated and has no such endpoint.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain GPU VM / bare-metal rental; public API covers rentals, storage volumes, SSH keys, balance. No agent/harness product.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.hyperbolic.ai/docs/on-demand/storage-and-ports.md",
+      "quote": "Inbound ports on your instance's public IP are closed by default except SSH. When you launch an instance, add the ports you need in the port configuration field of the launch form.",
+      "note": "Port-level only (API field customPorts, max 20 ports, at creation). After launch, port changes go through support ('editing ports on a running instance is on the roadmap'). No IP-source allowlists or auth'd URLs documented; port 22 always open for platform SSH.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VMs and bare-metal servers with sudo as ubuntu (docs use sudo mkfs/mount); iptables/nftables should work. Not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secrets feature at all: raw VM/bare metal accessed by SSH key; any credential you need must be placed on the machine yourself.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.hyperbolic.ai/docs/on-demand/storage-and-ports.md",
+      "quote": "Every GPU instance comes with onboard storage included, plus the option to attach persistent storage volumes.",
+      "note": "Network-attached block volumes, 100 GB-10 TB, up to 1,000 MB/s, hourly charge (rate varies by region, shown in console), select regions only; survive termination; attach/detach via console or API (POST /v2/on-demand/storage-volumes/attach).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://www.hyperbolic.ai/docs/on-demand/storage-and-ports.md",
+      "quote": "Shared between multiple instances (read-only mode)",
+      "note": "Read-only when shared (attach API takes an array rentalIds). Read-write shared storage across a cluster is a custom request via support/sales ('shared storage across a cluster — email support@hyperbolic.ai').",
+      "checked": "2026-09-29"
+    }
   }
 }

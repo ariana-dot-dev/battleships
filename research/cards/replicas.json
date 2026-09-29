@@ -231,7 +231,13 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -266,5 +272,50 @@
   },
   "audit_2026_09_29": {
     "reviewed": 21
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.replicas.dev/features/workspaces/overview",
+      "quote": "Workspaces sleep after one hour without activity. Sending a message wakes a sleeping workspace automatically and resumes its previous branch and agent session.",
+      "note": "Trigger: 1 h inactivity (also force-sleep, automation sleep-on-completion). Sleeping = 'Compute is paused and no workspace charges accrue.' Memory appears included: same page says the desktop and its processes 'survive sleep on the default pause mode.' Sleeping workspaces archive after 7 days (still paused) and are deleted after 30 days of archive inactivity. Underlying pause mechanism (memory snapshot vs. suspended VM) is not described in detail.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.replicas.dev/api-reference/environments/restore-warm-pool-snapshot",
+      "quote": "Creates a new warm-pool generation from a retained snapshot without rerunning the warm hook.",
+      "note": "No user-facing API/CLI to snapshot or fork an individual workspace. Only (a) force-sleep/archive of the same workspace and (b) platform-managed warm-pool filesystem snapshots produced by an environment's warm hook, which can be restored to seed new workspaces (template-like, but not taken whenever you want of a running workspace). 'Fork' in docs refers to chat/conversation forking between harnesses, and Slack 'Fork task' starts a fresh workspace with thread context.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.replicas.dev/api-reference/replica/create-replica",
+      "quote": "Creates a new replica in your organization and sends an initial message to the coding agent.",
+      "note": "REST API (POST /v1/replica with coding_agent, POST /v1/replica/{id}/messages follow-ups, GET /v1/replica/{id}/events SSE stream, read-history, list/create chats, list org conversations), plus CLI, MCP server and automations. Harnesses: Claude Code, Codex, Cursor, Muse Code, Opencode, Pi, Relay (also Kimi Code / fx per changelog). This is the core product (background coding agent).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.replicas.dev/features/cli",
+      "quote": "Require Replicas login cookies before the preview can be accessed.",
+      "note": "Ports are exposed only when registered (replicas preview create/add <port>); previews are public URLs with random hashes by default, optionally --authenticated (Replicas login required). Desktop viewer is always an authenticated preview. No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each workspace is described as 'an isolated virtual machine'; sudo is available (docs use 'sudo service docker start') and Docker networks work, implying root + CAP_NET_ADMIN in the guest. nftables/iptables not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.replicas.dev/features/plugins",
+      "quote": "Plugins give workspace agents access to external apps without adding an MCP server or exposing provider credentials.",
+      "note": "Partial / closest analogue: a server-side 'Replicas gateway' keeps credentials for Slack, Linear, Sentry and a curated catalog of 107 plugins (Stripe, Vercel, Modal, E2B, PlanetScale, etc., many via Composio) out of the workspace; agents call them through the @replicas/sdk (replicas.slack.call, replicas.plugins.execute), not a transparent HTTP proxy, and you cannot register arbitrary hosts. Coding-agent credentials (Claude OAuth / API keys etc.) and environment variables are delivered into the workspace (variables are decrypted and injected). Workspace identity (OIDC, 15-min JWTs minted inside the workspace) is an alternative to stored cloud keys, not a proxy. Static egress credential is held in workspace memory. So not 'any-http' and not 'ai-only'.",
+      "checked": "2026-09-29"
+    }
   }
 }

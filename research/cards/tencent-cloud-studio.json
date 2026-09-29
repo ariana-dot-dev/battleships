@@ -207,7 +207,11 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": null,
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_auto": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -238,5 +242,35 @@
     "applied": 9,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://ide.cloud.tencent.com/docs/guide/code_editing/basic_operations/auto-shutdown/",
+      "quote": "超过 24 小时的连续运行，须在到期前重新进入空间续设时长，否则任务将随到期关机而中断。",
+      "note": "Translation: 'continuous runs over 24 h must renew the timer before expiry, otherwise the task is interrupted by the shutdown.' Auto-shutdown (default 1 h, max 24 h) and closing all IDE tabs (released after ~10 min) stop the workspace and kill running processes; only the disk persists: API intro says '工作空间休眠或关闭后仍保留存储资源，删除后才会释放' (storage kept after sleep/stop until deletion, https://cloud.tencent.com/document/api/1039/94098). That is persistent_disk, not a snapshot; no memory checkpoint documented. Old-version free high-performance (GPU/HAI) workspaces idle >30 days after last shutdown are released and data destroyed (https://cloud.tencent.cn/document/product/1039/118036); old-version workspaces with no activity for 6 months may be purged.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://cloud.tencent.com/document/api/1039/94098",
+      "quote": "您可以调用 API 对 Cloud Studio 的工作空间进行管理，例如创建、修改、停止或查询工作空间等。",
+      "note": "Translation: 'You can use the API to manage Cloud Studio workspaces, e.g. create, modify, stop or query them.' The API overview (94107) lists only 9 workspace-management actions; nothing starts/streams an agent. CodeBuddy (IDE plugin, Craft agent) and CodeBuddy Code CLI ('codebuddy -p', '-c', '-r <session>') are preinstalled inside the workspace (500 credits/month), usable only from the in-browser IDE/terminal; that is agent_harnesses, not a harness API. CreateWorkspace Lifecycle init/start/destroy shell hooks are generic commands.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://ide.cloud.tencent.com/docs/guide/code_editing/productivity_plugin/port-plug/",
+      "quote": "四、端口访问权限设置​\n你可以切换端口链接的可访问范围：\n公开（默认）：链接可被外部访问（需服务已启动），适合对外展示。\n仅自己可见：仅当前账号可访问（需服务已启动），适合隐私场景。",
+      "note": "Translation: 'Port access permission: Public (default) - link reachable externally; Only me - only the current account can access.' Per-port toggle on the HTTPS preview URL https://{spacekey}--{port}.{region}.cloudstudio.club. HTTP/WebSocket only; TCP/UDP forwarding and SSH not supported. App-level sharing: collaborators-only vs everyone links; CreateWorkspaceToken API issues temporary workspace tokens with policy workspace-run-only or all. No IP allowlist.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://cloud.tencent.com/document/api/1039/94096",
+      "quote": "环境变量. 会被注入到工作空间中",
+      "note": "Translation: 'Environment variables, injected into the workspace' (CreateWorkspace Envs). Secrets are plain env vars; the data-migration guide has users put COS SecretId/SecretKey directly into coscmd config inside the workspace. No credential-injecting proxy documented; no non-HTTP coverage.",
+      "checked": "2026-09-29"
+    }
   }
 }

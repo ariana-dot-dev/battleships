@@ -598,7 +598,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -617,7 +617,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -629,7 +629,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -671,5 +680,79 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.kakaocloud.com/en/service/bcs/vm/how-to-guides/vm-manage-instance",
+      "quote": "Stop the instance (stop)",
+      "note": "Stop / Shut down (shelve) just power the VM off; volumes persist (persistent_disk), no memory checkpoint on stop is documented. Snapshot Schedules can create volume snapshots on a cron-like cycle with retention ('automatically create and delete snapshots of the current state of a volume according to a configured cycle') - that is scheduled backup, not stop-triggered.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.kakaocloud.com/en/service/bcs/vm/how-to-guides/vm-manage-snapshot",
+      "quote": "You can create a new snapshot from the current state of a volume.",
+      "note": "Block-volume snapshots (full or incremental) via console and OpenAPI (POST /volumes/:volume_id/snapshots); restore creates a NEW volume ('스냅샷을 복원하여 신규 볼륨을 생성합니다', openapi/bcs/restore-snapshot). Custom images from an instance's root volume can boot new instances ('You can create an image from the current state of an instance. This custom image can then be used when creating an instance.', vm-manage-image). Disk only, no memory.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS VM; the Beyond Compute Service OpenAPI covers instance/volume/image/network operations only. No agent-harness API found.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.kakaocloud.com/en/service/networking/vpc/main/vpc-security-group",
+      "quote": "each rule controls the traffic based on protocols, source or destination CIDR ranges, and port numbers",
+      "note": "Security groups (stateful, allow-only, 'deny all traffic that is not explicitly allowed') with outbound rules: API direction [ingress, egress], remote_ip_prefix CIDR, protocol TCP/UDP/ICMP/ALL, port range. No hostname/FQDN rules documented.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.kakaocloud.com/en/service/networking/vpc/main/vpc-security-group",
+      "quote": "The protocol for the rule (e.g., TCP, UDP, ICMP, ALL)",
+      "note": "Security-group rules are L3/L4 only (protocol, CIDR, port); no HTTP-level egress proxy or firewall product found in the docs sitemap.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.kakaocloud.com/en/service/networking/vpc/main/vpc-security-group",
+      "quote": "KakaoCloud Security Groups act like virtual firewalls, allowing you to control the incoming and outgoing traffic at the instance level.",
+      "note": "Inbound rules by protocol/source CIDR/port; public IP is optional (associate/disassociate) and instances can stay private in the VPC.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM/OpenStack-style VM with root (sudo shown in volume guides); nftables/iptables inside the guest should work.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.kakaocloud.com/en/service/security/secrets-manager",
+      "quote": "secret and secret value management, and API usage",
+      "note": "Only a Secrets Manager (API to store/fetch secret versions) that the workload reads itself; no credential-injecting egress proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.kakaocloud.com/en/service/bcs/vm/how-to-guides/vm-manage-volume",
+      "quote": "To use the volume properly, you must attach the volume to the instance in the console",
+      "note": "Block Storage volumes attach/detach; per-instance attach limits by instance family.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.kakaocloud.com/en/service/storage/file-storage/file-storage-overview",
+      "quote": "Multiple servers and applications can access the same file system at the same time",
+      "note": "File Storage (NFS; Infinite file system also SMB), read-write, NFS IP-based access control. Block volumes themselves: no multi-attach documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

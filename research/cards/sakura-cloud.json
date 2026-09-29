@@ -319,7 +319,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -338,7 +338,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -350,7 +350,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -394,5 +403,79 @@
     "applied": 16,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://manual.sakura.ad.jp/cloud/server/power.html",
+      "quote": "サーバの電源ボタン押下をエミュレートします。",
+      "note": "Plain KVM IaaS VM: shutdown is an ACPI power-off; the disk simply persists. Scheduled disk backups exist (自動バックアップ, '定期的なデータのバックアップ') but that is not snapshot-on-stop.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://manual.sakura.ad.jp/cloud/storage/archive.html",
+      "quote": "しかし、「ディスク」、「アーカイブ」、「VPSディスク」を選択することで、作成完了時にそれぞれ指定したソースのディスクイメージがあらかじめ格納された状態のアーカイブを作成することが可能です。",
+      "note": "Disk image only (no memory). Archive ('マイアーカイブ') from a disk, on demand via control panel/API; can be the source for new disks/servers, including in other zones. Taking it from a running server's disk may be inconsistent (stop recommended). Also a server 'clone' function (copies the first disk only).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "General IaaS VM; no agent-harness API in the server/compute manual. (Sakura AI Engine is a separate LLM API, not a harness driver.)",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://manual.sakura.ad.jp/cloud/network/vpn-router/vpn-firewall.html",
+      "quote": "インターフェースごとに受信/送信するパケットを指定したルールに基づいてフィルタリング",
+      "note": "Outbound (送信方向) filtering by protocol / source-destination IP-CIDR / ports, via the VPC router appliance (servers must sit on a switch behind it; separate paid appliance). The per-NIC packet filter is inbound-only. No domain rules.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://manual.sakura.ad.jp/cloud/network/vpn-router/vpn-firewall.html",
+      "quote": "フィルタリング対象のプロトコルをTCP / UDP / ICMP / IPから選択",
+      "note": "Firewall rules are L3/L4 only (protocol, networks, ports, allow/deny).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://manual.sakura.ad.jp/cloud/network/packet-filter.html",
+      "quote": "サーバに搭載される仮想NICに着信するパケットを、指定した条件(TCPやUDPなどのプロトコル、送信元ネットワーク、宛先ポートなど)でフィルタリングする機能です。サーバ内のファイアウォールなどの設定によらず、クラウドコントロールパネル上で簡単にパケット制限を行うことができます。",
+      "note": "Per-NIC inbound packet filter (source IP/CIDR, ports, protocol, allow/deny) plus VPC router inbound rules; private switches for non-public servers.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM with root/Administrator; manual even references in-server firewalls ('サーバ内のファイアウォール').",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://manual.sakura.ad.jp/cloud/appliance/secretsmanager/index.html",
+      "quote": "シークレットマネージャは、お客様のシークレット情報を安全に管理・保管するためのサービスです。",
+      "note": "Secrets Manager is an encrypted store read via API (secret enters the machine); no injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://manual.sakura.ad.jp/cloud/storage/disk.html",
+      "quote": "ディスクの接続や取り外しはサーバがシャットダウン状態の場合のみ行えます。また、1台のサーバに接続可能なディスクは最大3台となります。",
+      "note": "Additional block disks; attach/detach only while the server is shut down; max 3 disks per server (docs as read).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://manual.sakura.ad.jp/cloud/appliance/nfs/index.html",
+      "quote": "NFSサーバが持つ、大容量で複数クライアントからアクセスが可能であるメリットを活用した以下のような構成が可能です。",
+      "note": "First-party NFS appliance (NFSv3/v4) on a private switch, read-write, mounted by several servers (example: shared content storage for load-balanced web servers). Block disks themselves attach to one server.",
+      "checked": "2026-09-29"
+    }
   }
 }

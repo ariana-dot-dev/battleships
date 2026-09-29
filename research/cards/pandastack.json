@@ -172,7 +172,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": null,
@@ -186,7 +186,15 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -248,5 +256,78 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.pandastack.ai/docs/sandboxes/lifecycle/",
+      "quote": "Hibernation is automatic for persistent sandboxes. The server-side idle sweeper hibernates any persistent: true sandbox that's been idle for 5 minutes. Wake is implicit on the next API request.",
+      "note": "Trigger: 5 min idle, only for sandboxes with persistent:true. Hibernate 'dumps the sandbox's memory + disk to a snapshot' (memory included, running processes survive). Non-persistent sandboxes are killed at TTL (default 1 h), not snapshotted. Apps/DBs also scale to zero on idle.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.pandastack.ai/docs/sandboxes/snapshots-and-forks/",
+      "quote": "A snapshot captures a running sandbox's memory and device state, plus its disk, so you can create a new sandbox from it later with from_snapshot.",
+      "note": "Memory included; new sandboxes boot from it (from_snapshot), list/get/delete via API/CLI/SDK. Also fork (disk only, cold boot), fork-tree (memory+disk, 1-16 children, parent keeps running) and warm fork (REST only).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.pandastack.ai/docs/sdk/cli/",
+      "quote": "run a self-hosted Claude Managed Agents worker",
+      "note": "No PandaStack API to prompt/stream/resume an in-sandbox agent. The 'agent' template preinstalls claude, codex, opencode, amp, grok, gemini, copilot CLIs (agent_harnesses) driven via generic exec. 'pandastack cma' is a first-party worker that launches Anthropic's ant runner in claude-agent sandboxes for Claude Managed Agents, but prompts/events go through Anthropic's sessions API, not PandaStack's. Borderline; judged not a PandaStack harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.pandastack.ai/docs/security/egress-controls/",
+      "quote": "Beyond these, egress is open: there is no outbound allowlist, and guests can reach arbitrary hosts and ports.",
+      "note": "Only fixed platform blocks: VM-to-VM, link-local/metadata, Stratum mining ports (operator-configurable on self-host). The CMA page says 'you decide what the agent can reach' but no hosted control is documented.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.pandastack.ai/docs/security/egress-controls/",
+      "quote": "Beyond these, egress is open: there is no outbound allowlist, and guests can reach arbitrary hosts and ports.",
+      "note": "No egress policy layer of any kind on hosted; HTTP-level rules therefore absent.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.pandastack.ai/docs/faq/networking-and-egress/",
+      "quote": "The URL itself is the credential: anyone who has it can reach that port, and there is no separate token to revoke.",
+      "note": "Every listening port (up to 32) is automatically public at https://{port}-{sandbox-id}.pandastack.ai; the unguessable UUID is the only protection; no auth/IP allowlist/port selection. Apps get custom domains; DBs need TLS+password.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker microVM with its own kernel and root (sshd + sudo in templates); nftables/iptables inside the guest should work. Not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.pandastack.ai/docs/apps/env-and-secrets/",
+      "quote": "Secrets are decrypted only in the deploy worker and written to a 0600 file inside the sandbox that build/runtime source",
+      "note": "Secrets (apps) are env vars injected into the VM; 'Secrets are still visible to your own app's process at runtime'. Sandboxes get env vars via exec. No credential-injecting proxy documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.pandastack.ai/docs/volumes/overview/",
+      "quote": "A volume is a named ext4 image that lives on the host independently of any sandbox. Attach it to one or many sandboxes at create-time and mount it inside the guest like any other block device.",
+      "note": "ext4 virtio-blk, max 64 GiB each, up to 14 per sandbox, attach at create only; host-local (no cross-host staging yet). Quota Free 1 GiB / Pro 100 GiB / Team 2.5 TiB, then $0.15/GiB-month.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.pandastack.ai/docs/volumes/overview/",
+      "quote": "Read-only attach is safe across many sandboxes.",
+      "note": "Read-only multi-attach only. 'Writable attach is exclusive' (not enforced; multi rw corrupts ext4). Same host only.",
+      "checked": "2026-09-29"
+    }
   }
 }

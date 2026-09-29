@@ -752,7 +752,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -771,7 +771,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -783,7 +783,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -830,5 +839,79 @@
     "applied": 12,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.e2enetworks.com/docs/myaccount/node/features/snapshots/",
+      "quote": "Use this flow when you want to create an on-demand snapshot from a node",
+      "note": "No save-on-stop/idle behaviour documented; nodes are plain VMs whose disk persists. Optional 'Scheduled Snapshots' (\"Where supported, you can schedule snapshots for a node and selected attached volumes.\") and separate CDP Backups are time-based, not stop-triggered.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.e2enetworks.com/docs/myaccount/node/features/snapshots/",
+      "quote": "A snapshot is a point-in-time copy of node storage. Use snapshots when you need a restore point for node disks or attached volumes.",
+      "note": "Disk only (root disk + selected attached volumes), no memory. 'Snapshot Now' in console; snapshot can be 'Save as Image' and new nodes created from a saved image (fork/template). C3/SDC3/M3 etc. can Save Image while Running ('the node does not need to be powered off first'). Availability depends on node family; GPU nodes: 'no snapshots' per GPU index (Save Image instead).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain VM (MyAccount nodes); API covers node lifecycle only. No agent-harness API found in docs index. Not explicitly denied.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.e2enetworks.com/docs/myaccount/network/security_grp/",
+      "quote": "2. **Outbound Rule** – Defines which traffic is allowed to leave your resource.",
+      "note": "Security Groups (E2E-managed, applied 'before traffic reaches the node operating system'); rules by protocol (ALL/TCP/UDP), port list, IPv4 CIDR/any/VPC. No hostnames. 'At least one inbound rule and one outbound rule must be configured.'",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.e2enetworks.com/docs/myaccount/network/security_grp/",
+      "quote": "The Security Group then decides which types of traffic are allowed, based on protocol, port numbers, and source IP addresses and blocks everything else.",
+      "note": "L3/L4 only on nodes. (ALB has L7 ACLs but that is ingress load balancing.)",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.e2enetworks.com/docs/myaccount/network/security_grp/",
+      "quote": "1. **Inbound Rule** – Defines which traffic is allowed to enter your resource (who can access your resource).",
+      "note": "Security group inbound rules by protocol/port/source IP (incl. 'My IP / Whitelist IP'); VPC private networking available.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.e2enetworks.com/docs/myaccount/node/troubleshoot/network/",
+      "quote": "confirm the node's OS firewall (iptables, firewalld, Windows Firewall) is not dropping the traffic.",
+      "note": "Full KVM VM with root; docs refer to the node's own OS firewall.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.e2enetworks.com/docs/myaccount/e2esecrets/",
+      "quote": "E2E Secrets Management provides a secure, dedicated secret store instance per customer team or application.",
+      "note": "Only a Vault-compatible (OpenBao) secret store the VM reads from; no credential-injecting egress proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.e2enetworks.com/docs/myaccount/storage/block_storage/intro/",
+      "quote": "E2E Volume provides block-level storage volumes to use with our compute nodes. These volumes can be attached to your computing nodes, making their data and file system available for your nodes.",
+      "note": "Supported on GPU, vGPU, SDC, SDC3, C3 and Windows (CW/WSDC) nodes only. Single-node attach implied (attach flow selects one node); not stated explicitly.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.e2enetworks.com/docs/myaccount/storage/sfs/intro/",
+      "quote": "It allows multiple E2E Nodes to access the same file system concurrently, enabling shared file storage across instances.",
+      "note": "Scalable File System (SFS) = managed NFS within a VPC, per-node ACL permissions (read-write; per-node permission choice). Also EPFS (Lustre parallel FS, 'Supports multiple simultaneous clients').",
+      "checked": "2026-09-29"
+    }
   }
 }

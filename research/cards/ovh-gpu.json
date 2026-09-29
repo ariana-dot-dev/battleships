@@ -605,7 +605,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -637,7 +637,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -678,5 +687,72 @@
     "applied": 26,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 17
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://help.ovhcloud.com/csm/en-public-cloud-compute-shelve-pause-instance?id=kb_article_view&sysparm_article=KB0051262",
+      "quote": "The data on your local disk will be stored in a snapshot automatically created once the instance is shelved. Data stored in the memory and elsewhere will not be retained.",
+      "note": "Trigger: shelving the instance (called 'Suspend' in the OVHcloud Control Panel, 'shelve' in OpenStack); disk only, memory NOT included; snapshot is restored on unshelve and then deleted; only the snapshot is billed while shelved. No idle/timeout trigger. Warning in same guide: shelving T1/T2-180 GPU (and IOPS) flavors loses data on NVMe passthrough drives. Other stop modes: OpenStack 'suspend' stores VM state incl. memory on disk but keeps full billing; 'pause' keeps state in RAM. Scheduled automatic instance backups also exist (not counted here).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://help.ovhcloud.com/csm/en-public-cloud-compute-back-up-instance?id=kb_article_view&sysparm_article=KB0051162",
+      "quote": "Backups can be used to restore your instance to a previous state or to create a new, identical instance.",
+      "note": "Instance backups (Glance image snapshots) via Control Panel, OVHcloud API (POST /cloud/project/{serviceName}/region/{regionName}/instance/{instanceId}/snapshot) or OpenStack; optional distant copy in another region; disk only (no memory); new instances can boot from them (template/clone). Volume snapshots/backups for Block Storage too.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain OpenStack GPU VMs; no first-party agent-harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://help.ovhcloud.com/csm/en-public-cloud-compute-horizon-configure-security-group?id=kb_article_view&sysparm_article=KB0051204",
+      "quote": "You can allow or block certain incoming or outgoing connections using security groups.",
+      "note": "OpenStack Neutron security groups (egress rules by protocol/port/CIDR or remote group), applied per port on public and private networks, enforced outside the guest. Default group allows all in/out; a new group allows only outgoing until you edit rules. No hostname/domain rules.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://help.ovhcloud.com/csm/en-public-cloud-compute-firewall-security?id=kb_article_view&sysparm_article=KB0051166",
+      "quote": "all the network ports (public and private) will allow every connection when you start an instance",
+      "note": "That is the default-group behaviour; custom security groups with ingress rules (protocol/port/CIDR) can be applied to public and private ports; instances can also be private-network-only (vRack) or use floating IPs.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM with root; iptables/nftables/ufw in the guest work as on any Linux VM.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting proxy for Public Cloud instances; secrets are whatever you put in the VM (cloud-init/user data, env, or fetched from OVHcloud KMS/secret services). Not documented as a feature.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://help.ovhcloud.com/csm/en-public-cloud-compute-storage-additional-disk?id=kb_article_view&sysparm_article=KB0050612",
+      "quote": "It is possible to create additional disks for your Public Cloud instances.",
+      "note": "Block Storage (Cinder) volumes attached to instances; resizable, snapshot/backup-able; can also boot from volume.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://help.ovhcloud.com/csm/en-gb-public-cloud-storage-file-storage-service-getting-started?id=kb_article_view&sysparm_article=KB0072894",
+      "quote": "This service offers managed NFS shares on private networks, supporting ReadWriteMany (RWX) access across multiple instances or Kubernetes pods.",
+      "note": "File Storage Service (OpenStack Manila, NFSv4) read-write, over private network with access rules (accessLevel rw/ro). Also Enterprise File Storage (NetApp), HA-NAS, and 'Classic Multi-Attach Block Storage' in 3AZ regions (needs a cluster FS such as OCFS2).",
+      "checked": "2026-09-29"
+    }
   }
 }

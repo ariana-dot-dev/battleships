@@ -142,7 +142,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -154,7 +154,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "guest_firewall": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -192,5 +197,51 @@
     "sources": [
       "https://learn.microsoft.com/en-us/windows-365/agents/device-management-cloud-pcs-agents"
     ]
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/windows-365/agents/agent-session-lifecycle",
+      "quote": "Checkpoint state externally. In-session state does not survive an unexpected session loss. If the session is interrupted, the Cloud PC resets on release and any unsaved work inside the session is lost.",
+      "note": "Cloud PCs for Agents are stateless: reset to the provisioned image after every session (checkin, policy termination or 30-min idle eviction). Nothing is saved.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/windows-365/agents/security-overview",
+      "quote": "Cloud PCs are stateless and reset after every agent session, which ensures that no credentials persist and no trust carries across workloads.",
+      "note": "No snapshot/checkpoint API in the Session API, MCP tools or Graph pool APIs; docs tell you to save progress to external storage. Pools boot from gallery or uploaded custom images (admin-side image, not a session snapshot).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/windows-365/agents/architecture-overview",
+      "quote": "Agentic app: A host that contains a model and an orchestrator. The orchestrator calls Computer-Get to claim a Cloud PC and Computer-Do to operate it.",
+      "note": "The agent (Copilot Studio, Project Opal, Researcher, Manus, your own) runs outside; the Cloud PC is driven via a per-session MCP endpoint (mouse/keyboard/screenshot, command execution, browser automation). That is a computer-use/exec surface, not an API to drive a harness inside the PC.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/windows-365/agents/network-security-globalsecureaccess",
+      "quote": "GSA monitors and enforces policy across all outbound traffic from the Cloud PC. The internet traffic flows through the internet access profile. This approach allows organizations to apply web content filtering, URL-based controls, and threat protection policies inline",
+      "note": "Via Microsoft Entra Global Secure Access (Entra Internet Access, separately licensed): FQDN / URL / web-category allow/block, enforced in Microsoft's Security Service Edge, but traffic capture depends on the GSA client deployed into the Cloud PC via Intune. No native per-pool network allowlist in W365A itself.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/entra/global-secure-access/how-to-configure-web-content-filtering",
+      "quote": "HTTP method request filtering: Block or allow specific HTTP methods, such as GET, POST, PUT, PATCH, and DELETE.",
+      "note": "Entra Internet Access web content filtering (used by W365A via GSA) also supports URL filtering and an agent-vs-user source traffic type condition. Separate Microsoft product/licence; client-based traffic capture.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/windows-365/agents/windows365foragentssecuritybaseline",
+      "quote": "This security Baseline includes Microsoft-recommended settings across several security categories such as Microsoft Defender Antivirus, Microsoft Defender Firewall, Attack Surface Reduction (ASR), credential protection, browser security, and operating system hardening.",
+      "note": "Windows 11 Cloud PC (full VM); host firewall is Windows Defender Firewall (not nftables/iptables), configured by admins through Intune policy. Whether the agent user has local admin is not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    }
   }
 }

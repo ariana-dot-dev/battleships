@@ -394,7 +394,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -449,5 +457,64 @@
     "applied": 15,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://ampcode.com/docs/orbs/sizes-and-costs",
+      "quote": "Amp automatically pauses an orb when it is idle and pauses it right away when its thread is archived. ... A service that the agent left running, e.g., a dev server, does not keep the orb awake on its own. It pauses with the orb and is available again when the orb wakes.",
+      "note": "Trigger: idle (5 min no agent work AND 20 min no user interaction) or thread archive; wakes automatically on new message, portal request, automation/webhook. /docs/orbs: 'When you send another prompt, the orb wakes up with your conversation, files, and services still in place.' Running processes appear to survive (E2B microVM pause), so memory likely included (medium); docs still offer .agents/resume to 'Restore local state that does not survive a pause' (e.g. tunnels). Paused orb costs nothing, retained for weeks.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "A snapshot is a saved copy of a prepared orb. It contains the repository and anything changed by `.agents/setup`, such as installed software. ... If setup finishes successfully, Amp saves the prepared orb as the new project snapshot. ... amp projects snapshots list <project> / amp projects snapshots delete <project> --resource a1.small",
+      "note": "Only automatic per-project, per-size setup snapshots (filesystem, reused up to 72 h to boot new orbs); users can list/delete them but no documented API/CLI to snapshot a running orb on demand or fork an orb.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://ampcode.com/docs/sdk",
+      "quote": "By default the agent runs in the local Amp CLI process. Set the executor to `orb` to run it in an [orb](/docs/orbs), or to `runner` with a runner ID to run it on one of your [runners](/docs/cli/runners) ... In both cases the local process only streams the results.",
+      "note": "Harness = Amp's own agent only. TypeScript/Python SDK execute() with executor 'orb' streams JSON messages and continues threads by ID; CLI `amp -ox \"prompt\" --stream-json` and `amp threads continue T-… -ox \"msg\"` (https://ampcode.com/docs/cli/spawning-orbs). No first-party driving of Claude Code/Codex etc. documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://ampcode.com/docs/orbs/portals",
+      "quote": "Portals are authenticated URLs that expose web servers running inside an orb ... By default, only people who can view the thread can access its portals. ... To share a portal with anyone, open **Portal Options**, select **Make Public**, and choose 1 hour, 3 hours, 1 day, or 7 days.",
+      "note": "Private-by-default authenticated portals per port, time-limited public links; proxy injects X-Amp-Authenticated / user identity headers. Services declared in .amp/services.yaml choose which ports get portals.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Default orbs are E2B microVMs ('E2B microVM orbs can expose only a link-local IPv4 interface', /docs/orbs/customizing) with sudo and systemd; own kernel so nftables/iptables should work. Not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/handling-secrets",
+      "quote": "New orbs receive the current values when they start. To refresh a running orb, run this command from the orb's Terminal: amp orb restart-processes ... Amp waits for the current command to finish. It then reloads the values and restarts the executor and managed services.",
+      "note": "Secrets are workspace/project/personal env vars delivered into the orb. Alternative is first-party OIDC workload identity (`amp orb id-token`, short-lived tokens for GCP/AWS/Tailscale), which avoids long-lived keys but the token still enters the orb. The 'oauth2-proxy' mention in the Secrets of the Orb post is a self-run suggestion, not a first-party proxy. Secret redaction only hides values from the LLM/transcripts. The Amp agent's own model access goes through Amp's service (not a general secret proxy).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "Orbs support any Linux FUSE file system. You can mount external storage when you want to share volumes across orbs or increase the storage available to an orb beyond its maximum.",
+      "note": "Every size has a fixed 60 GB disk; the documented way to extend is third-party Archil (FUSE), not a first-party volume product.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "If several orbs will mount the same disk at once, read Archil's [shared disk guidance](https://docs.archil.com/concepts/shared-disks) before adding `--shared`.",
+      "note": "Shared read-write storage across orbs only via third-party Archil (user's own account/secret), not first-party.",
+      "checked": "2026-09-29"
+    }
   }
 }

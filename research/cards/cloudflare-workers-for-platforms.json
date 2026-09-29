@@ -172,7 +172,7 @@
     "lang_java": false,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": true,
     "live_resize": false,
     "fork_running": false,
@@ -184,7 +184,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -209,5 +218,78 @@
   "audit_2026_09_29": {
     "applied": 7,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://developers.cloudflare.com/workers/runtime-apis/nodejs/fs/index.md",
+      "quote": "However, the contents of `/tmp` are not persistent and are unique to each request.",
+      "note": "WfP user Workers are stateless V8 isolates invoked per request; there is no machine state to checkpoint. Durable state lives in bindings (KV, D1, R2, Durable Objects). (Sandbox SDK/Containers also lose all state on sleep: 'Containers restart after inactivity or failures'.)",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://developers.cloudflare.com/workers/runtime-apis/nodejs/fs/index.md",
+      "quote": "The Workers Virtual File System (VFS) is a memory-based file system",
+      "note": "No snapshot/checkpoint API for Workers isolates. Differs in Sandbox SDK: createBackup()/restoreBackup() snapshot a sandbox directory (disk only, no memory) to R2 and can restore into a sandbox later (sandbox/api/backups).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "WfP runs customer JS/Wasm Workers; no agent harness concept. Sandbox SDK has tutorials for Claude Code, Codex (OpenAI Agents API), Cursor self-hosted, Devin Outposts, Claude Managed Agents, but these drive the agents via exec or third-party control planes, not a Cloudflare harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/configuration/outbound-workers/index.md",
+      "quote": "Create, allow, or block lists for hostnames requested by user Workers.",
+      "note": "Via an Outbound Worker (code you write, runs outside the user Worker) that intercepts every fetch() from user Workers; enabling it disables connect() TCP sockets. Caveat from the same page: 'Outbound Workers do not intercept fetch requests made from Durable Objects or mTLS certificate bindings.' Programmable, so any URL-based rule (incl. IP-literal hosts) is possible. Sandbox SDK differs: declarative allowedHosts/deniedHosts with hostnames, IPs and CIDRs, enableInternet=false.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/how-workers-for-platforms-works/index.md",
+      "quote": "**Modify requests** - Add authentication headers or transform requests before they leave your platform",
+      "note": "Outbound Worker receives the full Request (method, URL, headers, body) and can block/modify it in code. Sandbox SDK outbound handlers likewise ('denying specific HTTP requests').",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/how-workers-for-platforms-works/index.md",
+      "quote": "**Runs platform logic** - Executes authentication, rate limiting, or request validation before customer code runs",
+      "note": "User Workers are invoked only through your dynamic dispatch Worker (env.DISPATCHER.get), which is the entry point for all requests and can authenticate/route/reject. Plus standard Cloudflare zone controls (WAF etc.). Sandbox SDK preview URLs carry a token in the hostname.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "V8 isolates: no kernel, no root, no iptables/nftables. (Sandbox SDK containers: not documented.)",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/configuration/outbound-workers/index.md",
+      "quote": "Configure authentication to your APIs behind the scenes (without end developers needing to set credentials).",
+      "note": "Programmable: the Outbound Worker (your code, outside the user Worker) holds secrets and adds headers to any intercepted fetch(); user Worker never sees them. HTTP fetch only (TCP connect() disabled; Durable Object fetches not intercepted). Dispatch Worker can also pass capabilities (RPC stubs) so credentials stay in the dispatcher. Sandbox SDK has the same pattern explicitly: 'Securely inject credentials ... they can hold secrets that the sandbox itself never sees' (outboundByHost).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://developers.cloudflare.com/workers/runtime-apis/nodejs/fs/index.md",
+      "quote": "The Workers Virtual File System (VFS) is a memory-based file system",
+      "note": "No disks/volumes for Workers; storage is via bindings (R2, KV, D1, Durable Objects), not filesystem mounts. Sandbox SDK differs: mountBucket() mounts R2/S3-compatible buckets as a filesystem (s3fs/FUSE), optionally readOnly.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No filesystem mounts in Workers; many Workers can share the same R2/KV/D1 binding, but as APIs, not mounted volumes. Sandbox SDK: the same R2 bucket can be mounted in multiple sandboxes (read-write or readOnly) via mountBucket().",
+      "checked": "2026-09-29"
+    }
   }
 }

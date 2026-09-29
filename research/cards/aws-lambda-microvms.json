@@ -290,7 +290,16 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -354,5 +363,72 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-launching.html",
+      "quote": "Idle policy (automatic) – Configure maxIdleDurationSeconds in the idle policy. If no traffic arrives at the MicroVM endpoint for that duration, Lambda suspends the MicroVM automatically.",
+      "note": "Trigger: no traffic on the endpoint for maxIdleDurationSeconds (blog example 300 s; max 28,800 s). Suspend checkpoints memory AND disk ('SUSPENDED ... /suspend hook completed, memory and disk state checkpointed', microvms-how-it-works.html); with autoResumeEnabled=true the next inbound request resumes it with processes intact. Suspended state is kept only for suspendedDurationSeconds and total lifetime incl. suspended time is capped at 28,800 s (8 h), then the MicroVM is terminated and state is lost. Hitting maximumDurationInSeconds terminates (no snapshot).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-launching.html",
+      "quote": "API call (explicit) – Call suspend-microvm to suspend immediately",
+      "note": "Only as suspend/resume of the same MicroVM: memory + disk are checkpointed and restored on resume-microvm. No named snapshots, no fork: the API (botocore lambda-microvms ops) has no snapshot/clone operation and new MicroVMs can only boot from MicroVM images, which are memory+disk Firecracker snapshots taken at image BUILD time from a Dockerfile, not from a running MicroVM. Suspended checkpoint lives at most within the 8 h lifetime.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-integrations-claude-managed-agents.html",
+      "quote": "Anthropic hosts the agent loop and Claude model, while the Lambda MicroVM is where your tool calls run.",
+      "note": "No AWS-side API to prompt/stream an agent; the lambda-microvms API has only image, run/suspend/resume/terminate and auth-token operations. AWS documents reference samples that make MicroVMs the self-hosted sandbox for Claude Managed Agents, Cursor Cloud Agents (self-hosted machines) and the OpenAI Agents API; the harness API there is the third party's, not AWS's. Also an 'AWS Lambda MicroVMs skill' for coding agents to build on the service (dev tooling, not a harness API).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-networking.html",
+      "quote": "When using VPC egress, outbound traffic is subject to security group rules and network ACLs governing traffic in your VPC.",
+      "note": "Default egress connector INTERNET_EGRESS = open internet. To restrict, attach a customer-managed VPC egress Lambda Network Connector (subnets + security groups); SG egress rules / NACLs apply outside the VM. Domain-level filtering would need a separate AWS product in that VPC (e.g. Network Firewall / DNS Firewall), not part of MicroVMs. Connectors cannot be changed while a MicroVM is running. VPC egress to the internet needs NAT (extra cost).",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-launching.html",
+      "quote": "All requests to a MicroVM endpoint require a JWE authentication token. There is no unauthenticated access option.",
+      "note": "Tokens are scoped to one MicroVM, a port / port range / all ports, and an expiry (create-microvm-auth-token). NO_INGRESS connector disables inbound; SHELL_INGRESS connector + separate shell token for shell access. Private connectivity via PrivateLink interface endpoint (com.amazonaws.region.lambda-microvm) with endpoint policy (aws:ResourceAccount, aws:SourceVpc, aws:VpcSourceIp conditions). HTTPS only (HTTP/1.1, HTTP/2, WebSockets, gRPC, SSE); no raw TCP.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-images.html",
+      "quote": "Elevated capabilities enable operations such as mounting filesystems, creating network namespaces, or running eBPF programs. Capabilities are applied within the VM isolation boundary and do not affect the host or other MicroVMs.",
+      "note": "Firecracker microVM with its own kernel. By default only 'a standard set of Linux capabilities'; iptables/nftables presumably needs additionalOsCapabilities [\"ALL\"] set on the image (derived, not explicitly documented).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-integrations-claude-managed-agents.html",
+      "quote": "The launcher only passes an AWS Secrets Manager reference to your Anthropic environment key; the MicroVM's execution role allows the code to read it at runtime.",
+      "note": "Secrets are read inside the VM (Secrets Manager / SSM via execution role over IMDSv2, env vars at image level, or runHookPayload). No credential-injecting egress proxy documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-launching.html",
+      "quote": "The only required parameter is --image-identifier (which must be the ARN of the MicroVM image). All other parameters are optional.",
+      "note": "The full RunMicrovm parameter set (image, version, execution role, idle policy, max duration, run-hook payload, logging, ingress/egress connectors; confirmed in botocore service-2.json) has no volume/storage parameter; only the root disk from the image snapshot. Self-mounting (e.g. NFS/EFS through a VPC connector with ALL capabilities) is conceivable but undocumented.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-integrations-claude-managed-agents.html",
+      "quote": "Sessions never share state.",
+      "note": "No first-party shared volume or bucket mount; data sharing via S3 SDK calls. Same caveat as volume_attach (self-mounted NFS/EFS undocumented).",
+      "checked": "2026-09-29"
+    }
   }
 }

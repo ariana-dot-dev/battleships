@@ -155,7 +155,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": true,
@@ -169,7 +169,16 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "vm",
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -260,5 +269,79 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.boxd.sh/guides/suspend-resume",
+      "quote": "On by default, set to 4 hours. After 4 hours of no inbound TCP/UDP traffic, boxd hibernates the machine: a snapshot is written to disk and its memory is released.",
+      "note": "Trigger: no inbound network traffic (not CPU idleness) for the auto-hibernate timeout (default 4 h, configurable, 0 = never). Memory, processes and open sockets included; wakes in ~85 ms on the next inbound packet. Optional auto-suspend (off by default) freezes the VM in host RAM after N s idle. Separate: scheduled disk backups to object storage (disaster-recovery guide), not counted here.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.boxd.sh/guides/snapshots",
+      "quote": "A snapshot is a saved copy of a specific machine. It captures the disk and the memory, so a machine booted from the snapshot is already running whatever the original machine was running (at time of snapshotting).",
+      "note": "Memory included. Named, versioned snapshots boot any number of new machines (`boxd machine new --from-snapshot`); machine must be running to snapshot; a machine can snapshot itself from inside. Also: checkpoints (memory+disk, up to 10 per machine, in-place restore), live fork of a running machine, manual pause/resume.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.boxd.sh/use-cases/coding-agents",
+      "quote": "boxd machine exec myapp 'claude -p \"Add a /health endpoint\" --dangerously-skip-permissions'",
+      "note": "Claude Code, Codex and OpenCode are preinstalled and pre-configured (agent_harnesses), with Claude Code login synced across machines, but the documented way to drive them from outside is the generic exec API/CLI or SSH + tmux + Claude's own /remote-control. No boxd API to start a prompt, stream agent events or list/resume sessions. The Claude Managed Agents / OpenAI Agents API integrations run Anthropic's/OpenAI's harness with boxd as the tool-execution environment (worker/executor inside the VM), not a boxd harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.boxd.sh/guides/egress",
+      "quote": "Two controls, both set from the SDK and enforced outside the machine, so nothing running inside it (root included) can loosen them: An egress allowlist per machine: the hosts and addresses it may reach. Everything else is blocked.",
+      "note": "Entries: exact hostnames, wildcards (*.npmjs.org; refused on shared-hosting domains), public IPv4 addresses and CIDRs. HTTP(S) admitted by hostname, other protocols by destination IP. Changes live within a second. Set via SDK/gRPC (SetVmEgressAllow) only, not the laptop CLI yet. Default: unrestricted. `--isolated` additionally cuts the machine off from your own fleet. No IPv6 egress.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.boxd.sh/guides/egress",
+      "quote": "Entries are bare hosts and addresses: no scheme, port, or path.",
+      "note": "Allowlist is host/IP only; no method/path/header rules documented. (The secret proxy does rewrite HTTPS to bound hosts, but only for placeholder substitution.)",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.boxd.sh/guides/tailscale",
+      "quote": "Serve your whole org over your company tailnet. Same hostnames, same TLS, reachable only from inside your Tailscale network.",
+      "note": "By default every machine has a public HTTPS proxy name.boxd.sh -> port 8000; you choose which extra ports get subdomain proxies and up to 3 raw TCP/UDP forwards (owner-only). Tailnet-only mode is org-wide and enabled by contacting boxd; bot protection (browser check) on wake. No per-machine IP allowlist or authenticated preview URL documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.boxd.sh/use-cases/sandboxes",
+      "quote": "Code in the sandbox can run Docker, load kernel modules, restart `systemd`, edit `/etc`, open ports, and break the OS completely",
+      "note": "KVM microVM with its own kernel and network stack, root inside; nftables/iptables not explicitly documented but Docker (which programs iptables) runs natively.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.boxd.sh/guides/egress",
+      "quote": "Inside the machine `STRIPE_KEY` is an opaque string starting with `bxds_`. A request to `api.stripe.com` that carries it, in a header, the query string, the body, or Basic auth, arrives at Stripe with the real key. A request anywhere else carries the useless placeholder.",
+      "note": "Any secret can be bound to arbitrary hosts (`domains`), org-level, applies to forks/restores. HTTPS is intercepted with a boxd CA the VM trusts (cert-pinning tools fail). HTTP(S) only; no mention of databases/SSH/git-over-SSH. Separately, unbound secrets are injected as real env vars.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.boxd.sh/reference/python-sdk",
+      "quote": "disk = boxd.disks.create(\"data\", \"10G\")\nboxd.disks.attach(disk.id, machine_id, \"/mnt/data\")",
+      "note": "Persistent disks, created writable, attachable read-write or read-only, at create time (volumes=[VolumeMount]) or later; not combinable with --from-snapshot at creation. No published price.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.boxd.sh/reference/grpc-proto",
+      "quote": "For now a disk can only be attached to one VM at a time (regardless of mode) — its backing file lives on one specific worker, not shared/networked storage, so this request is rejected if the disk already has any attachment.",
+      "note": "Local worker-backed disk, one VM at a time even read-only. Forks get CoW copies, not a shared mount.",
+      "checked": "2026-09-29"
+    }
   }
 }

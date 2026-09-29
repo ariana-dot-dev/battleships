@@ -2624,7 +2624,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": false,
@@ -2638,7 +2638,16 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -2753,5 +2762,79 @@
     "applied": 35,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 9
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Hibernate.html",
+      "quote": "Hibernation saves the contents from the instance memory (RAM) to your Amazon Elastic Block Store (Amazon EBS) root volume.",
+      "note": "Only via hibernation, which must be enabled at launch (prerequisites: supported families/AMIs, encrypted root EBS big enough for RAM, RAM limits). Triggered by a hibernate-stop (StopInstances --hibernate) or automatically on Spot interruption if interruption behavior = hibernate ('You can specify that Amazon EC2 hibernates your Spot Instances when they are interrupted', interruption-behavior). On start: RAM reloaded, processes resumed. Memory included. A plain stop only keeps EBS (persistent_disk, not this). Scheduled EBS snapshots via Data Lifecycle Manager / AWS Backup exist ('AWS does not automatically back up the data stored on your EBS volumes').",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html",
+      "quote": "If you're confident that your instance is in a consistent state appropriate for AMI creation, you can tell Amazon EC2 not to power down and reboot the instance.",
+      "note": "CreateImage (AMI) from a running or stopped instance (reboots by default for consistency, NoReboot optional) → launch any number of new instances from it (template/fork). EBS snapshots per volume via console/API ('You can create and manage your snapshots using the Amazon EC2 console or the Amazon EC2 API'), restorable to new volumes in any AZ of the region. Disk only; memory NOT included (only hibernation captures RAM, and it is not forkable).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "EC2 has generic exec (SSM Run Command / Session Manager, user data) but no API to drive Claude Code / Codex / an agent harness inside an instance. AWS's agent runtime is a separate product (Bedrock AgentCore), not EC2.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html",
+      "quote": "You can specify the destination, port range, and protocol for each outbound rule.",
+      "note": "IP level: security group outbound rules (per instance/ENI, destination CIDR/prefix list/SG + port + protocol, free) and subnet NACLs; no-internet mode = private subnet without NAT/IGW. Domain level (paid add-ons, VPC-wide rather than per-instance unless routed per subnet): AWS Network Firewall stateful domain lists ('You can create allow lists and deny lists with domain names that the stateful rules engine looks for in network traffic'; SNI for HTTPS, Host header for HTTP) and Route 53 Resolver DNS Firewall ('you can deny access to all domains except for the ones that you explicitly trust'). All enforced outside the instance. Note: security groups do not filter traffic to Amazon DNS, DHCP, instance metadata, Time Sync.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/tls-inspection-configurations.html",
+      "quote": "After decryption, Network Firewall inspects the traffic according to your firewall policy's stateful rules, and then re-encrypts it before sending it to its destination.",
+      "note": "Via AWS Network Firewall (separately priced) Suricata-compatible stateful rules with HTTP keywords (examples use http.host, http.header, http.connection; Suricata also offers http.method/http.uri). For HTTPS this needs a TLS inspection configuration (firewall decrypts/re-encrypts with your CA). Not a per-instance EC2 setting.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html",
+      "quote": "The security group acts as a virtual firewall. The only traffic that reaches the instance is the traffic allowed by the security group rules.",
+      "note": "Security group inbound rules by source CIDR/prefix list/SG, port range, protocol; plus NACLs, private-only instances (no public IP), Network Firewall.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full Nitro/Xen VM with root and its own kernel; iptables/nftables/firewalld work as on any Linux VM.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting egress proxy for EC2. Secrets are delivered into the instance: IAM instance-profile temporary credentials via instance metadata, Secrets Manager / SSM Parameter Store fetched by the workload. A root agent can read them.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-attaching-volume.html",
+      "quote": "You can attach an available EBS volume to one or more of your instances that is in the same Availability Zone as the volume.",
+      "note": "EBS block volumes (gp3/gp2/io1/io2/st1/sc1), same-AZ, hot-attach/detach; max count depends on instance type. gp3 $0.08/GB-month us-east-1 (card).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html",
+      "quote": "You can access your EFS file system concurrently from multiple NFS clients, so applications that scale beyond a single connection can access a file system.",
+      "note": "Read-write. EFS (NFSv4.1, strong consistency and file locking, multi-AZ) and FSx family. Also EBS Multi-Attach for io1/io2 in one AZ: 'Each instance to which the volume is attached has full read and write permission to the shared volume' (needs a cluster-aware FS). Also Mountpoint for S3 (not checked here).",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -271,7 +271,17 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "datacenter+residential",
-    "ip_note": "Managed residential proxies on Developer+ ($12/GB after 1 GB on Developer, $10/GB after 5 GB on Startup, usage-based on Scale); BYO HTTP/HTTPS proxy supported; proxies off by default; CAPTCHA solving and Basic stealth need Developer+, Advanced stealth/Verified on Scale."
+    "ip_note": "Managed residential proxies on Developer+ ($12/GB after 1 GB on Developer, $10/GB after 5 GB on Startup, usage-based on Scale); BYO HTTP/HTTPS proxy supported; proxies off by default; CAPTCHA solving and Basic stealth need Developer+, Advanced stealth/Verified on Scale.",
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": false,
+    "guest_firewall": false,
+    "secret_proxy": "ai-only",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -385,5 +395,79 @@
       "https://docs.browserbase.com/account/billing/plans"
     ],
     "researched": "2026-09-28"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "No browser reuse: After each session, the virtual machine is killed and recreated from scratch, ensuring every browser session is completely fresh.",
+      "note": "No machine/memory snapshot. Only Contexts: with persist:true the Chromium user-data dir (cookies, localStorage, IndexedDB...) 'will be saved when the session closes' and reloaded by later sessions that pass the context id - profile persistence, closer to persistent_disk; no processes/memory, no HTTP cache.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/browser/core-features/contexts",
+      "quote": "The data will be saved when the session closes.",
+      "note": "No API to snapshot/checkpoint a running session; the only state primitive is a Context (browser profile) saved at session close and reusable by many new sessions (persist:false = read-only reuse). No memory.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://docs.browserbase.com/platform/agents/how-it-works",
+      "quote": "When you create a run, Browserbase starts an autonomous Agent that works in a loop until the task is done",
+      "note": "Harness = Browserbase's own Agent only (Stagehand-based browser agent + web search + file system + shell in a sandboxed Function runtime). REST/SDK: create/get/list/update Agents, POST /v1/agents/runs with a task, list runs, List run messages (poll-based streaming, AI SDK UIMessage format), Resume a PAUSED run with a reply (pauseWhen). Not Claude Code/Codex; those are only integrations that drive a Browserbase browser from outside.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/agents/how-it-works",
+      "quote": "When you create a run, Browserbase starts an autonomous Agent that works in a loop until the task is done",
+      "note": "Harness = Browserbase's own Agent only (Stagehand-based browser agent + web search + file system + shell in a sandboxed Function runtime). REST/SDK: create/get/list/update Agents, POST /v1/agents/runs with a task, list runs, List run messages (poll-based streaming, AI SDK UIMessage format), Resume a PAUSED run with a reply (pauseWhen). Not Claude Code/Codex; those are only integrations that drive a Browserbase browser from outside.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.browserbase.com/platform/browser/security/allowed-domains",
+      "quote": "If you pass one or more domains, Browserbase blocks top-level page navigations to any domain not on the list.",
+      "note": "browserSettings.allowedDomains per session; experimental; subdomains included; top-frame navigations only - does NOT block iframes, images, scripts, XHR. Security page also says each browser runs in an isolated subnet with strict firewalls (not user-configurable). 'IP allowlisting' page is about routing via your own proxy so targets can allowlist you, not egress control.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/browser/observability/session-live-view",
+      "quote": "An interactive window to display or control a browser session.",
+      "note": "No user-exposed ports or preview URLs at all (browser-as-a-service). Access only via CDP connectUrl (wss://connect.browserbase.com, API-key authenticated) and per-session Live View debugger URLs (read-only vs read/write is only an iframe pointer-events choice). No IP allowlists / inbound rules.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Each browser runs in a dedicated VM, but users get only CDP/browser access, no shell or root on it, so no iptables/nftables. The Agents product has a shell in its Function runtime, but no root/NET_ADMIN is documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://docs.browserbase.com/platform/model-gateway/overview",
+      "quote": "Instead of managing separate API keys for OpenAI, Anthropic, and Google, just use your Browserbase API key and pick a model. Browserbase routes the request to the upstream provider for you.",
+      "note": "Model Gateway = platform-key LLM gateway (Stagehand/Agents). No credential-injecting egress proxy for arbitrary hosts. Agent 'variables' are %placeholders% the LLM never sees but the values are still typed into the browser; 1Password integration fetches credentials client-side; Contexts store logged-in cookies (encrypted at rest). No non-HTTP coverage.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/functions/limits",
+      "quote": "Persistent storage | None",
+      "note": "No volumes. Files only via Uploads/Downloads APIs (downloads synced to Browserbase cloud storage) and Contexts for browser profile data.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/functions/limits",
+      "quote": "Persistent storage | None",
+      "note": "No shared filesystem. A Context can be attached to several sessions, but docs advise against simultaneous use ('Avoid having multiple sessions using the same Context at once').",
+      "checked": "2026-09-29"
+    }
   }
 }

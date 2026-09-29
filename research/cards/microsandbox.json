@@ -203,7 +203,16 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": 21.14,
@@ -256,5 +265,72 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/sandboxes/lifecycle",
+      "quote": "For production workloads, configure a maximum lifetime or idle timeout so sandboxes shut down automatically.",
+      "note": "Idle-timeout / max-duration only drain and stop the VM; a stopped sandbox keeps its disk ('Configuration and sandbox state are preserved for a later start') = persistent_disk, not a checkpoint. Lifecycle page also says 'Pausing does not create a snapshot', and pause/resume is local-only ('Pause and resume are not supported on cloud').",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.microsandbox.dev/cloud/overview",
+      "quote": "Capture disk snapshots from stopped persistent sandboxes and restore them into new sandboxes. Live capture, full checkpoints, branching, groups, and local artifact archives remain local-only.",
+      "note": "Cloud: disk-only, source must be a stopped persistent sandbox, each restore creates a new sandbox (template/fork of disk). Local/self-host runtime additionally has 'Full' snapshots ('Disk, memory, and running processes' -> 'Resumes execution'), CoW-forked restores and live branching of running sandboxes.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/getting-started/agents",
+      "quote": "The SDK and CLI give you full programmatic control, and there are two additional ways to connect agents directly: **Agent Skills** for coding assistants and an **MCP server** for any MCP-compatible client.",
+      "note": "Agent integration is the reverse direction (outside agents drive sandboxes via MCP/skills). Claude Code / Codex CLI examples just install and run them interactively via `msb run -t`/`msb exec`; no API to prompt/stream/resume a harness inside the sandbox.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.microsandbox.dev/networking/overview",
+      "quote": "Rules can target groups like `public`, `private`, and `host`, or specific IPs, CIDRs, domains, and port ranges.",
+      "note": "Host-side networking stack ('from the host side, every packet is checked against policy before it leaves'); default_egress allow|deny, first-match rules, domain + suffix + IP/CIDR + port; --no-net. Default blocks private/loopback/link-local/metadata. Cloud compat table: 'Egress policies and hostname-scoped secret substitution carry across backends.' Strict mode: hostname allows fail closed for non-intercepted HTTPS.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.microsandbox.dev/networking/overview",
+      "quote": "A policy has two defaults and an ordered list of rules. The first matching rule wins.",
+      "note": "Policy has default_ingress allow|deny and `ingress` direction rules by IP/CIDR/port (changelog: 'Inbound TCP connections on published ports are now evaluated against the network policy'). Published ports are local-only (bind 127.0.0.1 by default); cloud has no published ports / preview URLs at all, only a platform-assigned hostname and the authenticated `msb ssh` gateway. So on cloud ingress is closed by construction rather than configurable.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "libkrun microVM with its own Linux kernel per sandbox; OCI images typically run as root. Not documented either way.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.microsandbox.dev/sandboxes/secrets",
+      "quote": "Secrets give sandboxed code a placeholder instead of a credential. When it sends that placeholder to an allowed API, microsandbox verifies the destination and substitutes the real value outside the guest.",
+      "note": "Any host (per-secret host allowlist, wildcards). Substitution in headers (incl. Basic auth) by default; query and body opt-in (HTTP/1 bodies up to 16 MiB; no HTTP/2 body). Requires TLS interception by default; violation actions block / block-and-log / block-and-terminate / passthrough. Cloud compat table says secrets work on cloud ('hostname-scoped secret substitution carry across backends') even though user-configured TLS interception is local-only. Guest-side request signing (e.g. AWS SigV4) can't use placeholders; no DB/SSH/git-over-SSH coverage documented (HTTP only).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.microsandbox.dev/sandboxes/volumes",
+      "quote": "**On microsandbox cloud:** Volumes use fast block storage managed by the platform.",
+      "note": "Named managed volumes ($0.15/GiB-month on pricing page) plus an always-present per-org default volume on cloud, accessible via a filesystem API without a running sandbox. On cloud, named volumes must be created before mounting; disk-kind volumes are local-only.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.microsandbox.dev/sandboxes/volumes",
+      "quote": "Mount the same directory-backed named volume into multiple sandboxes when they need to share files. Use `readonly` on consumers that should not write. microsandbox attaches disk-backed named volumes as block devices; use one writable sandbox at a time, or read-only mounts where sharing is intended.",
+      "note": "Directory-backed named volumes: read-write shared across concurrent sandboxes (ro optional). Disk-backed (block) volumes: single writer. Cloud supports directory volumes ('Default and named directory volumes support lifecycle and filesystem access'); all cloud sandboxes of an org sit on one 'host volume'.",
+      "checked": "2026-09-29"
+    }
   }
 }

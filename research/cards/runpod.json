@@ -674,7 +674,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -788,5 +795,56 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 14
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.runpod.io/pods/manage-pods.md",
+      "quote": "Stopping a Pod releases the GPU and preserves data in `/workspace` (volume disk). Container disk data is cleared.",
+      "note": "Stop keeps only the volume disk / network volume (persistent_disk), and the container disk is wiped; no state capture, no memory. Pods have no idle auto-stop.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms.txt",
+      "quote": null,
+      "note": "No snapshot/checkpoint/save-image feature anywhere in the docs (1.9 MB llms-full.txt searched); the API v2 Pod resource has only list/create/get/update/terminate/logs/state-transition (start/stop/restart). Closest: network volumes that outlive Pods, and Pod templates (image + config, no user data).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.runpod.io/get-started/agent-skills.md",
+      "quote": "Official Runpod instructions that install the Runpod skills and MCP server into your coding agent in one shot.",
+      "note": "Runpod's agent features (skills plugin, MCP server at mcp.getrunpod.io) let YOUR local Claude Code/Codex manage Runpod resources; nothing drives an agent harness inside a Pod. Serverless job API is a generic handler queue, not a harness API.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.runpod.io/pods/configuration/expose-ports.md",
+      "quote": "To configure HTTP ports during Pod deployment, click **Edit Template** and add a comma-separated list of ports to the **Expose HTTP Ports (Max 10)** field.",
+      "note": "Control is limited to choosing which ports are exposed (HTTP proxy https://POD_ID-PORT.proxy.runpod.net, max 10, or direct TCP on a public IP) plus a private-only option: Global networking gives each Pod a private IP 'accessible only to other Pods in your account' (NVIDIA GPU Pods, 17 DCs). Exposed ports are fully public: 'Your service becomes publicly accessible. While the Pod ID provides some obscurity, implement proper authentication in your application.' No auth on proxy URLs, no IP allowlists/security groups.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.runpod.io/pods/templates/secrets.md",
+      "quote": "Reference your secrets directly in the [environment variables section](/pods/templates/environment-variables) of your Pod template using the `RUNPOD_SECRET_` prefix followed by your secret name",
+      "note": "Runpod secrets are encrypted at rest and write-only in the console/API, but are delivered into the Pod as plain environment variables. No injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.runpod.io/pods/storage/types.md",
+      "quote": "Network volumes provide permanent storage that exists independently from any Pod. You can attach a network volume to multiple Pods, transfer it between machines, and retain your data even after deleting a Pod.",
+      "note": "Per-Pod volume disk (/workspace, survives stop, deleted on terminate) plus network volumes (Secure Cloud only; 'must be attached during Pod creation and cannot be detached later'; replaces the volume disk at /workspace) and global volumes (beta, region-independent, read-optimized). One network volume + one global volume per Pod. Also attachable to Serverless endpoints (/runpod-volume) and Instant Clusters.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.runpod.io/storage/network-volumes.md",
+      "quote": "Writing to the same volume from multiple workers simultaneously may cause data corruption. Handle concurrent write access in your application logic.",
+      "note": "Read-write, mounted by multiple running Pods/workers at once within one datacenter (storage table: 'Shareable ... Yes (across Pods)'); no locking/consistency guarantees. Global volumes (beta) are shareable 'across Pods in any data center'. S3-compatible API to network volumes too.",
+      "checked": "2026-09-29"
+    }
   }
 }

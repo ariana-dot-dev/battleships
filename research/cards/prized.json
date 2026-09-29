@@ -170,7 +170,7 @@
     "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -191,7 +191,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": true,
@@ -205,7 +205,15 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -254,5 +262,78 @@
   "audit_2026_09_29": {
     "applied": 15,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://prized.dev/docs/boxes",
+      "quote": "Memory snapshot (hibernate). Processes, tmux sessions, and half-finished builds resume where they were.",
+      "note": "Trigger: any pause, incl. auto-pause after idle window (30 min-7 days, paid plans only), pause deadline (--ttl) and nightly quiet hours. Memory included only on Nano/Micro/Extra Small/Small (EC2 hibernate); Medium and larger 'Clean stop' (disk persists, processes restart). After 14 days paused the disk is parked as a snapshot ('deep sleep'). Separately, per-box scheduled automatic disk snapshots (`prized box auto-snapshot --every 6h --keep 5`) exist; those are scheduled backups, not stop-triggered.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://prized.dev/docs/snapshots",
+      "quote": "A snapshot is an image of the box's whole disk at one instant, taken while the box keeps running; the box is never paused for it.",
+      "note": "Disk only, crash-consistent ('anything still in memory ... is not in it'); block-level incremental. Restore always creates a NEW box; `prized fork` of a running box (minutes); named templates new boxes start from. CLI, dashboard and HTTP API. 20 manual/template snapshots per workspace.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://prized.dev/docs/remote-agents",
+      "quote": "Send Claude Code or Codex on your box a prompt from your machine or from any script, follow what it does as it happens, and interrupt it.",
+      "note": "Harnesses: Claude Code (`claude -p`) and Codex (`codex exec`). CLI `prized prompt --provider claude|codex` (model, effort, --auto, --continue resumes session, --queue, --detach), `prized events --follow`, `prized prompt ls`, `prized interrupt`; edge HTTP API: POST /prompts, GET /prompts, GET /prompts/{runId}/events (SSE), POST /prompts/{runId}/interrupt. Normalized JSONL events. POST /prompts wakes a suspended box.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://prized.dev/docs/machines",
+      "quote": "Outbound: not filtered.",
+      "note": "No egress controls documented; workspace policies cover spend/box limits/auto-pause, not network.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://prized.dev/docs/machines",
+      "quote": "Outbound: not filtered.",
+      "note": "Only HTTP-level behaviour is the secrets broker (substitutes placeholders for allowlisted hosts; refuses plain HTTP for secret use), which is not a general egress rule engine.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://prized.dev/docs/machines",
+      "quote": "Public ports: none. A box cannot open a port to the internet. To show a running server to a teammate, share the port: a prized.dev link that opens only for signed-in members of your workspace.",
+      "note": "Inbound only the WireGuard tunnel (udp/51820, tcp/443); ports mirrored to your localhost over tunnel; per-port share/unshare to workspace-authenticated links (`prized ports share 3000`). No public URLs possible. No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Dedicated EC2 VM per box ('One virtual machine per box with its own kernel; not a container') with passwordless sudo; iptables/nftables not mentioned in docs.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://prized.dev/docs/credentials",
+      "quote": "Processes on the box see a placeholder, and when one calls an HTTPS host you allowlisted, the box's broker swaps the real value into the request headers on the way out; plain HTTP is refused.",
+      "note": "Arbitrary secrets with up to 32 allowlisted hosts each (hostname or *. wildcard); presets (Connectors) for OpenAI, Anthropic, GitHub, Slack, ClickHouse. HTTPS headers only; no DB/SSH/git-protocol coverage. CAVEAT: the broker `prized-secretsd` runs ON the box as root ('Secret values in memory only'), and Security page says 'root on your box can read anything on it' while the login user has passwordless sudo - so the real value does enter the VM's memory; it is not an off-box proxy. Also per-use counts per host are recorded.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://prized.dev/docs/machines",
+      "quote": "One encrypted volume is the root and the only disk: your home directory, Docker images, and the system all live on it.",
+      "note": "Disk grows only via resize; 'Infinite storage (alpha)' is an opt-in growing storage pool replacing the fixed disk, not an extra volume.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://prized.dev/docs/machines",
+      "quote": "One encrypted volume is the root and the only disk: your home directory, Docker images, and the system all live on it.",
+      "note": "No shared/network volume between boxes documented. `prized mount` is a local NFS-over-SFTP view of one box on your laptop, not box-to-box.",
+      "checked": "2026-09-29"
+    }
   }
 }

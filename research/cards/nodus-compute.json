@@ -130,7 +130,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -144,7 +144,16 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": null,
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": "ai-only",
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -177,5 +186,78 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://nodus-compute.ai/docs/openapi.yaml",
+      "quote": "Whether Nodus periodically saves filesystem recovery state.",
+      "note": "OpenAPI SandboxContinuity.mode enum ['snapshotted','ephemeral'] defaults to 'snapshotted' (interval_s configurable) and SandboxLifecycle.on_idle defaults to 'suspend' (idle_timeout_s default 300); wake/host recovery restores saved project files. Files only: 'Snapshot recovery restores files, not arbitrary process memory' (durable-steps). Bootstrap 'does not make the root filesystem persistent', so this covers the workspace/project, not the whole root FS. Managed agents with checkpoint-v1 also auto-save NODUS_CHECKPOINT_DIR at each step/wait.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://nodus-compute.ai/docs/source/guides/managed-agents.md",
+      "quote": "Accounts admitted to hosted model access can deploy the installed text assistant without uploading a project or providing a model API key.",
+      "note": "Managed durable agents API (client.agents.create/submit/runs/signal/pause/resume, sessions for ordered follow-ups, observations endpoint) runs your own entrypoint or Nodus's hosted 'nodus:claude-assistant-v1/v2' template (text-only Claude assistant, v2 delegates to specialist sub-agents; 'does not execute tools or browse'). Gated by account admission. No API to drive Claude Code/Codex/OpenCode CLIs inside a sandbox (those connect to Nodus from outside via MCP).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://nodus-compute.ai/docs/source/guides/managed-agents.md",
+      "quote": "Accounts admitted to hosted model access can deploy the installed text assistant without uploading a project or providing a model API key.",
+      "note": "Managed durable agents API (client.agents.create/submit/runs/signal/pause/resume, sessions for ordered follow-ups, observations endpoint) runs your own entrypoint or Nodus's hosted 'nodus:claude-assistant-v1/v2' template (text-only Claude assistant, v2 delegates to specialist sub-agents; 'does not execute tools or browse'). Gated by account admission. No API to drive Claude Code/Codex/OpenCode CLIs inside a sandbox (those connect to Nodus from outside via MCP).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://nodus-compute.ai/docs/source/guides/agent-sandboxes.md",
+      "quote": "Allowlist mode supports HTTP and HTTPS clients that respect the supplied proxy environment variables. Only ports 80 and 443 are supported. Direct external sockets remain unavailable. Use hostnames without URL schemes or paths.",
+      "note": "policy.network enum ['deny','allowlist'], default 'deny' (OpenAPI); egress_allow exact hostnames or *.subdomain wildcards; preset network_permissions (github, python_packages, node_packages, openai, anthropic). Private/metadata addresses always blocked; sandbox.egress_denied events report denied hostnames. Enforced by provider proxy.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://nodus-compute.ai/docs/source/guides/agent-sandboxes.md",
+      "quote": "Use hostnames without URL schemes or paths. An exact name permits only that host.",
+      "note": "Host-level only; no method/path/header rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://nodus-compute.ai/docs/source/guides/services.md",
+      "quote": "Nodus forwards authenticated requests over the runtime relay. There is no inbound guest networking.",
+      "note": "Sandbox ports are reachable only via /v1/sandboxes/{id}/ports/{port}/{path} with the Nodus bearer token (64 KiB bodies, no WebSockets/streaming, 15 s deadline); Authorization/Cookie headers never reach the guest. No public URLs. GPU workspaces use editor/notebook URLs and SSH with admitted public keys.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://nodus-compute.ai/docs/source/guides/agent-sandboxes.md",
+      "quote": "Use a published image with an explicit non-root `USER`, a writable working directory and the programs your agent will execute.",
+      "note": "Sandbox images must run as non-root ('A root-only base image must be rebuilt with a non-root user'), so nftables/iptables inside is not possible. Isolation technology not documented. GPU workspaces (SSH) not checked for root.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://nodus-compute.ai/docs/source/guides/managed-agents.md",
+      "quote": "The call accepts no destination URL or provider credential. It uses the assigned private session, so never put your account API key in the agent project.",
+      "note": "Model broker (nodus.agent.complete_model / nodus.agent.model) and hosted model access give managed agents LLM calls without a model key in the sandbox; broker is 'unavailable by default' (separate admission). General tenant secrets are NOT proxied: 'Commands receive each value as an environment variable and as a file' (secrets reference), with output redaction. DB connections run query imports on the control plane so 'the database credential never reaches the workload' (connections guide) but that is an import, not an outbound proxy; wandb keys are injected as env.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://nodus-compute.ai/docs/source/workspaces.md",
+      "quote": "A volume is a named store that a sandbox mounts to keep selected files between sandbox identities.",
+      "note": "client.volumes.create(name, size_gb) then sandboxes.create(workspace={name, mount}); saved as archives ('Periodic saves preserve the latest useful archive'), not a block device. Storage billing disabled unless a price is configured. GPU workspaces have separate saved project files.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://nodus-compute.ai/docs/source/workspaces.md",
+      "quote": "One live sandbox can write a volume. A conflict includes its current holder ID.",
+      "note": "Single-writer; must wait for the holder to terminate before attaching elsewhere. No read-only multi-attach documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

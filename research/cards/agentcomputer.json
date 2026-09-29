@@ -152,7 +152,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -170,7 +170,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -190,7 +190,14 @@
     "egress_ip_type": null,
     "ip_note": "Egress/IP and proxy options not documented.",
     "isolation": "firecracker",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -217,5 +224,71 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://agentcomputer.ai/docs/api",
+      "quote": "POST\t/v1/computers/<id>/snapshots\tCreate a snapshot. ... POST\t/v1/snapshots/<snapshotId>/restore\tRestore a snapshot into a new computer.",
+      "note": "CLI 'computer snapshot create' / 'snapshot restore <id> restored-computer'; POST /v1/computers can also 'Create a computer from an image or snapshot' (source.kind=snapshot), so new machines boot from it (fork/template). OpenAPI SnapshotResponse has capture_scope enum [filesystem, computer] and runtime_state enum [absent, included], suggesting some snapshots include runtime (memory) state, but docs do not say so explicitly; computer-host README says 'disk snapshots'. Linux only (not on macOS computers).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://agentcomputer.ai/docs/cli",
+      "quote": "computer claude-login\tInstall Claude Code credentials onto a computer.\ncomputer codex-login\tInstall Codex credentials onto a computer.",
+      "note": "Only credential installation for Claude Code/Codex plus a generic exec API and ConnectRPC process/PTY gateway. The full public OpenAPI spec has no agent/prompt/conversation endpoints. The separate open-source computer-harness repo runs a local browser 'Agent UI' with Claude, Codex and OpenCode, but that is a UI, not an API to drive them.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://agentcomputer.ai/docs",
+      "quote": "Network speeds up to ~1 Gb/s down and ~1.2 Gb/s up over shared NAT.",
+      "note": "No egress/firewall/network settings anywhere in docs or the complete OpenAPI spec (CreateComputerRequest has additionalProperties:false and no network field). Host uses nftables internally (computer-host README) but no user-facing control.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": null,
+      "note": "No egress controls of any kind in the public API.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://agentcomputer.ai/docs/computers",
+      "quote": "Ports are public by default: the resulting URL is reachable from the open internet without an access session, which is what you want for webhooks and other unauthenticated callers. Pass --private to require an access session instead",
+      "note": "Per-port publish with visibility public|private; only published ports are exposed; private ports need an access session (short-lived token). Share links for browser/VNC with expiry and revocation. SSH via short-lived certificates. No IP allowlists.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker microVM with its own kernel (computer-kernels repo); default user is node, exec accepts a user field; root access not explicitly documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://agentcomputer.ai/docs/cli",
+      "quote": "computer claude-login\tInstall Claude Code credentials onto a computer.",
+      "note": "Credentials are copied into the machine (claude-login/codex-login, exec env vars, S3 keys passed to FUSE mount). No credential-injecting proxy documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://agentcomputer.ai/docs/computers",
+      "quote": "The current limits are 2-64 GiB RAM in 1 GiB steps and 5-250 GiB storage in 1 GiB steps.",
+      "note": "Storage is a single resizable disk (actions/resize); no block/network volume resource in the complete OpenAPI spec. Only BYO-bucket FUSE mounts (see volume_shared).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": "\"summary\": \"Queue a FUSE mount create.\" ... \"kind\": {\"enum\": [\"r2\", \"s3\", \"gcs\", \"webdav\"]",
+      "note": "First-party FUSE mount API (POST /v1/computers/{id}/mounts) of your own R2/S3/GCS/WebDAV bucket with read_only flag and vfs_cache_mode; several computers can mount the same bucket (read-write or read-only). Bucket credentials are passed into the mount (not proxied). Only in OpenAPI/SDK (ComputerMountsClient), not in prose docs; Linux only.",
+      "checked": "2026-09-29"
+    }
   }
 }

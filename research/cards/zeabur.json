@@ -298,7 +298,7 @@
     "inbound_https": null,
     "custom_domain": true,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -320,7 +320,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -334,7 +334,13 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": null,
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -379,5 +385,64 @@
     "applied": 7,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 9
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://zeabur.com/docs/en-US/operations/deployment/suspend-service",
+      "quote": "Zeabur will start a new deployment using the most recent configuration.",
+      "note": "Suspend (manual) and Free-plan auto-sleep ('Services on the Free Plan automatically sleep after a period of inactivity.') keep config and volumes but do not save process or root-filesystem state; resume is a fresh deployment. Automatic daily backups exist, but only for volumes/databases on Dev+ (7-day retention), and they are scheduled backups, not stop-snapshots.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://zeabur.com/docs/en-US/server/firewall",
+      "quote": "Outbound connections from your services are not restricted by the firewall.",
+      "note": "Server firewall is inbound-only. (The Claude Code skills page loosely says 'Set inbound and outbound traffic rules for servers', but the firewall doc is explicit and no outbound feature is documented.) On a purchased server with SSH/root you could configure host iptables yourself, but that is guest-side.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://zeabur.com/docs/en-US/server/firewall",
+      "quote": "Outbound connections from your services are not restricted by the firewall.",
+      "note": "No outbound controls of any kind, so none at HTTP level.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://zeabur.com/docs/en-US/server/firewall",
+      "quote": "Zeabur provides server-level firewall management, allowing you to configure inbound rules directly from the Dashboard without SSH-ing into the server to manage iptables manually.",
+      "note": "Per-server inbound rules (TCP/UDP, port range, source IP/CIDR), default-deny ('Zeabur’s firewall uses an allowlist strategy (default-deny).'). Caveat on page: 'may still be under development or only available for certain servers'. The Gateway add-on adds IPv4 whitelist/blacklist ('Gateway supports IP-based access control to restrict who can access your services through the gateway.'). Per-service choice of which ports get domains / public host:port, plus private networking (*.zeabur.internal). No authenticated/tokenized URLs documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://zeabur.com/docs/en-US/server/firewall",
+      "quote": "Zeabur provides server-level firewall management, allowing you to configure inbound rules directly from the Dashboard without SSH-ing into the server to manage iptables manually.",
+      "note": "Applies to Servers: full VPS (ZeaburOS=K3s, or plain Ubuntu 24.04) with SSH and sudo, so host iptables/nftables work (docs show sudo host operations). Must not block ports 22/80/443/4222/6443/30000-32767 on ZeaburOS. Inside deployed service containers, NET_ADMIN is not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://zeabur.com/docs/en-US/deploy/config/environment-variables",
+      "quote": "Zeabur will automatically inject these environment variables into your service.",
+      "note": "Secrets are plain service environment variables (with ${VAR} references). No credential-injecting egress proxy documented. Zeabur AI Hub (LLM gateway) issues a key that the app itself holds.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://zeabur.com/docs/en-US/data-management/volumes",
+      "quote": "On Zeabur, you can mount Volumes to persistently store your data within a service.",
+      "note": "Per-service persistent volumes (Volume ID + mount dir; billed; disables zero-downtime restarts). On Dedicated Servers you can also mount an extra disk at /var/lib/rancher/k3s/storage (host-level, via SSH). Clusters offer 'Distributed volumes that can follow workloads across nodes'.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://zeabur.com/docs/en-US/data-management/volumes",
+      "quote": "Volumes are scoped to a single service and cannot be shared between services.",
+      "note": "Docs recommend network object storage (MinIO/RustFS) for shared data. Cluster distributed volumes move with a workload; they are not documented as multi-writer.",
+      "checked": "2026-09-29"
+    }
   }
 }

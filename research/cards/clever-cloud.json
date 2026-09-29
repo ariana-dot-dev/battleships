@@ -227,7 +227,13 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -263,5 +269,49 @@
     "applied": 11,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.clever.cloud/developers/doc/develop/ssh-access/index.html.md",
+      "quote": "Clever Cloud instances are to be seen as *read-only* resources. Any change made on an instance **will not be persisted**.",
+      "note": "Immutable-infrastructure PaaS: every deploy/restart creates a new VM from the build (a build cache archive is reused, not machine state). Persistence is via add-ons (FS Bucket, Cellar S3, databases). FS Buckets get automated backups every 24 h (72 h retention), databases 7 days.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://www.clever.cloud/developers/doc/deploy/storage/fs-bucket/index.html.md",
+      "quote": "Immutable infrastructure doesn’t allow you to keep generated data files between deployments.",
+      "note": "No instance snapshot/checkpoint API in docs, CLI reference or API v4 overview; add-on backups only.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://www.clever.cloud/developers/doc/ai-llms/index.html.md",
+      "quote": "Nothing here is an AI-specific product.",
+      "note": "Agents drive the platform from outside via Clever Tools CLI, the public API and the open-source mcp-simple-server; SSH exec into instances is suggested for Claude Code/Codex/Cursor/OpenCode diagnostics. No API to run/stream an agent harness inside an app.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.clever.cloud/developers/doc/develop/request-flow/oauth2-proxy/index.html.md",
+      "quote": "OAuth2 Proxy redirects unauthenticated visitors to the identity provider you configure, and only authenticated requests reach your application.",
+      "note": "Controls: only HTTP port 8080 is exposed by default; raw TCP only via opt-in TCP redirections (port 4040 -> random public port); Network Groups (WireGuard private network between apps/add-ons/external peers, beta) for private access; platform-managed OAuth2 Proxy / Otoroshi challenge in the request flow; dedicated load balancers with fixed inbound IPs (quote-based). No documented IP allowlist or security-group style inbound rules; the HTTP endpoint itself is always public.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.clever.cloud/developers/doc/deploy/storage/fs-bucket/index.html.md",
+      "quote": "This is why we created File System Buckets, a network-based storage solution to retrieve data from a deployment to another.",
+      "note": "FS Bucket add-on, mounted via CC_FS_BUCKET env var (several buckets per app, optional :async). Network FS, not block volumes. NOT available for Docker applications ('FS Buckets access ... not supported' on the Docker page), not in the HDS zone, not cross-region.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://www.clever.cloud/developers/doc/deploy/storage/index.html.md",
+      "quote": "Since the folder is mounted over the network, multiple instances/applications can read it like any file on the system. At the same time.",
+      "note": "Read-write, shared across instances and applications in the same region; docs warn concurrent writers can corrupt files. Not for Docker apps.",
+      "checked": "2026-09-29"
+    }
   }
 }

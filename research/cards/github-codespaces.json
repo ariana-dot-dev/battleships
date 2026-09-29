@@ -237,7 +237,15 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -323,5 +331,78 @@
   "audit_2026_09_29": {
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.github.com/en/codespaces/about-codespaces/understanding-the-codespace-lifecycle",
+      "quote": "When you stop a codespace, any running processes are stopped. Any saved changes in your codespace will still be available when you next start it.",
+      "note": "Stop / idle timeout keeps the disk (persistent_disk), not a snapshot; memory/processes are lost and /tmp is cleared on stop. Each restart lands on a new VM.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.github.com/en/rest/codespaces/codespaces",
+      "quote": "Export a codespace for the authenticated user",
+      "note": "REST API (list/create/get/update/delete/export/start/stop, create repo from unpublished codespace) has no snapshot/checkpoint endpoint; 'export' pushes unpushed changes to a git branch. Prebuilds are image templates built by Actions from the repo config, not snapshots of a running codespace.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.github.com/en/codespaces/reference/using-github-copilot-in-github-codespaces",
+      "quote": "You can use GitHub Copilot in GitHub Codespaces by adding a VS Code extension.",
+      "note": "Copilot is an editor extension in the codespace; no API to start/stream an agent inside a codespace. Copilot coding agent runs on GitHub Actions, not Codespaces.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.github.com/en/codespaces/developing-in-a-codespace/connecting-to-a-private-network",
+      "quote": "At present, there is no way to restrict codespaces from accessing the public internet, or to restrict appropriately authenticated users from accessing a forwarded port.",
+      "note": "Codespace IPs are dynamic; org IP allow lists disable codespace creation.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.github.com/en/codespaces/developing-in-a-codespace/connecting-to-a-private-network",
+      "quote": "At present, there is no way to restrict codespaces from accessing the public internet",
+      "note": "no egress controls of any kind",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.github.com/en/codespaces/reference/security-in-github-codespaces",
+      "quote": "All forwarded ports are private by default, which means that you will need to authenticate before you can access the port.",
+      "note": "Per-port visibility private (creator only, GitHub auth) / organization (org members, GitHub auth) / public; incoming connections otherwise blocked by firewall. Org owners can restrict allowed visibility via policy (only for org-billed codespaces). No IP allowlists; private forwarding cannot be disabled.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Dev container on a dedicated VM with root via sudo; iptables needs NET_ADMIN, which a plain Docker container lacks unless devcontainer.json sets privileged/capAdd (the docker-in-docker feature sets \"privileged\": true). Not documented by GitHub.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.github.com/en/codespaces/reference/security-in-github-codespaces",
+      "quote": "You can access your secrets as environment variables in the codespace, including from the terminal.",
+      "note": "Development environment secrets are plain env vars inside the codespace; GitHub token also injected. No proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.github.com/en/codespaces/customizing-your-codespace/changing-the-machine-type-for-your-codespace",
+      "quote": "If you changed to a virtual machine with a different storage capacity (for example, from 32 GB to 64 GB), your codespace will be unavailable for a short time while the machine type is changed.",
+      "note": "Storage is fixed per machine type (32-128 GB); only way to grow it is changing machine type. No volume concept in docs or REST API.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.github.com/en/codespaces/reference/security-in-github-codespaces",
+      "quote": "GitHub Codespaces is designed to keep your codespaces separate from each other, with each using its own virtual machine and network.",
+      "note": "No shared filesystem between codespaces documented; /workspaces is per-codespace persistent disk.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -258,7 +258,7 @@
     "inbound_https": true,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -292,7 +292,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": false
+    "mcp_server": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -318,5 +325,63 @@
     "applied": 19,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/guide/sessions.html",
+      "quote": "Stop - The session is stopped, preserving the disk state.",
+      "note": "No automatic snapshot. keepalive_expiration_action (group setting; default timeout 1 h) can delete, stop (container disk kept = persistent disk, processes lost) or pause (docker pause: 'preserving the disk,  process and memory state' but it stays in RAM/swap, not checkpointed). Persistent profiles (host/NFS volume or S3 via kasm-profile-sync) restore only the user's home directory on each launch.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://kasm.com/docs/latest/guide/sessions.html",
+      "quote": "Administrators can create new docker images from active container-based Workspace sessions.",
+      "note": "'Create Image from Session' in the admin Sessions page = docker commit of the running container (disk only, no memory), optional push to a registry; a new Workspace entry is created so new sessions boot from it (template-style fork). Admin console only; not in the public Developer API endpoint list. Container workspaces only.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/developers/developer_api.html",
+      "quote": null,
+      "note": "Public Developer API covers request_kasm/destroy_kasm/exec_command_kasm (generic exec), screenshots, users, egress, casting, staging; no agent-harness endpoints. 1.17 only adds a 'Kasm AI registry' spotlight entry (images). Latest docs are 1.17.0.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/guide/web_filtering.html",
+      "quote": "If checked, all requests will be denied unless the domain is added to the Domain Whitelist, or the category of the domain is set to allow.",
+      "note": "Web Filter Policies (domain allow/deny lists, deny-by-default, URL categories, per group/workspace) exist, but they are enforced by a Kasm Squid proxy installed inside the workspace image and wired via http_proxy=127.0.0.1:3128 (workspaces-core-images install_squid.sh), i.e. inside the container, not outside it. Other network controls: Egress Providers/Gateways tunnel all session traffic through OpenVPN/WireGuard (routing, with kill-switch iptables in the container netns, not an allowlist); admins can pin workspaces to custom Docker networks on self-managed agents (host firewall is the operator's own).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://kasm.com/docs/latest/guide/session_sharing.html",
+      "quote": "Any authenticated user may join a shared session if the URL is known.",
+      "note": "Sessions are only reachable as streamed desktops through the authenticated Kasm web/proxy tier; sharing is opt-in (allow_kasm_sharing group setting), view-only by default; Casting URLs can be unauthenticated but protected by ReCAPTCHA, referrer and per-IP rate limits. No feature for publishing arbitrary app ports; no per-session IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting proxy documented. Secrets reach sessions as env vars (Docker Run Config / exec_command_kasm environment) or mounted storage; Egress Credentials are VPN credentials; S3 persistent profiles use presigned URLs so the container never holds the S3 key (profile sync only).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://kasm.com/docs/latest/guide/storage_mappings.html",
+      "quote": "Storage Mappings allow administrators to create and attach custom and ephemeral docker volumes in Kasm Workspace Containers.",
+      "note": "Also Volume Mappings (host/NFS paths bound into every session of a workspace) and user cloud-storage mappings (Google Drive, Dropbox, OneDrive, Nextcloud, S3, rclone).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://kasm.com/docs/latest/guide/persistent_data/volume_mapping.html",
+      "quote": "This effectively will act as a file share.",
+      "note": "A host directory (NFS/SMB/etc. in multi-server deployments) mapped into all concurrent sessions of the workspace, mode rw or ro per mapping; {username}/{user_id}/{image_id} tokens give per-user paths.",
+      "checked": "2026-09-29"
+    }
   }
 }

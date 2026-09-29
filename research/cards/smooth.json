@@ -147,7 +147,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -183,7 +183,16 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "datacenter",
-    "ip_note": "Default egress is Smooth's datacenter IP; bring-your-own proxy (Starter $50/mo and up) or proxy_server=\"self\" P2P tunnel to egress via your own (e.g. residential) IP; no managed residential proxy or per-GB price published. Browser API is a session tool API (goto/extract/evaluate_js), no CDP endpoint documented."
+    "ip_note": "Default egress is Smooth's datacenter IP; bring-your-own proxy (Starter $50/mo and up) or proxy_server=\"self\" P2P tunnel to egress via your own (e.g. residential) IP; no managed residential proxy or per-GB price published. Browser API is a session tool API (goto/extract/evaluate_js), no CDP endpoint documented.",
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -222,5 +231,71 @@
   "audit_2026_09_29": {
     "applied": 9,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.smooth.sh/methods/session",
+      "quote": null,
+      "note": "Sessions end on close ('Close the session and save any profile changes.'); only browser profiles (cookies/auth) persist across sessions - persistent state, not a machine snapshot. No pause/standby/checkpoint concept in docs or OpenAPI.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.smooth.sh/api-reference/openapi.json",
+      "quote": null,
+      "note": "OpenAPI has only /task, /task/{id}/event, /profile, /file, /extension, /browser/session - no snapshot/checkpoint/fork endpoint. Profiles ('Profiles persist cookies and authentication across tasks.') are the only reusable state.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://docs.smooth.sh/llms.txt",
+      "quote": "Submits a task to be executed by the Smooth agent.",
+      "note": "Harness = Smooth's own browser agent only ('Currently, only `smooth` is available.'). POST /task with a natural-language prompt, GET /task/{id} polls status/events (event_t cursor), POST /task/{id}/event sends follow-up run_task/goto/extract/evaluate_js/close and custom-tool responses, DELETE cancels, GET /task lists tasks. The agent runs in Smooth's cloud next to the browser; no Claude Code/Codex inside (the CLI gives Claude Code/OpenClaw a Smooth browser, the reverse direction).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.smooth.sh/llms.txt",
+      "quote": "Submits a task to be executed by the Smooth agent.",
+      "note": "Harness = Smooth's own browser agent only ('Currently, only `smooth` is available.'). POST /task with a natural-language prompt, GET /task/{id} polls status/events (event_t cursor), POST /task/{id}/event sends follow-up run_task/goto/extract/evaluate_js/close and custom-tool responses, DELETE cancels, GET /task lists tasks. The agent runs in Smooth's cloud next to the browser; no Claude Code/Codex inside (the CLI gives Claude Code/OpenClaw a Smooth browser, the reverse direction).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.smooth.sh/methods/session",
+      "quote": "List of allowed URL patterns using wildcard syntax. If None, all URLs are allowed.",
+      "note": "allowed_urls on sessions and tasks (e.g. [\"google.com/*\", \"*mydomain.*//*\"]); set by the API caller, and the agent/user has no shell in the browser VM, so effectively provider-side. Enforcement mechanism (navigation-only vs all subresource traffic, network-level) is not documented. Proxies / P2P tunnel ('proxy_server=\"self\"') are IP routing, not allowlists.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.smooth.sh/api-reference/openapi.json",
+      "quote": null,
+      "note": "No shell/process/root access to the browser machine at all - control is only via agent tasks, goto/extract/evaluate_js (page JavaScript). Isolation technology undocumented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.smooth.sh/cli/features/authentication",
+      "quote": "Your credentials stay on your machine and in the secure profile storage. The agent never sees your password.",
+      "note": "No credential-injection proxy or secret store. Credentials reach the agent via task text or metadata ('A dictionary containing variables or parameters that will be passed to the agent.'), or you log in manually via live view and the cookies are saved to a profile (the quote refers to this). Custom tools run in your own environment, so API keys for tool calls can stay out of Smooth - a pattern, not a proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.smooth.sh/api-reference/openapi.json",
+      "quote": null,
+      "note": "No volumes; file upload/download only ('Files can be reused across multiple tasks but are automatically deleted from our servers after 24 hours.').",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.smooth.sh/api-reference/openapi.json",
+      "quote": null,
+      "note": "No shared filesystem; uploaded files (24 h retention) can be passed to multiple tasks by id.",
+      "checked": "2026-09-29"
+    }
   }
 }

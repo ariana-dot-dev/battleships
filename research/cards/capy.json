@@ -230,7 +230,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -269,5 +276,57 @@
     "applied": 29,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.capy.ai/machines",
+      "quote": "The filesystem survives sleep. Memory, processes, and network connections do not. Resume is a cold boot from disk: your checkout and installed packages are intact, but every process is gone.",
+      "note": "Machines auto-sleep ~2 min after the thread stops working and cold-boot from the persisted disk on wake (persistent_disk, not a state snapshot). Asleep 2 days -> colder storage; 30 days -> deleted.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.capy.ai/environment",
+      "quote": "A snapshot is your project's post-setup filesystem (repositories cloned, dependencies installed, `initialize` already run) baked into a bootable image. ... Trigger a build immediately from the same page, or ask Capy to build one now.",
+      "note": "Only project setup-image snapshots: built by re-running the setup recipe on a dedicated build machine (hourly or on demand), disk only, used to boot new machines in ~1-2 s. No documented way to snapshot/checkpoint a specific running machine's state or fork it.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.capy.ai/api-reference/overview",
+      "quote": "The Capy API gives programmatic access to the same platform the app uses: create threads, send messages, watch the agent work, and read what it produced. ... A **thread** is a durable agent conversation on Capy's servers, with a VM attached for execution.",
+      "note": "Harness = Capy's own agent (Captain + task subagents) only, with many models (Claude/GPT/Gemini/Grok/Kimi/GLM/Qwen). REST: create thread with prompt, send/interrupt messages, read transcript, list threads, observe task tree (read-only). Caveat: the agent loop runs on Capy's servers, not inside the VM ('The agent loop runs on Capy's servers; the machine is where execution happens'); no streaming endpoint documented (polling transcript). No Claude Code/Codex harness driving.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each thread gets its own isolated Ubuntu 24.04 VM with passwordless sudo, and Docker Engine (which itself programs iptables) runs inside; hypervisor not stated.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.capy.ai/secrets",
+      "quote": "Capy encrypts them at rest, injects them into the machine's process environment at boot ... the machine is the agent's execution environment, so code the agent runs can read anything on the machine, including your variables.",
+      "note": "User secrets are env vars on the machine. BUT a narrow first-party credential-injecting proxy exists for GitHub/git only: 'Every git operation routes through Capy's proxy, which injects credentials server-side; the machine holds only a bearer scoped to itself' (docs.capy.ai/secrets, /admin/security). Model-provider keys are never on the machine because the agent loop runs server-side. Not configurable for arbitrary hosts.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.capy.ai/volumes",
+      "quote": "Volumes store instructions, skills, and shared files outside git for reuse across threads. ... Limits are 100 MiB per file, 2 GiB per saved volume version, and 10 GiB per organization.",
+      "note": "Capy 'Volumes' are a versioned file store (AGENTS.md, skills, saved files) the agent saves to, not attachable block/network volumes. Disk tier is fixed by machine size (64/128/256 GB).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.capy.ai/machines",
+      "quote": "Each task can run on its own machine, and machines don't share a filesystem. Capy copies files and directories between machines with its `transfer_files` tool, the only cross-machine path.",
+      "note": "Org/project Volumes are shared across threads as saved files (auto-saved versions), not a live concurrently mounted FS.",
+      "checked": "2026-09-29"
+    }
   }
 }

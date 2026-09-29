@@ -168,7 +168,15 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "vm",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -216,5 +224,64 @@
     "applied": 15,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 6
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://buddy.works/docs/sandboxes/introduction.md",
+      "quote": "The disk survives. Memory does not - running processes are terminated when the Sandbox stops, and apps are started again when it comes back up.",
+      "note": "Stop (manual or inactivity timeout) keeps the 50 GB disk (persistent_disk), but no automatic snapshot/checkpoint is taken and memory is lost. Snapshots are taken by hand, from a pipeline action, or from inside via `this snapshot create`.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://buddy.works/docs/sandboxes/snapshots.md",
+      "quote": "A snapshot is a saved state of a Sandbox at a point in time - the filesystem with everything installed and configured in it.",
+      "note": "Filesystem only (no memory). UI/CLI/REST/SDK/MCP and from inside the sandbox (`this snapshot create`). 'Run in new sandbox' boots new machines from it ('One snapshot can back any number of Sandboxes'); 'Restore' reverts the source sandbox in place. Snapshots never expire and outlive their sandbox. Separate 'Clone' (copy of a sandbox) also exists.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://buddy.works/docs/sandboxes/sdk.md",
+      "quote": "the full lifecycle: create, clone, start, stop, restart, destroy",
+      "note": "SDK/API/CLI cover lifecycle, commands, files, apps, snapshots only. Agents (Claude Code etc.) are preinstalled and started by SSH-ing in and typing `claude` (agent_harnesses). Separate Claude Code / Codex CLI pipeline actions run a prompt in a CI pipeline container, not in the sandbox. Claude Managed Agents integration is a reference repo (github.com/buddy/claude-managed-agents) where Anthropic's API drives the loop, not a Buddy harness API.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://buddy.works/docs/sandboxes/endpoints.md",
+      "quote": "Who is allowed through - an IP whitelist on any endpoint, plus Basic auth or Buddy auth on HTTP ones.",
+      "note": "Endpoints are tunnels via the in-sandbox bdy agent; nothing exposed unless you add an endpoint (SSH endpoint by default). Per-endpoint IP/CIDR whitelist, Basic auth, Buddy auth (signed-in Buddy users), user-agent whitelist, region choice.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Docs: 'behaves like a virtual machine you own', passwordless sudo, 'change kernel parameters, run Docker inside it', each sandbox has its own network. Hypervisor not named; not explicitly documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://buddy.works/docs/sandboxes/variables-and-secrets.md",
+      "quote": "Variables are injected when the Sandbox starts, **before the first boot commands run**, so setup logic can rely on them.",
+      "note": "Secrets are encrypted/masked variables injected as env vars, files or SSH keys inside the sandbox. Exception: git fetch/push to Buddy-connected repos is 'pre-authorized' and 'needs no tokens and no keys inside the Sandbox' (mechanism undocumented) - git-only, not arbitrary HTTP.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://buddy.works/docs/sandboxes/lifecycle.md",
+      "quote": "This is why Sandboxes have no volumes or external drives to attach.",
+      "note": "Fixed 50 GB persistent local disk. User can self-mount e.g. S3 buckets from inside (not first-party).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://buddy.works/docs/sandboxes/lifecycle.md",
+      "quote": "This is why Sandboxes have no volumes or external drives to attach.",
+      "note": "No first-party shared volume/FS; only DIY mounts (e.g. S3) from inside.",
+      "checked": "2026-09-29"
+    }
   }
 }

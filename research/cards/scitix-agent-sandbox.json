@@ -148,7 +148,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -165,7 +165,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -177,7 +177,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -202,5 +210,71 @@
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
+      "quote": "pause / resume / snapshots / fork (a sandbox is a claimed Pod, not a microVM, so there is no memory image)",
+      "note": "E2B autoPause/autoResume are refused at create (HTTP 400). On idle timeout or kill the Pod is restarted onto the idle image and returned to the pool; state is discarded.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
+      "quote": "pause / resume / snapshots / fork (a sandbox is a claimed Pod, not a microVM, so there is no memory image)",
+      "note": "Listed under 'Not supported (HTTP 501)', category architectural. Templates are container images you build in your own CI; no snapshot format.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/tutorials/managed-agents/brain-hands",
+      "quote": "The brain keeps running wherever you run it; the hands become a sandbox bound to the conversation.",
+      "note": "The first-party agent integration ('Brain and Hands', @scitix/agentbox-hands for Claude Agent SDK, OpenCode, generic MCP) is the inverse model: the harness runs outside and only its bash/read/write/edit/grep/glob/apply_patch tools act on the sandbox. No API to start/stream/resume a harness inside the sandbox; the console assistant also runs its brain outside. Agent skills (abx-*) for Claude Code/Codex/OpenCode drive the platform, not an in-sandbox harness.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/egress-and-secrets",
+      "quote": "Naming an allow list is what makes everything else a deny — the entries are the whole of what is reachable. A CIDR or a bare IP works in the same list.",
+      "note": "Per-sandbox rules on create (E2B network.allow_out / deny_out, allow_internet_access=False), live replacement via PUT /sandboxes/{id}/network. Enforced by an egress-proxy sidecar plus an iptables nat redirect installed by a CAP_NET_ADMIN init container in the Pod netns (not in the sandbox image). Requires the env's gateway switch (overrides.gateway.enabled); otherwise rule-bearing creates are refused 400. Hostnames matched on HTTP Host (:80) / TLS SNI (:443) only; other ports CIDR-only. Metadata/link-local always denied; RFC1918 denied by default. Self-hosted: the operator runs it.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/designs/egress",
+      "quote": "`HTTP` rules match on the `Host` header, `TLS` rules on the SNI.",
+      "note": "network.rules are per-host header transforms (credential injection), not method/path filters: the injection rule type holds only Host + Headers (handlers/egress.go). No method/path/header allow/deny rules documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/envoy/extproc/README.md",
+      "quote": "**Validates** the API Key (`SecretKeyStore`).",
+      "note": "Sandbox ports are reached through the Envoy data plane (/sandboxes/<id>/<port>/... or x-sandbox-id/x-sandbox-port headers) and the ExtProc validates an API key on every inbound request. Self-hosted: the operator also decides whether/how the ingress is published (Helm ingress.host). No per-port public/private toggle or IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/egress-and-secrets",
+      "quote": "The value never enters the sandbox. The sandbox holds a **decoy** — a placeholder that looks like a token — and the egress sidecar substitutes the real one as the request leaves, for the hosts and headers the rule names.",
+      "note": "Write-only vault (E2B Secret API) + per-sandbox network.rules header transforms for any named host (no wildcards); TLS MITM with a per-sandbox CA installed in the trust store. HTTP/HTTPS on ports 80/443 only; header rewrite only (no body/query); no non-HTTP protocols (DB, SSH). Requires the env's egress gateway.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/envs",
+      "quote": "PersistentVolumeClaims mounted into every sandbox",
+      "note": "Env-level only (overrides.volumes on the SandboxEnv, Kubernetes PVCs from the operator's cluster). Per-sandbox volumes are unsupported: E2B volumeMounts refused 400 and volume endpoints 501 ('per-sandbox volumes').",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/envs",
+      "quote": "PersistentVolumeClaims mounted into every sandbox",
+      "note": "An env's PVCs are mounted into every sandbox claimed from that env simultaneously; read-write sharing requires a ReadWriteMany storage class in the operator's cluster (not stated in docs). Derived from the env override semantics.",
+      "checked": "2026-09-29"
+    }
   }
 }

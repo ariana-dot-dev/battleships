@@ -164,7 +164,13 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -224,5 +230,49 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://lizard.build/docs/sandboxes.md",
+      "quote": "After it stops, only files written to an attached Persistent Volume at `/workspace` can be reused by a later sandbox.",
+      "note": "Nothing is saved automatically on stop/expiry; lifetime is a fixed deadline, not an idle timer. Pause/resume return HTTP 501.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://lizard.build/docs/sandboxes.md",
+      "quote": "Pause, resume, fork, snapshot, restore, and file watching currently return HTTP 501.",
+      "note": "Dashboard: 'Creating user snapshots, pausing, and resuming are not supported.' Marketing page: 'User-created snapshots are not available.'",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://lizard.build/docs/sandboxes/sdk-reference.md",
+      "quote": "| `sandbox.process.exec(cmd)` | Run a shell command; return stdout, stderr, and exitCode. |",
+      "note": "SDK surface is create/connect/list/getInfo, process.exec, fs.*, getHost, setTimeout, kill. A 'codex' template exists (harness preinstalled = agent_harnesses), but no API to drive it; command timeouts 1-600 s.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://lizard.build/docs/sandboxes/sdk-reference.md",
+      "quote": "Create-time `envs` and `metadata` are also not applied.",
+      "note": "No credential proxy documented. The platform's secrets are env vars merged into app services' environments (docs/variables); for sandboxes even create-time env vars are not applied, so credentials have to be passed in via commands/files.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://lizard.build/docs/sandboxes/volumes.md",
+      "quote": "A volume in Lizard (lizard.build) keeps data after a sandbox stops. It mounts at **`/workspace`** and attaches to **one sandbox at a time**.",
+      "note": "Named node-local volumes 1-50 GB (default 5), billed on used space; attached at create; survive sandbox kill but not node loss.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://lizard.build/docs/sandboxes/volumes.md",
+      "quote": "An attached volume cannot attach to another sandbox or be deleted.",
+      "note": "Single attachment only (read-write). Managed S3 object storage exists as a platform addon but is not a sandbox mount.",
+      "checked": "2026-09-29"
+    }
   }
 }

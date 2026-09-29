@@ -138,7 +138,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -162,5 +169,56 @@
     "applied": 9,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/src/sdks/node/src/sandbox.ts",
+      "quote": "runCmd(command: string) {",
+      "note": "Local in-process library, no hosted machines. The whole Sandbox class exposes only constructor, setLogLevel and runCmd; no snapshot/persist/restore of any kind. Sandbox state is an in-process COW overlay that lives with the host process.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/src/sdks/node/src/sandbox.ts",
+      "quote": "setLogLevel(level: \"OFF\" | \"DEBUG\") {",
+      "note": "SDK surface (v0.0.6) is only new Sandbox(), setLogLevel(), runCmd(); no checkpoint/fork API.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is an SDK and runtime for safely executing bash commands locally, without the need for remote sandboxes or local VMs/containers.",
+      "note": "Only a generic runCmd (bash) with stdout/stderr streams; no agent-harness integration.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "| Server sockets | `bind`, `listen`, `accept`, `accept4` |",
+      "note": "Listed under 'Blocked' syscalls: guests cannot listen at all, so there are no exposed ports and nothing to control (local library, no URLs).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "| Privilege escalation | `ptrace`, `mount`, `umount2`, `chroot`, `pivot_root`, `reboot`, `setns`, `unshare`, `seccomp`, `bpf` |",
+      "note": "Guests run as the unprivileged host user under a seccomp user-notifier supervisor (no own kernel, no CAP_NET_ADMIN; unshare/setns/bpf blocked; setsockopt unhandled -> ENOSYS). iptables/nftables cannot work.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "bVisor is imageless, meaning it does not require a base image to run. It runs with direct visibility to the host filesystem.",
+      "note": "No volumes: the sandbox sees the host filesystem through a copy-on-write overlay.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://github.com/butter-dot-dev/bVisor/blob/main/README.md",
+      "quote": "Isolation is achieved via a copy-on-write overlay on top of the host filesystem. Files opened with write flags are copied to a sandbox-local directory. Read-only files are passed through to the real filesystem.",
+      "note": "All sandboxes on a host read the same host filesystem (read-only passthrough), but writes are private per sandbox; no first-party shared volume.",
+      "checked": "2026-09-29"
+    }
   }
 }

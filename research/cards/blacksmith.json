@@ -495,7 +495,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -534,5 +542,64 @@
   },
   "audit_2026_09_29": {
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.blacksmith.sh/security",
+      "quote": "After a job completes, the microVM is destroyed, along with any of its state.",
+      "note": "Runner VMs are ephemeral. Only opt-in sticky disks (incl. Docker layer cache) are committed as a new disk snapshot at job end ('Once the job completes, the sticky disk will be unmounted and committed for future invocations'); that is persistent-cache disk state, not machine state, and no memory.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://www.blacksmith.sh/security",
+      "quote": "After a job completes, the microVM is destroyed, along with any of its state.",
+      "note": "No snapshot API for runners/Testboxes in the docs. The waitlist-only 'Blacksmith Sandboxes' beta advertises 'Fully managed environment snapshots ... to boot sandboxes from' (https://www.blacksmith.sh/sandboxes), unpriced and undocumented; not counted.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/codesmith/build-from-anywhere.md",
+      "quote": "Install the [code]smith app via Slack ... Mention @codesmith on any PR in any GitHub repo that Blacksmith is connected to. ... Open the Web UI to directly message [code]smith.",
+      "note": "Blacksmith's own background coding agent [code]smith ($1.75/agent compute unit) is driven only via web UI, Slack, GitHub mentions and Linear; no documented public API/SDK to start/stream/resume sessions. Testbox CLI (early beta) is the reverse direction: a local agent runs commands (rsync + exec) in a CI microVM - generic exec, not a harness API.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-observability/ssh-access.md",
+      "quote": "SSH access is opt-in and must be enabled by a GitHub organization admin ... Only the GitHub user who triggered the job can SSH into the runner",
+      "note": "CI runners expose no user ports/URLs (no inbound HTTPS). The only inbound path is the opt-in debug SSH port, gated by an org-level toggle and the triggering user's GitHub SSH keys; no user-configurable IP allowlists, security groups or port exposure.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Jobs run in Firecracker microVMs with their own kernel ('Our jobs never share kernels', security page) and GitHub-runner-style sudo/root; iptables/nftables inside should work. Not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-testbox/overview.md",
+      "quote": "Testboxes sync your local changes to a Blacksmith microVM and run commands inside a real GitHub Actions job, with access to secrets, OIDC tokens, and service containers.",
+      "note": "Secrets are ordinary GitHub Actions secrets/OIDC tokens exposed to the job inside the VM; no credential-injecting proxy documented. [code]smith MCP connector credentials are stored per user/org for MCP servers (not an outbound HTTP proxy for the sandbox).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.blacksmith.sh/blacksmith-caching/dependencies-sticky-disks.md",
+      "quote": "Each sticky disk is hot-loaded into the runner and mounted at the specified path. The sticky disk is formatted as an ext4 filesystem.",
+      "note": "Sticky disks: Ceph-backed ext4 block devices keyed by name, up to 5 per job, $0.50/GB-month, evicted after 7 days unused. Docker layer cache uses the same mechanism. Persistence is snapshot-clone-commit per job, not a live attached volume.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-caching/dependencies-sticky-disks.md",
+      "quote": "Every job always works on its own isolated clone of the sticky disk — jobs never share a live disk, and a job's writes only become visible to future runs if its clone is committed as the new snapshot when the job completes.",
+      "note": "Many concurrent jobs can hydrate from the same sticky-disk snapshot (read-write private clone each), last commit wins; not a shared live filesystem. Optional branch protection limits which jobs can commit.",
+      "checked": "2026-09-29"
+    }
   }
 }

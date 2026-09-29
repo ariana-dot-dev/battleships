@@ -1287,7 +1287,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
@@ -1308,7 +1308,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -1320,7 +1320,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1377,5 +1386,79 @@
     "applied": 26,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://helpcenter.netcup.com/en/wiki/server/media",
+      "quote": "Under Snapshots, you can create new snapshots of your server's current state. You can also revert your server to a previous state or export the snapshots locally.",
+      "note": "Plain KVM VPS: snapshots are only user-created in the SCP (or SCP API); power-off/stop just leaves the disk as-is (persistent_disk). No automatic checkpoint on stop is documented.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://helpcenter.netcup.com/en/wiki/server/media",
+      "quote": "The main advantage of online snapshots is that they also save the state of the server. This means that anything running on the server during the online snapshot can be reverted to the current state.",
+      "note": "Two types: Online (running server, includes running state/memory, revert-in-place only, cannot be exported, may freeze server for minutes, not available with Local Block Storage) and Offline (server stopped, disk only; 'can also be imported into another netcup server at a later time'). So new machines can be seeded from an exported offline snapshot (one free export per server, further exports paid), not from memory snapshots. No fork/template API.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "DIY VPS with a server-management REST API (SCP) only; no agent/harness features of any kind. Card agent_harnesses=false.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://helpcenter.netcup.com/en/wiki/server/firewall",
+      "quote": "Our firewall is a free security feature that filters your server's incoming and outgoing traffic.",
+      "note": "Stateful netcup firewall managed in SCP or API via policies: EGRESS rules on protocol, source/destination IPs/networks and ports, ACCEPT/DROP; 'as soon as you create your own incoming rule, the implicit incoming rule automatically changes to DROP. The same behavior applies to outgoing rules' = default-deny egress possible. Up to 500 active rules per server and public interface. Outbound SMTP blocked by default. Available for server generations 9+. No hostname/domain rules.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://helpcenter.netcup.com/en/wiki/server/firewall",
+      "quote": "This simple firewall offers basic protection and can, for example, prevent internal data from being unintentionally transferred to the public internet. However, you will need to implement your own firewall solution for advanced features.",
+      "note": "Rules are L3/L4 only (protocol, IPs, ports, ACCEPT/DROP; REJECT not even supported).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://helpcenter.netcup.com/en/wiki/server/firewall",
+      "quote": "Select a Direction: Select whether the rule should be applied to incoming or outgoing traffic.",
+      "note": "INGRESS rules by source IP/network and ports; defaults to allow-all until an incoming rule is added. Public IPv4/IPv6 per server; no managed HTTPS URLs.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM with root (Linux, own kernel); iptables/nftables work as on any VPS. netcup's own firewall doc says to 'implement your own firewall solution for advanced features'.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secrets product or credential-injecting proxy; secrets are whatever you put on the VM yourself.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.netcup.com/en/helpcenter/documentation/server/local-block-storage",
+      "quote": "Local Block Storage is an additional virtual hard disk provided within the server.",
+      "note": "Local Block Storage: up to 5 per server, 1 GB up to 8 TB depending on product, same media as base (NVMe/HDD), attached without downtime; not movable between servers. Also network Storage Space (NFS) add-on.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://helpcenter.netcup.com/en/wiki/server/storagespace/",
+      "quote": "A Storage Space is an additional storage that is provided by a storage server in our data center. It can be shared by multiple VPS or root servers.",
+      "note": "NFS (v3 in the fstab example), read-write, IP-based authorization configured in CCP, also mountable from outside netcup; tied to one vServer contract, monthly traffic cap after which it freezes until month end; cannot be resized or transferred.",
+      "checked": "2026-09-29"
+    }
   }
 }

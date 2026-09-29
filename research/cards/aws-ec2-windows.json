@@ -366,7 +366,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": false,
@@ -378,7 +378,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -425,5 +434,79 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Hibernate.html",
+      "quote": "Hibernation saves the contents from the instance memory (RAM) to your Amazon Elastic Block Store (Amazon EBS) root volume. Amazon EC2 persists the instance's EBS root volume and any attached EBS data volumes.",
+      "note": "Opt-in EC2 hibernation: must be enabled at launch (encrypted root EBS, Windows RAM <= 16 GiB, Windows Server 2012-2022 AMIs listed), then a stop with the hibernate option (or a Spot interruption with interruption behavior 'hibernate') saves RAM to the root EBS volume; on start 'The RAM contents are reloaded' and 'The processes that were previously running on the instance are resumed'. Memory included. A plain stop is disk-only (persistent EBS). Scheduled EBS snapshots via Data Lifecycle Manager / AWS Backup are backups, not this.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html",
+      "quote": "You can then use the new AMI to launch new instances with your customizations.",
+      "note": "EBS snapshots (point-in-time, per volume) and CreateImage (AMI) from a running or stopped instance via API/CLI/console; new instances boot from the AMI (template/fork of disk). Disk only, no memory; by default the instance is rebooted for consistency (NoReboot optional).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No first-party agent-harness control for EC2; drive the VM yourself via RDP or SSM Run Command / Session Manager (generic exec, does not count).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html",
+      "quote": "Inbound rules control the incoming traffic to your instance, and outbound rules control the outgoing traffic from your instance.",
+      "note": "Security-group outbound rules and network ACLs: IP/CIDR/prefix-list + port (level ip), enforced at the hypervisor/VPC. Domain level via AWS Network Firewall (separately billed): 'You can create allow lists and deny lists with domain names that the stateful rules engine looks for in network traffic' (SNI / Host header), also Route 53 Resolver DNS Firewall. No-internet mode = private subnet without IGW/NAT.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/suricata-examples.html",
+      "quote": "pass http $HOME_NET any -> any any (msg:\"Allow WebSocket Upgrade\"; flow:established; http.connection; content:\"Upgrade\"; http.header; content:\"websocket\"; sid:1200001; rev:1;)",
+      "note": "AWS Network Firewall (separate paid service in the VPC path) accepts Suricata-compatible stateful rules with HTTP keywords (http.host, http.header, etc.) and, with a TLS inspection configuration, 'inspects the traffic according to your firewall policy's stateful rules' after decrypting HTTPS; aws_url_category evaluates full URLs with TLS inspection. Not a per-instance toggle; requires VPC routing through firewall endpoints.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html",
+      "quote": "Inbound rules control the incoming traffic to your instance, and outbound rules control the outgoing traffic from your instance.",
+      "note": "Security groups (stateful, allow rules by CIDR/prefix list/other SG + port), NACLs, private subnets, optional public IPv4. No managed HTTPS preview URLs.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full Nitro VM with Administrator/root: Windows Defender Firewall (netsh/PowerShell) on Windows Server AMIs, iptables/nftables on Linux AMIs.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Secrets live in AWS Secrets Manager / SSM Parameter Store and are fetched into the instance via its IAM instance-profile role; no first-party proxy that injects credentials into outbound requests for EC2.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-attaching-volume.html",
+      "quote": "You can attach an available EBS volume to one or more of your instances that is in the same Availability Zone as the volume.",
+      "note": "EBS block volumes (gp3/io2/etc.), same AZ only.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volumes-multi.html",
+      "quote": "Amazon EBS Multi-Attach enables you to attach a single Provisioned IOPS SSD ( io1 or io2 ) volume to multiple instances that are in the same Availability Zone.",
+      "note": "Multi-Attach: up to 16 Nitro instances in one AZ, read-write, 'Windows instances support Multi-Attach enabled io2 volumes only', needs a cluster-aware FS (e.g. WSFC). For normal shared file storage on Windows: Amazon FSx for Windows File Server (SMB, read-write, many instances, cross-VPC/account/Region); EFS is the Linux (NFS) equivalent. All separately billed.",
+      "checked": "2026-09-29"
+    }
   }
 }

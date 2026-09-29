@@ -356,7 +356,12 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "residential",
-    "ip_note": "Built-in browser proxy is residential only (195 countries); standalone residential proxies from $1.80/GB (Basic) to $1.44/GB; custom/BYO proxy (not billed) is subscribers-only."
+    "ip_note": "Built-in browser proxy is residential only (195 countries); standalone residential proxies from $1.80/GB (Basic) to $1.44/GB; custom/BYO proxy (not billed) is subscribers-only.",
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "guest_firewall": false,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -400,5 +405,43 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 6
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.scrapeless.com/en/docs/browser-crawl/agent-browser/profiles/",
+      "quote": "If you need to store new cookies, authentication tokens, or cached data, you must set profilePersist: true when creating the session. The data will be saved when the session is closed.",
+      "note": "The only state mechanism is browser Profiles (cookies, storage, cache, login state) saved on session close when profilePersist=true and reloaded when a later session passes profileId. That is persisted browser user data (persistent_disk-like), not a machine/memory snapshot; open tabs and running page state are not restored. No machine snapshot exists in docs, SDK (sdk-node BrowserService: sessionTTL, proxy*, fingerprint, extensionIds, profileId, profilePersist only) or CLI.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://github.com/scrapeless-ai/sdk-node/blob/main/src/types/browser.ts",
+      "quote": "profileId?: string;\n  profilePersist?: boolean;",
+      "note": "No snapshot/checkpoint/fork API for browser sessions in docs or the official Node SDK; session options stop at profile id/persist. The agent-browser CLI 'snapshot -i' command is a DOM/accessibility snapshot of the page, not a machine snapshot. Profiles can be created/listed/deleted via API but are only written on session close.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://github.com/scrapeless-ai/scrapeless-agent-browser/blob/main/README.md",
+      "quote": "This works with Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Goose, OpenCode, and Windsurf.",
+      "note": "Product is a remote CDP browser. The scrapeless-agent-browser CLI/skill lets an agent running elsewhere (your laptop) drive the cloud browser; nothing runs an agent harness inside the browser sandbox. MCP server exists (scrapeless-mcp-server) but is browser/scrape tools, not a harness driver.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Managed Chromium reached only over CDP (plus custom CDP domains Captcha.*, Agent.*); no shell, root or OS access is documented, so nftables/iptables cannot be run.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.scrapeless.com/en/docs/browser-crawl/agent-browser/authentication-identity/",
+      "quote": "Securely retrieve authentication data and inject it into browser sessions.",
+      "note": "Scrapeless has a credential system (Team Credentials API POST /browser/credentials keyed by origin+namespace, plus a 1Password integration via PUT /browser/one-password/token and POST /browser/one-password/secret) meant for agents to autofill logins. Credentials are injected into the browser session (forms), not added by an outbound HTTP proxy; the secret-retrieval endpoints return plaintext to the API caller. Docs claim 'Injected credentials remain inaccessible after use' but do not describe a placeholder/proxy mechanism. Not a secret proxy per the definition.",
+      "checked": "2026-09-29"
+    }
   }
 }

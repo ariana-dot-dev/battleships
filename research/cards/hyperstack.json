@@ -958,7 +958,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": false,
@@ -991,7 +991,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": false
+    "mcp_server": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1019,5 +1027,65 @@
     "applied": 17,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 9
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.hyperstack.cloud/docs/virtual-machines/hibernation.md",
+      "quote": "If your account balance falls below $0, all active VMs will be immediately transitioned into a hibernated state.",
+      "note": "Hibernation (config + root disk saved, CPU/GPU/RAM deallocated; disk only - RESTORING = 'The VM operating system and software are restarting') is user-initiated via UI/API; the only automatic trigger is billing enforcement at negative balance (flavors without hibernation are deleted instead). No idle/stop-triggered state save. SHUTOFF keeps the disk (persistent disk) but bills at full flavor rate.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.hyperstack.cloud/docs/virtual-machines/snapshots.md",
+      "quote": "A virtual machine (VM) snapshot captures an image of the VM's system at a specific point in time by saving its configuration and bootable volume data to disk for future restoration.",
+      "note": "Disk only, no memory ('If the VM is **`ACTIVE`**, it is temporarily **`SHUTOFF`** during the snapshot'). API: POST /core/virtual-machines/{id}/snapshots, POST /core/snapshots/{id}/restore. New VMs can boot from it via custom images ('users can create custom operating system (OS) images from previously created snapshots', custom-images.md). Limits: max 100 GB, one at a time, not for K8s nodes or VMs booted from bootable volumes, flavor-dependent. Billed ~$0.07/GB-month.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain GPU IaaS: API reference (sitemap) covers VMs, volumes, snapshots, firewalls, K8s, object storage, AI Studio inference only; no agent-harness endpoints. The Hyperstack MCP server manages infrastructure; AI Studio 'Claude Code' integration routes Claude Code to AI Studio models via a local proxy (inference, not a harness API).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.hyperstack.cloud/docs/network/firewalls.md",
+      "quote": "It contains rules that govern inbound and outbound traffic for virtual machines, allowing or denying access based on properties such as the direction of traffic, source or destination IP, protocol, ethertype, and port range.",
+      "note": "Cloud (OpenStack-style security-group) firewall per VM: direct rules or reusable firewalls attached to VMs, via UI/API. Default egress allow-all ('pre-configured firewall rules permitting outgoing IPv4 and IPv6 traffic ... to any destination IP address (0.0.0.0/0)') which can be deleted to restrict outgoing traffic. IP/CIDR + protocol + port; no hostnames.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.hyperstack.cloud/docs/network/firewalls.md",
+      "quote": "New virtual machines are secure by default, initially configured without any firewall rules allowing incoming traffic. To enable incoming traffic, users must create firewall rules tailored to their needs.",
+      "note": "Inbound rules by remote IP prefix, protocol, port range. Public IP is optional/attachable (private IPs otherwise); bastion servers documented. No HTTPS preview URLs.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VMs (OpenStack-based) with root on Ubuntu images; iptables/nftables/ufw should work. Not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.hyperstack.cloud/docs/storage/volumes/shared-storage-volumes.md",
+      "quote": "After creation, volumes can be attached to any VM for data storage. Each virtual machine can have a maximum of **10 volumes** attached at any given time.",
+      "note": "Shared Storage Volumes (SSV) = network SSD block storage, ~$0.07/GB-month, persist beyond VM lifecycle; K8s CSI driver available.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.hyperstack.cloud/docs/storage/volumes/shared-storage-volumes.md",
+      "quote": "Currently, we do not support attaching a single volume to multiple VMs simultaneously.",
+      "note": "Despite the name, SSVs are single-attach block volumes. 'High-Performance File Storage (In-Development)' shared file system is waitlist-only. S3-compatible object storage exists (not a first-party mount).",
+      "checked": "2026-09-29"
+    }
   }
 }

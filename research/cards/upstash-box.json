@@ -790,7 +790,14 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "container",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "secret_proxy": "any-http",
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -843,5 +850,57 @@
       "https://upstash.com/pricing/box.md"
     ],
     "researched": "2026-09-28"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works.md",
+      "quote": "While a box is paused, it releases its compute resources but preserves the filesystem and environment. You can resume it explicitly or simply send new work to wake it back up.",
+      "note": "Idle auto-pause keeps the filesystem (persistent disk), with no documented memory/process checkpoint. Snapshots are only described as explicit box.snapshot() calls.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://upstash.com/docs/box/overall/snapshots.md",
+      "quote": "Call `snapshot()` on a running or paused box. The returned `Snapshot` object contains the ID you need to restore later.",
+      "note": "Filesystem + agent configuration only, no memory ('A snapshot captures: Filesystem ... Agent configuration'). Box.fromSnapshot() boots new boxes from it (fan-out/template, also into a different size). Snapshots survive box deletion. Not available on EphemeralBox.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://upstash.com/docs/box/overall/agent.md",
+      "quote": "For every box, you can configure a built-in agent like Claude Code, Codex or OpenCode",
+      "note": "SDK box.agent.run() (typed/structured result, cost) and box.agent.stream() (real-time chunks) with harness-specific options (ClaudeCode maxTurns/effort/..., Codex, OpenCode). Follow-ups: how-it-works says 'You can send multiple prompts to the same box and the agent picks up exactly where it left off.' box.listRuns() lists runs. Custom harness guides exist for Aider, CrewAI, Gemini, Goose, Pi, Pydantic AI via custom-agent. Scheduled prompts also supported.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://upstash.com/docs/box/overall/network-policy.md",
+      "quote": "| `custom` | Allow or deny specific domains and CIDR ranges. |",
+      "note": "Modes allow-all (default), deny-all, custom (allowedDomains with *.suffix wildcards, allowedCidrs, deniedCidrs). Updatable on a running box: 'Changes take effect immediately.' Private IP ranges always blocked. Also on fromSnapshot and EphemeralBox.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://upstash.com/docs/box/overall/preview.md",
+      "quote": "Expose ports from a box with public URLs. Each public URL maps to a specific port and can optionally require authentication.",
+      "note": "Per-port public URLs created explicitly via getPublicURL(port), optional bearerToken or basicAuth. SSH via gateway authenticated with Box API key. No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://upstash.com/docs/box/overall/attach-headers.md",
+      "quote": "`attachHeaders` lets you inject HTTP headers into outbound HTTPS requests from a box without the secrets ever entering the container.",
+      "note": "TLS-intercepting proxy on the host injects headers for arbitrary host patterns (exact or *.suffix); global (user/team console) + per-box. Limits: 'Only HTTPS traffic on port `443` is intercepted'; set at creation, not updatable on a running box; HTTP/2 downgraded to 1.1. Non-HTTP protocols (DB, SSH, git over ssh) not covered. Env vars are the other (visible) option.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works.md",
+      "quote": "Each box has its own filesystem. No shared volumes between boxes.",
+      "note": null,
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -203,7 +203,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -222,7 +222,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -234,7 +234,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -279,5 +288,79 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://robot.hetzner.com/doc/webservice/en.html",
+      "quote": null,
+      "note": "Bare-metal dedicated GEX servers: servers have no power-state snapshot concept; the Robot webservice API has snapshot endpoints only for Storage Boxes (/storagebox/{id}/snapshot, snapshotplan), none for servers. Storage Box automatic snapshot plans exist but cover the Storage Box data only.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://robot.hetzner.com/doc/webservice/en.html",
+      "quote": null,
+      "note": "No server image/snapshot endpoint in the full Robot API (boot/rescue/installimage, reset, firewall, vswitch, storagebox only). Backups are DIY (e.g. to a Storage Box).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain bare-metal GPU server with root; no agent features in the product page or Robot API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.hetzner.com/robot/dedicated-server/firewall/",
+      "quote": "On the customer administration interface Robot, you can use the firewall feature to define your own filtering settings for incoming and outgoing traffic.",
+      "note": "Free stateless firewall on the switch port (outside the server): IPv4 CIDR src/dst, ports, protocol, TCP flags; max 10 rules per direction; IPv6 filtering optional and cannot match on IPs. Stateless, so outgoing filtering needs explicit return-traffic rules. Configurable via Robot UI and webservice API (/firewall).",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.hetzner.com/robot/dedicated-server/firewall/",
+      "quote": "With our stateless firewall, or static firewall, data packets are not unpacked; rather, the head of each individual packet is inspected",
+      "note": "Packet-header (L3/L4) filtering only.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.hetzner.com/robot/dedicated-server/firewall/",
+      "quote": "If you activate the firewall before entering any firewall rules, you will block all incoming traffic.",
+      "note": "Same Robot switch-port firewall, IP/port level. Server otherwise has a public IPv4 (+ /64 IPv6). vSwitch VLAN for private links between dedicated servers.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://www.hetzner.com/dedicated-rootserver/gex131/",
+      "quote": "Full root access",
+      "note": "Bare-metal dedicated server with your own OS and kernel; nftables/iptables work normally.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secret management or credential proxy of any kind for dedicated servers; credentials live on the server.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.hetzner.com/storage/storage-box/access/access-samba-cifs/",
+      "quote": "With SMB/CIFS, you can mount your Storage Box into the local file system of a client device",
+      "note": "Storage Box (separate paid Hetzner product, BX11-BX41) is network storage mountable via SMB/CIFS (also SFTP/WebDAV/rsync). Hetzner Cloud block Volumes are not attachable to Robot dedicated servers. Extra local NVMe drives are orderable as hardware add-ons (GEX131 up to 4x 3.84 TB).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.hetzner.com/storage/storage-box/general/",
+      "quote": "Up to 10 simultaneous connections per Storage Box account",
+      "note": "One Storage Box can be mounted read-write by several servers at once over SMB/CIFS (limit 10 simultaneous connections per account; sub-accounts can be read-only). Not NFS; throughput shared on the host (1-10 Gbit/s).",
+      "checked": "2026-09-29"
+    }
   }
 }

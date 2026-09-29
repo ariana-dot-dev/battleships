@@ -223,7 +223,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -257,7 +257,11 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "harness_api": true,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "secret_proxy": "ai-only"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -297,5 +301,36 @@
     "applied": 14,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 12
+  },
+  "feature_evidence": {
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.hud.ai/v6/reference/agents.md",
+      "quote": "`ClaudeSDKAgent` runs the `claude`\nCLI over an `ssh` capability, against the env's filesystem.",
+      "note": "The SDK (Task.run/Taskset.run, `hud eval`) drives Claude Code inside the environment over SSH from outside, parsing its JSONL event stream into the HUD trace; multi-turn via the Chat class. GitHub main (docs/v6/guides/running-an-eval.mdx) renames it ClaudeCLIAgent and adds CodexCLIAgent: 'The `claude_cli` and `codex_cli` harnesses instead run an installed CLI inside the environment; pass `--gateway` to route their model calls through HUD.' Code docstring: 'ClaudeCLIAgent — runs ``claude`` CLI over SSH inside the env workspace.' Harnesses: Claude Code (live docs), Codex CLI (GitHub main, not yet on docs.hud.ai). The built-in ClaudeAgent/OpenAIAgent/GeminiAgent loops run outside the env and only call tools in it. HostedRuntime runs the whole rollout remotely but only for gateway agents (not the CLI harnesses).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.hud.ai/v6/reference/capabilities.md",
+      "quote": "| `network` | `bool` | Allow network inside the sandbox. Default `False`. |",
+      "note": "Enforced by HUD's SDK Workspace (a 'bwrap-isolated SSH exec server' inside the environment image), not by a cloud firewall: the agent's workspace gets its own network namespace, no network by default. Host allowlists: Harbor adapter docs list 'network modes, allowlists' (modes public / no-network / allowlist) and verifier environments have their own 'network mode, allowlist'. GitHub code: Workspace(allowed_hosts=...) routes egress through a proxy outside the namespace that 'sees every connection and applies the task's declared policy' (hostname match, '*' = any). allowed_hosts is not in the docs.hud.ai Workspace table. The environment/grader process itself (outside the workspace) has no documented egress control on HUD-hosted EC2/Modal.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.hud.ai/v6/internals/control-channel.md",
+      "quote": "All external capability\ntraffic therefore follows the control address even when a manifest binding\ncontains a substrate-local or otherwise unreachable address.",
+      "note": "A served environment exposes one control-channel TCP address; only capabilities the environment declares (ssh, mcp, cdp, rfb, robot) are reachable, as tunnels over it. For hosted envs, 'The SDK leases your deployed env by name and tunnels to its control channel' (HUDRuntime, HUD_API_KEY auth). No public preview URLs, custom port exposure or IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://github.com/hud-evals/hud-python/blob/main/hud/agents/claude/sdk/agent.py",
+      "quote": "# The relay injects the scoped credential; the process never sees it.",
+      "note": "Model keys only: in-env CLI harnesses (Claude Code, Codex) get a placeholder credential ('hud-process-bound') and a per-process relay URL; the relay adds the real Authorization header (hud/capabilities/connection.py: 'The process receives :attr:`client_url` instead and never receives the header values'). The Connection class accepts any HTTP(S) URL + headers, but it is only an undocumented rollout(connections=...) parameter, not a registrable secret store; docs.hud.ai does not describe it. Without a connection, the CLI agent's env gets the real HUD_API_KEY / ANTHROPIC_API_KEY. BYOK provider keys stay in the HUD inference gateway (team docs: 'Do not put a provider key in personal secrets when the inference gateway should own and meter the provider call. Use **BYOK** for that path.'). Other secrets (environment variables, personal/member secrets) are injected into the sandbox as env vars ('Personal secrets | One membership, injected into every rollout sandbox it launches'). No non-HTTP coverage.",
+      "checked": "2026-09-29"
+    }
   }
 }

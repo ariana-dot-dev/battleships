@@ -142,7 +142,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": false,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -173,7 +173,13 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "container",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -220,5 +226,63 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.openreward.ai/concepts/sandboxes.md",
+      "quote": "which will terminate the sandbox as soon as the session ends.",
+      "note": "Lifecycle is start() -> run/upload/download -> stop() (deletion). No pause, sleep or state save documented; SDK 0.1.160 sandbox client exposes only run, check_run, upload, download, start, stop.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.openreward.ai/concepts/sandboxes.md",
+      "quote": "Available operations:\n\n* `run()`: Execute command and return output\n* `check_run()`: Execute command, raise on error if it returns a non-zero exit code\n* `upload()`: Upload files to sandbox\n* `download()`: Download files from sandbox",
+      "note": "No snapshot/checkpoint/fork API in docs or SDK 0.1.160. Only custom (public Docker Hub) images as templates.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.openreward.ai/harnesses/quickstart.md",
+      "quote": "This launches Claude Code as a subprocess against the terminal-bench-2-verified environment, running 5 tasks from the test split.",
+      "note": "Close but inverted: first-party Firehorse CLI (pip install firehorse-cli) runs claude-code, codex, gemini, resum, react harnesses on the CALLER's machine and proxies their tools (via MCP / session-scoped 'harness toolsets' claude-code, codex, gemini-cli, OpenClaw, Hermes) into the sandbox; writes trajectory.jsonl. The harness does not run inside the sandbox, and there is no API to start/stream/resume an in-sandbox agent.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.openreward.ai/concepts/sandboxes.md",
+      "quote": "By default all egress - all internet access - is allowed, but there may be use cases where this is problematic: ... To enable network isolation, set `block_network=True`",
+      "note": "No-internet mode only (all-or-nothing block_network, SDK: 'disables outbound network access (Kubernetes egress policies required)'). No per-domain or per-IP allow/deny list documented, so level is neither domain nor ip. The secret proxy's per-secret allowed hosts restrict where secrets are injected, not where traffic may go.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.openreward.ai/concepts/sandboxes.md",
+      "quote": "To enable network isolation, set `block_network=True`",
+      "note": "Only network control is the block_network boolean; no method/path/header rules documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.openreward.ai/environments/keeping-secrets-secret.md",
+      "quote": "Rather than exposing raw secret values inside your environment or sandbox, OpenReward replaces them with placeholders before they reach your server. The actual values are injected on egress - when outbound HTTP requests leave the environment or sandbox, OpenReward swaps the placeholders back in for allowed destination hosts only.",
+      "note": "Session `secrets` dict; well-known keys (OpenAI, Anthropic, Gemini, Tavily, HF, Kaggle, E2B, Modal, Daytona...) have default hosts, arbitrary keys via (value, [hosts]) tuple: 'Custom hosts for a secret without defaults'. HTTP only per docs; no DB/SSH/git coverage documented. Scope is per ORS session (environment + sandbox).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.openreward.ai/storage/buckets.md",
+      "quote": "Configure storage access via `bucket_config` in `SandboxSettings`",
+      "note": "Only the environment's own cloud bucket, mounted read-only ('Buckets are always mounted read-only'); no writable block/network volumes. SDK ephemeral disk_request/disk_limit fields are commented out.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.openreward.ai/storage/buckets.md",
+      "quote": "Key Concept: The same storage is accessible in both environments and sandboxes.",
+      "note": "Read-only: `read_only: Literal[True]` 'Buckets are always mounted read-only'. Every sandbox of the environment can mount the same bucket (optionally a subdirectory via only_dir) concurrently.",
+      "checked": "2026-09-29"
+    }
   }
 }

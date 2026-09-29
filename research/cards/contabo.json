@@ -557,7 +557,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -579,7 +579,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -591,7 +591,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -641,5 +649,77 @@
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.contabo.com/docs/servers-hosting/vps-auto-backup/",
+      "quote": "Schedule: one backup per day, incremental after the initial full backup, with at least 8 hours between backups.",
+      "note": "Plain monthly-rented KVM VPS; nothing is saved on stop (disk simply persists). The only automatic mechanism is the paid Auto Backup add-on (Core/Performance VPS): daily off-server incremental backups, up to 10 kept for 10 days, whole-VPS restore in place. Not a stop/idle snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.contabo.com/docs/servers-hosting/vps/",
+      "quote": "Snapshots\tImage of the VPS disk, retained for 30 days; slots per family as in Products at a Glance",
+      "note": "Disk only, no memory. Create/list/update/delete/rollback via Control Panel, API (POST /v1/compute/instances/{id}/snapshots, .../rollback) and cntb CLI. Slots: Cloud VPS 4: 1, VPS 6: 2, VPS 8-18: 3, VPS Plus: 5; Storage VPS none; VDS/dedicated none listed. Restore is an in-place rollback of the same instance; no documented create-instance-from-snapshot (custom images come from a URL).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.contabo.com/docs/servers-hosting/vps/",
+      "quote": null,
+      "note": "Plain VPS; the API/CLI/Terraform only manage instances, images, snapshots, networks, firewalls and object storage. No agent harness integration.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.contabo.com/docs/network-services/firewall/",
+      "quote": "Default policy: all inbound traffic is dropped by a permanent default rule; outbound traffic is unrestricted.",
+      "note": "The API spec also says: 'Currently only inbound rules are allowed to be configured.' Egress filtering only possible with an in-guest firewall.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.contabo.com/docs/network-services/firewall/",
+      "quote": "Default policy: all inbound traffic is dropped by a permanent default rule; outbound traffic is unrestricted.",
+      "note": "No provider-side outbound controls at any level.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.contabo.com/docs/network-services/firewall/",
+      "quote": "A firewall is attached to one or more instances; rules take effect immediately.",
+      "note": "Network-level Contabo Firewall for VPS/VDS/GPU VPS: default-drop inbound once activated, allow rules by TCP/UDP/ICMP, source IP/CIDR (v4/v6), port/list/range; managed via Control Panel, API, CLI. Docs page says 'Included' but the API spec says each protected instance 'requires a paid firewall add-on' (conflict). Not available for dedicated servers; does not cover private networks. Each VPS has a public IPv4 + /64 IPv6, all ports open unless a firewall is attached.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.contabo.com/docs/network-services/firewall/",
+      "quote": "Private networks are not covered — use the OS firewall inside a private network.",
+      "note": "KVM VMs with root; Contabo explicitly directs customers to the in-OS firewall (also for dedicated servers).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain VPS; no credential-injection proxy or secret store documented. Secrets live wherever you put them on the VM (cloud-init user data, files).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.contabo.com/docs/servers-hosting/vps/",
+      "quote": "Storage Extension: adds storage of the plan’s type (Core VPS and Performance VPS only).",
+      "note": "Paid Storage Extension add-on (an additional SSD/NVMe tied to the instance; 'Instances with an additional SSD cannot be region-migrated'). Not a detachable/movable block volume; not for Storage VPS. Separate S3-compatible Object Storage product.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.contabo.com/docs/storage/object-storage/",
+      "quote": "Object Storage is accessed entirely via the S3 API or a web UI",
+      "note": "No shared/network filesystem product; Object Storage is S3 API only (no first-party mount). Private Networking (L2 between VPS/VDS in a region) lets you run your own NFS.",
+      "checked": "2026-09-29"
+    }
   }
 }

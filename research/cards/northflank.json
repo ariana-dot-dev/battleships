@@ -489,7 +489,7 @@
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
@@ -525,7 +525,15 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "kata",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -600,5 +608,64 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://northflank.com/docs/v1/api/project/services/create-deployment-service.md",
+      "quote": "Creates a snapshot when a service container terminates, including crashes, rollouts, scale-downs, evictions, and manual restarts.",
+      "note": "Opt-in per service (deployment.containerSnapshot.capture.onTermination + backupDestinationId, retention maxSnapshots); snapshot trigger enum 'containerTermination'. Pause = scale to zero, so a pause/scale-down is captured. Filesystem only (changelog: 'capture the filesystem of a running or terminating service pod'), no memory; Kata runtime required. Restore is NOT automatic: you set containerSnapshot.restoreFrom=<snapshot uuid>. Default pause without this wipes ephemeral disk.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://northflank.com/changelog/august-and-september-2026",
+      "quote": "You can now capture the filesystem of a running or terminating service pod and restore a service from a successful snapshot. Snapshots are available through the dashboard, CLI, and API and require a Kata runtime.",
+      "note": "POST /v1/projects/{projectId}/services/{serviceId}/snapshots (stored in a configured backup destination). Filesystem only, no memory. New services can boot from it: create-deployment-service accepts deployment.containerSnapshot.restoreFrom ('The successful container snapshot to restore the service from'), so fork/template is possible. Snapshot records base image digest + arch compatibility. Separate volume backups/clones also exist.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/api/project/harnesses/create-harness.md",
+      "quote": "The harness environment type to run. (enum: codex, claude, pi, opencode, cursor, none)",
+      "note": "Cloud Harness (Aug/Sep 2026) is a first-party API/CLI/dashboard resource that provisions a workspace with Claude Code, Codex, Cursor, OpenCode or Pi preinstalled and authenticated (create/get/patch/pause/resume/restart/logs/delete). But interaction with the agent is via browser terminal or SSH ('northflank dev ssh'); the API has no prompt/message, event-stream or conversation endpoints. Counts as agent_harnesses (+ lifecycle API), not a harness-driving API. Borderline; revisit if a prompt/session API appears.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://northflank.com/docs/v1/application/network/configure-network-policies.md",
+      "quote": "Allow traffic to IP/CIDR/FQDN: Add external destinations (IP addresses, CIDR ranges, FQDNs, or hostnames) your workloads can reach",
+      "note": "Network policies (UI added May/Jun 2026, API POST /v1/network-policies) with egress denyAll / allowTo; any egress rule turns it into an allow-list. Targeted by project and workload tags, not per-sandbox id (tag a sandbox to scope it). Docs scope it to BYOC: 'control inbound and outbound traffic between workloads and projects on your BYOC cluster'. Availability on Northflank managed cloud not documented.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://northflank.com/docs/v1/application/network/add-security-policies-for-ports.md",
+      "quote": "IP policies allow you to either block IP addresses from accessing a port, or to only allow certain IP addresses and exclude all others.",
+      "note": "Ports are private unless 'public: true'; per-port IP allow/deny (CIDR), basic auth, SSO, required headers, path-based security policies, org-wide ingress security policies, private VPC load balancers (BYOC), network-policy ingress rules and load-balancer CIDR allow/deny lists.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://northflank.com/docs/v1/api/team/network-policies/create-network-policy.md",
+      "quote": "`egressSecretInjection`: [array of] {object}",
+      "note": "Network-policy API schema has egressSecretInjection items {name, header, hosts[], value}: provider-side injection of a header value into outbound requests to listed hosts, which implies the secret stays out of the workload. Only present in the API schema / js-client types, with no prose docs, so behaviour (TLS interception, whether the sandbox sees a placeholder) is unconfirmed; network policies are documented for BYOC clusters. HTTP headers only; no DB/SSH/git coverage. Otherwise secrets are env vars / secret files / secret groups injected into the container.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/examples.md",
+      "quote": "Attach a volume when you need files to survive.",
+      "note": "Separate volume resource, attached at creation via createOptions.volumesToAttach or attach/detach API; 'You can attach multiple volumes to the same service.' $0.15/GB-month; 4 GB to 64 TB (product page).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://northflank.com/docs/v1/application/databases-and-persistence/add-a-volume.md",
+      "quote": "Allows the same volume to be attached to multiple pods simultaneously across different services, jobs, or replicas of the same service.",
+      "note": "Multi Read/Write access mode (read-write), chosen at creation. Changelog May/Jun 2026: 'Multi-read-write direct mounts in microVMs'. Product page also mentions mounting S3 buckets.",
+      "checked": "2026-09-29"
+    }
   }
 }

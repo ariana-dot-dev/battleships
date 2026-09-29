@@ -164,7 +164,14 @@
     "anti_bot": null,
     "captcha_solving": null,
     "egress_ip_type": null,
-    "ip_note": "No browser-automation API, stealth, CAPTCHA or proxy options documented; browsers (e.g. Safari) are driven via the macOS desktop/shell API."
+    "ip_note": "No browser-automation API, stealth, CAPTCHA or proxy options documented; browsers (e.g. Safari) are driven via the macOS desktop/shell API.",
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -213,5 +220,56 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.use.computer/docs/concepts",
+      "quote": "When you `delete()` (or your sandbox times out), the gateway throws away the dirty VM and clones a fresh one in the background.",
+      "note": "Idle-reaped (ephemeral=true, ~2 min idle) or timed-out sandboxes and all sandboxes at reservation end_at are destroyed, not saved. State survives only via an explicit snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.use.computer/docs/sdk",
+      "quote": "macOS snapshots are portable disk deltas. When you create one, the gateway pulls the snapshot artifact from the source Mac Mini; when you launch from it, the gateway pushes that artifact to whichever reserved Mini claims the new VM.",
+      "note": "POST /v1/sandboxes/{id}/snapshots on a running sandbox ('Preserves disk state'); disk only, no memory. New sandboxes boot from it via create(snapshot=version) on any reserved Mac (template/fork, homepage: 'Snapshot a sandbox. Fork it instantly.'). Must match reservation layout and base image.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://pypi.org/project/daytona-use-computer/",
+      "quote": "The `agents` extra installs the agent runtime plus model-provider dependencies (Anthropic, OpenAI, Gemini, LiteLLM).",
+      "note": "The prebuilt computer-use agents (Anthropic, OpenAI, Gemini, OSWorld/generic via LiteLLM) run client-side in your Python process and drive the VM through the mouse/keyboard/screenshot API; no API to start/stream/resume an agent harness (Claude Code, Codex, etc.) inside the VM. Trajectory replay API (POST /v1/me/tasks/{id}/replay) re-executes recorded human actions, not an agent.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.use.computer/docs/sdk",
+      "quote": "`vnc_url` from create or snapshot restore contains a sandbox-scoped viewer token, not your account key. The link expires within one hour, or earlier at the reservation's `end_at`",
+      "note": "No public ports/preview URLs. Access only through the authenticated gateway: SSH via a WebSocket proxy to sshd (API-key auth; supports -L port forwarding), VNC via expiring sandbox-scoped tokens ('Anyone holding the link can view and control that sandbox until it expires'). No IP allowlists or custom port exposure. Note PyPI README still warns vnc_url contains the account key (older SDK text).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.use.computer/docs/sdk",
+      "quote": "sign into accounts (email, GitHub, a web app)",
+      "note": "No secret store or credential-injection proxy. Docs recommend signing into accounts by hand over VNC and baking the logins into a disk snapshot, i.e. credentials live inside the VM.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.use.computer/docs/concepts",
+      "quote": "`disk_gib` must be the image's disk size: disks are not resized at create.",
+      "note": "Full OpenAPI spec has no volume/mount endpoints; storage is the VM image disk on the Mac's 512 GB SSD; files move via upload/download APIs.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No shared filesystem/volume concept; snapshots (disk deltas) are the only way to share state between sandboxes.",
+      "checked": "2026-09-29"
+    }
   }
 }

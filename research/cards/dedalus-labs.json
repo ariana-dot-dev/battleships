@@ -173,7 +173,15 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "cloud-hypervisor",
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -219,5 +227,64 @@
     "applied": 11,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.dedaluslabs.ai/dcs/dm/dedalus-machines.md",
+      "quote": "Only the root filesystem survives sleep and wake.",
+      "note": "Docs list what is lost on every sleep: 'RAM, running processes, vCPU state'. Autosleep (default 300 idle s) stops the VM; only the persistent root disk survives (that is persistent_disk, not a snapshot). Pricing FAQ mentions 'observed logical storage snapshots' but only as the storage-billing measurement method.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.dedaluslabs.ai/llms-full.txt",
+      "quote": "You can create a Machine, run non-interactive commands, open a temporary Secure Shell (SSH) session, change its resources, put it to sleep, and wake it later with its root filesystem intact.",
+      "note": "The complete public OpenAPI (https://docs.dedaluslabs.ai/dcs-openapi.json: machines, executions, SSH, artifacts, usage; ops create/update/sleep/wake/reboot/delete) and CLI command index have no snapshot/checkpoint/fork/template/image operation; CreateMachineRequest only takes vcpu, memory_mib, storage_gib, autosleep.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.dedaluslabs.ai/llms-full.txt",
+      "quote": "An execution runs one non-interactive command inside one Machine. Create returns an `execution_id`.",
+      "note": "Only a generic exec API (executions with events/output) plus SSH; no Claude Code/Codex/agent-session API. The 'agent skill' is a SKILL.md that teaches an outside coding agent to drive the CLI, not an in-sandbox harness API.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://www.dedaluslabs.ai/blog/agent-infra-security-posture",
+      "quote": "no network-facing surface exposed by default — machines get private IPs and don't accept inbound connections directly.",
+      "note": "No port exposure / preview URL feature at all, so no ingress controls to configure: machines are private-only; reach them through authenticated, temporary SSH sessions (CLI does SSH port forwards). Not 'every port public', but no public exposure option either.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VM with its own guest kernel and root (custom Cloud Hypervisor fork), so nftables/iptables inside should work; not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.dedaluslabs.ai/dcs/cli.md",
+      "quote": "Required: `--machine-id`, `--command`. Optional: `--cwd`, `--env`, `--stdin`, `--timeout-ms`.",
+      "note": "Only mechanism to pass secrets is env vars per execution (CreateExecutionRequest.env). Dedalus Auth (DAuth, https://www.dedaluslabs.ai/blog/dedalus-auth-launch) is a separate MCP-server credential enclave product, not an outbound-request proxy for Machines.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.dedaluslabs.ai/dcs/dm/lifecycle.md",
+      "quote": "Persistent storage allocated to the machine, measured in gibibytes (GiB).",
+      "note": "Only a resizable per-machine root disk (storage_gib); no volume resources in the OpenAPI or endpoint catalog.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.dedaluslabs.ai/dcs/dm/lifecycle.md",
+      "quote": "Persistent storage allocated to the machine, measured in gibibytes (GiB).",
+      "note": "Storage is per machine; no shared filesystem/volume feature in API or docs (storage is 'disaggregated from compute' internally, but not shareable).",
+      "checked": "2026-09-29"
+    }
   }
 }

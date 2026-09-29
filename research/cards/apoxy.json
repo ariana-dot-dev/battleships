@@ -188,7 +188,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -200,7 +200,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": false,
+    "secret_proxy": "any-http"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -240,5 +245,50 @@
     "applied": 17,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://apoxy.dev/docs/clrk/guides/persist-state-across-runs.md",
+      "quote": "CLRK sandboxes have no durable cross-worker persistent storage by default. Each invocation starts from a fresh rootfs; `/tmp` and any image-baked filesystem state reset on every run.",
+      "note": "Ephemeral per-invocation gVisor sandboxes; state must live outside (or in the small TaskAgent.spec.state mount).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://apoxy.dev/docs/clrk/guides/claude-code-over-http.md",
+      "quote": "A `TaskAgent` named `jq-bot` that accepts a JSON body, runs the `@anthropic-ai/claude-code` CLI inside a fresh sandbox per request, and returns the model's structured output.",
+      "note": "CLRK is a generic agent runtime: a TaskAgent is YOUR container image invoked per HTTP request (JSON body -> CloudEvents on stdin, stdout -> response), plus cron schedules and DaemonAgents. Claude Code is only an example you package yourself; no first-party API to prompt a harness, send follow-ups, or list/resume conversations ('The TaskAgent response model is request/response'; conversation state is a user pattern with external Postgres). Borderline: the invocation/streaming contract is first-party but harness-agnostic.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://apoxy.dev/docs/clrk/guides/lock-down-agent-egress.md",
+      "quote": "CLRK's `EgressGateway` defaults to `deny-all` - egress is closed unless you open it. ... `EgressL4Route` declares allowed L4 destinations: `destinationCIDRs`, `destinationHostnames`, `ports`, `protocol` (TCP or UDP).",
+      "note": "Enforced at the worker dialer/Envoy egress gateway outside the gVisor sandbox. Hostname matching via DNS snooping/SNI (docs warn DoH/DoT or lying SNI weaken hostname rules; pair with CIDRs). Optional per-agent scoping via sourceAgents label selector; EgressDenyPolicy for default-allow gateways.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://apoxy.dev/docs/clrk/reference/clrk/aiproviderroutes.md",
+      "quote": "| `endpoints` | string[] | Endpoints restricts to API paths. |",
+      "note": "L7 rules on the TLS-terminating (MITM) egress gateway: AIProviderRoute matches provider + endpoint paths + models (provider 'custom' = 'endpoint-only matching'), with token budgets, RateLimitPolicy, header rewrites (credential injection) and EgressDenyPolicy returning an HTTP deny response (default 403). No generic HTTP method/header match rules documented; mainly aimed at LLM/MCP traffic.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://apoxy.dev/docs/clrk/guides/authenticate-users-before-agents.md",
+      "quote": "CLRK does not authenticate the requests that reach its ingress. There is no built-in OIDC validator, no JWT verifier, no API-key middleware.",
+      "note": "Sandboxes are not directly addressable; only TaskAgents get a per-agent Envoy ingress (DaemonAgents have none), a cluster-internal Service in the operator's own Kubernetes. Access control is left to your own auth proxy / K8s networking. (Apoxy's separate edge Gateway product has its own routing, not assessed here.)",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://apoxy.dev/docs/clrk/reference/clrk/credentialinjectionpolicies.md",
+      "quote": "ParentRefs attaches this policy to AIProviderRoute, MCPRoute, or EgressGateway listeners. ... EgressGateway: catch-all for any traffic on the gateway that no narrower policy claimed.",
+      "note": "Egress proxy terminates TLS (per-gateway CA trusted in the sandbox) and injects a K8s Secret as Header, QueryParam or ProviderAuth (AWS SigV4 / GCP service account); agent sees placeholder 'clrk-injected-by-proxy' ('The agent process never holds them'). Agent-set headers are overwritten. HTTP(S) only; raw TCP routes (e.g. Postgres) are allowlisted but no credential injection for non-HTTP protocols documented. MCPRoute injection 'no-op until MCPRoute consumption ships'.",
+      "checked": "2026-09-29"
+    }
   }
 }

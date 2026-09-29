@@ -712,7 +712,11 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "harness_api": true,
+    "guest_firewall": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -751,5 +755,36 @@
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 14
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-build-hub/infrastructure/build-stacks/about-build-stacks.md",
+      "quote": "Each build runs in its own virtual machine and the virtual machine is rolled back to a saved state, the “base box” state, after the build is finished.",
+      "note": "CI VMs are discarded/rolled back after every build (no state saved). Remote Dev Environments (RDE) keep a persistent disk on terminate/auto-terminate ('Terminated**: the machine is stopped, but the session and its persistent disk are kept', key-concepts.md) - that is persistent_disk, not a snapshot; no memory state. RDE FAQ: 'Session disks are working storage, and not backed up.'",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.bitrise.io/bitrise-rde/rde-options/bitrise-rde-cli.md",
+      "quote": "To return to a session, use `bitrise-cli rde claude --continue` for the most recent one, or `bitrise-cli rde claude --resume` to pick from a list. Resuming reconnects to a running session, or restores a terminated one and continues the same Claude Code conversation.",
+      "note": "RDE product only. Claude Code only as first-class harness ('The `bitrise-cli rde claude` command creates a session, clones your current repository branch into it, and drops you into Claude Code running on the cloud machine'); `rde session notifications` lists 'events the session emitted, such as agent stops and permission prompts' (also an API endpoint list-session-notifications). Interactive attach + resume of conversations; no documented prompt-in/stream-JSON API. Other agents only via template warmup scripts. MCP server (mcp-rde.bitrise.io) drives sessions (exec, files, GUI), not a harness. Bitrise's own AI build fixer agent is started from the UI on failed builds.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VMs (macOS Apple-silicon VMs, Linux VMs) with passwordless sudo ('The user account that is used for the builds is configured to have **passwordless sudo** enabled', about-build-stacks.md); pf on macOS / iptables on Linux should work. Not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-ci/configure-builds/secrets.md",
+      "quote": "Secrets are a specific type of Environment Variable",
+      "note": "CI Secrets and RDE saved inputs/template variables are injected as env vars (resolved server-side, but the value enters the machine). RDE GitHub integration 'plants a short-lived GitHub token on each new session' (token is inside the VM). Claude Code credential saved input is also placed in the session. No outbound credential-injecting proxy.",
+      "checked": "2026-09-29"
+    }
   }
 }

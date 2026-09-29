@@ -612,7 +612,7 @@
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
@@ -647,7 +647,14 @@
     "spend_limits": false,
     "mcp_server": true,
     "isolation": null,
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -751,5 +758,63 @@
       "https://render.com/docs/workflows-limits",
       "https://render.com/docs/sandboxes"
     ]
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://render.com/docs/sandboxes.md",
+      "quote": "When you terminate a sandbox, its filesystem state is permanently lost. To preserve data from a sandbox, see [Snapshots](#snapshots).",
+      "note": "Services: no state capture on suspend (only persistent-disk mount path survives); persistent disks get automatic daily snapshots ('Render automatically creates a snapshot of your persistent disk once every 24 hours', kept >= 7 days, full restore only) = scheduled backup, not stop-triggered. Sandboxes (early access): timeout terminates; snapshots are explicit calls. CLI lists a 'suspended'/'resuming' sandbox status but no documented auto-suspend.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://render.com/docs/sandboxes.md",
+      "quote": "A snapshot captures the state of a running sandbox. You can use a snapshot to reuse a prepared filesystem or resume a running process in a new sandbox. Creating a snapshot does not stop the source sandbox.",
+      "note": "Render Sandboxes only (early access, Oregon, 2 CPU/4 GB/10 GB). Kinds: filesystem (default) or runtime ('The writable filesystem, memory, and CPU state', restore must use same plan). Restore = new sandbox in same group (fork/template). Snapshots expire after 3 days by default. Regular services: no on-demand snapshot (only daily auto disk snapshots restorable from dashboard).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://render.com/docs/sandboxes.md",
+      "quote": "Inside the sandbox, you (and your agents) can run commands and manage files without exposing your production infrastructure to untrusted code.",
+      "note": "Sandbox SDK/CLI = create/exec (streamed output)/files/snapshots only; no API to drive Claude Code/Codex etc. inside. Render's agent features (MCP server, agent skills, setup guides for Claude Code/Codex/Cursor) are for agents operating the Render platform, not a harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://render.com/docs/sandboxes-cli-reference.md",
+      "quote": "Outbound network policy: allow-all, deny-all. Defaults to `allow-all`.",
+      "note": "Sandboxes only: all-or-nothing no-internet mode (deny-all), no documented domain/IP lists. Regular services: no egress filtering documented (only outbound IP ranges / $100/mo Dedicated IPs for allowlisting on the destination side).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://render.com/docs/inbound-ip-rules.md",
+      "quote": "After you set IP rules, Render only allows inbound service connections from the IP ranges you specify. Disallowed IPs are automatically blocked with a `403 Forbidden` response.",
+      "note": "Inbound IP rules per web service/static site/environment/workspace on Scale & Enterprise (all workspaces for Postgres/Key Value). Private services 'aren't reachable via the public internet'; private network; blocking cross-environment traffic. Sandboxes: no port exposure documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://render.com/docs/configure-environment-variables.md",
+      "quote": "These are plaintext files that usually contain one or more secret credentials, such as a private key.",
+      "note": "Secrets are env vars / env groups / secret files available inside the service; sandboxes take env vars at create. Managed OIDC (Pro+, changelog 2026-07-24) issues short-lived per-service identity tokens for AWS, Anthropic, OpenAI - avoids long-lived keys but the token is in the service, not a proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://render.com/docs/disks.md",
+      "quote": "You can attach a *persistent disk* to a paid Render [web service](web-services), [private service](private-services), or [background worker](background-workers).",
+      "note": "One persistent SSD per service at a mount path; rest of filesystem ephemeral; disk prevents scaling and zero-downtime deploys. Not available for sandboxes (10 GB ephemeral fs).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://render.com/docs/disks.md",
+      "quote": "A persistent disk is accessible by only a single service instance, and only at runtime.",
+      "note": "'You can't access a service's disk from any other service.' No shared/network FS product.",
+      "checked": "2026-09-29"
+    }
   }
 }

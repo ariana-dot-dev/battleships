@@ -293,7 +293,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -322,7 +322,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -348,5 +356,65 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.veertu.com/anka/anka-virtualization-cli/command-line-reference/",
+      "quote": "stop Shut down a VM(s)",
+      "note": "Stopping a VM shuts it down and the VM disk persists locally (persistent disk, not a snapshot). Controller instances are ephemeral clones of a template tag. Nothing is saved automatically: saving state to the registry is always an explicit 'Save Template Image' request or 'anka push'.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.veertu.com/anka/anka-build-cloud/working-with-controller-and-api/",
+      "quote": "Description: Create a “Save Image” request. Save a running VM instance to the Registry as a new Tag or Template.",
+      "note": "Available via the Controller REST API (POST /api/v1/image) or the CLI ('anka push' / local tag). The saved tag is a template: new VMs clone or start from it on any node ('Once a VM has been tagged, it becomes a “VM Template”'). Memory is included only on Intel: the 'suspend' option (default true) suspends before pushing, but 'ARM USERS: From the CLI: suspending will currently stop the VM', so on Apple Silicon the snapshot is disk only.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.veertu.com/anka/artificial-intelligence/isolating-ai-coding-agents/",
+      "quote": "Crypt is a helper binary that automates this workflow. It clones a prepared base Anka VM, runs coding agents (Claude Code, Codex, and others) inside the clone, and handles mount, SSH, and cleanup for you. Run crypt claude or crypt codex from a project directory for an interactive session, or crypt claude --mount \"your prompt\" / crypt codex --mount \"your prompt\" for an unattended task run.",
+      "note": "Crypt is Veertu's first-party, MIT-licensed, local host-side CLI. It launches Claude Code, Codex, Grok Build, Cursor Agent CLI or Sakana Fugu in YOLO mode with a prompt and keeps the clone between sessions ('crypt claude --mount . \"keep going\"'). It works by wrapping SSH/anka run: output goes to the terminal, with no event API or conversation list/resume API. There is no REST harness API in the Controller. The Anka MCP server manages VMs, not harnesses.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.veertu.com/anka/artificial-intelligence/isolating-ai-coding-agents/",
+      "quote": "Filter rules can block local traffic, block inbound services, allow only approved destinations, or deny specific sensitive endpoints.",
+      "note": "Host-side, per-VM/template IP filtering in ipf.conf style (Anka 3.3+), e.g. 'pass out to 10.20.30.40' followed by 'block any'. It works on IPs, ports and 'local'; there are no hostnames. Other options: network modes 'host' ('can’t access external networks outside of the host') and 'disconnected', and --no-local. The filter is enforced by the hypervisor on the host, so a root user in the guest cannot undo it. 'Advanced network security features require an Enterprise or Enterprise Plus license.'",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.veertu.com/anka/anka-virtualization-cli/getting-started/understanding-vm-networking/",
+      "quote": "block in to port 22",
+      "note": "Inbound traffic is controlled per VM by filter rules (e.g. 'block in to port 22', 'pass in from 10.20.30.40'). Only the ports you add are exposed on the host: 'anka modify add port', or the Controller's port_forwarding_override ('Any pre-existing rules will be ignored and ONLY the ones specified made available'). --no-local blocks VM-host traffic. Bridge mode and VLAN tags are also available. Nothing is exposed to the public internet by Anka; that depends on your host network.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each guest is a full macOS VM (Apple Virtualization / Anka hypervisor) with an admin user who has sudo, so pf inside the guest works. Its rules are separate from Anka's host-side filter.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.veertu.com/anka/artificial-intelligence/isolating-ai-coding-agents/",
+      "quote": "Scope credentials to the project and operation. Do not give the VM broad GitHub, cloud, password manager, or internal network tokens unless the task requires them.",
+      "note": "There is no first-party credential-injecting proxy. Agent credentials live inside the VM: the base VM is logged in or given API keys in ~/.zprofile (Crypt README), and the Controller startup_script accepts ENVs such as TOKEN=123.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.veertu.com/anka/anka-virtualization-cli/command-line-reference/",
+      "quote": "-f,--file <val> assign external image or device",
+      "note": "'anka modify <vm> add disk' attaches an extra disk image or host device (sata/virtio-blk, --ro or --rw). Host directories can also be shared into a running VM with 'anka mount' (VirtioFS, Apple Silicon, Anka 3.9+). Both are local to the Mac host; there are no network/block volumes, since Anka is self-hosted on your Macs.",
+      "checked": "2026-09-29"
+    }
   }
 }

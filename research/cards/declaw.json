@@ -162,7 +162,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -176,7 +176,16 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -230,5 +239,79 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.declaw.ai/features/sandboxes.md",
+      "quote": "With `on_timeout=\"pause\"`, the sandbox is paused rather than destroyed when it times out: a pause snapshot is taken",
+      "note": "Opt-in at create time via lifecycle on_timeout='pause' (default is 'kill', which destroys state). Trigger = the sandbox timeout (counts from creation, not idleness). Memory + filesystem + process state included; resume is an explicit resume() call (auto_resume 'accepted but not yet enforced'). Timer-based 'periodic' snapshots existed but are deprecated ('timer-based snapshots are no longer taken').",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.declaw.ai/features/snapshots.md",
+      "quote": "A snapshot captures the complete state of a running sandbox — memory contents, filesystem, and process state",
+      "note": "create_snapshot() on a running sandbox (brief pause, then it keeps running); Sandbox.create(snapshot_id=...) boots new sandboxes from it, multiple branches allowed; also a fork endpoint. Memory included. Storage price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.declaw.ai/llms.txt",
+      "quote": null,
+      "note": "Full docs/API index lists only sandbox, command, filesystem, PTY, stdio, volume, vault, policy endpoints; no Claude Code / Codex / OpenCode / Gemini CLI mentions anywhere in llms-full.txt. The OpenAI Agents SDK integration is a sandbox backend (agent loop runs in your process, tools execute in the VM), not an API to drive an in-sandbox harness.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.declaw.ai/features/networking.md",
+      "quote": "Control outbound network access from sandboxes using domain allowlists, IP CIDR rules, and the ALL_TRAFFIC constant.",
+      "note": "allow_out / deny_out per sandbox; deny_out=[ALL_TRAFFIC] = no internet. IP/CIDR as kernel DROP rules and domains via SNI/Host in a per-namespace L7 proxy, all host-side ('the guest VM has no iptables rules of its own'). Domain rules only TCP 80/443; metadata + RFC1918 always blocked. OPA network gate adds custom per-destination deny rules.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.declaw.ai/security/custom-policy.md",
+      "quote": "The content gate (`declaw.platform.content`) sees the **decrypted LLM request body** — the model name and the ML scanner's findings",
+      "note": "HTTP-level rules exist but are body/content-based, not method/path/header matchers: OPA content gate (model allowlist, block on prompt-injection/PII/toxicity scan results) on TLS-intercepted hosts, regex request/response body transformation rules, PII redaction, Host-header masking. No documented rule keyed on HTTP method or URL path.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.declaw.ai/features/port-proxy.md",
+      "quote": "All port proxy requests require a valid `X-API-Key` header, the same key used for every other sandbox operation. Unauthenticated requests receive `HTTP 401`.",
+      "note": "HTTPS port-proxy URLs are API-key authenticated; network.allow_public_traffic=false returns 403 on all inbound proxy requests. No IP allowlist or raw TCP inbound documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker microVM with root (own guest kernel). Provider enforcement is host-side in the sandbox's network namespace; docs say the guest VM has no iptables rules of its own, so guest nftables/iptables would be user-configured and undoable by a root agent. Whether iptables/nft binaries ship in templates not stated.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.declaw.ai/security/credential-vault.md",
+      "quote": "the real value lives server-side in OpenBao and never enters the VM, which sees only the declaw:vault-managed placeholder",
+      "note": "Credential vault with vault_refs: arbitrary host scopes (domain_regex) and injection types bearer/header/basic/query plus brokered sigv4/oidc/hmac; also NON-HTTP socket brokering for redis, postgres, mysql, smtp, mongodb. Provider presets (e.g. openai). Cert-pinned upstreams cannot be injected. Separate SecureEnvVar env secrets do enter the VM.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.declaw.ai/features/volumes.md",
+      "quote": "a volume persists, and you can attach it to any number of sandboxes at a mount path",
+      "note": "Copy-mode (tarball hydrated at boot, writes private) or file-granular live mounts (mount / mount-ro), 64 GiB per-volume cap; attached at create time. Storage price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.declaw.ai/features/volumes.md",
+      "quote": "A shared workspace multiple sandboxes (or agents) read and write concurrently",
+      "note": "Read-write (mode='mount') or read-only (mode='mount-ro') live mounts shared across running sandboxes, with advisory leases (acquire/renew/release) to serialize writers; volume files also editable via API with no sandbox running.",
+      "checked": "2026-09-29"
+    }
   }
 }

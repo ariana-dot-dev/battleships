@@ -144,7 +144,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -158,7 +158,16 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -212,5 +221,79 @@
     "applied": 2,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 15
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.superserve.ai/sandbox/lifecycle.md",
+      "quote": "Set `timeoutSeconds` to auto-pause a sandbox after it has been active for that long. Pausing checkpoints its state and stops compute billing, so a sandbox you forget about won't keep running and billing.",
+      "note": "Opt-in (off by default); trigger is a cap on active time, not idleness ('It's a cap on active time, not idle time'). Memory included: 'Resume restores full memory and filesystem.' Next commands.run()/file op/connect() auto-resumes. No idle-based pause.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.superserve.ai/sandbox/snapshots.md",
+      "quote": "A snapshot saves a sandbox's memory and disk at a point in time. Sandboxes you create from a snapshot are called forks. A fork starts exactly where the snapshot left off, with its files, installed packages and running processes in place.",
+      "note": "Memory included; of an active (paused <1 s for capture) or paused sandbox; any number of new sandboxes boot from it via from_snapshot; snapshots outlive the source sandbox. Limits: 100 per team, 20 per sandbox. Plus manual pause() = full VM checkpoint of the same sandbox.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.superserve.ai/integrations/coding-agents/claude.md",
+      "quote": "Open the sandbox in the [console](https://console.superserve.ai?utm_source=docs\\&utm_medium=link), launch the terminal, and run `claude`.",
+      "note": "Agents are provided as templates (superserve/claude-code; guides for Codex, OpenCode, Kilocode, OpenClaw, Hermes) and run via terminal/exec (exec, SSE stream, WebSocket, interactive sessions). The Claude Managed Agents and Cursor Self-Hosted Machines integrations use Anthropic's/Cursor's own session APIs with Superserve only as the execution sandbox. No first-party Superserve API to start an agent with a prompt or manage its conversations.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.superserve.ai/sandbox/networking.md",
+      "quote": "`allowOut` / `allow_out` accepts a mix of CIDRs and domain patterns. Combine it with `denyOut: [\"0.0.0.0/0\"]` to build a strict allowlist - deny everything, then add exceptions.",
+      "note": "Per sandbox; default allows all public internet; private/link-local/loopback always blocked; denyOut takes IPs/CIDRs only; domain rules matched on the connection; updatable live on an active sandbox; forks inherit rules. Platform-recorded network log of HTTP/HTTPS (80/443) connections.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.superserve.ai/sandbox/networking.md",
+      "quote": null,
+      "note": "Rule format is only allowOut (IPs/CIDRs/domains) and denyOut (IPs/CIDRs); no method/path/header rules. Only HTTP-level control is secret injection scoped per host. Network log records method/path/status (observability, not policy).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.superserve.ai/sandbox/preview-urls.md",
+      "quote": "Every published port stores its own `public` or `private` access mode. Changing\nthe sandbox default does not rewrite existing ports, so public and private ports\ncan coexist in one sandbox.",
+      "note": "Strict publication: only explicitly published ports are reachable (others 404); per-port public vs private; private ports need a minted token (header) scoped to sandbox+port, rotatable per port. No IP allowlist; no raw TCP; legacy_public mode only for old sandboxes.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker microVM with its own kernel and root (templates run as root / sudo users; 'every Superserve sandbox is a full Firecracker microVM, FUSE works inside', storage/archil). iptables/nftables inside not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.superserve.ai/secrets/overview.md",
+      "quote": "Code running inside the sandbox never sees the real value. It sees a **stand-in token**, and Superserve swaps that token for your real credential as each request leaves the sandbox — only on requests to the hosts you allow.",
+      "note": "Provider shortcuts (Anthropic, OpenAI, Gemini, OpenRouter, GitHub, GitLab, Vercel, Cloudflare, Stripe, Notion, Resend...) plus custom secrets with auth type bearer / api-key header / basic / custom header templates for any hosts (secrets/create). Host-scoped; attach/detach/rotate live; per-secret audit log of every request. HTTP(S) header injection only; databases/SSH not covered (DATABASE_URL shown as plain env var).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.superserve.ai/api-reference/sandboxes/create-a-new-sandbox.md",
+      "quote": null,
+      "note": "No first-party volume: create-sandbox schema has no volume/mount field and the docs never mention volumes. Storage docs are guides for third-party FUSE mounts inside the VM: Archil elastic disks, Mesa versioned filesystems, S3/GCS/R2 buckets (mountpoint-s3/gcsfuse/rclone style). Disk per sandbox is fixed by template (platform ceiling 8 GiB in docs).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.superserve.ai/storage/archil.md",
+      "quote": "Mount an Archil **disk** inside a Superserve sandbox to give it a fast workspace whose data persists across runs, survives the sandbox, and can be mounted by several sandboxes at once with `--shared`.",
+      "note": "Not first-party: shared read-write filesystems only via the third-party Archil service (own account/billing) or user-mounted buckets, documented as integration guides.",
+      "checked": "2026-09-29"
+    }
   }
 }

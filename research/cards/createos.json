@@ -290,7 +290,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": false,
@@ -304,7 +304,16 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -396,5 +405,79 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://createos.sh/docs/Sandbox/Overview",
+      "quote": "Set a timeout from 1 minute to 24 hours and the sandbox pauses itself once both API calls and network traffic go quiet.",
+      "note": "Opt-in idle auto-pause (auto_pause_after_seconds 60-86,400; off by default per Limits doc). The idle pause is identical to a manual pause, which is a full Firecracker snapshot: disk + RAM + CPU/device state, so running processes are included (SDK Lifecycle guide: 'When the idle timeout fires, the control plane pauses the sandbox exactly as if you had called pause()'). Restore: 'Wake on request' - hitting a paused sandbox's HTTPS ingress URL resumes it automatically; otherwise resume via API/SDK/CLI. Also self-pause from inside via POST 127.0.0.1:1029. No max session length, so no time-limit trigger. Paused sandboxes still bill RAM + storage.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://createos.sh/docs/Sandbox/REST-API/Pause-Resume-Fork",
+      "quote": "Pausing snapshots the full VM state to object storage: Disk: filesystem contents Memory: full RAM image (processes, open files, network connections) CPU state: exact register values and execution context",
+      "note": "On-demand snapshot = pause (REST POST /v1/sandboxes/{id}/pause, SDK pause(), CLI `createos sandbox pause`); memory included. The live VM is torn down while paused (no snapshot-while-running). New machines boot from it via fork: 'Clone a paused sandbox into a new, independent sandbox identity' (own id/IP/placement; any number of forks; S3 disk attachments do not carry over). No named/persistent snapshot objects or snapshot-to-template: templates are Dockerfile builds only, and the AgentBox integration page says 'CreateOS has no matching snapshot feature yet' for checkpoints. Resume keeps the same sandbox id.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/Integrations/Herdr",
+      "quote": "One pane maps to one sandbox. Your keystrokes go into the microVM; the agent's output comes back.",
+      "note": "No first-party API to start/prompt/stream/resume an agent harness inside the sandbox. Claude Code / Codex / OpenCode / Pi plugins run the agent LOCALLY and use the sandbox as a tool (via the createos CLI). Herdr and Orca integrations (first-party plugins in NodeOps-app/createos-claude-plugins) install and run Claude Code/Codex/OpenCode/Pi/Cursor INSIDE a sandbox, but only as an interactive PTY terminal attached to a Herdr pane / Orca workspace - no prompt/event/conversation API. The Claude Managed Agents guide shows running Anthropic's `ant beta:worker poll` inside a sandbox, but the session API is Anthropic's, not CreateOS's. CreateOS Studio has a runtime 'Sandbox SDK' (start a turn, stream the answer) but that is the separate Studio agent-builder product, not agents in a CreateOS Sandbox microVM. Generic managed-process/PTY APIs exist (exec does not count). Borderline: flip to true only if a PTY-attached Herdr/Orca plugin counts.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://createos.sh/docs/Sandbox/REST-API/Egress",
+      "quote": "A non-empty rule list means deny-by-default: only the listed destinations pass; everything else is dropped in-kernel on the host, outside the VM, so code inside the sandbox cannot rewrite or route around the policy.",
+      "note": "Per-sandbox allowlist set at create or live (PUT /v1/sandboxes/{id}/egress, SDK setEgress, CLI `sandbox firewall`); formats host, host:port (80/443 only), *.host, ip, ip:port, cidr, cidr:port. Enforced host-side via eBPF. Domain rules match TLS SNI (HTTPS) or Host header (HTTP), so weak for cleartext HTTP; hostname rules only cover TCP 80/443 (use IP/CIDR for other ports). Default is OPEN (empty list). No denylist token. Private networks between sandboxes are not governed by egress rules.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/REST-API/Egress",
+      "quote": "There is no denylist token. To block one destination you must list all destinations you do want.",
+      "note": "Rule grammar is host/IP/CIDR plus port only (full table on the Egress page); matching is on SNI/Host header with no method, path or header rules. The egress-governance page explicitly says enforcement is in-kernel eBPF, not a proxy ('Is this just a proxy I can configure? No.'), so there is no HTTP-level layer.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://createos.sh/docs/Sandbox/Limits",
+      "quote": "Closed. Nothing reaches a sandbox unless ingress_enabled: true, which exposes one HTTPS URL per sandbox.",
+      "note": "Control is coarse: a per-sandbox on/off toggle (create-time or live via PATCH / setIngress). When on, any port is reachable at <ulid>-<port>.<domain> with no auth, no per-port choice and no IP allowlist (Claude Code plugin page: 'the URL is the only thing protecting it, there is no authentication in front of it'). Private access paths are authenticated: API-key port tunnels (`createos sandbox tunnel`), SSH gateway with attached public keys, WireGuard VPN into private networks; scoped per-sandbox access tokens for delegating control. No public IPv4.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://createos.sh/docs/Sandbox/Security",
+      "quote": "Every sandbox is a Firecracker microVM with its own guest kernel, filesystem and network identity.",
+      "note": "Not documented explicitly. Firecracker microVM with its own kernel and root access; the devbox:1 image ships Docker 29 (which itself needs iptables/netfilter in the guest). Guest rules sit behind the host-side eBPF egress policy.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/Security",
+      "quote": "Anything you put into a sandbox is readable by code running in it: envs, files you upload, and the keys of any attached disk, which the sandbox needs to mount the bucket.",
+      "note": "Secrets are only env vars (envs: write-only through the API, declared at create, 64 keys) or files; disk (S3) credentials are also visible inside the VM. No credential-injecting proxy: egress is eBPF filtering, and the egress-governance page says it is not a proxy. The recommended pattern is to keep credentials on the caller side (e.g. Claude Managed Agents 'sandbox as a tool' topology, or putting only a scoped Anthropic environment key inside). Non-HTTP: n/a.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/Concepts",
+      "quote": "An S3-compatible bucket registered as a mountable volume. A disk holds its bucket and endpoint configuration; credentials are encrypted at rest and never returned by the API. Disks can be attached to a running sandbox and detached live, and the mount appears inside the guest within about a second.",
+      "note": "CreateOS 'Disks' are first-party mounts of CUSTOMER-OWNED S3-compatible buckets (AWS S3, R2, MinIO, Tigris), attached at create or live, detachable, optional sub_path - not provider-hosted block/network volumes (no CreateOS storage product billed for them). Root disk is the only provider storage (10 GiB default, raisable via disk_mib to plan max 10/30/50/60 GiB). Answered false for consistency with other bucket-mount-only providers (e.g. langsmith-sandbox); flip to true if customer-bucket mounts count as volumes. Free plan: 0 disks.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://createos.sh/docs/Sandbox/Security",
+      "quote": "Disks are the one thing sandboxes can share. A disk belongs to one account; only that account's sandboxes can attach it. Several of your sandboxes can mount the same disk at once and see the same bucket, with S3's last-write-wins semantics.",
+      "note": "Read-write (no read-only mount option documented); object storage semantics (last-write-wins), not a POSIX shared filesystem. Same disk can also be mounted at multiple paths in one sandbox. Disk mounts do not carry over to forks.",
+      "checked": "2026-09-29"
+    }
   }
 }

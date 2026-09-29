@@ -741,7 +741,15 @@
     "spend_limits": false,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -931,5 +939,65 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.fly.io/reference/suspend-resume",
+      "quote": "The proxy will automatically suspend machines during low traffic, checking for idle periods every few minutes, and resume them when requests arrive.",
+      "note": "Opt-in via fly.toml auto_stop_machines = \"suspend\" (Fly Proxy idle autostop; needs a service). Memory included: \"Suspend uses Firecracker snapshots to capture the entire VM state: CPU registers, memory contents, open file handles.\" Only Machines <= 2 GB RAM, no swap, no schedule; snapshot not guaranteed (discarded on deploy, host migration, maintenance -> cold start). Unlike stop, suspend does not reset rootfs. Separately, Volumes get automatic daily block snapshots (retention 1-60 days, default 5) - that is a scheduled backup, not this.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.fly.io/volumes/snapshots",
+      "quote": "We automatically take daily snapshots of your volume and keep them for 5 days by default. You can also create a snapshot of a volume on demand",
+      "note": "Two partial mechanisms: (1) Volume snapshots (fly volumes snapshots create / POST .../volumes/{id}/snapshots): disk only, volume data only (not rootfs, not memory); restore = create a NEW volume from the snapshot (\"fly volumes create <volume name> --snapshot-id <snapshot id>\") which a new Machine can mount; also `fly volumes fork`. $0.08/GB-month, first 10 GB free. (2) Machine suspend (fly machine suspend / POST .../suspend) is an on-demand memory+CPU snapshot but only resumes the same Machine; cannot fork or boot new Machines, not guaranteed to persist.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.fly.io/machines/guides-examples/network-policies",
+      "quote": "Network policies let you control traffic to and from your Machines. You can use policies to allow or restrict ingress and egress on specific ports and protocols. This is useful when you're running untrusted code or want to lock down what traffic is allowed.",
+      "note": "Machines API /v1/apps/<app>/network_policies; selector by all/machine IDs/metadata; rules are allow-only port+protocol; \"Once a rule is defined, all other traffic in that direction is denied by default.\" Documented rule fields are ports/protocols only (no hostnames; destination IP/CIDR fields not documented). Requires restart/redeploy to take effect; does not apply to traffic through Fly Proxy. Domain-level allowlists exist only on Sprites.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.fly.io/networking/flycast",
+      "quote": "Flycast provides network addressing and routing for private apps on Fly.io private networks.",
+      "note": "Services/ports are exposed only if declared in fly.toml [services]/[http_service] and only public if the app has public IPs (`fly deploy --no-public-ips`); private-only via 6PN .internal or Flycast; network policies also support ingress direction (\"allow or restrict ingress and egress on specific ports and protocols\"). No tokenized preview URLs or IP allowlists found for Machines.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker microVM with its own kernel and root; iptables/nftables inside should work (not explicitly documented).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://github.com/superfly/tokenizer",
+      "quote": "Tokenizer is an HTTP proxy that injects third party authentication credentials into requests. Clients encrypt third party secrets using the proxy's public key.",
+      "note": "First-party open-source (superfly/tokenizer) but SELF-DEPLOYED, not a managed Machines feature: README \"Production deployment — fly.io ... Tokenizer is now deployed and accessible to other apps in your org at `<name of app>.flycast`\"; blog: \"check out the tokenizer and ssokenizer repositories for instructions on deploying and using these services yourself\". Fly's own hosted tokenizer (tokenizer.fly.dev) is internal. Any HTTP host (header/query injection, HMAC, AWS SigV4, OAuth via ssokenizer), per-secret allowed_hosts; HTTP only (client speaks plain HTTP to proxy over private network), no DB/SSH. Built-in Fly secrets are env vars: \"An app's secrets are available as environment variables at runtime on every Machine\". Treat as false if only managed features count.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.fly.io/volumes/overview",
+      "quote": "Fly Volumes are local persistent storage for Fly Machines. You can access and write to a volume on a Machine just like a regular directory.",
+      "note": "Local NVMe slice on the Machine's host, up to 500 GB, extendable, $0.15/GB-month provisioned; one volume per Machine.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.fly.io/volumes/overview",
+      "quote": "A Machine can only mount one volume at a time and a volume can be attached to only one Machine.",
+      "note": "Not network storage (\"It is not network storage.\"); no shared FS product for Machines (use Tigris object storage separately).",
+      "checked": "2026-09-29"
+    }
   }
 }

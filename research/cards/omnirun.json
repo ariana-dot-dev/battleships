@@ -253,7 +253,15 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "ai-only",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -289,5 +297,65 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://omnirun.io/compare",
+      "quote": "No fork, user snapshots or volumes yet. E2B, CubeSandbox, microsandbox and boxd all have some form of these.",
+      "note": "Roadmap v0.2: 'Fork a running sandbox, and user snapshots that start new sandboxes.' Manual pause()/resume() exists in the SDK (in-memory, see snapshot_auto). Sandboxes do start from template Firecracker memory snapshots, but those are operator-built. You cannot create them from a running sandbox.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://omnirun.io/llms-full.txt",
+      "quote": "| `claude-code` | AI tool template for Claude Code |",
+      "note": "claude-code, codex, gemini-cli and openclaw templates come preinstalled, but the only way to drive them is the generic commands.run exec or PTY API. There is no prompt/stream/resume API. 'Claude Managed Agents backend' means Anthropic's API runs the agent loop and a self-hosted worker (ant beta:worker) runs the tool calls in OmniRun microVMs. That is Anthropic's harness API, not OmniRun's.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://omnirun.io/docs/sandboxes",
+      "quote": "an opt-in SNI egress proxy can restrict a sandbox to an allow-list of hosts: it inspects each TLS handshake on port 443 and only forwards connections whose server name matches your list. It is off by default.",
+      "note": "Base templates also support internet:false ('no route out at all'). Weak: the SNI proxy filters HTTPS on port 443 only. Other ports are not filtered, and domain fronting gets past it ('a guard rail, not an exfiltration control'). Agent templates (claude-code, codex, desktop) always have internet on, and internet:false does not switch it off. SDK 0.6.0 also has an undocumented NetworkPolicy {allowDomains, denyDomains, allowIPs, denyIPs} and setNetworkPolicy() for running sandboxes. IP-level rules appear in the SDK only, not in the docs.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.npmjs.com/package/@omnirun/sdk",
+      "quote": "@param opts.visibility - `\"public\"` (default) or `\"private\"` (requires auth token).",
+      "note": "Preview URLs are opt-in per port (POST /sandboxes/:id/exposures) and can be revoked. They have ttlSeconds and an optional slug. Private exposures return an accessUrl 'with embedded access token'. The docs pages only describe public HTTPS URLs; the private visibility comes from the SDK types. No IP allowlist. Traffic between sandboxes is blocked (security page). Self-hosted nodes have previews off until preview_domain is set.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker microVM with its own guest kernel; 'Guest commands run as root by default' (security page). Not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://omnirun.io/docs/llm-proxy",
+      "quote": "Use hundreds of AI models through a single API key with built-in spend tracking and rate limiting. OpenAI-compatible: just change your base URL.",
+      "note": "An LLM gateway at api.omnirun.io/llm/v1 that uses OmniRun's upstream keys. The sandbox authenticates with an OmniRun omr_ token, so provider keys stay outside the VM. BYOK keys and all other secrets go through the vault, which writes them INTO the VM ('all vault credentials are written to /tmp/.omnirun-env inside the sandbox'). The compare page lists 'Secrets that never enter the VM: No', and the roadmap has it under 'Later'. Nothing for non-HTTP protocols.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://omnirun.io/compare",
+      "quote": "No fork, user snapshots or volumes yet.",
+      "note": "Capability matrix: 'Persistent volumes: No'. The roadmap lists persistent volumes under 'Later'. Each sandbox gets a copy-on-write LVM thin disk that is deleted on kill.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://omnirun.io/compare",
+      "quote": "No fork, user snapshots or volumes yet.",
+      "note": "No volumes of any kind, so no shared volumes.",
+      "checked": "2026-09-29"
+    }
   }
 }

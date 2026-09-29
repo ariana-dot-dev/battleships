@@ -162,7 +162,16 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "ai-only",
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -215,5 +224,79 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.isorun.ai/sandboxes/lifecycle",
+      "quote": "When the timer fires, the sandbox is destroyed.",
+      "note": "Idle timeout (default 300 s, timeoutSec; 0 disables) DESTROYS the sandbox; state is only kept if you call hibernate() yourself (memory+processes+filesystem, $0 while hibernated). Conflict: the Claude Managed Agents integration page advertises 'Hibernate-on-idle' but then says the server-side TTL 'reaps' idle sandboxes; the lifecycle page and SDK reference say auto-destroy.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.isorun.ai/sandboxes/checkpoints-and-rollback",
+      "quote": "A checkpoint captures a sandbox's full state so you can restore it later or fork it into parallel copies.",
+      "note": "sandbox.snapshot() / POST /v1/runs/{id}/snapshot on a running VM; isorun.restore(id) boots a new sandbox from it (same region); snapshots persist until deleteSnapshot(). fork(n) clones a running sandbox: 'Each child inherits filesystem + memory state at fork time'. Memory included (changelog: 'checkpoint a running VM'). Separate disk-level snapshotDisk/forkDisk for persistent disks (copy-on-write).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.isorun.ai/integrations/claude-managed-agents",
+      "quote": "The Isorun SDK ships a self-hosted adapter that",
+      "note": "No Isorun API to start/stream/follow-up an agent harness; the REST API is sandbox lifecycle, exec (JSON + SSE), PTY/shell WebSockets, files, snapshots, audit, network. Closest: runOrchestrator() adapter makes Isorun the self-hosted sandbox backend for Anthropic Claude Managed Agents (one microVM per Anthropic session; prompts/events/follow-ups go through Anthropic's Managed Agents API, not Isorun's). Also OpenAI Agents/LangChain/CrewAI tool integrations and an MCP server that drive sandboxes, not a harness.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.isorun.ai/security/network-filtering",
+      "quote": "Policy is enforced outside guest code execution.",
+      "note": "Per-sandbox network: {allow, deny} at create: CIDRs, IP literals, hostnames matched against SNI, wildcards (*.openai.com). Deny evaluated first; default unrestricted. Named profiles: unrestricted, locked-down (deny-all), claude-code, openai. Enforced at host boundary ('Code running in the sandbox can't edit iptables, swap the resolver, or otherwise disable the policy'). Set at create time; no live-update endpoint listed.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.isorun.ai/security/endpoint-rules",
+      "quote": "A request through the credential proxy is forwarded only if its",
+      "note": "Endpoint rules (credentials_v2, REST only for now) restrict method + path prefix/glob per credential, e.g. only POST /v1/chat/completions; anything else rejected with 4xx. Applies only to traffic through the credential proxy (the 5 recognised services), not to arbitrary egress.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.isorun.ai/sandboxes/public-urls",
+      "quote": "The URL is **authenticated, not public**.",
+      "note": "Ports are reachable only via <apiUrl>/v1/runs/<id>/proxy/<port>/ requiring the account API key as Bearer (401 otherwise); no public IP, no raw TCP. Docs contradict themselves: the same page's 'Authentication model' section says 'The URL is anonymous: anyone with the URL can hit it' and the Limits table says 'Auth: none; the sandbox ID is the credential'; the SDK reference sides with 'authenticated'. No per-port exposure choice, IP allowlist or share tokens.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "'It boots a microVM with its own kernel' (VMM unnamed); root inside OCI images presumably but not stated. Network-filtering page: 'Changes made inside the VM only affect the guest's view', consistent with guest-side rules working but not overriding host enforcement.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://docs.isorun.ai/security/credential-injection",
+      "quote": "The agent never sees the real secret.",
+      "note": "Real host-side reverse proxy; guest sees placeholders (OPENAI_API_KEY=sk-isorun-proxy-managed + *_BASE_URL pointing at 169.254.169.254 proxy). BUT only a fixed set of known services: openai, anthropic, google (Gemini), github (api.github.com), huggingface ('The proxy maps each credential map key to a known service.'). GitHub API makes it slightly more than LLM-only; arbitrary hosts, git-over-SSH, databases not covered. Method/path endpoint rules on top.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.isorun.ai/sandboxes/persistent-storage",
+      "quote": "Pass `disk` to `create`. `/workspace` *is* the disk",
+      "note": "Named persistent disks (Tigris Cloud Disk, real ext4 block device with NVMe write-back cache) mounted at /workspace; createDisk/listDisks/snapshotDisk/forkDisk/deleteDisk; $0.02/GB-month stored; global, attach from any region. Only at create time (one disk per sandbox). Note: published npm isorun@1.0.3 types have no disk option yet (docs ahead of SDK or REST-only).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.isorun.ai/sandboxes/persistent-storage",
+      "quote": "One sandbox holds a disk at a time.",
+      "note": "Tigris lease: 'a concurrent attach fails until the first detaches'. Sharing is via copy-on-write forks (independent copies), not concurrent mounts. No read-only multi-attach.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -265,7 +265,14 @@
     "egress_ip_type": null,
     "ip_note": "No proxy or egress-IP details documented; a browser must be self-installed (docs example runs headless Chrome in Docker and exposes CDP port 9222).",
     "isolation": "vm",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "ai-only",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -356,5 +363,57 @@
     "applied": 1,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://cloud.morph.so/docs/documentation/instances/ttl",
+      "quote": "pause: The instance will be paused, preserving its memory state. This allows you to resume the instance later with all applications in the exact state they were in.",
+      "note": "Opt-in: instance TTL with ttl_action='pause' snapshots memory + disk when the TTL expires (pause = 'We create a new snapshot and suspend the VM'); wake_on_http / wake_on_ssh resume it automatically on the next request. Devboxes add auto-sleep 'after a period of inactivity, preserving all application and memory state' (default idle period unpublished). ttl_action='stop' discards state.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://cloud.morph.so/docs/documentation/instances/branch",
+      "quote": "Branching creates a snapshot of an instance and then launches a specified number of new instances from that snapshot.",
+      "note": "instance.snapshot() / `morphcloud instance snapshot` of a running instance ('save its current state'), memory + disk (Infinibranch); new instances start from snapshots with processes running, or boot disk-only with a resize; branch(count=N) forks; devbox /save checkpoints. Snapshots also get TTLs.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://cloud.morph.so/docs/documentation/instances/http-services",
+      "quote": "When auth_mode=\"api_key\" is enabled, requests to the service URL must include the Authorization: Bearer YOUR_MORPH_API_KEY header:",
+      "note": "Only ports you explicitly expose as named HTTP services get a public URL; optional auth_mode api_key (Morph API key as bearer). No IP allowlist, no raw TCP ingress (SSH via Morph gateway).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VM (MorphVM) with root, Docker and nested virt per card; iptables inside not explicitly documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://cloud.morph.so/docs/responses-proxy/getting-started",
+      "quote": "The data plane does not require a provider key such as an OpenAI key. Send your Responses Proxy key as the request bearer token; the proxy injects the selected provider credential after resolving the model alias.",
+      "note": "Responses Proxy is an LLM gateway (OpenAI Responses + Anthropic Messages for Claude Code/Codex): real provider keys stay in the proxy, clients hold an org-scoped proxy key (itself a bearer credential). No general-purpose HTTP credential injection; devbox secrets manager / user secrets API otherwise hand values to the machine. Managed CLI setup needs a 'private proxy plugin'.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://cloud.morph.so/docs/efs/concepts",
+      "quote": "Morph EFS means Morph Ephemeral File System. It provides named filesystems that can be mounted into a supported Linux environment and used through ordinary file operations.",
+      "note": "FUSE network filesystem mounted from inside the machine via `morphcloud efs mount` (needs /dev/fuse), not a block volume. Billed per GiB-month by plan where EFS billing is enabled; optional TTL.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://cloud.morph.so/docs/efs/concepts",
+      "quote": "The same EFS filesystem can be mounted from more than one supported host in the same Morph context.",
+      "note": "Read-write from all mounts; writes visible elsewhere after sync; concurrent writers must coordinate.",
+      "checked": "2026-09-29"
+    }
   }
 }

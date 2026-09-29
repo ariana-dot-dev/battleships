@@ -461,7 +461,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": false,
     "private_network": true,
     "self_host": false,
@@ -490,7 +490,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -534,5 +542,65 @@
     "applied": 12,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/features/snapshot-runners",
+      "quote": "The runner always boots from the base image. Use `snapshot-save` action to capture a snapshot at the desired point in your workflow.",
+      "note": "Runners are ephemeral per-job VMs destroyed after the job ('The VMs are created on demand and destroyed after each build'); nothing is saved automatically. Agent-runner sessions persist only /mnt/session/outputs as a cache artifact (7-day TTL), not machine state.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.warpbuild.com/docs/ci/features/snapshot-runners",
+      "quote": "WarpBuild allows you to take snapshots of your runner VMs at any point during your workflow, enabling faster consecutive runs by reusing these snapshots.",
+      "note": "Via WarpBuilds/snapshot-save action inside the job (also Snapshotter API POST/GET/DELETE /snapshots). New runners boot from it with `snapshot.key=<alias>` (45-60 s boot). Disk only as far as documented ('/tmp directory will not persist state since this directory is cleaned on reboots'); no memory. WarpBuild Cloud Ubuntu runners only (not BYOC/Windows/macOS). Snapshots deleted after 15 days; $0.025/h per snapshot storage + $0.04 per restore.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.warpbuild.com/docs/ci/byoc/aws/security",
+      "quote": "While runners need outbound internet access, you can tighten egress rules.",
+      "note": "BYOC only: security-group egress rules and Network ACLs in YOUR AWS VPC (stack-level SG; import mode lets you pick an existing SG), i.e. IP/CIDR/port level and enforced outside the VM. Default SG 'All egress allowed (`0.0.0.0/0`)'. No egress controls documented for WarpBuild Cloud runners. Tailscale networking addon adds tailnet access (ACL tags), not an egress filter.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.warpbuild.com/docs/ci/byoc/aws/config",
+      "quote": "Create a security group that blocks all inbound traffic. This is to ensure that no unauthorized access to the runners is possible.",
+      "note": "BYOC: SG inbound rules (default ingress from VPC subnet CIDRs only; RDP 3389 not exposed by default). Cloud runners expose no ports; Action-Debugger SSH via gha.warp.build URL, restricted to the triggering GitHub user's SSH keys when set (`limit-access-to-actor`), otherwise anyone with the URL.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each runner is its own VM ('Each runner runs in its own virtual machine') with sudo, mirroring GitHub runner images; iptables not mentioned.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/security",
+      "quote": "WarpBuild does not access or store any build secrets. Secrets are stored in your source code repository and are only accessible to your runner environment.",
+      "note": "GitHub Actions secrets land in the runner env. OIDC tokens (Tailscale addon) / BYOC instance profiles give short-lived cloud creds inside the VM; no credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/security",
+      "quote": "Each runner has its own encrypted storage volume that is created on demand and destroyed after each build.",
+      "note": "No attachable persistent volumes. Persistence only via cache (S3-backed, $0.20/GB-month), snapshots, BYOC standby disks (pre-booted pool, not attachable storage), auto-mounted local NVMe on BYOC instance types.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/security",
+      "quote": "Each runner has its own encrypted storage volume that is created on demand and destroyed after each build.",
+      "note": "No shared FS; shared state across runners only via cache API / Docker builder cache.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -281,7 +281,14 @@
     "spend_limits": true,
     "audit_logs": true,
     "zero_data_retention": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -349,5 +356,56 @@
     "applied": 11,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://kernel.sh/docs/info/unikernels.md",
+      "quote": "One of the most powerful features of our approach is the ability to create complete snapshots of the browser's state when entering standby mode. These snapshots capture everything:",
+      "note": "Trigger: standby after 5 s with no CDP/WebDriver/Live View/computer-controls activity ('Kernel browsers automatically enter standby after `five seconds` with no activity', /docs/browsers/standby). Memory included: list includes 'Loaded page content and DOM state' and 'Active downloads and processes'; restored 'in milliseconds' on next connection. Limits: the standby browser is still deleted after its timeout (default 60 s, max 72 h) counted from standby, so the snapshot does not outlive the session; 'GPU-accelerated browsers do not support standby mode.'",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://api.onkernel.com/spec.json",
+      "quote": null,
+      "note": "No snapshot/checkpoint/fork endpoint in the full OpenAPI spec or docs. Closest: browser profiles (cookies/storage/browser state) that are saved when a browser with save_changes is deleted or times out ('When the Kernel browser is deleted or times out, Kernel replaces the stored profile with that browser's complete state.') and loaded by new browsers - browser state only, not a machine/memory snapshot. Browser pools keep pre-warmed browsers.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://api.onkernel.com/spec.json",
+      "quote": null,
+      "note": "No endpoints to start/stream/resume Claude Code, Codex or a Kernel agent inside the browser VM. Kernel apps (deploy/invoke/invocation events) run your own code; process exec/spawn is a generic exec API; Managed Auth is a narrow login agent; Claude Code integration is Kernel as an MCP server/skills used FROM Claude Code, not a harness inside Kernel.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://kernel.sh/docs/browsers/live-view.md",
+      "quote": "https://api.onkernel.com/browser/live/<TOKEN>?readOnly=true",
+      "note": "Browser VMs expose no arbitrary public ports; access is only via per-session tokenized CDP/WebDriver/Live View URLs (Live View can be read-only) and API-authenticated 'kernel browsers ssh' with -L/-R port forwarding. No IP allowlists or user-chosen public port URLs. Network-access page: 'You don't need to open inbound ports.'",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://kernel.sh/docs/vaults/overview.md",
+      "quote": "fill isn't secret isolation from the browser. an agent with unrestricted browser access, page scripts, or extensions can read values after filling.",
+      "note": "Vault 'fill' writes credentials into browser form fields (values enter the VM, hidden only from your app/model context); Managed Auth logs in and stores cookies in a profile; app secrets are env vars. Exception, payments only: agentcard integration gives the agent non-secret card aliases and Kernel intercepts the recognized checkout request at egress ('the card number and cvc stay with agentcard. your agent receives non-secret aliases.') - a true out-of-VM substitution but limited to card checkout formats, not arbitrary HTTP credentials. No coverage of DB/SSH/git.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://api.onkernel.com/spec.json",
+      "quote": null,
+      "note": "No volume/disk resources in the API; storage is the ephemeral browser VM filesystem (File I/O API upload/download) plus browser profiles and extensions.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://kernel.sh/docs/browsers/profiles.md",
+      "quote": "Each browser session loads its own profile snapshot. Profiles don't synchronize changes between running browsers",
+      "note": "One profile can be attached to many browsers but as a per-browser copy, not a live shared filesystem; no shared volumes.",
+      "checked": "2026-09-29"
+    }
   }
 }

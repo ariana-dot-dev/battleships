@@ -141,7 +141,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -153,7 +153,14 @@
     "zero_data_retention": false,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -198,5 +205,64 @@
     "applied": 7,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://platform.kimi.com/docs/hosted-agents/tools.md",
+      "quote": "实例本地文件可能在实例回收后丢失；挂载到会话的工作区、会话文件和 [记忆库](/docs/hosted-agents/memory) 可以跨实例保存，但采用异步写回，实例退出前尚未完成同步的最新写入仍可能丢失。",
+      "note": "Instances are recycled/rebuilt transparently; only the /mnt/agents workspace is async-synced and remounted on a new instance (persistent workspace, not a machine snapshot). Instance-local files and processes are not preserved. Quickstart says the service stores 'conversation history, sandbox state and outputs' server-side and sessions 'can be paused and resumed', but the sandbox pages describe that as workspace file sync.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://platform.kimi.com/docs/hosted-agents/openapi.yaml",
+      "quote": null,
+      "note": "No snapshot/checkpoint/fork endpoint in the full Hosted Agents OpenAPI (2026-09-01-beta) or docs. Closest: environments (versioned build configs: packages + setup_script) that new sessions boot from, save_artifact for immutable output versions, and versioned memory stores.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://platform.kimi.com/docs/hosted-agents/session-operations.md",
+      "quote": "会话用于运行智能体。创建会话后，通过事件接口发送 `user.message` 来提交输入。",
+      "note": "Harness = Kimi's own hosted agent (Claude-Managed-Agents-style API): POST /v1/sessions, POST /v1/sessions/{id}/events (user.message, user.interrupt), SSE event stream with resume cursor (agent.message/agent.delta/agent.tool_use...), list/get/archive sessions, multi-agent threads, cron triggers. Does not run Claude Code/Codex/OpenCode; hakimi CLI/skill only helps those tools create Kimi hosted agents.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://platform.kimi.com/docs/hosted-agents/environments.md",
+      "quote": "`limited` | **推荐用于生产环境**。仅允许访问指定主机，也可以按需允许 MCP server 和公共包注册表",
+      "note": "Per environment config.networking: 'unrestricted' (default, still blocks a security blacklist / cloud metadata) or 'limited' with allowed_hosts (exact or *.wildcard hostnames, optional port, default 80/443; IPs/CIDRs allowed for direct TCP on any port; max 128), allow_mcp_servers, allow_package_managers. Optional forwarding through your own HTTPS proxy (basic or mTLS auth from vault; route_all added 2026-09-03). Applies to sandbox processes, not platform tools (web search/fetch).",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://platform.kimi.com/docs/hosted-agents/environments.md",
+      "quote": "条目不要包含 URL scheme（如 `https://`）或路径",
+      "note": "Allowlist is host/IP(+port) only; no method/path/header rules. Vault credentials can be restricted to hosts and to header vs body substitution, which is not a traffic rule. DIY via route_all to your own proxy.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://platform.kimi.com/docs/hosted-agents/vaults.md",
+      "quote": "对于 `environment_variable`，沙箱中的环境变量是占位符，不是真实密钥。这种类型的凭据适合将凭据放入出站请求，不适合在本地校验真实密钥，或使用真实密钥计算请求签名。",
+      "note": "Vault credentials: environment_variable type (placeholder env var; platform egress proxy substitutes the real value in headers and/or body only for the credential's allowed_hosts), plus static_bearer / mcp_oauth (with refresh) for MCP servers. tools.md: '凭据注入只覆盖经平台出口代理的 HTTP/HTTPS 流量（端口 80/443）' so no DB/SSH/git-over-SSH coverage. Max 20 active credentials per vault, 16 vaults per session, bound at session creation only.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://platform.kimi.com/docs/hosted-agents/sandbox-reference.md",
+      "quote": "`/mnt/agents/memories/<name>/` | 绑定的 [记忆库](/docs/hosted-agents/memory)（Memory Store），每个记忆库一个目录 | 绑定时可选 `read_only` / `read_write`",
+      "note": "Memory Stores: project-level persistent, versioned file collections mounted into sessions (bound only at session creation). A file store, not block storage; async write-back. Uploaded files mount read-only at /mnt/agents/upload/; org file storage quota 10 GiB by default.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://platform.kimi.com/docs/hosted-agents/memory.md",
+      "quote": "通过会话挂载路径和文件工具写入时，不经过 API 的 `content_sha256` 并发校验，并发写入可能互相覆盖。",
+      "note": "Same memory store can be bound read_write (or read_only) by multiple sessions; sandbox-reference: other sessions bound to the same store can see the changes. Concurrent writes via mount may overwrite each other (async sync, not a POSIX shared FS). Session workspaces themselves are never shared.",
+      "checked": "2026-09-29"
+    }
   }
 }

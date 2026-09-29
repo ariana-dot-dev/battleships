@@ -272,7 +272,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -306,7 +306,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -346,5 +354,64 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/windows-365/enterprise/restore-overview",
+      "quote": "You can choose to set short-term restore points every 4, 6, 12, 16, or 24 hours.",
+      "note": "Cloud PCs are always-on per-user desktops (no stop/idle lifecycle to hook). Point-in-time restore takes SCHEDULED disk restore points (10 short-term at 4-24 h intervals + 4 long-term every 7 days) = scheduled backups, not stop-triggered snapshots. Also a 28-day 'retention snapshot' when a Cloud PC is deprovisioned for licence expiry. Disk only.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/windows-365/enterprise/restore-overview",
+      "quote": "Manual restore points let administrators create a restore point whenever they want, for both a single Cloud PC and groups of Cloud PCs (using bulk actions).",
+      "note": "Admin-only via Intune (bulk up to 5,000) or Graph beta 'Create a snapshot for a specific Cloud PC device' (cloudPC: createSnapshot). Disk only, no memory. One manual point per Cloud PC (overwritten), expires ~28 days, may take an hour+ to appear. Restores in place to the same Cloud PC; can be shared to an Azure Storage account as a VHD. No documented boot-new-Cloud-PC-from-snapshot / fork.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Per-user desktop licence; APIs (Intune/Graph) manage provisioning/restore/resize only; no agent-harness API. Microsoft's agent-oriented offering is the separate Windows 365 for Agents product (card windows-365-agents).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/windows-365/enterprise/azure-firewall-windows-365",
+      "quote": "The Firewall has application rules (and FQDN tags) and network rules configured for the Windows 365 required endpoints. Traffic that complies with the rules is allowed out. Any other traffic not explicitly permitted is blocked.",
+      "note": "Only with Azure Network Connection (ANC, Enterprise; needs your own Azure subscription/VNet): NSGs (IP/port) and Azure Firewall (FQDN + network rules), billed on your Azure sub. Microsoft-hosted network (default, and the only option for Business): 'No control of the VNet ... all network controls must be implemented on the Cloud PC itself'.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/windows-365/enterprise/deployment-options",
+      "quote": "No direct inbound connectivity is possible to Cloud PCs.",
+      "note": "Microsoft-hosted: no inbound at all; access only through the RDP broker, gated by Entra Conditional Access ('The primary control for securing access is by using Microsoft Entra Conditional Access'). ANC: your NSGs; 'Port 3389 is disabled by default for all newly provisioned Cloud PCs' and direct RDP can be enabled with IP-restricted rules.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/windows-365/enterprise/deployment-options",
+      "quote": "No control of the VNet. The virtual NIC is Microsoft-managed. Therefore, all network controls must be implemented on the Cloud PC itself, similar to physical devices in a work-from-home scenario.",
+      "note": "Full Windows 11 VM: Windows Defender Firewall rules via Intune endpoint-security firewall policy or local admin (not nftables/iptables; Windows).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/windows-365/enterprise/resize-cloud-pc",
+      "quote": "Upgrade the RAM, CPU, and storage size of a Cloud PC.",
+      "note": "Single OS disk sized by the licence SKU (128-512 GB); more storage only by resizing to a larger SKU (disk can't be downsized). No data-disk/volume attach documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No first-party shared volume; users rely on OneDrive / SharePoint / SMB shares (e.g. Azure Files over ANC), which are separate products.",
+      "checked": "2026-09-29"
+    }
   }
 }

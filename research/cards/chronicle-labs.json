@@ -138,7 +138,13 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_on_demand": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -162,5 +168,51 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/README.md",
+      "quote": "Save a running machine mid-execution, rewind it, or branch it into copies that keep running from the same point. Checkpoints capture RAM, CPU state and disks; branches are copy-on-write children of a live machine.",
+      "note": "smolvm (the microVM Chronicle runs trials in): memory INCLUDED (RAM+CPU+disk); new machines boot from a checkpoint (`machine create --from agent.checkpoint`) and live COW branches. Chronicle's blog: bake a world, publish .smolmachine artifact via OCI, rehydrate/fork many times.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://chronicle-labs.com/blog/how-we-run-thousands-of-isolated-agent-trials-with-smolvm",
+      "quote": "smolvm adds a second, independent layer at the VM boundary: networking is disabled by default, and enabling it requires an explicit domain allowlist.",
+      "note": "Enforced outside the guest at the VM boundary. Chronicle policies: deny_all / mocked_only / passthrough_record (vendor domains). smolvm allows --allow-host / --allow-host-pattern (domains, wildcards) AND --allow-cidr (IP/CIDR), so level=both.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/docs/security-model.md",
+      "quote": "Networking is disabled by default. Enabling --net, port forwarding, or host services expands the workload's reachable surface.",
+      "note": "Ports closed by default; you explicitly publish port mappings (Smolfile `ports = [\"8000:8000\"]`, max 64 mappings) and there is an [auth] table. You choose which ports are exposed. Chronicle trials typically run with no inbound network.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "smolvm gives each workload a hardware-isolated libkrun microVM with its own guest kernel and (untrusted) root; a full guest kernel means iptables/nftables inside the VM take effect. Derived.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://raw.githubusercontent.com/smol-machines/smolvm/main/docs/credential-substitution.md",
+      "quote": "The guest receives an opaque placeholder in the environment variable it expects; the host replaces the placeholder with the real value only on HTTPS requests to the hosts you allow, and only inside a request header. The value never enters the machine, its record, or a checkpoint.",
+      "note": "Real secret proxy in the smolvm substrate: register credentials for ARBITRARY HTTPS hosts (e.g. api.notion.com, api.github.com) => any-http. HTTPS + request-header only; non-HTTP protocols (DB/SSH/git) and query-string/body use NOT covered (refused or literal placeholder). Chronicle's own trials mainly mock vendor APIs (worldd), so real creds are rarely used; capability belongs to the sandbox tech.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://chronicle-labs.com/blog/how-we-run-thousands-of-isolated-agent-trials-with-smolvm",
+      "quote": "Isolated: one run must never see another workspace's data or mutate another trial's state.",
+      "note": "Strict per-VM isolation by design; branches are copy-on-write children, not a shared read-write filesystem mounted by several running machines. No shared/network volume documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

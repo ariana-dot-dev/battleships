@@ -272,7 +272,13 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "datacenter+residential",
-    "ip_note": "Datacenter IPs by default; managed residential proxies $10/GB (Launch) / $6/GB (Scale) on paid plans; BYO datacenter/residential/mobile proxy on all plans at no extra cost; CAPTCHA solving on paid plans; dedicated \"Stealth Browser\" is Enterprise-only."
+    "ip_note": "Datacenter IPs by default; managed residential proxies $10/GB (Launch) / $6/GB (Scale) on paid plans; BYO datacenter/residential/mobile proxy on all plans at no extra cost; CAPTCHA solving on paid plans; dedicated \"Stealth Browser\" is Enterprise-only.",
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": false,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -391,5 +397,50 @@
     "applied": 1,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.steel.dev/overview/profiles-api/overview",
+      "quote": "Profiles work by storing a snapshot of the browser's User Data Directory. This includes all the data that is stored in the browser, such as cookies, extensions, credentials, and browser settings. 1. Session gets created with a `persistProfile` flag ... 3. After the session is released, the userDataDir is persisted and the additional information on the profile is updated and the profile is set to the `READY` state 4. Whenever a session is created with the `profileId`, the profile is loaded from the storage and the session is started with the same userDataDir and context",
+      "note": "Browser-profile analog, not a machine snapshot: opt-in per session (persistProfile: true at create); on release/timeout Steel saves the Chrome userDataDir automatically, and a later session started with profileId restores it. Disk/browser state only (cookies, storage, extensions, settings); no memory/open tabs/processes. 300 MB profile limit; profiles unused for 30 days are deleted.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.steel.dev/overview/sessions-api/reusing-auth-context",
+      "quote": "Extract browser state data through the `GET /v1/sessions/{id}/context` endpoint. This endpoint returns a context object containing browser state information such as cookies and local storage.",
+      "note": "Browser-state snapshot of a live session at any time (cookies, localStorage, sessionStorage, IndexedDB per cookbook), returned as JSON; new sessions can boot from it via sessionContext (fork-like). No memory/process state. Profiles can also be created/replaced manually from an uploaded userDataDir zip via the Profiles API.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "Steel sells browser sessions driven over CDP/Playwright/Puppeteer/Selenium plus a computer-use actions API; the agent runs outside. Steel CLI/Skills give Claude Code/Codex/OpenCode a Steel browser, but no API runs a coding-agent harness inside a Steel session.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/embed-sessions/live-sessions",
+      "quote": "For security reasons, debug URLs are **unauthenticated**. Anyone with the debug URL can view or interact with that session. Use your own-access controls if embedding in a user-facing product.",
+      "note": "Sessions expose no user ports. The CDP websocket requires the API key; the live-view/debug URL is an unauthenticated capability URL. The only control is debugConfig.interactive=false (read-only viewer). No IP allowlists or private/public toggles.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "You get a Chrome session over CDP, not a shell or root, so nftables/iptables cannot be run. The Files API calls the session host 'that session's isolated VM environment', but no exec access is documented. Self-hosted steel-browser (Docker) is your own container.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/credentials-api/overview",
+      "quote": "The clear-text credentials are placed directly into the in-memory session and sent to the target service over our private WireGuard backbone ensuring end-to-end encryption and safe keeping of your credentials.",
+      "note": "Not a proxy. Credentials API (beta, free) stores username/password/TOTP per origin+namespace (KMS envelope encryption) and a Steel script injected into each page fills the login form (autoSubmit, blurFields, exactOrigin). The plaintext does enter the browser session/DOM; Steel only hides it from the agent ('Isolation mechanisms to prevent agents from extracting secrets post-injection'; fields blurred against vision agents). Covers web login forms only (username/password/OTP fields), not API headers, databases, SSH or git. proxyUrl with user:pass is a normal session parameter.",
+      "checked": "2026-09-29"
+    }
   }
 }

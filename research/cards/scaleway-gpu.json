@@ -764,7 +764,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -795,7 +795,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -842,5 +851,72 @@
     "applied": 12,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 28
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/gpu/concepts/",
+      "quote": "Scratch storage does not survive once the server is stopped: doing a full stop/start cycle will erase the scratch data.",
+      "note": "No automatic snapshot on stop. Block Storage volumes simply persist (persistent_disk); legacy local volumes are moved to a volume store in Power-off mode (disk persistence, not a snapshot); GPU scratch NVMe is erased on full stop; no memory state kept.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.scaleway.com/en/docs/instances/concepts/",
+      "quote": "An image is a complete backup of your Instance. One image contains all the volumes of your Instance and can be used to restore your Instance and its data. You can also use it to create a series of Instances with a predefined configuration.",
+      "note": "Per-volume Block Storage snapshots or whole-Instance images (console/CLI/API); new Instances can boot from images; disk only, no memory; scratch storage excluded (\"does not support features like snapshots\").",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain GPU VMs; no first-party agent-harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.scaleway.com/en/docs/instances/how-to/use-security-groups/",
+      "quote": "You can create customized inbound and outbound rules to drop or accept traffic on particular protocols, ports, and IP ranges.",
+      "note": "Security groups with default outbound policy drop/accept (\"You can set default policies to drop or accept all inbound traffic, and drop or accept all outbound traffic.\"); enforced outside the VM on public traffic. No domain/FQDN rules documented.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.scaleway.com/en/docs/instances/how-to/use-security-groups/",
+      "quote": "We recommend blocking incoming traffic by default to prevent intrusions.",
+      "note": "Security-group inbound rules by protocol/port/IP range; Instances can also sit on Private Networks without a public IP (via Public Gateway).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VM with root (Ubuntu GPU OS images); nftables/iptables inside should work.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/secret-manager/concepts/",
+      "quote": "Secret Manager is a solution that provides a centralized location where your secrets can be stored and accessed.",
+      "note": "Secrets are fetched into the machine (Secret Manager API / env / cloud-init); no credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.scaleway.com/en/docs/block-storage/how-to/attach-a-volume/",
+      "quote": "You can attach up to 15 volumes at a time to a single Instance.",
+      "note": "Block Storage volumes (5K/15K IOPS) in the same AZ.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://www.scaleway.com/en/docs/file-storage/reference-content/file-system-instance-selection/",
+      "quote": "Currently, only Linux-based POP2, BASIC3-X, STANDARD2-A, STANDARD3-X CPU Instances, L4, L40S, and H100 GPU Instances are fully qualified for File Storage.",
+      "note": "Scaleway File Storage: network file system shared read-write by several Instances in the same region (\"File systems can be shared by several Instances\"); B300/RENDER-S not listed as qualified.",
+      "checked": "2026-09-29"
+    }
   }
 }

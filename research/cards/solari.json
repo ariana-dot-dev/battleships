@@ -187,7 +187,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -221,7 +221,13 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -259,5 +265,57 @@
     "applied": 20,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.getsolari.com/sandboxes",
+      "quote": "When that time passes with no activity, lifecycle decides what happens: onTimeout: \"pause\" (the default) saves its state and pauses it, while onTimeout: \"kill\" shuts it down. If you don't set timeoutMs , it defaults to 30 minutes.",
+      "note": "Default idle timeout (30 min) pauses and saves full state (memory + disk, 'a full pause restores from durable storage'); resumes on connect(). Opt-in extras: hibernateAfterParkedMs escalates a park to a full pause, checkpointEveryMs takes periodic durable checkpoints (min 60 s). Same for desktop VMs.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.getsolari.com/snapshots",
+      "quote": "snapshot(name?) saves the machine's current state and gives you back a snapshot id. The machine keeps running the whole time",
+      "note": "Memory included ('it carries its own complete disk and memory image'); revert(snapshotId) rewinds in place; create({fromSnapshot}) boots any number of new machines (fork); snapshots can be promoted to templates. Machine must be running (409 on paused). Works for sandboxes and VMs. $0.05/GB-month above 10 GB from 2026-10-01.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.getsolari.com/sandboxes",
+      "quote": "\"hardened\" is the same, with all outbound network blocked.",
+      "note": "Only an all-or-nothing no-internet mode (isolation:\"hardened\"); no domain or IP allow/deny lists documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.getsolari.com/sandboxes",
+      "quote": "The URL is signed: it carries a one-hour pt_token query parameter, and the response also returns that token separately as preview.token .",
+      "note": "Ports exposed only on request via previewUrl(port) / GET /sandboxes/:id/ports/:port; hostname <label>-<port>.preview.getsolari.com; 401 without a valid token. No IP allowlists or security groups.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "isolation:\"dedicated\"/\"hardened\" is a microVM of your own (docs); examples run apt-get as the default user, so root. isolation:\"shared\" is a namespace+cgroup context in a shared VM; NET_ADMIN unknown.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.getsolari.com/volumes",
+      "quote": "A volume is durable storage that outlives any single machine. Create one once, then attach it to a sandbox at start-up and read and write it at a path of your choosing.",
+      "note": "Beta; sandboxes only (all isolation modes), not yet desktops. Attach at create time only. Backed by GCS via host-side gcsfuse.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.getsolari.com/volumes",
+      "quote": "A machine can mount several volumes at once, and the same volume can be attached to many machines.",
+      "note": "Read-write from multiple machines ('a folder of data that many machines read and write over time'); gcsfuse object-storage semantics, no documented locking/consistency guarantees.",
+      "checked": "2026-09-29"
+    }
   }
 }

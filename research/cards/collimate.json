@@ -171,7 +171,12 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -223,5 +228,43 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.collimate.ai/reference/limits/",
+      "quote": "Session duration — a sandbox that outlives your tier's max session is reaped. Persist anything you need and re-create, or suspend before the cap.",
+      "note": "Hitting the session cap (Demo 1 h, Pro 24 h) deletes the sandbox; no idle auto-suspend is documented (suspend is an explicit API call). Sandbox state exposes idle_secs but no auto-suspend setting.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.collimate.ai/core/suspend-resume/",
+      "quote": "Suspend freezes a running sandbox to disk: its running guest process is snapshotted, its RAM is reclaimed, and its network is released — but the sandbox is fully resumable by id.",
+      "note": "POST /v1/sandboxes/{id}/suspend; memory included ('exact process memory and filesystem'); resumes in place (1:1). New machines come from live fork (POST .../fork, N copy-on-write children keeping process memory, parent keeps running) or from baked templates ('booted, warmed, checkpointed'); no API to turn a suspended snapshot into a template.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.collimate.ai/openapi.yaml",
+      "quote": "/v1/sandboxes/{id}/exec",
+      "note": "The full /v1 surface is templates, sandboxes, exec, fork, connect-url/connect, suspend/resume, usage - no agent/prompt/session endpoints. Hosted MCP (mcp.collimate.ai) lets an outside agent such as Claude Code USE sandboxes as tools; that is the reverse direction, not a harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.collimate.ai/llms.txt",
+      "quote": "default-deny allowlist; metadata endpoint always blocked.",
+      "note": "egress {allow: [hosts]} per create or per exec (overrides template default), per-branch in fork trees; cloud metadata 169.254.169.254 always blocked. Only net/browser templates have a NIC; pure code templates have no network; Demo has no outbound network. IP/CIDR entries not documented (schema is 'Opaque per-sandbox egress policy').",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.collimate.ai/openapi.yaml",
+      "quote": "Mint a signed, time-boxed URL to a port inside a running sandbox — the connect-from-outside primitive.",
+      "note": "Pro/Enterprise only; token HMAC-scoped to (tenant, sandbox, port, exp), revoked on delete; only the template's exposed ports (else 409 port_not_exposed); WebSocket tunnel (tcp or cdp) or Bearer key. No public URLs, no IP allowlists.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -306,7 +306,12 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "datacenter+residential",
-    "ip_note": "Datacenter pool by default ($1.08/GB Discovery), residential pool $7.99/GB Discovery down to $6.05/GB Enterprise, plus managed Tor; no mobile or BYO proxy documented."
+    "ip_note": "Datacenter pool by default ($1.08/GB Discovery), residential pool $7.99/GB Discovery down to $6.05/GB Enterprise, plus managed Tor; no mobile or BYO proxy documented.",
+    "snapshot_auto": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -355,5 +360,42 @@
     "applied": 14,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 6
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://scrapfly.io/docs/cloud-browser-api/session-resume.md",
+      "quote": "After a Cloud Browser run stops, its full profile (cookies, storage, tokens, fingerprint, proxy identity) is saved to storage.",
+      "note": "Browser product. On a clean stop of a named session the browser profile (cookies, local/sessionStorage, trust tokens, fingerprint, proxy identity; no tabs or live JS state) is saved automatically, but it is documented only as a one-way handoff into the Web Scraping API (session=cb:<id>), not restored into a new Cloud Browser session. Session resume (auto_close=false) just keeps the live browser running and billing until timeout (max 30 min); after termination reconnect fails ('Session expired or was terminated'). So no automatic save/restore of the browser machine on the next start.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://scrapfly.io/docs/cli/agent-mode.md",
+      "quote": "takes a plain-English task description, plans the scraping steps, executes them using Scrapfly tools, and returns structured results",
+      "note": "`scrapfly agent` is a client-side CLI agent loop using your own LLM key (ANTHROPIC_API_KEY etc.) that calls browser tools; it does not run inside the cloud browser and there is no API to drive an agent harness inside the session. Browser Use / Stagehand / Vercel agent-browser integrations run on the customer's side and connect over CDP; the optional in-browser MCP endpoint (enable_mcp) exposes browser tools, not a harness.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://scrapfly.io/docs/cloud-browser-api/vnc.md",
+      "quote": "Comma-separated list of IPs or CIDRs trusted to attach without a password.",
+      "note": "Applies to the live-control endpoints of a session (VNC/RTC human-in-the-loop): off unless enable_vnc etc. is set, attach requires a user-chosen session password, optional hitl_allowed_networks IP/CIDR list. CDP WebSocket requires the API key. There are no arbitrary exposed service ports in this product.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Managed Chromium (Scrapium) sessions accessed only over CDP/WebSocket (plus optional VNC); no shell/root in the browser host, so no in-guest nftables/iptables. Not stated explicitly in docs; follows from the product model.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://scrapfly.io/docs/cloud-browser-api/1password.md",
+      "quote": "Your code passes a vault name and a key on the connection URL. It never sees the password itself.",
+      "note": "Related but different: the Credential Vault (rolling out gradually; optional 1Password mirror) autofills login passwords/TOTP into the browser's password store server-side and redacts them from screenshots, DOM, VNC and Runtime.evaluate results, so the controlling script/agent never sees them. It is form autofill inside the browser (the secret does enter the browser process), not a proxy injecting credentials into outbound HTTP requests; API-credential 'blob' items are never injected into the browser. No HTTP header/credential injection proxy documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

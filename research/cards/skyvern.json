@@ -189,7 +189,15 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "datacenter+residential",
-    "ip_note": "Datacenter proxies on Free/Hobby, residential (plus static RESIDENTIAL_ISP) on Pro/Enterprise with country/state/city geo-targeting; proxy_location NONE disables proxying; no per-GB price published; auto CAPTCHA solving is cloud-only (basic on Hobby/Pro, advanced on Pro/Enterprise)."
+    "ip_note": "Datacenter proxies on Free/Hobby, residential (plus static RESIDENTIAL_ISP) on Pro/Enterprise with country/state/city geo-targeting; proxy_location NONE disables proxying; no per-GB price published; auto CAPTCHA solving is cloud-only (basic on Hobby/Pro, advanced on Pro/Enterprise).",
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "own_agent_api": true,
+    "harness_api": false,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -227,5 +235,64 @@
   "audit_2026_09_29": {
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.skyvern.com/docs/developers/optimization/browser-sessions",
+      "quote": "By default, a browser session does **not** save its browser profile when it ends.",
+      "note": "Browser product, no VM. Opt-in only: generate_browser_profile=true (sessions) or persist_browser_session=true (workflows) archives cookies/localStorage/session files when the session/run ends, but nothing is restored automatically: you must create a profile from it and pass browser_profile_id to later runs ('This does not update the original profile'). No page/memory state. Sessions close at timeout (5-240 min, extendable to 360).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.skyvern.com/docs/developers/optimization/browser-profiles",
+      "quote": "A **Browser Profile** is a saved snapshot of browser state (cookies, localStorage, and session files) that you can reuse across multiple runs.",
+      "note": "Browser-state only (cookies, localStorage, session files), no memory/open pages, no VM. Created via API from a closed browser session or a completed workflow run (not mid-run); any number of new sessions/runs can start from the profile (template-like).",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://www.skyvern.com/docs/developers/getting-started/core-concepts",
+      "quote": "A Task is a single automation job. You provide a natural-language prompt describing the goal, a starting URL, and optionally a JSON schema for structured output. Skyvern navigates the browser and returns the result.",
+      "note": "Harness = Skyvern's own browser agent (not Claude Code/Codex/etc.). REST API + Python/TS SDK + CLI + MCP: run_task / run_workflow with a prompt, get_run, get_run_timeline, artifacts, cancel_run, webhooks; follow-up tasks can run in the same persistent browser session; send_totp_code to a waiting run; human-in-the-loop via live VNC view. The agent runs on Skyvern's side and drives a cloud Chromium.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://www.skyvern.com/docs/developers/getting-started/core-concepts",
+      "quote": "A Task is a single automation job. You provide a natural-language prompt describing the goal, a starting URL, and optionally a JSON schema for structured output. Skyvern navigates the browser and returns the result.",
+      "note": "Harness = Skyvern's own browser agent (not Claude Code/Codex/etc.). REST API + Python/TS SDK + CLI + MCP: run_task / run_workflow with a prompt, get_run, get_run_timeline, artifacts, cancel_run, webhooks; follow-up tasks can run in the same persistent browser session; send_totp_code to a waiting run; human-in-the-loop via live VNC view. The agent runs on Skyvern's side and drives a cloud Chromium.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Managed cloud browser API: no shell/root access to the machine running the browser (Enterprise 'code blocks' run in a Skyvern sandbox, not user-controlled networking). Self-hosted (open source, Docker/K8s) is the user's own infra.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://www.skyvern.com/docs/cloud/managing-credentials/credentials-overview",
+      "quote": "When an agent runs, the LLM receives only placeholder IDs like `placeholder_Xk9m_password`. The AI decides *where* to type on the page, but never sees the real values.",
+      "note": "Not a network proxy: stored credentials (passwords, cards, TOTP; Skyvern vault, Bitwarden, 1Password, Azure Key Vault) are hidden from the LLM but typed as real values into the browser page at the browser layer, so the secret does enter the browser sandbox. Values are masked in logs/outputs. Worth noting as LLM-placeholder injection for web logins.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Not applicable: browser-automation API with no attachable storage; downloaded files are stored as run artifacts/S3 (self-hosted: local FS or S3-compatible).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Not applicable (no volume concept).",
+      "checked": "2026-09-29"
+    }
   }
 }

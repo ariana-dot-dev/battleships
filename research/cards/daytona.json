@@ -478,7 +478,16 @@
     "egress_ip_type": null,
     "ip_note": "Egress IP type not documented; outbound traffic can be routed via a customer HTTP(S) proxy (outboundProxyUrl) or VPN (Tailscale/OpenVPN/Netbird).",
     "isolation": "container",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -592,5 +601,72 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "The auto-pause interval sets the amount of time after which an idle VM sandbox is automatically [paused](#pause--resume-sandboxes).",
+      "note": "VM sandboxes only (Linux VM, Windows): idle auto-pause (default 60 min when neither auto-pause nor auto-stop is set) preserves filesystem AND memory, offloaded to nearby storage ('Paused: The VM sandbox is paused with filesystem and memory state preserved. State is offloaded to nearby storage.'); resume on start. Container/GPU classes: no auto-pause, auto-stop keeps only the filesystem (persistent disk, not a snapshot); auto-archive moves container fs to object storage after 7 d stopped.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/snapshots.md",
+      "quote": "captures and persists a sandbox's current state; container sandboxes capture filesystem state only (**cold snapshots**), VM sandboxes capture filesystem and memory state (**hot snapshots**)",
+      "note": "Snapshot-from-sandbox via SDK/API/CLI; any number of new sandboxes can start from the same snapshot ('any number of new sandboxes can start from the same snapshot'). Memory included on VM classes only. Separate fork API for VM/Windows sandboxes.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/guides/claude/claude-code-run-tasks-stream-logs-sandbox.md",
+      "quote": "await sandbox.process.exec(\"npm install -g @anthropic-ai/claude-code\")",
+      "note": "No first-party agent-harness API in the SDK module list (Sandbox, CodeInterpreter, ComputerUse, FileSystem, Git, LspServer, ObjectStorage, Process, Secret, Snapshot, Volume). Many guides (Claude Code, Codex SDK, OpenCode, Gemini CLI, Devin, Kiro, Kimi, Amp, Claude Managed Agents, Brainbase third-party 'Universal Harness API') drive harnesses via generic process exec / PTY sessions. An agent skill / Claude Code plugin exists to let agents create Daytona sandboxes (opposite direction).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/network-limits.md",
+      "quote": "- **`networkAllowList`** for IPv4 CIDR ranges\n- **`domainAllowList`** for domains and wildcard domains\n- **`networkBlockAll`** to block all outbound traffic",
+      "note": "Per-sandbox firewall, settable at create or on a running sandbox. The three options are mutually exclusive (CIDR list max 10 IPv4 entries, domain list max 100, wildcards). Only Tier 3/4 can set per-sandbox policy; Tier 1/2 get an org-enforced restricted policy (essential services only). Optional outboundProxyUrl chains HTTP(S) egress to a customer proxy.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/preview.md",
+      "quote": "If a sandbox has its `public` property set to `true`, preview links are publicly accessible without authentication. Otherwise, authentication is required.",
+      "note": "Preview URLs are private by default: standard URL + sandbox-wide x-daytona-preview-token header, or signed per-port URLs that expire and can be revoked. SSH via tokens. No IP allowlist documented. Sandbox-to-sandbox networking off unless linked.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Linux VM / Windows classes are full VMs with their own kernel and root ('Full virtual machine with its own kernel'). Container class runs as root in its own network namespace and supports Docker-in-Docker (docker:dind), which implies iptables works there, but NET_ADMIN is not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://www.daytona.io/docs/en/secrets.md",
+      "quote": "Secrets are organization-scoped, encrypted credentials that Daytona injects into a sandbox's outbound HTTPS traffic without ever placing the plaintext inside the sandbox. Instead of an environment variable holding the actual API key, the sandbox holds an opaque placeholder token.",
+      "note": "Placeholder dtn_secret_... in an env var; outbound proxy substitutes it in HTTPS request HEADERS only (not bodies, query strings, plain HTTP, or transformed values), only for the secret's host allowlist (hostnames, *. wildcards; no allowlist = any host). Responses are scrubbed back to the placeholder. Rotation propagates within 15 s; attach/detach on running sandbox. Non-HTTP protocols (databases, SSH, git over SSH) not covered.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/volumes.md",
+      "quote": "Volumes are FUSE-based mounts that provide shared file access across Daytona sandboxes.",
+      "note": "Daytona Volumes are FUSE mounts backed by Daytona's S3-compatible object store (not block devices); multiple per sandbox, mounted at create time, optional subpath. Also documented FUSE mounts of external buckets (S3, R2, GCS, Azure Blob, Tigris, Archil...).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/volumes.md",
+      "quote": "Sandboxes that mount the same volume see writes immediately, but FUSE-backed volumes are not transactional. If two sandboxes write to the same path concurrently, the last write wins.",
+      "note": "Read-write, concurrent mounts by several running sandboxes ('a single volume can be mounted to multiple sandboxes'); last-write-wins, no locking.",
+      "checked": "2026-09-29"
+    }
   }
 }

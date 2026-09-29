@@ -466,7 +466,14 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -606,5 +613,56 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 9
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/environments/persistent-storage",
+      "quote": "Ona environments use persistent storage attached to the underlying VM. Everything on disk persists across environment stops and starts.",
+      "note": "Stop keeps the disk (persistent_disk), no memory/process checkpoint is documented. Core archives stopped envs after 3 days and deletes 4 days later. Enterprise 'dual disk' runners may detach the data disk on long stops and 'restore from a provider backup, such as an image or snapshot' (https://ona.com/docs/ona/runners/dual-disk): an internal disk-persistence mechanism, not a state snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/projects/prebuilds",
+      "quote": "A prebuild starts on schedule or manual trigger",
+      "note": "No API/CLI to snapshot a user's running or stopped environment (Environments API has create/start/stop/archive/update/delete only). Closest analog: prebuilds, which build a fresh temporary env from the project's Dev Container config and snapshot its filesystem ('Ona snapshots the Dev Container filesystem. New environments start from this snapshot'), no memory, expire after 5 days. Snapshot storage free on Ona Cloud for now.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://ona.com/docs/ona/integrations/sdk",
+      "quote": "Use the Ona SDK to create and manage environments, run commands, access files, and start Codex agents from Python, TypeScript, or Go.",
+      "note": "Enterprise plan only (SDK page: 'Available on the Enterprise plan'). Agents API: StartAgent, SendToAgentExecution ('Sends user input to an active agent run'), List/Get/Stop/Delete AgentExecution, conversation tokens; WatchEvents streams. Harness = Codex (open-source Codex harness, GPT-6 Sol/Luna); legacy Ona Agent deprecated. Claude Code is not a managed harness (can be installed and used via SSH/CLI). Also Slack, GitHub PR @ona-agent mentions and Automations as triggers.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://ona.com/docs/ona/integrations/ports",
+      "quote": "By default, the CLI opens the port for the environment creator only.",
+      "note": "Ports are opened explicitly; per-port admission levels creator_only / organization / everyone, org policy can cap the maximum admission level; port access tokens via API. HTTPS URLs only, no raw TCP/public IP. Enterprise runners additionally sit behind the customer's NLB/network config.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://ona.com/docs/ona/integrations/ports",
+      "quote": "Use kernel-level NAT to redirect incoming traffic to the loopback address. This is already available in the environment and lets you keep the same port number.",
+      "note": "Docs show 'sudo iptables -t nat -A PREROUTING ...' working inside the environment; environments are full VMs with root (Ubuntu VM, own kernel).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/configuration/secrets/overview",
+      "quote": "Secrets securely store and inject sensitive data into your environments - API keys, access tokens, credentials, and certificates that shouldn't be in source code.",
+      "note": "Secrets (org/project/user/service-account) are injected as environment variables or files (and registry creds, BuildKit secret mounts). Alternative: OIDC tokens exchanged for short-lived cloud credentials ('eliminates static secrets'), still inside the env. Model access for Codex is Ona-managed or a runner-level LLM integration (API key stored in runner config); whether any key reaches the env is not documented, so not counted as ai-only.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/environments/persistent-storage",
+      "quote": "Storage size is configured through environment classes.",
+      "note": "No user-attachable extra volumes documented. Enterprise 'dual disk' splits system and data disk, but both are runner-managed per-environment disks, not attachable volumes.",
+      "checked": "2026-09-29"
+    }
   }
 }

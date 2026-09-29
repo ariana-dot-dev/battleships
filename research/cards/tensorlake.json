@@ -284,7 +284,15 @@
     "egress_ip_type": null,
     "ip_note": "No proxy/residential IP options documented; egress can be disabled or allow/deny-listed per sandbox.",
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -364,5 +372,72 @@
     "applied": 9,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.tensorlake.ai/sandboxes/lifecycle",
+      "quote": "suspend on timeout. Filesystem, memory, and running processes are preserved so you can resume later under the same name.",
+      "note": "Trigger: idle timeout_secs (default 600 s, no proxied traffic) or manual suspend. Memory + processes included. Named sandboxes only; ephemeral ones terminate on timeout. Suspended named sandboxes can auto-resume on a request to an exposed port.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.tensorlake.ai/sandboxes/snapshots",
+      "quote": "`memory`: captures filesystem, memory, and running process state and restores with a warm start.",
+      "note": "tl sbx checkpoint / sandbox.checkpoint(); types filesystem (default) or memory. New sandboxes boot from a snapshot (Sandbox.create(snapshot_id=...)); snapshots outlive the source. Also 'tl sbx copy' clones a running or suspended sandbox N times with memory ('restoring filesystem, memory, and running processes so each copy warm-starts').",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.tensorlake.ai/sandboxes/networking",
+      "quote": "values can be domains, leading-wildcard domains like `*.example.com`, IPv4 addresses, or IPv4 CIDR ranges",
+      "note": "allow_out (default-deny when non-empty) and deny_out (precedence), allow_internet_access=false for no-internet. Policy updatable on a running sandbox via atomic firewall swap ('applied to the running sandbox's firewall as a single atomic swap'); existing connections closed. IPv4 only for IP rules.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.tensorlake.ai/sandboxes/networking",
+      "quote": "Allowed domains, leading-wildcard domains (`*.example.com`), IPv4 addresses, or IPv4 CIDRs.",
+      "note": "The Network Configuration Summary lists only allow_internet_access, allow_out, deny_out (host/IP) plus ingress fields; no method/path/header rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.tensorlake.ai/sandboxes/networking",
+      "quote": "For any other port, the proxy only forwards requests if that port is listed in `exposed_ports`.",
+      "note": "Per-port exposure via exposed_ports; authenticated by default (Tensorlake API key or browser session cookie) unless allow_unauthenticated_access=true. Management port 9501 never public. No IP allowlist documented; HTTPS/WebSocket/gRPC only (no raw TCP inbound; TCP via authenticated local tunnels).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker/Cloud Hypervisor microVM with its own kernel ('each sandbox has its own kernel'), root via passwordless sudo, Docker supported. iptables/nftables not mentioned in docs.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.tensorlake.ai/api-reference/v2/sandboxes/create",
+      "quote": "Secret names to inject into the sandbox.",
+      "note": "secret_names on sandbox create injects stored project secrets into the sandbox (Applications docs: 'Stored secrets are available as environment variables'). No credential-injecting egress proxy documented. Related: the OpenCode plugin gives each sandbox a Tensorlake git credential scoped to one hosted repo so 'Your own git credentials and remotes never enter the sandbox' (a scoped token, not a proxy).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.tensorlake.ai/sandboxes/mount-filesystems",
+      "quote": "The sandbox's root disk is ephemeral; a mounted filesystem is durable, survives the sandbox, and can be shared by many sandboxes at once.",
+      "note": "Tensorlake filesystems (Cloud Volumes): versioned, lazily streamed, autosaved to durable storage; mount at create, on pool claim or on a running sandbox. Not block devices.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.tensorlake.ai/sandboxes/mount-filesystems",
+      "quote": "The same filesystem can be mounted by multiple sandboxes in one project concurrently.",
+      "note": "Read-write or read-only (ro, optionally pinned to a permanent snapshot). Concurrent writes: disjoint paths merge, same-path last-writer-wins; changes visible to other mounts within seconds (async autosave, not POSIX-coherent NFS).",
+      "checked": "2026-09-29"
+    }
   }
 }

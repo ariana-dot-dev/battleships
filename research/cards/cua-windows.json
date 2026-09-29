@@ -150,7 +150,13 @@
     "scoped_api_keys": null,
     "spend_limits": null,
     "mcp_server": true,
-    "on_prem": true
+    "on_prem": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -174,5 +180,50 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/run-openai-agents-api-on-cloud-fleet.md",
+      "quote": "releasing the Fleet claim, which returns the VM to its pool and resets its disposable disk overlay",
+      "note": "Fleet VMs are disposable pool replicas: release resets the disk overlay, deleting the pool removes 'its capacity and state'. The same guide: 'a replacement VM does not restore files unless you use provider storage or snapshots'. No automatic save on stop/idle documented.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://cua.ai/docs/reference/sandbox-sdk/runtime-support.md",
+      "quote": "Not implemented; snapshot-derived image inputs are also rejected",
+      "note": "Row `Sandbox.snapshot()` in the Fleet column (cua-sandbox 0.7.0/0.8.0); how-sandboxes-work also says snapshot 'is not implemented for local sandboxes or the Fleet creation paths'. Snapshot code survives only on the legacy CloudTransport (retired api.cua.ai VM API). The CLI documents `cua sb suspend` ('Suspend the sandbox, preserving memory state') but that is for local/legacy cloud; Fleet support not shown. CONFLICT: marketing homepage says 'Fork from snapshots, reproduce failures' - not backed by current docs.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://cua.ai/docs/concepts/pools-claims-and-guest-services.md",
+      "quote": "The default Sandbox APIs use `computer-server` for shell, files, terminals, and screenshots.",
+      "note": "Fleet exposes computer-server (shell/files/PTY/screenshots/GUI input) and optional Cua Driver MCP; the agent loop (Cua Agent SDK, Claude Agent SDK, Codex SDK, OpenAI Agents API) runs outside or is installed by the user via recipes (Codex exec-server, Cursor worker, OpenClaw on Linux Fleet). No first-party API to start/stream/resume an in-sandbox harness.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://cua.ai/docs/reference/sandbox-sdk/runtime-support.md",
+      "quote": "Fleet service URLs require authentication.",
+      "note": "Only ports declared as named services on the pool template are routed through Fleet's proxy; access needs the Fleet auth lease ('A URL alone does not grant access'). Optional public signed URLs per service: 'The URL is public, time-limited, and revocable' (60 s to 24 h). No IP allowlists.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Windows Server 2022 full VM on KubeVirt (own kernel); Windows Defender Firewall inside the guest should apply if the session has admin rights (not explicitly documented).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/secrets.md",
+      "quote": "Pass task-specific credentials from the host into a sandbox at runtime.",
+      "note": "Secrets are passed as env vars in shell.run() commands, or via pool `claim_secrets` = claim-scoped secret delivery as files at /run/cua (Terraform pool docs). Real values enter the VM; no injecting proxy.",
+      "checked": "2026-09-29"
+    }
   }
 }

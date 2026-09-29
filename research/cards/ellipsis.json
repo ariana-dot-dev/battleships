@@ -190,7 +190,11 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "secret_proxy": "ai-only"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -232,5 +236,35 @@
       "https://www.ellipsis.dev/llms-full.txt"
     ],
     "researched": "2026-09-29"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://www.ellipsis.dev/docs/api/session-events.md",
+      "quote": "`snapshot` (saving the prepared environment for reuse), `restore` (bringing a saved environment back for a later turn)",
+      "note": "Automatic, no API call: the platform snapshots the prepared environment after setup hooks and restores a saved environment when a follow-up message arrives after the sandbox went cold (conversation.warm=false). environments.md: 'A resumed session keeps its workspace, including uncommitted changes.' and 'Saved results keep files and running services' (setup-cache snapshots include running services, i.e. memory state). OpenAPI: 'Paused session workspaces have a separate lifetime'; reusable environment snapshots retained 7-28 days. Backed by Freestyle VM snapshots (OpenAPI VMImage.snapshot_id: 'Freestyle snapshot backing this reusable VM image'). Whether memory is kept for paused session workspaces is not stated.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://www.ellipsis.dev/openapi.v1.json",
+      "quote": null,
+      "note": "No user-triggered snapshot/checkpoint or fork endpoint in the 95-path OpenAPI spec, CLI or docs; /v1/vm-images and /v1/vms are GET-only. Snapshots are platform-managed caches only; only control is force_rebuild.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://www.ellipsis.dev/docs/sessions.md",
+      "quote": "A session is a conversation with [Claude Code or Codex](/docs/harnesses) in its own cloud environment. The agent keeps working when you close the page or disconnect.",
+      "note": "Core product. REST API + Python/TypeScript SDKs + CLI: start a session with a prompt (claude_code or codex block), stream frames/records (native claude_jsonl / Codex events), send follow-ups (POST /v1/sessions/{id}/messages), stop turns, list/search/get sessions and turns, download transcripts, get diff/commits/PRs. Harnesses: Claude Code (incl. GLM-5.2, MiniMax M3 models) and Codex.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://github.com/ellipsis-dev/cli/blob/main/skills/ellipsis/SKILL.md",
+      "quote": "Model calls route through Ellipsis with a per-session key. A real provider key never enters an environment.",
+      "note": "Only model-provider credentials (Ellipsis credits or connected Claude/Codex subscription) are kept out of the sandbox via the Ellipsis LLM proxy (ELLIPSIS_LLM_PROXY_URL is a reserved variable). User secrets are plain env vars: 'The agent can read every secret its environment sets' (docs/secrets); MCP server headers get ${SECRET} substituted at session start. GitHub access uses short-lived, permission-scoped tokens minted by the GitHub App (in-sandbox). No arbitrary-host proxy; non-HTTP not covered.",
+      "checked": "2026-09-29"
+    }
   }
 }

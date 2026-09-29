@@ -206,7 +206,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": false,
@@ -218,7 +218,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": false,
+    "guest_firewall": false,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -259,5 +268,79 @@
       "https://riza.io/blog/shutting-down-hosted-code-interpreter"
     ],
     "researched": "2026-09-28"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.riza.io/interpreters/security",
+      "quote": "WebAssembly modules are not shared across executions.",
+      "note": "Stateless per-request execution: each API call instantiates a fresh WASM module and discards it; there is no machine that stops/sleeps, so nothing to snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.riza.io/llms.txt",
+      "quote": null,
+      "note": "Full API reference lists only execute code/function, runtimes (package sets), secrets, tools and executions (history); no snapshot/checkpoint/fork endpoint. Nothing persists between requests (\"Output files are not yet supported\", docs.riza.io/interpreters/limits).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.riza.io/getting-started/how-it-works",
+      "quote": "We execute the code from your request within the WebAssembly module.",
+      "note": "Only runs short scripts/functions (Python/JS/TS/Ruby/PHP) and saved 'Tools'; no shell or OS, so no agent harness can run inside. The remote MCP server (mcp.riza.io/code-interpreter) is the opposite direction (an external agent calls Riza).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.riza.io/reference/http",
+      "quote": "By default all HTTP requests are\nblocked. Configure allowed hosts and (optionally) associated credentials\nwith the `http` request parameter.",
+      "note": "Default-deny, per request (execute code / execute tool). Host patterns: '*' (all hosts) and '*.example.com' (subdomains only). HTTP only ('Network access is limited to HTTP', riza.io/pricing); only Python and JavaScript runtimes have HTTP at all. Enforced by the Riza host runtime outside the WASM guest. No IP/CIDR/port rules.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.riza.io/api-reference/command/execute-code",
+      "quote": "HTTPAllow:\n      description: List of allowed HTTP hosts and associated authentication.\n      properties:\n        auth:\n          $ref: '#/components/schemas/HTTPAuth'\n        host:\n          description: The hostname to allow.",
+      "note": "The allow rule schema has only 'host' and 'auth'; no method, path or header matching. Header injection is for credentials only, not for filtering.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://riza.io/pricing",
+      "quote": "Code only has access to data you provide, which includes command-line arguments, environment variables, files and stdin.",
+      "note": "Not applicable: request/response execution with no listening ports, preview URLs or inbound networking at all. Nothing to expose, so no ingress controls.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.riza.io/interpreters/security",
+      "quote": "Code is executed inside a secure [WebAssembly](https://webassembly.org/) sandbox.",
+      "note": "WASM interpreter, no OS, kernel, shell or root; nftables/iptables cannot run. microVM custom runtimes (the only non-WASM engine) were disabled 2025-08-01.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://riza.io/blog/adding-support-for-input-files-and-http-credentials",
+      "quote": "The Riza Code Interpreter API also now allows you to configure credentials that we attach to outbound HTTP requests outside of the code execution environment, so you can authenticate HTTP API requests from untrusted code without sharing this sensitive data directly.",
+      "note": "Per allowed host in http.allow[].auth: basic, bearer, custom header, or query parameter (docs.riza.io/reference/http: 'Rather than exposing HTTP authentication credentials to your code, you can pass credentials to Riza directly and we'll add them to outbound HTTP requests. This ensures credentials can't be stolen by malicious code.'). Stored secrets via the Secrets API can be referenced by secret_id in Tool executions (Tool auth schema has basic/bearer/query). Rules are host-level only. HTTP(S) only; no database/SSH/git coverage (the runtime has no other network access). Hosted API is gone; the self-hosted container exposes the same http parameter as a 'drop-in replacement', but whether self-hosted injection works is not stated explicitly.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://riza.io/pricing",
+      "quote": "Read/write access to the `/mnt/req` directory, read-only access to the rest of the filesystem.",
+      "note": "Only per-request input files (the 'files' parameter, written under /mnt/req/) exist; no persistent storage or volume API.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.riza.io/reference/files",
+      "quote": "Your script has limited access to the filesystem.",
+      "note": "No volumes or shared filesystem; every execution is isolated and stateless.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -276,7 +276,16 @@
     "egress_ip_type": "datacenter",
     "ip_note": "Shared Blaxel public IPs by default; dedicated egress IPs (private preview, on request) and outbound proxy with header/body injection; no residential proxies documented.",
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "extras": [
     {
@@ -377,5 +386,78 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.blaxel.ai/Sandboxes/Overview",
+      "quote": "When transitioning to standby mode, Blaxel automatically creates a snapshot of the entire state (including the complete file system in memory, preserving both files and running processes) and transitions the sandbox to standby mode within approximately 15 seconds.",
+      "note": "Trigger: no active connection for ~15 s (idle WS/TCP connections count as inactive after 15 min). Memory + running processes + FS included; resume <25 ms on reconnect. Snapshot storage billed. Separate Archive (private preview) drops memory.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.blaxel.ai/Sandboxes/Fork",
+      "quote": "A snapshot captures the state of a sandbox at a point in time: its filesystem, its running processes, and its memory. Use snapshots to checkpoint a sandbox before a risky change, to roll it back later, or as the basis for forking a new sandbox.",
+      "note": "Private preview (Carbon / Mark 3.1). Memory included; in-place rollback or fork into new sandboxes; snapshots outlive the source sandbox.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Tutorials/Claude-Code",
+      "quote": "Connect to the Claude Code sandbox terminal:",
+      "note": "Claude Code / Codex hub images exist (agent_harnesses), but they are driven interactively via `bl connect sandbox` or by an external harness (Claude Agent SDK, OpenAI Agents SDK, DeepSeek Harness plugin) using the sandbox as a tool backend via MCP. No first-party prompt/stream/resume API for a harness in the API reference (Agents Hosting = deploy your own agent code as an endpoint).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.blaxel.ai/Sandboxes/Proxy-domains",
+      "quote": "To enforce filtering even for tools that bypass those variables, add a `firewall` config with `rulesets: [\"proxy\"]`. This locks down the sandbox's egress at the network level so that all outbound traffic must flow through the proxy.",
+      "note": "allowedDomains / forbiddenDomains with wildcards, updatable on a running sandbox. Without firewall ruleset it only relies on HTTP(S)_PROXY env vars (bypassable). Enforcement set only at creation and only on Mark 3.0 (not Carbon). Private ranges/169.254.169.254 always bypass the proxy. No IP/CIDR egress rules documented.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.blaxel.ai/Sandboxes/Proxy-domains",
+      "quote": "You can also scope a rule to specific HTTP methods and URL paths by adding method prefixes and a path suffix:",
+      "note": "Pattern [!]METHOD:...:domain[/path]; path prefix canonicalized. No header-based rules; the proxy also injects headers/body fields.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.blaxel.ai/Sandboxes/Preview-url",
+      "quote": "This preview URL can be either **public** (does not require you to be authenticated to access it) or **private** (see below).",
+      "note": "Per-port preview URLs chosen by you; private ones need a bl_preview_token query param or X-Blaxel-Preview-Token header (expiring tokens). No public IPv4 / raw TCP; no inbound IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.blaxel.ai/Sandboxes/Overview",
+      "quote": "By default, sandboxes run on a minimal kernel without iptables support. You can enable iptables by passing `extraArgs` at creation time.",
+      "note": "Firecracker microVM with root; iptables only when created with extraArgs {iptables: enabled} (used by Tailscale tutorial).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.blaxel.ai/Sandboxes/Proxy-secrets-injection",
+      "quote": "Secrets are resolved server-side by the proxy — the sandbox runtime never sees raw secret values",
+      "note": "Public preview. MITM HTTPS proxy; per-destination routing rules inject {{SECRET:name}} into headers/body for any host; write-only secrets. HTTP/1.1, HTTP/2 and gRPC (header injection only on streams); no database/SSH/raw TCP credential injection documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.blaxel.ai/Sandboxes/Volumes",
+      "quote": "At this time, you can only attach one volume to a sandbox. A volume can also only be attached to one sandbox at a time.",
+      "note": "Block volumes, attach only at sandbox creation, cannot detach; $0.12/GB-month provisioned.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.blaxel.ai/Agent-drive/Overview",
+      "quote": "Drives support concurrent read-write access (RWX) from multiple sandboxes simultaneously, with built-in replication for durability.",
+      "note": "Agent Drive: private preview, us-was-1 only; FUSE distributed FS, hot-mount on running sandboxes, read-write or read-only mounts, label-based ACLs, S3-compatible endpoint. Block Volumes themselves are single-attach.",
+      "checked": "2026-09-29"
+    }
   }
 }

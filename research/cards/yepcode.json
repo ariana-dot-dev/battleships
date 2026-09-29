@@ -255,7 +255,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -295,5 +302,56 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://yepcode.io/docs/processes/local-disk/",
+      "quote": "YepCode provides a temporary directory for storing files during process execution.",
+      "note": "Serverless per-execution model: each process execution runs in a fresh Firecracker microVM with a temporary local disk (5 MB-5 GB by plan) that ends with the execution. Nothing is saved or restored between executions; state lives in YepCode Storage (file API) or Datastore (key-value) that code writes explicitly.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://cloud.yepcode.io/api/rest/public/api-docs",
+      "quote": "Stops the sandbox on its VM instance and marks the sandbox as killed in the API.",
+      "note": "The full public REST API (OpenAPI 3.1) has no snapshot/checkpoint/fork endpoints; the new Sandboxes resource only has create, update-timeout and kill. Docs never mention snapshots.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://yepcode.io/docs/yep-agent/",
+      "quote": "In YepCode Cloud: open any process in your team and launch Yep Agent to start prompting against your workspace.",
+      "note": "Yep Agent is YepCode's own coding agent (OpenCode running in a Firecracker microVM, per the 'Making Of' blog), but it is only reachable from the web UI and the /ai landing. The REST API, JS/Python SDKs and CLI have no endpoints to start it, send prompts or stream its events. The MCP server exposes run_code/process tools to external agents, which is the reverse direction.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://cloud.yepcode.io/api/rest/public/api-docs",
+      "quote": "HTTP basic authentication for exposed public ports: user:credential.",
+      "note": "Undocumented outside the OpenAPI spec: POST /sandboxes takes publicHttpPorts ('List of public HTTP ports to expose.') and publicHttpPortsBasicAuth, so you choose which ports are exposed and can put basic auth in front of them. Regular process executions expose no ports; their webhook endpoints take optional basic auth ('If you don't provide a user and password, no authentication would be needed to start the process', docs/executions/webhooks). No IP allowlists or private URLs documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://yepcode.io/docs/processes/team-variables/",
+      "quote": "Subsequently, apiKey will contain the value defined in the team variable regardless of whether it was marked as secured or not. Exercise caution to avoid logging or transmitting it from the code.",
+      "note": "Secrets are team variables (encrypted at rest, 'secured' flag) injected as environment variables into the sandbox; the code sees the real value. The 'without exposing secret values to the LLM' claim (Yep Agent, run_code MCP tool) means the LLM only writes code that reads env vars, not that a proxy injects credentials.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://yepcode.io/docs/plans-and-limits/",
+      "quote": "YepCode allows to store files in the file system used during the execution of a process. The number and size of files is limited based on your plan.",
+      "note": "Only a per-execution local disk (5 MB Developer, 250 MB Starter, 5 GB Growth, unlimited Enterprise). No attachable volumes; persistent files go to YepCode Storage, an object store used through SDK/REST upload/download calls (max 5/100/1,000 files), not a mount.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://yepcode.io/docs/storage/",
+      "quote": "File Sharing: Create temporary file storage for sharing between processes",
+      "note": "YepCode Storage is shared by all processes of a team, read-write, but only through API calls (yepcode.storage.upload/download/list/delete, signed URLs), not mounted as a filesystem. No shared volumes.",
+      "checked": "2026-09-29"
+    }
   }
 }

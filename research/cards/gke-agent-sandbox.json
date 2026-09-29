@@ -303,7 +303,15 @@
     "mcp_server": null,
     "isolation": "gvisor",
     "image_oci": true,
-    "isolation_alternative": "Kata Containers (open-source, customer-managed; no Google support/SLA)"
+    "isolation_alternative": "Kata Containers (open-source, customer-managed; no Google support/SLA)",
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -346,5 +354,64 @@
     "applied": 29,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/how-to/agent-sandbox-pod-snapshots",
+      "quote": "A snapshot can be triggered in two ways:",
+      "note": "Only two triggers: manual (PodSnapshotManualTrigger CR) or workload trigger (the app inside signals readiness). Suspend (operatingMode: Suspended) does not snapshot by itself; the Python SDK's suspend(snapshot_before_suspend=True) takes one client-side. shutdownTime/shutdownPolicy just deletes. No idle auto-snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/pod-snapshots",
+      "quote": "A Pod snapshot saves the entire Pod state, including memory and file system changes. When you create new replicas, they're restored from the snapshot, letting the workload resume instead of starting from a new state.",
+      "note": "GKE Pod snapshots (gVisor only; not E2; GKE >= 1.35.3) stored in your Cloud Storage bucket. Memory included (whole-pod scope) or rootfs-only scope. PVCs/emptyDir/tmpfs excluded. New sandboxes can boot from it (golden-snapshot warm pools; 'use it as a base to start multiple new sandboxes'). Restore needs same machine series. Python SDK: sandbox.snapshots.create(), suspend()/resume().",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://github.com/kubernetes-sigs/agent-sandbox/blob/main/examples/agentclientprotocol/README.md",
+      "quote": null,
+      "note": "SDKs (Python/Go/TS) expose sandbox lifecycle, commands.run, files; no first-party agent-harness API. Only community examples (ACP Go client driving `gemini --acp`, Aider, OpenClaw, Hermes, self-hosted Anthropic Managed Agents worker).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://github.com/kubernetes-sigs/agent-sandbox/blob/main/docs/api.md",
+      "quote": "egress is a list of egress rules to be applied to the sandbox.<br />Traffic is allowed out of the sandbox if it matches at least one rule.<br />If this list is empty, all egress traffic is blocked (Default Deny).",
+      "note": "SandboxTemplate.networkPolicy = standard Kubernetes NetworkPolicy (IP/CIDR/port), controller-managed default deny of internal networks + metadata server. Domain-level via GKE FQDNNetworkPolicy (Dataplane V2; 'control egress communication between Pods and resources outside of the Google Kubernetes Engine (GKE) cluster using fully qualified domain names'), which needs cluster DNS (kube-dns/Cloud DNS) - note the agent-sandbox secure default overrides DNS to public resolvers, so FQDN policies need a custom template. Enforced by node dataplane, outside gVisor.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://github.com/kubernetes-sigs/agent-sandbox/blob/main/docs/api.md",
+      "quote": "ingress is a list of ingress rules to be applied to the sandbox.<br />Traffic is allowed to the sandbox if it matches at least one rule.<br />If this list is empty, all ingress traffic is blocked (Default Deny).",
+      "note": "Secure default: ingress only from the Sandbox Router in agent-sandbox-system; everything else denied. Exposure via router / Gateway / Services is yours to configure (GKE LB, IAP, Cloud Armor available).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No first-party credential-injecting proxy. Secrets reach the sandbox as Kubernetes Secrets / Secret Manager add-on mounts / env vars, and GCP access via Workload Identity (metadata server tokens inside the pod).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://github.com/kubernetes-sigs/agent-sandbox/blob/main/docs/api.md",
+      "quote": "volumeClaimTemplates is a list of claims that the sandbox pod is allowed to reference.<br />When creating a sandbox, PVCs will be created from these templates.",
+      "note": "Any GKE PVC (Persistent Disk / Hyperdisk, Filestore, Lustre, GCS FUSE).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://github.com/kubernetes-sigs/agent-sandbox/blob/main/examples/latebind-storage-gke-sandbox/README.md",
+      "quote": "**Collaborative Workspaces:** Multiple coordinating agent pods mount the exact same shared subdirectory in Read-Write (RW) mode to collaboratively update files in real-time.",
+      "note": "RWX Filestore (NFS) or Managed Lustre shared across gVisor sandbox pods, read-write or read-only; example uses a privileged node daemon for late-binding into warm-pool pods (GKE >= 1.36.0-gke.3302001). Source is the upstream open-source repo, not a Google docs page.",
+      "checked": "2026-09-29"
+    }
   }
 }

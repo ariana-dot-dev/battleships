@@ -1215,7 +1215,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -1232,7 +1232,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -1244,7 +1244,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1289,5 +1297,78 @@
     "applied": 27,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.vultr.com/products/storage/snapshots/faq",
+      "quote": "Automatic Backups run automatically but you must take a snapshot manually.",
+      "note": "Nothing is captured on stop; a stopped Cloud GPU keeps its disk and keeps billing ('an instance incurs normal charges as it would when active'). Optional scheduled Automatic Backups exist for Cloud GPU (daily/weekly etc. schedule, disk only) - scheduled, not stop-triggered.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.vultr.com/products/compute/instances/cloud-gpu/features/snapshots",
+      "quote": "A snapshot is a point-in-time copy of the instance state that includes the file system and disk contents.",
+      "note": "Cloud GPU VMs only: POST /v2/snapshots {instance_id}, vultr-cli snapshot create, console. Disk only, no memory. New instances can boot from a snapshot (snapshot_id on create; snapshots usable across regions). NOT for GPU bare metal: 'No, snapshots are not available for Bare Metal instances.' $0.05/GB-month compressed.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain GPU IaaS VM / bare metal; no agent-harness API found in docs.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.vultr.com/products/network/firewall-groups/faq",
+      "quote": "No, Vultr Firewall does not filter outgoing netwok traffic from your instance.",
+      "note": "Firewall groups are inbound-only. The only provider-side egress control is topology: a VPC-only instance (no public IP) whose outbound path is a NAT Gateway; NAT Gateway firewall rules filter inbound port-forwarded traffic (source subnet/port), not destinations. No per-instance outbound allow/deny list.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.vultr.com/products/network/firewall-groups/faq",
+      "quote": "No, Vultr Firewall does not filter outgoing netwok traffic from your instance.",
+      "note": "No outbound filtering at all, so no HTTP-level egress rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.vultr.com/products/compute/instances/cloud-gpu/networking/enable-firewall",
+      "quote": "Vultr Firewall groups enable the creation of firewall rules to filter incoming traffic on an instance's public network interface.",
+      "note": "Firewall group rules by protocol/port/source IP-CIDR (IPv4/IPv6), attached per instance via API/CLI/Terraform. Also VPC-only 'Private Instance(s) behind NAT Gateway' deployment with no public IP, exposing ports only via NAT port-forward + NAT firewall rules.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Cloud GPU is a full KVM VM with root (bare metal: whole server); iptables/nftables work. Firewall FAQ confirms instance-level firewall and Vultr Firewall both apply.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting proxy or secret store for instances found in docs; secrets go in via cloud-init/user-data, startup scripts or SSH like any VPS.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.vultr.com/products/storage/block-storage/faq",
+      "quote": "Yes, you can attach up to 16 Vultr Block Storage volumes to the same Vultr Cloud Compute instance.",
+      "note": "Block Storage (NVMe min 1 GB, HDD min 40 GB), same-location, live attach, single-attach. Docs phrase attachment in terms of 'Cloud Compute instance'; Cloud GPU VMs use the same instances API but GPU eligibility is not stated explicitly (hence medium). Not for bare metal: 'No, Vultr Block Storage volumes do not support Vultr Bare Metal Servers.'",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.vultr.com/products/storage/file-system/storage-performance-file-system",
+      "quote": "Vultr File System is intended for clusters of CPU or GPU systems to share stored data between them",
+      "note": "Vultr File System (VFS): virtiofs, read-write, 'you can attach multiple Vultr Cloud Compute instances to a single Vultr File System volume provided the instance and the volume are in the same Vultr location'; instance needs Memory Backing = Shared. Block Storage is single-attach.",
+      "checked": "2026-09-29"
+    }
   }
 }

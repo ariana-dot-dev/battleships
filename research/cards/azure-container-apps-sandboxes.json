@@ -375,7 +375,16 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -448,5 +457,79 @@
     "applied": 14,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://sandboxes.azure.com/docs/sandboxes/sandbox/lifecycle",
+      "quote": "When sandbox is stopping, it snapshots disk and memory (optional) before it enters stopped state.",
+      "note": "Every stop (manual, API, or auto-suspend lifecycle policy after idle timeout: no ingress, exec, shell or file ops) takes a snapshot per Suspend Mode: Memory = disk + RAM (processes resume), Disk = disk only (VM restarts fresh). Memory mode unavailable when a Data Disk volume is attached. Resume 'under a second'. Learn overview: 'When the sandbox is stopped, the operation takes and preserves a snapshot based on the Suspend Mode'.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/sandboxes-overview",
+      "quote": "Snapshots capture the full state of a running sandbox, including memory and disk.",
+      "note": "Named, group-scoped snapshots via portal, `aca sandbox snapshot`, SDK create_snapshot(); memory included; new sandboxes can be created from a snapshot (fan-out/fork; resources fixed to the snapshot's). Also commit a running sandbox to a new disk image. Snapshots page: 'Freeze a running sandbox into a snapshot. Restore that state into new sandboxes when you need a primed environment without repeating setup.'",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://sandboxes.azure.com/docs/sandboxes/connectors",
+      "quote": "Copilot picks it up on its next run:",
+      "note": "Only preinstalled agents (public disk images 'copilot' with GitHub Copilot CLI and 'claude' with Claude Code; Create menu has GitHub Copilot Sandbox and Claude Sandbox templates) driven through the generic exec API (e.g. `aca sandbox exec ... | copilot --allow-all-tools -p @-`). No documented API to start/stream/resume agent sessions. Connector triggers can wake a sandbox and call executeShellCommand. Agent Skills plugin is the reverse direction (lets your agent drive sandboxes).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/sandboxes-overview",
+      "quote": "You can configure egress policies to control outbound traffic from sandboxes, including domain-based allow or deny rules, CIDR-based network rules, and VNet integration.",
+      "note": "Per-sandbox egress proxy policy with default Allow/Deny, wildcard host rules (e.g. *.github.com), mutable at runtime, audit of decisions. Opt-in: 'If no egress policy is specified, the sandbox has unrestricted outbound access.' Full inspection blocks non-HTTP traffic. CIDR rule syntax itself not shown on the guide pages seen.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://sandboxes.azure.com/docs/sandboxes/sandbox/egress",
+      "quote": "Use policy files for path or method matches, rewrites, transforms, and header operations.",
+      "note": "Rules match host + path + HTTP methods; actions Allow/Deny/Transform (header Set/Append/Remove)/Rewrite (scheme/host/path); first match wins. A rule can delegate to an external webhook (hookRef) that decides/transforms/rewrites per request.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://sandboxes.azure.com/docs/sandboxes/private-endpoints",
+      "quote": "Use a Private Endpoint when you must reach Sandbox workloads from a VNet, peered network, VPN, or ExpressRoute connection without exposing Sandbox ingress to the public internet.",
+      "note": "Ports are exposed only when you publish them (port add/remove); 'Anonymous ports are public HTTPS routes to a process that listens inside the sandbox.' A non-anonymous (authenticated) port mode is implied by the 'Anonymous' option but not documented on pages seen. Private Endpoint via an Express Container Apps Environment (extra cost). No IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Per-sandbox microVM 'with its own kernel' and root (/root paths, systemd images); iptables/nftables inside not documented. Derived.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://sandboxes.azure.com/docs/sandboxes/secrets",
+      "quote": "Values are not auto-injected as environment variables. Reference them from supported sandbox group configuration such as egress-policy header transforms and OTLP telemetry authentication.",
+      "note": "Egress-proxy Transform rules inject headers from group Secrets (format e.g. 'Bearer {value}') or managed-identity tokens for any host; Learn: Transform and Rewrite let the proxy authenticate outbound calls 'without the sandbox ever needing to hold the credentials directly'. HTTP(S) only (proxy with TLS inspection); no DB/SSH coverage. MCP connectors also keep e.g. GitHub tokens out of the sandbox. Caveat: the separate AI provider Credentials (Copilot PAT / Anthropic key) are injected INTO sandboxes at start.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/sandboxes-overview",
+      "quote": "Microsoft manages volumes and provides persistent storage that you can mount into sandboxes.",
+      "note": "Types: Azure Blob (managed), Azure Blob BYO (customer container), Data Disk (local-disk, full POSIX, single sandbox). Volumes survive sandbox deletion.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://sandboxes.azure.com/docs/sandboxes/volumes",
+      "quote": "Mountable on many sandboxes for read sharing. Not suitable for concurrent writers. Writes from one sandbox aren't reliably visible to others.",
+      "note": "Azure Blob and Azure Blob BYO volumes mount on many sandboxes at once (read-mostly; writes not coherent across sandboxes, partial POSIX). Data Disk is single-mount ('A second mount attempt is rejected').",
+      "checked": "2026-09-29"
+    }
   }
 }

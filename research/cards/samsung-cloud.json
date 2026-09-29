@@ -5879,7 +5879,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": null,
@@ -5910,7 +5910,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -5953,5 +5962,72 @@
     "applied": 33,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 10
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain KVM-style VM: stopping a Virtual Server just powers it off (Block Storage OS disk persists). No state capture on stop. Scheduled snapshots exist for File Storage ('immediate or scheduled snapshot creation', retention count) and the Backup service runs scheduled VM-image backups (daily/weekly/monthly) - both scheduled, not on stop.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.e.samsungsdscloud.com/en/userguide/compute/virtual_server/overview/",
+      "quote": "Image creation: You can create an Image from the configuration of the Virtual Server you are using, and you can also create an Image by uploading your Image file to Object Storage.",
+      "note": "Disk only, no memory. 'Snapshot-Based' Images of a VM can boot new Virtual Servers and be shared with other accounts (docs recommend stopping the server first for FS consistency). Block Storage volumes also have on-demand snapshots: restore in place or 'Create recovery volume' as a new volume; snapshots billed on source volume size. Console/API/CLI (API and CLI references exist).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "General-purpose IaaS VM; no agent/harness API in the Virtual Server guide or product pages.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.e.samsungsdscloud.com/en/userguide/networking/security_group/overview/",
+      "quote": "When a Security Group is first created, it blocks all inbound and outbound traffic according to the default rule (Any/Deny).",
+      "note": "Security Group outbound allow rules by target IP/CIDR, protocol, port; plus per-VPC Internet Gateway Firewall (also default Any Deny, IP/port/protocol rules). No FQDN rules documented.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.e.samsungsdscloud.com/en/userguide/networking/security_group/overview/",
+      "quote": "Users can specify an IP address, port, and protocol to create inbound/outbound rules, and only traffic allowed by the created rules can access the target resources.",
+      "note": "Security Groups (default deny) plus IGW/Load Balancer firewalls; public NAT IP is opt-in.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VM (Linux/Windows images) with root/Administrator via key pair; iptables/nftables/Windows Firewall work inside.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.e.samsungsdscloud.com/en/userguide/security/secrets_manager/overview/",
+      "quote": "Remove hardcoding of sensitive information in application source code and retrieve it by calling Secrets stored securely in a Key-Value format.",
+      "note": "Secrets Manager / Secret Vault are KMS-encrypted secret stores the workload reads; no credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.samsungsds.com/en/storage-blockstorage/blockstorage.html",
+      "quote": "Attaching/detaching volumes to servers",
+      "note": "Block Storage data volumes 8 GB-12 TB, SSD/HDD, online expansion; up to 26 volumes per Virtual Server.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.e.samsungsdscloud.com/en/userguide/storage/file_storage/overview/",
+      "quote": "File Storage allows servers connected via the network to easily store and share data, making it a storage solution suitable for application environments that use multiple servers.",
+      "note": "File Storage over NFS (Linux) or CIFS (Windows), read-write, auto-scaling capacity. Block Storage SSD/HDD_MultiAttach volumes also attach to 2+ Virtual Servers at once ('no limit on the number of servers per volume'; not for Windows).",
+      "checked": "2026-09-29"
+    }
   }
 }

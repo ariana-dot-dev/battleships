@@ -251,7 +251,11 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "harness_api": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -277,5 +281,35 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "harness_api": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/core_concepts/ai_sandbox.md",
+      "quote": "Windmill includes a built-in template for Claude Code using the @anthropic-ai/claude-agent-sdk. It demonstrates the sandbox + volume pattern with session persistence.",
+      "note": "First-party 'AI Sandbox' step/script type (flow editor 'AI Sandbox' step, script editor 'Claude Sandbox' template) runs Claude Code via the Claude Agent SDK inside nsjail with a volume holding the session id, so each run with a new prompt resumes the prior session; docs give skeletons for Codex and OpenCode/custom agents. Driven from outside via the normal jobs API / webhooks, with output streamed over SSE ('Stream flow progress step by step, script output and AI agent tokens over SSE from webhooks, HTTP routes and the jobs API'). It is a template on top of the generic job runner, not a dedicated harness API (no list-conversations endpoint), hence medium. Windmill's own AI agent flow steps also stream tokens and tool calls.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/core_concepts/ai_sandbox.md",
+      "quote": "You must do the same for **any credential the agent needs at runtime**.",
+      "note": "Secrets/resources are passed into the job as script inputs and, for agents, explicitly placed in environment variables (template does process.env.ANTHROPIC_API_KEY = anthropic.apiKey). Jobs also get an ephemeral WM_TOKEN env var. No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.windmill.dev/docs/core_concepts/volumes.md",
+      "quote": "Volumes provide persistent file storage that can be attached to scripts via code annotations.",
+      "note": "Named volumes backed by workspace object storage (S3/Azure Blob/GCS), up to 10 per script, downloaded to the worker before the job and synced back after (not a live block device). Enterprise feature; Community Edition limited to 20 volumes/workspace and 50 MB per file. Read-only or read-write via sharing permissions.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.windmill.dev/docs/core_concepts/volumes.md",
+      "quote": "Only one job can use a given volume at a time. Windmill acquires an exclusive lease (60-second TTL, auto-renewed every 10 seconds) on each volume before downloading.",
+      "note": "Exclusive lease per volume; concurrent jobs wait. Workspace object storage (S3) itself can be accessed concurrently by jobs through the SDK/API, but not as a shared mount.",
+      "checked": "2026-09-29"
+    }
   }
 }

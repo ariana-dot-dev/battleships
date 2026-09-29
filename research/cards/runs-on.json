@@ -865,7 +865,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": true,
@@ -899,7 +899,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": false
+    "mcp_server": false,
+    "snapshot_auto": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -939,5 +946,58 @@
       "https://runs-on.com/docs/runners/platforms/",
       "https://runs-on.com/docs/costs/licensing/"
     ]
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://runs-on.com/docs/runners/capabilities/sticky-disks/",
+      "quote": "RunsOn restores the latest compatible snapshot before a job, mounts the volume on the runner, and snapshots it again after a clean unmount.",
+      "note": "Sticky disks (RunsOn v3.2+, label sticky=<name>:<size>): automatic EBS snapshot of a dedicated CACHE disk at job end and restore at next job start - not the root disk, no memory. Scoped by repo/lineage/Git ref/OS/arch; newest snapshot per lineage kept, idle lineages removed after 10 days. Runner VM itself is always ephemeral (fresh EC2 per job, destroyed after). EBS/snapshot costs billed by AWS.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://runs-on.com/docs/maintenance/configuration/flex/cloudformation/",
+      "quote": "Optional ARN of an AWS Network Firewall policy used for IPv4 egress filtering. Manage the policy and its rule groups outside this stack. When provided, RunsOn creates firewall endpoints in both AZs and routes IPv4 egress from public subnets, plus private-subnet egress after NAT, through the firewall.",
+      "note": "Stack-level, not per sandbox. RunsOn wires the routing (NetworkFirewallPolicyArn); the rules themselves are a plain-AWS Network Firewall policy you manage (AWS NFW supports domain lists and IP/port rules). IPv6 not filtered; S3 gateway endpoint bypasses it. Fleet also accepts your own security groups (security_group_ids: \"Security group IDs for runners and the Fleet worker\") - plain-AWS SG egress rules (IP/port). Docs: \"Security groups should be treated as product boundaries.\" StepSecurity Harden-Runner integration offers egress allowlists but is an in-runner agent (third party), not provider-side.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://runs-on.com/docs/maintenance/configuration/flex/cloudformation/",
+      "quote": "Allow inbound SSH connections from the specified CIDR range to the runners.",
+      "note": "SSHAllowed (default false) + SSHCidrRange; Fleet ssh_allowed/ssh_cidr_range or bring your own security groups; runners can run in private subnets (private=true). No exposed ports/preview URLs; SSM preferred for access. Flex public webhook ingress can be WAF-restricted to GitHub IP ranges (EnableWAF).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full EC2 VM per job with root/sudo (GitHub runner image); iptables/nftables inside will work (not explicitly documented).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting proxy. Secrets are GitHub Actions secrets (env) or AWS instance-profile credentials inside the runner (Bedrock via instance role, \"no long-lived API keys\" but the temporary creds are on the machine); GitHub App credentials sit in AWS Secrets Manager for the control plane.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://runs-on.com/docs/runners/capabilities/sticky-disks/",
+      "quote": "Sticky disks keep a cache on a dedicated EBS volume instead of packing it into an archive after every job.",
+      "note": "One sticky EBS disk per job (gp3 default 3000 IOPS/400 MiB/s, size in label), mounted at /mnt/runs-on/stickydisk (Linux) or C:\\runs-on\\stickydisk; Linux+Windows, Flex+Fleet. Root volume size also configurable (volume= label). EBS billed by AWS.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://runs-on.com/docs/runners/capabilities/shared-volumes/",
+      "quote": "Since v2.8.2, you can configure RunsOn to automatically create an Elastic File System (EFS), which can be used for storing artefacts across workflow jobs.",
+      "note": "Read-write NFS (EFS) mounted at /mnt/efs by all runners that set extras=efs; stack parameter EnableEfs (default false); Linux Flex runners only (not Windows, not Fleet yet). One EFS per stack. EFS billed by AWS.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -178,7 +178,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": null,
     "fork_running": false,
@@ -192,7 +192,16 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -265,5 +274,79 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.deno.com/sandbox/security/",
+      "quote": "Once the last reference to a sandbox is dropped (or `sandbox.kill()` is called), the VM is destroyed and the disk wiped, preventing lingering state.",
+      "note": "Ephemeral by design; nothing is saved at timeout/kill. Only data on explicitly mounted volumes (or a writable bootable root volume) persists, which is persistent storage, not a snapshot. No pause/sleep.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.deno.com/sandbox/volumes/",
+      "quote": "Snapshots are read-only images created from volumes. When a sandbox boots with a snapshot as its root, the entire filesystem is replaced with the snapshot contents.",
+      "note": "Disk only, and only of a volume (e.g. a bootable volume created from builtin:debian-13 and used as a sandbox's writable root): client.volumes.snapshot() / `deno sandbox snapshots create`. No memory. New sandboxes boot from it (root: snapshot) and many can use it simultaneously; writable volumes can be created from it (copy-on-write fork). No snapshot of the default ephemeral root disk; whether a volume can be snapshotted while mounted in a running sandbox is not stated. Region-bound (volumes only in ord).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://deno.com/sandbox",
+      "quote": "await sandbox.sh`claude -p hello`;",
+      "note": "Landing page shows a 'claude' root image with Claude Code driven through the generic sh/spawn exec API; no first-party prompt/session/event API for agent harnesses found in docs or the Python SDK.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.deno.com/sandbox/security/",
+      "quote": "Any outbound request to a host not in the allow list will be blocked when `allowNet` is provided. When `allowNet` is omitted, all outbound requests are allowed.",
+      "note": "allowNet patterns: exact hostname, hostname:port, *.wildcard subdomain, exact IPv4, exact IPv6 (no CIDRs listed). Enforced by an outbound proxy 'at the VM boundary' (blog). Docs conflict on default: create page says default has 'no outbound network access', security page says unrestricted when allowNet omitted.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://deno.com/blog/introducing-deno-sandbox",
+      "quote": "We plan to add more capabilities here: analytics for outbound connections and programmatic hooks for trusted code to inspect or modify requests.",
+      "note": "Only host(/port) allowlist today; no method/path/header rules in docs or current SDK create options (allow_net, secrets only). Deno's separate open-source Claw Patrol gateway does HCL rules but is a self-hosted product, not a Sandbox feature.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.deno.com/sandbox/expose_http/",
+      "quote": "When you call this API, the target HTTP service will be PUBLICLY EXPOSED WITHOUT AUTHENTICATION. Anyone with knowledge of the public domain will be able to send requests to the exposed service.",
+      "note": "Weak: the only control is choosing which port to expose (port option or exposeHttp({port})) and opt-in SSH; nothing is exposed by default. Exposed URLs are public, unauthenticated, random long *.sandbox.deno.net hostnames; no IP allowlist or auth option.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each sandbox is its own Firecracker microVM ('Each sandbox runs in its own Firecracker microVM' - deno.com/sandbox) and the landing-page `ls -lh /` shows a root-owned rootfs; iptables/nftables inside not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.deno.com/sandbox/security/",
+      "quote": "Secrets never enter the sandbox environment variables. Instead, Deno Deploy substitutes them only when the sandbox makes outbound requests to an approved host.",
+      "note": "Arbitrary secrets bound to arbitrary host lists (secrets: {NAME: {hosts, value}}); sandbox sees a DENO_SECRET_PLACEHOLDER_... value. SDK: 'Secret environment variables injected on the wire for HTTPS requests.' HTTP(S) only; non-HTTP protocols (DB, SSH, git over ssh) not covered.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.deno.com/sandbox/volumes/",
+      "quote": "Persistent volumes let you attach regional block storage to a sandbox so data survives process restarts and new connections.",
+      "note": "Read-write block volumes 300 MB-20 GB, mounted at any path via volumes: {path: slug}; only region ord (Chicago); $0.20/GiB-mo.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.deno.com/sandbox/volumes/",
+      "quote": "| Concurrent use | One sandbox at a time               | Many sandboxes simultaneously      |",
+      "note": "Volumes: one sandbox at a time. Snapshots (read-only) can be used by many sandboxes simultaneously but only as the root filesystem, not as a shared data mount.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -472,7 +472,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -493,7 +493,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -505,7 +505,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -547,5 +556,79 @@
   "audit_2026_09_29": {
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.civo.com/learn/civo-vm-snapshots-cli-guide",
+      "quote": "Civo provides VM snapshot functionality primarily through its CLI and API, making it well-suited for automation-driven workflows.",
+      "note": "Snapshots are explicit (CLI/API) or cron-scheduled (snapshot schedules, min 10-minute interval, max 10 retained, 'Where configured on a CivoStack Enterprise Private Region'); nothing is captured on stop. Stopped instances keep their disk (persistent_disk) and remain billed.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.civo.com/api/instance-snapshots",
+      "quote": "Snapshots can be created on demand when required.",
+      "note": "Disk only (instance + attached volumes): learn guide says 'snapshots capture disk state, not live memory'. Restore 'either by overriding the original instance, or by creating a new one from scratch' (new machines can boot from it; same region/network). Gated: API page says 'Where configured on a CivoStack Enterprise Private Region' and the guide says 'If snapshot creation is enabled for your organization'; no web-console option. Availability on the public-cloud regions and snapshot price unverified.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS VMs; no agent harness product or API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.civo.com/api/firewall",
+      "quote": "there's no allow/deny choice as the default for a new firewall is to deny everything, so you only need to open the ports/port ranges needed ... cidr\t(optional) the CIDR notation of the other end ... direction\t(optional) will this rule affect inbound or outbound traffic (default is ingress)",
+      "note": "Cloud firewall attached to instances (outside the VM): protocol tcp/udp/icmp, port range, CIDR, direction ingress/egress. Docs page says rules also choose 'whether the rule is to allow or deny traffic'. The region's Default firewall is 'all open'. No domain-level rules.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://www.civo.com/api/firewall",
+      "quote": null,
+      "note": "Firewall is L3/L4 only (protocol/port/CIDR); no HTTP-level rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.civo.com/docs/networking/firewalls",
+      "quote": "A firewall lets you control the incoming and outgoing network traffic from your cluster or instance. The Default firewall in each region has all ports open, but we strongly recommend you customize your firewalls for security reasons.",
+      "note": "Ingress rules by protocol/port/CIDR; private networks; public IP optional per card; load balancers.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM with root access (card: root true, systemd true).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain VMs; no credential-injecting proxy. Secrets are whatever you place in the VM (cloud-init/install script).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.civo.com/api/volumes",
+      "quote": "We provide a flexible size additional storage service for our Instances called volumes. This creates and attaches an additional virtual disk to the instance, allowing you to put backups or database files on the separate volume and later move the volume to another instance.",
+      "note": "Block volumes, network-scoped, attach/detach via API/CLI/Terraform.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.civo.com/api/volumes",
+      "quote": "Important: volumes can only be attached to one instance at a time.",
+      "note": "No first-party shared filesystem/NFS; Kubernetes PVs are ReadWriteOnce. S3-compatible Object Store exists but no first-party mount into instances.",
+      "checked": "2026-09-29"
+    }
   }
 }

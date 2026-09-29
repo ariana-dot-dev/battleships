@@ -185,7 +185,15 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -230,5 +238,64 @@
     "applied": 18,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+      "quote": "They keep their contents across exec calls while the machine runs, and are empty again after a stop and start — including a stop triggered by autoStopSeconds.",
+      "note": "Stop (manual or autoStopSeconds idle stop) preserves only the machine filesystem (persistent_disk); memory-backed paths and processes are lost. Docs also: 'Machine snapshots are not implemented in the cloud API: the snapshot routes return 501.'",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+      "quote": "Checkpoints capture a running machine, guest RAM and processes included, into durable cloud storage, and can be pulled down as a .smolcheckpoint artifact.",
+      "note": "Memory included; machine must be started branchable. 'restore creates and starts a new machine from the checkpoint' (can boot new machines). Also live copy-on-write branch (fork) of running machines with RAM, and disk-only export to .smolmachine pack. Checkpoint refuses machines with host mounts, remote volumes, secret references, GPU state etc.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://smolmachines.com/openapi.json",
+      "quote": null,
+      "note": "Cloud API routes enumerated in OpenAPI: machines lifecycle, exec, sessions (shell cwd/env), files, /code (Python/JS), events, volumes, pools, apps - no agent-harness routes. Registry offers a prebuilt 'codex coding-agent sandbox' (agent_harnesses, not harness_api).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+      "quote": "Allow only selected hosts and CIDR ranges:",
+      "note": "network.mode blocked | open | allowCidrs with hosts[] and cidrs[]; cloud default is open if network omitted. Concepts page: 'Egress can be restricted with hostname and CIDR allowlists. A platform policy also blocks selected sensitive address ranges. There is no first-class deny-list configuration in the current shipped interface.' Published OpenAPI MachineNetwork schema lists only cidrs (hosts documented in guide).",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+      "quote": "Set public: true only when the service should be reachable without the caller’s API authorization.",
+      "note": "Choose up to four published guest ports; public:false reaches ports only via the API-token-authenticated connect route /v1/machines/{id}/connect/{port}/ (WebSocket too); scoped share links also mentioned in API reference. No IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://raw.githubusercontent.com/smol-machines/docs/main/introduction/concepts/isolation-networking-credentials.md",
+      "quote": "The guest receives an opaque placeholder in the environment variable it expects; the host replaces the placeholder with the real value only on HTTPS requests to the binding's allowed hosts, and only inside a request header.",
+      "note": "OSS smolvm (local/self-hosted) only: `--credential NAME=ENV_VAR@HOST[,HOST]`, shipped per smolvm v1.19.0 release notes ('Honor --credential when creating a machine from a pack'); HTTPS port 443 only, header only, needs virtio-net backend; no DB/SSH (SSH-agent forwarding is separate, git/ssh via agent socket). NOT in smol cloud: CreateMachineRequest has no credential field, and the LIVE website page still says 'HTTP credential brokering that swaps guest placeholders for host-held secrets is under development and is not a shipped product surface.' Cloud secrets = plaintext env vars. For a cloud-only view treat as false.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/cloud/api-reference",
+      "quote": "it still lists volume routes; those are not a supported part of the API and a machine created with a mounts field comes up without the storage.",
+      "note": "Cloud: only the machine's own disk (up to 16 TiB). Local smolvm supports host-directory mounts and S3 bucket mounts (--volume s3://bucket:/path[:ro]).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/cloud/api-reference",
+      "quote": "those are not a supported part of the API and a machine created with a mounts field comes up without the storage.",
+      "note": "No shared volumes in cloud. Local/self-hosted smolvm: 'A remote volume mounts S3-compatible object storage' via the machine agent (FUSE, creds from guest env AWS_*), rw or :ro - several local machines could mount one bucket, but not a cloud feature.",
+      "checked": "2026-09-29"
+    }
   }
 }

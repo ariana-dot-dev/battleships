@@ -308,7 +308,17 @@
     "spend_limits": false,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": 19.52,
@@ -404,5 +414,79 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://novita.ai/docs/guides/sandbox-overview.md",
+      "quote": "On timeout or idle timeout you can choose **pause** (so the sandbox can be resumed later, optionally with auto-resume) instead of **kill**. When paused, resuming restores the sandbox to Running with its state intact",
+      "note": "Opt-in per sandbox at create time (lifecycle onTimeout='pause' / autoPause with idle_timeout metadata); default is kill ('If you do not pass `lifecycle`, the sandbox is killed when the timeout expires'). Triggers: max-lifetime timeout or idle timeout (no client connected). Memory included: paused state keeps 'filesystem and memory state' incl. running processes. autoResume wakes it on SDK call / inbound HTTP.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://novita.ai/docs/guides/sandbox-snapshot.md",
+      "quote": "A snapshot is a reusable saved state of a sandbox. It captures the sandbox filesystem and memory state so you can start new sandboxes from that point later.",
+      "note": "SDK sandbox.create_snapshot() / CLI `novita snapshot create <sandbox_id>` on a running sandbox (paused during capture); new sandboxes boot from it via novita.sandbox.create(snapshot_id) (fork/template). Memory included. v2 region (us-phx-1) only. Manual pause/resume also keeps memory. Legacy v1 commit/clone also exists.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://novita.ai/docs/guides/sandbox-cli-agent-invoke.md",
+      "quote": "The CLI's `agent invoke` command sends a payload to a deployed Novita Agent and returns its response. It supports both plain-text prompts and structured JSON input, and can stream the response as it is produced.",
+      "note": "Novita Agent Runtime: wrap your own agent (LangChain, LangGraph, CrewAI etc.) with @app.entrypoint, deploy with `novita agent launch`, invoke with prompt via CLI or AgentRuntimeClient.invoke_agent_runtime, streaming, 'Session Persistence: Multiple invocations to the same sandbox instance, supporting multi-turn'. Also NovitaClaw CLI deploys/manages a persistent OpenClaw agent (chat via Web UI/TUI). Claude Code and Codex are only preinstalled templates driven via generic commands.run (`claude -p`), which does not count. No first-party Claude Code/Codex session API.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://novita.ai/docs/guides/sandbox-cli-agent-invoke.md",
+      "quote": "The CLI's `agent invoke` command sends a payload to a deployed Novita Agent and returns its response. It supports both plain-text prompts and structured JSON input, and can stream the response as it is produced.",
+      "note": "Novita Agent Runtime: wrap your own agent (LangChain, LangGraph, CrewAI etc.) with @app.entrypoint, deploy with `novita agent launch`, invoke with prompt via CLI or AgentRuntimeClient.invoke_agent_runtime, streaming, 'Session Persistence: Multiple invocations to the same sandbox instance, supporting multi-turn'. Also NovitaClaw CLI deploys/manages a persistent OpenClaw agent (chat via Web UI/TUI). Claude Code and Codex are only preinstalled templates driven via generic commands.run (`claude -p`), which does not count. No first-party Claude Code/Codex session API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://novita.ai/docs/guides/sandbox-internet-access.md",
+      "quote": "Network configuration provides finer-grained control over outbound traffic by allowing you to define allowlists and denylists.",
+      "note": "network.allowOut/denyOut at create (IPs/CIDRs and domains incl. '*.github.com' in SDK example, with denyOut 0.0.0.0/0 for default-deny); allow_internet_access=False / CLI --no-internet for no-internet mode; `novita sandbox network <id>` updates egress rules of a running sandbox (CLI page lists IP/CIDR destinations only).",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://novita.ai/docs/guides/sandbox-internet-access.md",
+      "quote": "(--public-traffic makes the sandbox URL accessible without an access token)",
+      "note": "Sandbox port URLs (getHost(port)) require an access token unless created with --public-traffic; maskRequestHost option; envd control API protected by 'secure access' token by default since SDK v2.0.0. No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "E2B-derived microVM (memory snapshots, virtio-mem hotplug; card says firecracker, isolation not officially documented) with root/sudo; iptables/nftables not mentioned in docs.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://novita.ai/docs/guides/sandbox-secret.md",
+      "quote": "The real Secret value is never delivered into the sandbox. What the sandbox holds is an opaque placeholder; the substitution to the real value happens at the proxy layer, outside the sandbox.",
+      "note": "Team-scoped Secrets with a per-secret `hosts` allow list (any hostname, '*.' wildcards); env var holds placeholder novita_secret_<hex>; substituted only in HTTPS request header values (not bodies, URL/query, plain HTTP or WebSocket messages); responses are filtered back to the placeholder. Non-HTTP (DB, SSH, git over SSH) not covered. v2 region only.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://novita.ai/docs/guides/sandbox-volume.md",
+      "quote": "A volume is a persistent storage resource that can be mounted into sandboxes to share and preserve data across sandbox lifecycles.",
+      "note": "Beta, v2 region only; create with GiB/inode quota, mount at create (volume_mounts) or at runtime (mount_volume/unmount_volume). Pricing not published.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://novita.ai/docs/guides/sandbox-volume.md",
+      "quote": "Share data between multiple sandboxes.",
+      "note": "Read-write. Docs also say 'You can attach the same volume to different sandboxes over time'; simultaneous multi-sandbox mounts are implied (volume carries its own auth token, network-style) but not explicitly stated. S3 bucket mounts are DIY s3fs-fuse, not first-party.",
+      "checked": "2026-09-29"
+    }
   }
 }

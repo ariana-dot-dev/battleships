@@ -214,7 +214,16 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -297,5 +306,79 @@
     "applied": 11,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.docker.com/ai/sandboxes/cloud/usage/",
+      "quote": "A cloud sandbox expires after one hour by default. On expiration, the service stops sandboxes that can be resumed and deletes the rest.",
+      "note": "Trigger: TTL expiry (default 1 h, max 24 h from creation) with on-timeout 'stop' (the default for resumable sandboxes). Stop preserves memory AND filesystem ('Stop a cloud sandbox while preserving its memory and filesystem'; API: 'a backend advertising memory preservation hibernates it'), resumed on start/attach or automatically by an HTTP request to a published port (auto-resume lifecycle option). No idle-timeout trigger: the Console says a sandbox 'runs until you pause or delete it' or its timer expires. Always-on accounts get 'restart' = automatic stop/resume cycles preserving memory. Volume-backed sandboxes cannot be stopped (TTL action must be delete). Stopped-state snapshots are free but deleted after 7 days unused (per card).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.docker.com/ai/sandboxes-api/cookbook/snapshot-and-fork-a-sandbox/",
+      "quote": "Save a sandbox's state so you can start another sandbox from the same point later. A snapshot is separate from its source sandbox; restoring it creates a new sandbox with its own identity.",
+      "note": "API CreateSnapshot 'checkpoints a running sandbox; a stopped source is rejected'. captureMode 'disk' or 'all' ('all captures memory and disk and requires memory-capture support'). RestoreSnapshot 'forks a new sandbox from a snapshot' (fork, source untouched). CLI equivalent: sbx --cloud template save <sandbox> <template> then create --template. CreateImage can also register disk content derived from a snapshot/sandbox as a reusable image.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/cloud/usage/",
+      "quote": "To detach from an interactive run or attach session while leaving the agent running, press Ctrl+\\. Reconnect with sbx --cloud attach <sandbox-name>. Reconnecting joins the existing agent session.",
+      "note": "Closest thing but not a harness API: sbx CLI / SDK kits launch Claude Code, Codex, Cursor, Devin, Docker Agent, Gemini CLI, OpenCode (+Copilot, Droid, Kiro locally) inside the sandbox and you attach/detach to the agent's interactive terminal (TTY). No documented endpoint to send a prompt, stream structured agent events, send follow-ups or list/resume conversations; the API's process endpoints (CreateProcess / Interact / ReadOutput) are generic process I/O. Agents are preinstalled via kits (agent_harnesses = true).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.docker.com/agentic-platform/policies/",
+      "quote": "You can also match IPv4 and IPv6 CIDR ranges, such as 10.0.0.0/8, 192.168.1.0/24, and 2001:db8::/32.",
+      "note": "Account- and sandbox-scoped network policies (presets allow-all / balanced / deny-all; hostname patterns example.com, *.example.com, **.example.com, host:port; plus CIDRs). Deny wins over allow. Enforced by Docker's proxy outside the microVM ('All outbound TCP traffic passes through a proxy ... that enforces the network access policy'). CLI: sbx --cloud policy init deny-all; --allow-network / --deny-network at creation. API NetworkPolicy has allowNetworks/denyNetworks ('exact network names or CIDRs'). Policy decision logs available (sbx --cloud policy log).",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/cloud/network-policy/",
+      "quote": "Cloud rules match network destinations. HTTP method and path restrictions, --protocol, and local governance profiles aren't supported.",
+      "note": "Cloud only matches destinations. LOCAL Docker Sandboxes do support HTTP method + path rules ('A local policy rule can also match the HTTP method and path of a request'), so this may come to cloud later.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.docker.com/ai/sandboxes/cloud/usage/",
+      "quote": "Treat an exposed URL as a public endpoint. Apply authentication in the service and remove the exposure when you no longer need it.",
+      "note": "Only control is choosing which ports to publish (sbx --cloud ports --publish/--unpublish; API CreatePort/DeletePort); nothing is exposed until you publish. Published URLs are public HTTPS, not protected by Docker account auth ('Docker account authentication does not protect the application URL'); no IP allowlists, tokens or private URLs; HTTP only, not a general TCP tunnel. SSH is via Docker-signed SSH certificates (IssueSSHCert), not a public port.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each sandbox is a microVM 'with its own Linux kernel' and its own private Docker Engine; the agent 'runs as a non-root user with sudo privileges inside the VM' (security/isolation page). Docker Engine inside the VM itself programs iptables, so in-guest iptables/nftables should work. Not explicitly documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.docker.com/ai/sandboxes/cloud/credentials/",
+      "quote": "Sandboxes using this secret receive a placeholder in PROJECT_API_TOKEN. The cloud proxy sets Authorization: Bearer <secret> on requests to api.example.com.",
+      "note": "Built-in services (anthropic, openai incl. OAuth, google, groq, mistral, nebius, xai, cursor, droid, github token) plus custom secrets for any exact DNS host (up to 10 hosts, chosen header + format, placeholder env var; wildcards and IP literals rejected). Account- or sandbox-scoped. HTTP header injection only; no database/SSH coverage documented (git over HTTPS to GitHub works via the github token). Caveat: credentials an agent writes to disk itself are captured in templates/snapshots.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.docker.com/ai/sandboxes-api/cookbook/attach-persistent-storage/",
+      "quote": "Keep project data after a sandbox is deleted by mounting a persistent volume. A volume is an independent resource: deleting a sandbox does not delete the volume.",
+      "note": "Experimental, free, 100 volumes/account, must be enabled per account; attached only at creation. Not a live block device: 'Volume data is saved as a snapshot when a sandbox exits, not continuously.' Volume-backed sandboxes can't be stopped; memory-snapshot images don't support volumes.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.docker.com/reference/api/sandboxes/latest/schemas/AttachmentMode/",
+      "quote": "exclusive: exclusive permits one sandbox to attach the volume read-write.",
+      "note": "API attachment mode is exclusive only ('it never silently enables shared writers'; cookbook: 'For Cloud Sandboxes, supply one entry and use exclusive attachment'). The CLI page does say concurrent mounts are possible but each sandbox works on its own copy: 'If multiple sandboxes mount the same volume at the same time, the last sandbox to exit overwrites the stored snapshot.' So no live shared filesystem; no read-only multi-attach mode documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -147,7 +147,16 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": null,
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -192,5 +201,72 @@
     "applied": 12,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 6
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://astraflow.ucloud.cn/en-us/docs/agent-sandbox/sandbox/persistence.md",
+      "quote": "After setting `on_timeout` to `pause`, the sandbox will not be destroyed when it times out, but will automatically enter the paused state.",
+      "note": "Opt-in at create via lifecycle on_timeout='pause' (persists across resumes). Trigger = sandbox timeout (default 5 min, reset on connect; 24 h continuous-run cap). Pause saves filesystem + memory ('running processes, loaded variables, cached data, etc. are all saved'); with auto_resume=True it wakes on incoming activity/SDK action. Paused state billed as persistent storage.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://astraflow.ucloud.cn/en-us/docs/agent-sandbox/sandbox/snapshots.md",
+      "quote": "Sandbox snapshots can capture the status of the running sandbox at a certain moment, including file system and memory status.",
+      "note": "create_snapshot() on a running sandbox (brief pause, keeps running); Sandbox.create(snapshot_id) starts any number of new sandboxes from it (fork). Memory included. Billed as persistent storage.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://astraflow.ucloud.cn/en-us/docs/agent-sandbox/best-practices/codeagent.md",
+      "quote": null,
+      "note": "Claude Code / Codex are only covered as template recipes (npm install / code-server extensions) configured via files.write and driven via generic commands/PTY; no first-party API to prompt, stream or resume an in-sandbox agent. E2B-compatible SDK surface.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://astraflow.ucloud.cn/en-us/docs/agent-sandbox/network/internet-access.md",
+      "quote": "You can specify the IP addresses, CIDR blocks, or domain names allowed by the sandbox",
+      "note": "allow_internet_access=false (= deny_out 0.0.0.0/0), allow_out / deny_out with IPs, CIDRs, domains and *.wildcards (domains allow-only, via Host/SNI on ports 80/443 only; no UDP/QUIC domain filtering). update_network changes rules on a running sandbox. Enforced by an external firewall/outbound proxy.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://astraflow.ucloud.cn/en-us/docs/agent-sandbox/network/restrict-public-access.md",
+      "quote": "When `allow_public_traffic` is set to false, all requests to the sandbox public URL must include the `e2b-traffic-access-token` header",
+      "note": "Default: public URL per port open to anyone who knows it; allow_public_traffic=false makes it token-gated (403 without token). Set at creation only. No IP allowlist documented. SSH access documented separately.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Isolation not named in docs, but E2B-based with full memory snapshots, sudo, and Docker-in-sandbox template ('sudo docker run --rm hello-world'), which implies a VM with its own kernel and netfilter. Provider egress rules are enforced outside the sandbox.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://astraflow.ucloud.cn/docs/agent-sandbox/secret/overview.md",
+      "quote": "由沙箱外部的出站代理将真实值注入请求头。因此，沙箱内的代码始终接触不到凭证本身。",
+      "note": "Secret API (create/rotate/list/delete, write-only values) injected into request headers for any host registered under network.rules via Secret.fill(). HTTPS only ('明文 HTTP 请求不会被注入'); no DB/SSH/git protocols. Closed beta, off by default ('Secret 目前处于内测阶段，默认不开放'). Chinese-only docs.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://astraflow.ucloud.cn/docs/agent-sandbox/storage/volume/mount.md",
+      "quote": "创建沙箱时可以挂载一个或多个 Volume。",
+      "note": "Volumes independent of sandbox lifetime, mounted at create via volume_mounts (or CLI --mount name:path); SDK file ops when unmounted. Closed beta ('Volume 目前处于内测阶段，默认不开放'). Also US3 object storage via in-sandbox us3fs (user-run FUSE). Size/price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://astraflow.ucloud.cn/docs/agent-sandbox/storage/volume/overview.md",
+      "quote": "独立于沙箱存在、可挂载到多个沙箱的持久化存储。",
+      "note": "Docs show '多个沙箱共享同一个 Volume' (one volume shared by several sandboxes); body text also says a volume can be mounted to different sandboxes one after another. Concurrent semantics, read-only option and locking not documented; mounts appear read-write. Closed beta.",
+      "checked": "2026-09-29"
+    }
   }
 }

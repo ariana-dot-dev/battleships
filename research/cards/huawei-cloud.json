@@ -479,7 +479,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -512,7 +512,14 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "container",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -544,5 +551,57 @@
     "applied": 14,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://support.huaweicloud.com/agentarts_faq/agentarts_09_0081.html",
+      "quote": "未持久化到外部存储的文件会随沙箱释放而丢失。",
+      "note": "Translation (table row 'temporary files inside the sandbox: cleared'): 'Files not persisted to external storage are lost when the sandbox is released.' Idle timeout (default 15 min, 1 min-7 d) or max lifetime (default 24 h, max 168 h) ends the session and destroys the microVM ('停止会话 ... 销毁沙箱实例，释放计算资源。会话内临时文件自动清除', agentarts_10_119); a later call with no live sandbox 'wakes a new microVM' (唤醒新的microVM, agentarts_10_006). The only state carried over is the opt-in 'session storage' (会话存储: OBS-backed FUSE mount, one per-session subdirectory) plus user SFS Turbo/OBS mounts; that is persistent_disk-style, not a snapshot, and memory is never kept. Same for the code interpreter and browser tools. The only 'checkpoint' mention (agentarts_03_0010) is a generic glossary definition of what a harness does, not a product feature.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_119.html",
+      "quote": "停止会话（销毁沙箱）和删除会话状态（清除持久化存储）是两个独立操作。",
+      "note": "Translation: 'Stopping a session (destroying the sandbox) and deleting session state (clearing persistent storage) are two independent operations.' The full AgentArts API catalogue (runtime, code interpreter, browser, sessions, gateway, ~150 operations; saved in raw/huawei-cloud--api-network-catalogue-f3.txt) has no snapshot/checkpoint/fork operation, and no user-guide page mentions one. The nearest things are SaveBrowserProfile ('将会话保存至配置文件': saves browser cookies/local-storage profile for reuse by later browser sessions, not a machine snapshot) and immutable runtime versions (image + config, not live state). False rather than null because the complete API reference lacks it; downgrade to null if the coordinator requires an explicit denial. ECS (alt modes) does have on-demand EVS disk snapshots and private images (standard IaaS, not re-verified in this pass).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0028.html",
+      "quote": "调用智能体是Managed Agents的核心使用环节。通过WebSocket协议向已创建的智能体发送消息，智能体在沙箱环境中自主决策、调用工具、执行任务，并将流式结果实时返回给调用方。",
+      "note": "Translation: 'Invoking the agent is the core of Managed Agents. You send messages over WebSocket to the created agent; the agent decides autonomously, calls tools and executes tasks inside the sandbox environment, and streams results back to the caller in real time.' Harness = Huawei's own Managed Agents harness only (public beta, launched 2026-09): you declare model (Huawei MaaS or custom OpenAI-protocol providers), system prompt, built-in tools (bash, read_file, write_file, edit_file, glob, list_files, grep), Skills, environment; then drive it at ws://{endpoint}/runtimes/{runtime_name}/ws with IAM/API Key/OAuth auth; stream frames (e2a.chunk / e2a.complete with status in_progress/succeeded/failed); multi-turn by reusing a session ID; 'send new content to change direction, or terminate/pause the current task' (干预与中断). Runs in a microVM sandbox. No first-party support for driving Claude Code / Codex / OpenCode / Gemini CLI inside the sandbox (those names appear only for the Memory plugin). The plain Runtime product just proxies HTTP/MCP to your own container (InvokeRuntime), which is not a harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0013.html",
+      "quote": "沙箱向外发起网络请求的能力，是基础设施层的安全边界，优先级高于系统提示词、工具权限，即使提示词被注入攻击，网络层依然可以拦截非法访问。",
+      "note": "Translation: 'The sandbox's ability to make outbound requests is an infrastructure-layer security boundary, taking priority over the system prompt and tool permissions; even if the prompt is injected, the network layer can still block illegal access.' Options per environment / runtime / code interpreter / browser: 公网访问 PUBLIC (open internet, no filtering documented) or 私网访问 VPC ('打通您的企业私有VPC内网，只能访问内网资源，流量不经过互联网' = only internal resources, no internet) with your VPC, subnet and up to 10 security groups (API: network_config.network_mode PUBLIC|VPC, vpc_config.security_group_ids). So: a no-internet mode plus IP/port control via VPC security-group outbound rules and your VPC routing/NAT (security-group egress semantics are inferred from standard Huawei VPC behaviour, not stated on the AgentArts pages). No hostname allowlist in AgentArts itself. Egress mode is immutable after creation for Managed Agents environments. IAM condition keys agentarts:AllowEgressPublicAccess / AllowIngressPublicAccess let admins forbid public egress/ingress.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_068.html",
+      "quote": "自定义网络配置：可创建关闭公网访问并关联VPC的网络配置，基于VPC内网通信，满足企业网络隔离的安全合规要求",
+      "note": "Translation: 'Custom network config: you can create a network config with public access disabled and associated with a VPC, communicating over the VPC intranet, meeting enterprise isolation/compliance requirements.' Inbound traffic always goes through the AgentArts inbound gateway (max 5; default 'defaultgw' has public access on): public domain toggle, VPC association (CreateCoreIngressNetwork), and mandatory inbound identity auth per runtime/agent (IAM AK/SK signature, API Key, or OAuth 2.0 JWT with allowed audiences/clients/scopes/claims; agentarts_10_227 '对每一个到达智能体运行时的请求进行身份验证'). Code interpreter and browser require IAM or API Key auth. Exposed surface is the runtime's HTTP/MCP endpoints (invocations, custom paths, commands, files); no arbitrary raw ports; no IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_124.html",
+      "quote": "存储配置用于将外部存储资源挂载到运行时沙箱容器中，实现数据持久化、文件共享和会话状态保存。AgentArts运行时支持SFS Turbo、会话存储和OBS三种存储类型",
+      "note": "Translation: 'Storage config mounts external storage into the runtime sandbox container for persistence, file sharing and session state. The runtime supports SFS Turbo, session storage and OBS.' Up to 5 SFS Turbo (NFS) file systems + up to 10 OBS mounts (5 buckets) + 1 session storage; SFS Turbo and OBS only in VPC (private) network mode; mount paths under /home, /mnt, /data, /tmp; read-write or read-only per mount. Applies to Runtime and Managed Agents environments; the code interpreter and browser tool APIs have no storage fields. No block volumes. SFS Turbo / OBS are billed by those services, not AgentArts CU.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_124.html",
+      "quote": "模型文件、共享数据：优先选择SFS Turbo，支持多实例共享读写。",
+      "note": "Translation: 'Model files, shared data: prefer SFS Turbo, which supports shared read-write across multiple instances.' Also FAQ agentarts_09_0041: 'SFS Turbo是高性能共享文件系统，支持多实例同时挂载读写' (multiple instances mount read-write concurrently) and agentarts_13_0013: 'same runtime's versions mounting the same directory share automatically'. Read-write or read-only per mount; NFS (hard mount), same VPC required. OBS bucket mounts can also be shared by many sessions (read-mostly). Session storage is per-session isolated (not shared).",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -821,7 +821,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": true,
     "private_network": false,
     "self_host": false,
@@ -838,7 +838,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": false,
@@ -850,7 +850,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -896,5 +904,78 @@
     "applied": 27,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://circleci.com/docs/guides/optimize/persist-data/",
+      "quote": "Use artifacts, workspaces, and caches to move data into, out of, and between jobs, persisting data for future use.",
+      "note": "CI jobs are ephemeral; state persists only through explicit save_cache / persist_to_workspace / artifacts steps. Chunk sidecars also have no automatic snapshot (snapshot create is manual).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://circleci.com/docs/guides/toolkit/how-to-use-chunk-cli/",
+      "quote": "The command captures the configured state of the active Chunk sidecar and prints the snapshot ID. Use this ID with `chunk sidecar create --image <snapshot-id>` to boot new sidecars from the snapshot.",
+      "note": "Only for Chunk sidecars (preview, agent validation environments), NOT regular CI jobs. Snapshot deletes the source sidecar; new sidecars boot from it (template). Memory inclusion not stated (appears filesystem/image). chunk-cli CLI.md: sidecar --image is an 'E2B template ID or container image', suggesting sidecars run on E2B.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://circleci.com/docs/guides/toolkit/how-to-use-chunk-cli/",
+      "quote": "Replace `<name-or-uuid>` with the name or UUID of the Chunk task definition you want to run, and `<prompt text>` with the instructions to send to the task.",
+      "note": "Provider's own agent only (Chunk, beta; models: CircleCI-managed Anthropic, BYO Anthropic/OpenAI/Bedrock). `chunk task run --definition --prompt` starts a run in a CircleCI pipeline and returns run/pipeline IDs; no documented event streaming / follow-up / resume API, and no public REST endpoint found. Does not drive Claude Code/Codex inside a job (Agent Skills are installed locally in the user's agent).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://circleci.com/docs/guides/security/ip-ranges/",
+      "quote": "CircleCI jobs that have the IP ranges feature enabled will have their traffic routed through one of the defined IP address ranges during job execution.",
+      "note": "No documented provider-side outbound filter for cloud jobs; 'IP ranges' only gives known source IPs so YOUR firewalls can allow CircleCI (static egress, 450 credits/GB). Self-hosted runners are under your own network control.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No provider-side HTTP egress rules documented for cloud executors.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://circleci.com/docs/guides/execution-managed/ssh-access-jobs/",
+      "quote": "You must authenticate as the user who triggered the rerun and who has access to the project.",
+      "note": "Jobs expose no ports/preview URLs at all; the only inbound path is 'Rerun job with SSH', limited to the triggering user's SSH key (also for Chunk sidecars via add-ssh-key). No configurable ingress rules.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Machine executor (Linux/Windows/macOS) is a full VM with sudo, so iptables/nftables should work; Docker executor containers: unknown (NET_ADMIN not documented).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://circleci.com/docs/guides/security/contexts/",
+      "quote": "Contexts provide a mechanism for securing and sharing environment variables across projects. The environment variables are defined as name/value pairs and are injected at runtime.",
+      "note": "Secrets are env vars (project settings / contexts) injected into the job; OIDC tokens available for tokenless cloud auth. No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://circleci.com/docs/guides/optimize/persist-data/",
+      "quote": "The `attach_workspace` copies and re-creates the entire workspace content when it runs.",
+      "note": "No attachable persistent volumes; workspaces/caches are copied in and out via steps, not mounted.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://circleci.com/docs/guides/optimize/persist-data/",
+      "quote": "Because caches are global within a project, a cache saved on one branch will be used by jobs run on other branches.",
+      "note": "No shared live filesystem between concurrently running jobs; caches/workspaces are copy-based snapshots of directories.",
+      "checked": "2026-09-29"
+    }
   }
 }

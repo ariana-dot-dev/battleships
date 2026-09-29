@@ -454,7 +454,16 @@
     "spend_limits": false,
     "mcp_server": null,
     "isolation": null,
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -530,5 +539,71 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/sessions-usage",
+      "quote": "Once there are no requests to the session after the cooldown period has elapsed, the session is automatically destroyed.",
+      "note": "Dynamic sessions are destroyed after the cooldown (300-3600 s) or on container exit; app replicas scaling to zero lose container state (only EmptyDir/replica-scoped or Azure Files persist). Snapshots exist only in the separate ACA Sandboxes product (id azure-container-apps-sandboxes, sandboxes-snapshots-state-management).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No snapshot/checkpoint API for container apps or session pools (management endpoints are getSession/listSessions/stopSession). See azure-container-apps-sandboxes for the new Sandboxes product with snapshots.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/sessions-code-interpreter",
+      "quote": null,
+      "note": "Dynamic sessions expose a code-interpreter execute API / your own HTTP endpoints plus LLM-framework integrations (LangChain, LlamaIndex, Semantic Kernel, AutoGen, MCP shell tutorials) - tools for an external agent, not an API to drive an agent harness inside the sandbox.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/use-azure-firewall",
+      "quote": "Use a UDR to restrict outbound traffic from your container app through Azure Firewall or other network appliances.",
+      "note": "Apps: custom VNet + NSG outbound rules (IP/port/service tag) and UDR to Azure Firewall application rules (FQDN) - workload-profile environments only; scope is the environment subnet, not per app. Dynamic sessions: per-pool on/off only ('Valid values are `EgressDisabled` (default) and `EgressEnabled`.'), no allowlist.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/ip-restrictions",
+      "quote": "Azure Container Apps allows you to limit inbound traffic to your container app by configuring IP ingress restrictions.",
+      "note": "Per-app external vs internal ingress, internal-only environments (no public endpoint), IP allow/deny CIDR rules, choice of target port, built-in auth (Easy Auth), client certificates, NSG inbound in VNet. Dynamic sessions are only reachable through the pool management endpoint with Entra ID tokens (Session Executor role).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
+      "quote": "Azure Container Apps doesn't allow privileged containers mode with host-level access.",
+      "note": "Containers (dynamic sessions: Hyper-V isolated); no privileged mode and no documented way to add CAP_NET_ADMIN, so in-container iptables should not be available. Not explicitly documented either way.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/manage-secrets",
+      "quote": "The value of each secret is specified directly or as a reference to a secret stored in Azure Key Vault.",
+      "note": "Secrets (optionally Key Vault references) are exposed to containers as env vars or secret volume mounts; managed identities issue tokens inside the container. Session-pool doc warns untrusted code has 'full access to the container, including its environment variables, secrets, and files'. No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
+      "quote": "You can mount a file share from [Azure Files](../storage/files/index.yml) as a volume in a container.",
+      "note": "Azure Files SMB (AzureFile) or NFS (NfsAzureFile, needs custom VNet); ReadWrite or ReadOnly. No block volumes. Quote from the markdown source (rendered: 'You can mount a file share from Azure Files as a volume in a container.').",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
+      "quote": "Multiple containers can mount the same file share, including ones that are in another replica, revision, or container app.",
+      "note": "Read-write or read-only (--access-mode ReadWrite|ReadOnly), SMB or NFS. Applies to container apps/jobs; session-pool volume support not verified.",
+      "checked": "2026-09-29"
+    }
   }
 }

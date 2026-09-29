@@ -173,7 +173,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -187,7 +187,16 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "gvisor",
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": false,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -232,5 +241,78 @@
     "applied": 21,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://paper.brimble.io/sandboxes/overview.md",
+      "quote": "RAM state, running processes, and open sockets never survive a pause regardless.",
+      "note": "Pause scales the container to zero and keeps only the persistent workspace volume; no state capture on pause/destroy/auto-destroy. There is an opt-in cron-scheduled snapshot mode (snapshotMode: automatic + snapshotFrequency), filesystem only, which skips ticks while paused - scheduled backups, not stop-triggered snapshots.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://paper.brimble.io/sandboxes/snapshots.md",
+      "quote": "You can launch a brand-new sandbox from any snapshot you own, with exactly the files you saved.",
+      "note": "SDK/API/dashboard snapshots.create on a ready sandbox; filesystem only (no memory); restore = new sandbox via fromSnapshot, any number of times (template/fork-like). Snapshots expire per plan retention (hourly reaper), not downloadable.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://paper.brimble.io/sandboxes/cookbook/ai-coding-agent.md",
+      "quote": "adjust the binary name in the exec command",
+      "note": "claude-code, codex, opencode and droid templates come preinstalled (agent_harnesses), but they are driven only through generic exec (e.g. `claude --print`) plus streamed exec / tail -f of logs; no agent-specific prompt/session/resume API in the SDK or OpenAPI.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://paper.brimble.io/sandboxes/overview.md",
+      "quote": "Default deny, with an allowlist of IPv4 addresses, CIDR ranges, or hostnames.",
+      "note": "Modes open (default) / deny_all / restricted (max 50 entries), set at create or PUT /sandboxes/{id}/egress at runtime; sandbox-system.md: allowlist 'enforced at the host firewall for the container's address'.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://paper.brimble.io/api-reference/sandboxes.openapi.yaml",
+      "quote": "Each entry is an IPv4 address, CIDR range",
+      "note": "Egress policy schema is only mode + allow list of IPv4/CIDR/hostname; no method/path/header rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://paper.brimble.io/api-reference/sandboxes.openapi.yaml",
+      "quote": "Always `null` for sandboxes (no HTTP-facing proxy).",
+      "note": "Sandboxes expose no inbound ports or preview URLs at all (only Brimble API exec/files reach them; docs say use a web service if you want a public URL), so there are no ingress controls - but also nothing public. Web-service projects have edge/internal networking, out of scope for the sandbox card.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://paper.brimble.io/sandboxes/sandbox-system.md",
+      "quote": "Linux capabilities are stripped on the container.",
+      "note": "gVisor container (runsc) with capabilities stripped and no-new-privileges; no CAP_NET_ADMIN, so in-guest iptables/nftables should not take effect. Not explicitly documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://paper.brimble.io/sandboxes/cookbook/ai-coding-agent.md",
+      "quote": "Sandboxes don't bake env vars into the template; you set them per-exec.",
+      "note": "Secrets (e.g. ANTHROPIC_API_KEY) are passed as per-exec env vars and enter the sandbox; no credential-injecting proxy documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://paper.brimble.io/volumes/overview.md",
+      "quote": "pre-provisioned once, attached to a sandbox or a web-service project when you need it.",
+      "note": "`sandbox`-type volumes 10-50 GB, region-pinned, backed by Brimble object storage (CSI), mounted at the workspace directory; attach via volumeId at create or persistent:true.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://paper.brimble.io/volumes/overview.md",
+      "quote": "One volume, one workload at a time. No concurrent reads from multiple sandboxes or projects.",
+      "note": "Single-writer attachment; no multi-attach, read-only or RW.",
+      "checked": "2026-09-29"
+    }
   }
 }

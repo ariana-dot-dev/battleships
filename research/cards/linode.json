@@ -720,7 +720,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -742,7 +742,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -754,7 +754,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": false,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -831,5 +840,78 @@
     "applied": 11,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://techdocs.akamai.com/cloud-computing/docs/backup-service.md",
+      "quote": "Each backup is a full file-based snapshot of your disks taken during your preferred scheduled time slot while the Linode is still running.",
+      "note": "No snapshot on stop/idle: a powered-off Linode simply keeps its disks (persistent_disk). The paid Backups add-on takes scheduled daily/weekly/biweekly disk backups in a chosen 2-hour window - scheduled backups, not this feature.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://techdocs.akamai.com/cloud-computing/docs/take-a-manual-snapshot.md",
+      "quote": "As part of the Backups service, you can store a manual backup of your Linode through the *manual snapshot* feature. This can be useful to save a restore point before a major system upgrade or before significant changes to software or configuration within your Linode.",
+      "note": "Disk only, no memory. Requires the paid Backups service; 'Only a *single* manual snapshot can be stored for a Linode' (new one overwrites). Taken while running; via Cloud Manager, CLI or API. Can restore to the same Linode or 'Deploy New Linode' from a backup (same data center). Separately, custom Images (captured disks) can be used as templates for new Linodes.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain VPS/VM product; no agent harness API anywhere in the compute docs. Card agent_harnesses=false.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://techdocs.akamai.com/cloud-computing/docs/manage-firewall-rules.md",
+      "quote": "**Outbound rules** limit the outgoing network connections coming from a Akamai Cloud service based on the port(s) and destinations you configure.",
+      "note": "Linode Cloud Firewall (free), attached to Linodes / Linode Interfaces; outbound policy Accept or Drop (default-deny possible) plus rules by protocol (TCP/UDP/ICMP/IPENCAP), ports and destination IP/CIDR (max 25 rules/firewall, 255 IPs/rule, 15 ports/rule). No hostname/domain rules. Enforced outside the VM ('For outbound traffic, local firewall rules are processed first' then the Cloud Firewall).",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://techdocs.akamai.com/cloud-computing/docs/cloud-firewall.md",
+      "quote": "Firewall rules can filter traffic at the network layer, providing fine-grained control over who can access your servers.",
+      "note": "Cloud Firewall rules are L3/L4 only (protocol, port, IP/CIDR); no HTTP method/path/header rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://techdocs.akamai.com/cloud-computing/docs/manage-firewall-rules.md",
+      "quote": "**Inbound rules** limit incoming network connections to a Akamai Cloud service based on the port(s) and sources you configure.",
+      "note": "Cloud Firewall inbound policy Accept/Drop plus source IP/CIDR + port rules; applies to Linodes, Linode Interfaces and NodeBalancers. VPC/private networking also available. Public IPv4 per Linode.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://techdocs.akamai.com/cloud-computing/docs/comparing-cloud-firewalls-to-linux-firewall-software.md",
+      "quote": "With the addition of the Linode Cloud Firewalls solution, you now have two primary ways to control network traffic on a Linode: using a Cloud Firewall or locally installed firewall software.",
+      "note": "Full KVM VM with root; docs explicitly cover nftables, iptables, ufw and firewalld inside the Linode.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No first-party credential-injecting egress proxy; secrets are whatever you place on the VM (user data via the Metadata service, env files). Not a sandbox product.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://techdocs.akamai.com/cloud-computing/docs/block-storage.md",
+      "quote": "The Block Storage service provides a method of adding additional storage drives to Linodes, enabling you to store more data without resizing your Linode to a larger plan.",
+      "note": "Block Storage volumes 10 GB - 16 TB, same data center, persist independently of the Linode; can also boot from a volume; encryption available.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://techdocs.akamai.com/cloud-computing/docs/attach-and-detach-a-volume.md",
+      "quote": "Each volume can to be attached to a single Linode within the same data center, which enables that Linode to read and write data to that volume.",
+      "note": "Block volumes attach to one Linode at a time (read-write). No first-party managed NFS/shared file service in the storage docs; Object Storage is S3 API only (user can FUSE-mount it themselves, not first-party).",
+      "checked": "2026-09-29"
+    }
   }
 }

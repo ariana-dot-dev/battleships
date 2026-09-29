@@ -113,7 +113,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": false,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": false,
     "self_host": false,
@@ -144,7 +144,15 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -196,5 +204,78 @@
     "applied": 2,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://contree.dev/",
+      "quote": "ConTree saves an immutable filesystem snapshot after every execution, so agents can fork from any checkpoint, explore multiple paths in parallel, and revert instantly.",
+      "note": "Trigger: end of every non-disposable execution (each command is its own microVM; the result is committed as a new immutable image, result_image_uuid). Filesystem only: 'Process memory, running services, and network state are not preserved.' Opt out per run with disposable=true.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.tokenfactory.nebius.com/sandboxes/overview.md",
+      "quote": "Fork execution state at any checkpoint. Explore multiple solution paths in parallel, then score results and expand the best branches.",
+      "note": "Checkpoints are the per-execution images (you choose when by running a command non-disposably; tags name them). Any image can boot any number of new microVM executions (fork/branch, rollback). Filesystem only, no memory; you cannot checkpoint a VM mid-execution.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.tokenfactory.nebius.com/sandboxes/swe-agents.md",
+      "quote": "Integrate your own agent via contree-sdk.",
+      "note": "SDK/CLI/MCP let an external agent run commands and branch images; no first-party API to run or drive a coding agent (Claude Code, Codex, etc.) inside the sandbox. 'contree agent' only prints a manual for agents using the CLI.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://eu-north.nebius.computer/static/api.yaml",
+      "quote": "Enable network access for the instance. When `false`, the VM starts without a guest network interface.",
+      "note": "No-internet mode only (networking.enabled, default true). No domain or IP allowlist in the API; level null because it is all-or-nothing.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://eu-north.nebius.computer/static/api.yaml",
+      "quote": "Enable network access for the instance. When `false`, the VM starts without a guest network interface.",
+      "note": "The only network knob in the OpenAPI spec is the enabled boolean; no HTTP-level rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://contree.dev/",
+      "quote": "Executions have no inbound network access.",
+      "note": "No inbound networking at all (no ports, URLs, SSH), so there is nothing to configure; batch execution model.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://contree.dev/",
+      "quote": "Full root inside the VM, zero access outside it.",
+      "note": "Derived: microVM per execution with 'Dedicated kernel, hardware boundary' and full root. Rules only live for one execution (network state is not preserved) and whether the guest kernel ships netfilter modules is undocumented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://contree.dev/",
+      "quote": "Pass secrets via env, not files",
+      "note": "Secrets are plain env vars passed per run / per CLI session (stored in local SQLite by the CLI); no credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://eu-north.nebius.computer/static/api.yaml",
+      "quote": "Maximum writable layer size in bytes.",
+      "note": "Storage per execution = image rootfs + writable layer (default 12 GiB, resources_limits.max_layer_bytes) + uploaded files; the OpenAPI spec has no volume object.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://contree.dev/",
+      "quote": "Each non-disposable execution produces a new image.",
+      "note": "No shared/network volumes. Many executions can start from the same immutable image in parallel, but that is copy-on-write branching, not a shared read-write mount.",
+      "checked": "2026-09-29"
+    }
   }
 }

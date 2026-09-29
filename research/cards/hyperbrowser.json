@@ -203,7 +203,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": null,
     "self_host": false,
@@ -221,7 +221,18 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": null,
-    "ip_note": "Managed proxy network (100+ countries, IP type not stated in docs) at $10/GB, static IPs available; proxies and CAPTCHA solving need a paid plan; BYO proxy and Ultra Stealth are Enterprise-only."
+    "ip_note": "Managed proxy network (100+ countries, IP type not stated in docs) at $10/GB, static IPs available; proxies and CAPTCHA solving need a paid plan; BYO proxy and Ultra Stealth are Enterprise-only.",
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "egress_http_rules": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -292,5 +303,86 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/lifecycle.md",
+      "quote": "When a sandbox is created, it is always running until you stop it or it times out.",
+      "note": "Sandboxes have no stop/resume or hibernate: stop (or lifetime timeout) ends the sandbox; state survives only via explicit memory snapshots or mounted volumes. Browser sessions likewise end on stop/timeout; only opt-in browser Profiles persist cookies/storage (not a machine snapshot).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/snapshots.md",
+      "quote": "When you take a snapshot, you are freezing the sandbox's memory, processes, and filesystem at that point in time.\nStarting a sandbox from a snapshot is instant and you can start a new sandbox from the same snapshot multiple times.",
+      "note": "Sandbox product only: createMemorySnapshot on a running sandbox (POST /api/sandbox/{id}/snapshot); memory included; new sandboxes boot from it (snapshotName/snapshotId), i.e. fork/template. Not available for browser sessions.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/agents/overview.md",
+      "quote": "All agents share the same operational model: start a task, optionally poll for\n  status, and fetch the final result.",
+      "note": "Browser-agent task API: HyperAgent (own), Browser Use, Claude / OpenAI CUA / Gemini / Meta / Grok / Jev computer use; start with a task prompt, poll status/steps, stop; follow-ups by passing an existing sessionId with keepBrowserOpen. These are browser agents driven by Hyperbrowser against its cloud browser, polled not streamed. For Sandboxes, claude-code / codex / openclaw base images only preinstall the CLIs; no API to prompt Claude Code/Codex inside a sandbox (only generic exec/process APIs).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/agents/overview.md",
+      "quote": "All agents share the same operational model: start a task, optionally poll for\n  status, and fetch the final result.",
+      "note": "Browser-agent task API: HyperAgent (own), Browser Use, Claude / OpenAI CUA / Gemini / Meta / Grok / Jev computer use; start with a task prompt, poll status/steps, stop; follow-ups by passing an existing sessionId with keepBrowserOpen. These are browser agents driven by Hyperbrowser against its cloud browser, polled not streamed. For Sandboxes, claude-code / codex / openclaw base images only preinstall the CLIs; no API to prompt Claude Code/Codex inside a sandbox (only generic exec/process APIs).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/networking.md",
+      "quote": "Outbound destinations to allow. Entries can be IPv4 addresses, IPv4 CIDR\n  ranges, exact domains, or wildcard domains such as `*.example.com`.",
+      "note": "Sandboxes: allowInternetAccess=false for default-deny, allowOut (IPv4/CIDR/domain/wildcard), denyOut (IPv4/CIDR only); settable at create and updatable live (PUT /api/sandbox/{id}/network). Domain rules only for HTTP :80 / HTTPS :443 via Host / SNI; DNS restricted to allowed names; IPv6 targets unsupported. Not documented for browser sessions.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/networking.md",
+      "quote": "Domain rules apply to HTTP on port `80` and HTTPS on port `443`. HTTPS\n  matching uses the TLS server name.",
+      "note": "The policy schema is only allowInternetAccess / allowOut / denyOut; matching is by Host/SNI hostname, no method/path/header rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/runtime.md",
+      "quote": "When `auth` is `true`, the exposed custom URL now requires the auth token to be passed on each request.",
+      "note": "Ports must be explicitly exposed (expose/unexpose API, --port N or N:auth); each exposed port is either public (auth:false) or requires the sandbox bearer token; browserUrl gives an expiring grant for browser access. Port 4001 reserved for the runtime API. No IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Sandboxes are Firecracker VMs (custom images are 'Firecracker image' builds) and base images have 'A default `ubuntu` sudo user'; nftables/iptables not documented. Browser sessions: no shell, n/a.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/processes.md",
+      "quote": "Environment variables to inject into the process.",
+      "note": "No credential-injecting egress proxy documented; sandbox secrets are passed as env vars / files (e.g. OpenClaw guide puts the model key in the sandbox). Related but not a proxy: Browser Use tasks' sensitive-data map keeps real values from the LLM ('The LLM only sees placeholders (x\\_user, x\\_pass)... Real values are injected directly into form fields after the LLM call'), but the values do enter the browser; browser Profiles persist logins.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/volumes.md",
+      "quote": "Volumes are persistent, team scoped filesystems that you can attach to a sandbox at launch.",
+      "note": "Sandbox product; mounts set at launch only ('Mounts are currently configured at sandbox launch'; updating mounts on a running sandbox is not supported); rw or ro per mount. Storage price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/volumes.md",
+      "quote": "You can attach a volume to multiple sandboxes, and a volume is synced across writes.",
+      "note": "Read-write or read-only per mount (type rw|ro); a third mode `shared` is listed as 'currently reserved'. Consistency semantics beyond 'synced across writes' not documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

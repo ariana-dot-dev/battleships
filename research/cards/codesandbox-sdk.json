@@ -374,7 +374,11 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "ingress_rules": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -470,5 +474,35 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://codesandbox.io/docs/sdk/core-concepts",
+      "quote": "By default, when a Sandbox is hibernated, a memory snapshot is created. This allows for near-instant resumes the next time the Sandbox is accessed—typically within 0.5–2 seconds.",
+      "note": "Triggered by the idle timeout set at create time (https://codesandbox.io/docs/sdk/create: 'hibernationTimeoutSeconds ... How quickly the sandbox should hibernate after inactivity'). Memory + disk + running processes included (resume docs: 'restoring it to its exact previous state including file system, memory, and running processes'). Automatic wake-up on HTTP/WebSocket resumes it. Old snapshots can expire/archive, then boot is CLEAN (disk only, setup tasks rerun). shutdown() skips the snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://github.com/codesandbox/codesandbox-sdk/blob/main/README.md",
+      "quote": "Snapshotting/restoring VMs (checkpointing) at any point in time",
+      "note": "Implemented as hibernate() (POST /vm/{id}/hibernate), which stops the VM and saves a memory+disk snapshot ('Snapshots: Disk/Memory snapshot that is generated when hibernating a Sandbox and consumed when resuming a Sandbox', key-terms). New sandboxes can boot from it: create({id: <sandbox-id>}) forks a hibernated sandbox in 1-3 s; templates are memory/fs snapshots. Live forks of a RUNNING sandbox (max 5, share memory with parent). One current snapshot per sandbox (no list of named restore points documented); take a checkpoint without stopping = live fork.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://codesandbox.io/docs/sdk/create",
+      "quote": "private: Sandbox is private, hosts require tokens",
+      "note": "Per-sandbox privacy: public / private / public-hosts (default public-hosts). Private hosts need signed host tokens (URL, headers or cookies; https://codesandbox.io/docs/sdk/hosts: 'access your Sandbox hosts securely using signed urls, headers or cookies'). Preview tokens can be created/revoked (/sandbox/{id}/tokens). HTTPS preview hosts only; no raw TCP, no IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://github.com/codesandbox/codesandbox-sdk/blob/main/CHANGELOG.md",
+      "quote": "support env and cwd in shell api",
+      "note": "Secrets reach the sandbox only as environment variables passed to commands/terminals; no credential-injecting proxy documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

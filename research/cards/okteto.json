@@ -126,7 +126,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -156,7 +156,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -180,5 +188,64 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.okteto.com/docs/admin/cleanup.md",
+      "quote": "Kubernetes Deployments (replicas set to 0, so that pods are deleted but the deployment config remains)",
+      "note": "Garbage-collector 'sleep' (idle period, default 3h) scales workloads to zero and deletes pods; 'Persistent Volume Claims (PVCs) and their data' are preserved. That is persistent_disk, not a state snapshot; no memory/process state kept.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.okteto.com/docs/core/use-volume-snapshots.md",
+      "quote": "Okteto Volume Snapshots allow you to initialize Persistent Volume Claims (PVCs) with data from a previously created snapshot.",
+      "note": "PVC-level (disk only, no memory) via Kubernetes VolumeSnapshot objects; new environments/namespaces can restore PVCs from it via dev.okteto.com/from-snapshot-name annotation. Needs CSI snapshot driver on self-hosted; BYOC uses csi-okteto storage class.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://www.okteto.com/docs/agentic.md",
+      "quote": "The [Okteto plugin for Claude Code](https://github.com/okteto/okteto-agent-skills) packages that knowledge as agent skills",
+      "note": "Current 'Agentic Workflows' = skills/plugin for an agent running outside (IDE/CI) that calls the Okteto CLI. The former 'Okteto AI' (ex 'AI Agent Fleets', beta Sept 2025, Claude Code per namespace driven from a dashboard UI) appears discontinued: release 1.48.0 (Sep 2026) says 'The `oktetoAI` and `prepullImages.includeAgent` settings have been removed from the Okteto Chart'. No documented API for it even when it existed.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.okteto.com/docs/self-hosted/helm-configuration.md",
+      "quote": "`egress`: Egress list of rules (NetworkPolicyEgressRule) to be applied on every namespace managed by Okteto (optional).",
+      "note": "Kubernetes NetworkPolicy (ipBlock CIDR + ports), admin-level Helm config applied to every Okteto namespace, 'Disabled by default'; enforced by the cluster CNI outside the container. Not per-sandbox and no hostname rules. Customer can additionally run their own policy tooling on their own cluster.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.okteto.com/docs/core/endpoints/private-endpoints.md",
+      "quote": "Private endpoints can only be accessed by Okteto users who have access to your Okteto namespace, and they'll need to provide their credentials before being granted access.",
+      "note": "Endpoints are public by default; annotation dev.okteto.com/auto-ingress: \"private\" makes them Okteto-auth protected. Admins can also set NetworkPolicy ingress rules (ipBlock/namespace/pod selectors) per namespace via Helm networkPolicies.ingress.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://www.okteto.com/docs/core/okteto-variables.md",
+      "quote": "Okteto Variables are a way to parametrize your [Okteto manifest](/docs/reference/okteto-manifest.md) and the deploy, destroy and test strategy.",
+      "note": "Secrets are Okteto Variables (admin/user/catalog), env vars and Kubernetes secrets; no credential-injecting proxy documented. New x-okteto-identity-token projects an OIDC ServiceAccount token into the container (workload identity), which is not a proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.okteto.com/docs/reference/okteto-manifest.md",
+      "quote": "A list of persistent volume claims (not managed by Okteto) that you want to mount in your development container.",
+      "note": "Any Kubernetes PVC (externalVolumes) plus the Okteto dev volume (persistentVolume, default 5Gi, configurable size/storageClass/accessMode).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://www.okteto.com/docs/reference/okteto-manifest.md",
+      "quote": "This is useful to share cache information between different development containers.",
+      "note": "Same external PVC mounted by several dev containers; simultaneous read-write needs a ReadWriteMany-capable storage class on the customer's cluster (default dev volume access mode is ReadWriteOnce).",
+      "checked": "2026-09-29"
+    }
   }
 }

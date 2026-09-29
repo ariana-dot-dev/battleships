@@ -1247,7 +1247,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -1269,7 +1269,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -1281,7 +1281,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": false,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1326,5 +1333,71 @@
     "applied": 19,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 10
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.lambda.ai/public-cloud/on-demand/creating-managing-instances/",
+      "quote": "At the moment, Lambda Cloud instances can only be launched, restarted, or terminated. To preserve state, we recommend using Docker to containerize your environment and performing regular backups of important data.",
+      "note": "No stop/sleep state at all; terminate discards the instance and its local SSD. Only attached filesystems persist.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.lambda.ai/public-cloud/on-demand/creating-managing-instances/",
+      "quote": "At the moment, Lambda Cloud instances can only be launched, restarted, or terminated.",
+      "note": "Cloud API has no snapshot or custom-image endpoints (images endpoint only lists Lambda-provided base images).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://cloud.lambda.ai/api/v1/openapi.json",
+      "quote": "POST /api/v1/instance-operations/launch - Launch instances",
+      "note": "Cloud API covers instances, filesystems, firewall rules, images, SSH keys, audit events, tickets only; no agent harness or exec API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.lambda.ai/public-cloud/firewalls/",
+      "quote": "You can restrict incoming traffic to the instances in a workspace, including 1-Click Cluster management (head) nodes, by creating firewall rules on the Firewall page in the Lambda Cloud console.",
+      "note": "Firewall rules and rulesets are inbound-only (API: 'List inbound firewall rules'; FirewallRule has source_network only). No outbound/egress controls documented; restrict egress in-guest if needed.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.lambda.ai/public-cloud/firewalls/",
+      "quote": "You can restrict incoming traffic to the instances in a workspace",
+      "note": "No provider-side egress control of any kind, so no HTTP-level rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.lambda.ai/public-cloud/firewalls/",
+      "quote": "By default, Lambda allows only incoming ICMP traffic or TCP traffic on port 22 (SSH).",
+      "note": "Global workspace rules (up to 100) plus per-instance rulesets (up to 128, attach at launch only); TCP/UDP port ranges and source IPv4/CIDR; managed via console or Cloud API.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "On-demand instances are VMs with root/sudo (virtio disks /dev/vda in docs' df output); iptables/nftables inside the guest should work. Not stated explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.lambda.ai/public-cloud/on-demand/",
+      "quote": "A filesystem is a unit of networked persistent storage you can connect to your instance.",
+      "note": "NFS-backed filesystems mounted at /lambda/nfs/<name> (custom mount points via file_system_mounts); must be attached at launch ('Filesystems can't be attached to running instances'), same region; up to 24 per account; 8 EB (10 TB in us-south-1). No block volumes.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.lambda.ai/public-cloud/1-click-clusters/",
+      "quote": "Lambda filesystems are automatically created and attached to each 1CC node, and can also be attached to Lambda On-Demand instances.",
+      "note": "Read-write NFS filesystem mounted by several instances/nodes at once. OpenAPI Filesystem schema (https://cloud.lambda.ai/api/v1/openapi.json): 'Information about a shared filesystem.'; filesystems doc: 'Your filesystem must be detached from all instances before it can be deleted.' Also remote access via Filesystem S3 Adapter in select regions; not mountable remotely via NFS.",
+      "checked": "2026-09-29"
+    }
   }
 }

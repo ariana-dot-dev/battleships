@@ -181,7 +181,16 @@
     "spend_limits": null,
     "mcp_server": false,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -255,5 +264,79 @@
   },
   "audit_2026_09_29": {
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.islo.dev/concepts/sandbox-lifecycle.md",
+      "quote": "When a timer fires, the platform **pauses** the VM: state is snapshotted, compute is released, and the sandbox no longer counts against running-sandbox quotas. Paused sandboxes keep their filesystem and can be resumed.",
+      "note": "Opt-in lifecycle policy set at creation (immutable): pause_after_idle (no exec/file I/O/port traffic) and/or pause_after (active-runtime cap); auto_resume=on_activity resumes transparently on the next exec/file/webhook. Memory included: 'files, processes, and in-memory state are restored on resume' (https://docs.islo.dev/cli/sandbox-commands.md, islo pause). Without a policy nothing pauses automatically.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.islo.dev/cli/snapshots.md",
+      "quote": "Snapshots let you capture the complete state of a running sandbox and restore it later.",
+      "note": "Named snapshots (islo snapshot save / POST snapshots) are filesystem-only ('The snapshot captures the entire filesystem state'), from a running sandbox; restore always creates a NEW sandbox ('Restoring from a snapshot creates a new sandbox'), so they work as templates/forks (many sandboxes from one snapshot). Memory-including state is only via pause/resume of the same sandbox (manual islo pause or API).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.islo.dev/concepts/automations.md",
+      "quote": "Harness and model live on the `run_agent` step, never in `line.toml`.",
+      "note": "Jobs / factory lines (API + CLI) run a first-party run_agent step with harness codex, claude, cursor or opencode (+ 'custom' exec) and a prompt; runs expose events (islo factory line-run events), follow-ups and mid-stage agent turns (line-run follow-up / agent-turn / ask), steer/stop/retry. Harness list from Islo's own skills repo (harness-models-knowledge.md: '`harness` must be a literal (`codex`, `claude`, `cursor`, or `opencode`)'). Also CLI: 'islo use --agent claude --task \"...\"' starts Claude Code/Cursor/Codex in a persistent background session and resumes Claude Code sessions on reconnect (https://docs.islo.dev/cli/agent-integration.md).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.islo.dev/cli/gateways.md",
+      "quote": "A gateway profile is a network policy plus an ordered set of rules — each rule matches outbound traffic by host (and optionally path/method) and decides whether to allow it, deny it, or inject credentials before forwarding.",
+      "note": "Gateway profile per sandbox: --default-action allow|deny (default-deny possible), host globs ('*.anthropic.com'), --internet-access true/false (also internet_enabled on create-sandbox). Host-based; no IP/CIDR rules documented. Rules changed after creation need sandbox recreate/reconnect.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.islo.dev/cli/gateways.md",
+      "quote": "Restrict to one or more HTTP methods (`GET`, `POST`, …)",
+      "note": "Per-rule path pattern, HTTP methods, rate limit (rpm), and request/response content filters (regex, content-type, size-limit, and an LLM 'judge' filter with Anthropic/OpenAI model per the API reference create-gateway-rule).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.islo.dev/cli/sharing.md",
+      "quote": "Islo lets you create shareable URLs for HTTP services running inside your sandbox.",
+      "note": "Ports are not public by default: you choose a port to share (islo share <sandbox> [port]) with a TTL (default 24h, e.g. 30m-7d) and revoke with islo unshare; shares are public HTTPS URLs (API: 'Create a temporary public share for a sandbox port'), no auth/IP allowlist on the share itself. Non-HTTP access via authenticated islo port-forward tunnel. Incoming webhooks authenticate (HMAC/bearer/basic) before delivering to a port.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Each sandbox is 'a microVM with its own kernel' (https://islo.dev/sandboxes) with root/sudo (setup scripts use sudo apt-get; Docker inside supported), so iptables/nftables inside should work. Not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.islo.dev/cli/gateways.md",
+      "quote": "Credentials never reach the sandbox process — authentication happens at the host/network layer.",
+      "note": "Gateway rules inject a stored provider key as bearer/basic/custom header for any host; integrations cover GitHub, Slack, Anthropic/OpenAI/Cursor and tenant custom services (API key or OAuth). Sandboxes see phantom placeholder env vars (values starting 'islo_p') replaced on egress (islo-labs/skills gateway-integrations.md). AWS: IAM role assumed via STS through the gateway, no long-lived keys in the sandbox (https://docs.islo.dev/integrations/aws.md). Git over HTTPS to GitHub covered; SSH/database protocols not documented. Islo inference (gateway.islo.dev) additionally provides platform-owned model credentials.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.islo.dev/api-reference/sandboxes/create-sandbox.md",
+      "quote": null,
+      "note": "Create-sandbox schema has disk_gb but no volume/mount fields; no volume concept anywhere in the docs index. Persistence is via pause/resume and snapshots. Users can self-mount S3 with mount-s3 via the AWS cloud-role integration (third-party FUSE, not a first-party volume).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.islo.dev/llms.txt",
+      "quote": null,
+      "note": "No shared volume/filesystem product. Sharing between sandboxes is only via snapshots (copy) or a user-mounted S3 bucket (mount-s3 over the AWS integration, read-write per IAM policy). 'Knowledge' is a versioned document store API, not a filesystem.",
+      "checked": "2026-09-29"
+    }
   }
 }

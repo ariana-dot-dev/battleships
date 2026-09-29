@@ -136,7 +136,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -171,7 +171,10 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "egress_allowlist_level": "ip",
+    "guest_firewall": false,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -198,5 +201,29 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://artillery.io/docs/reference/cli/run-fargate.md",
+      "quote": "Comma-separated list of AWS VPC security group IDs to launch Fargate tasks in",
+      "note": "BYOC: workers run in the customer's own AWS account, so egress control means AWS VPC security groups/subnets (IP/CIDR/port) selected via Artillery CLI flags (also on run-lambda); --no-assign-public-ip plus a private subnet with NAT makes 'test traffic comes from known IP addresses'. Enforced by AWS, not by Artillery. No equivalent flag documented for Azure ACI.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+      "quote": "Valid values: \"SYS_PTRACE\"",
+      "note": "Default worker platform is an AWS Fargate container, where the only Linux capability that can be added is SYS_PTRACE (no NET_ADMIN), so iptables/nftables inside the worker will not work; Lambda and Azure ACI containers likewise do not grant NET_ADMIN (not Artillery-documented). The --launch-type ecs:ec2 option runs on your own EC2 hosts, where this could differ.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://artillery.io/docs/reference/cli/run-fargate.md",
+      "quote": "Makes secrets (list separated by spaces) available to workers as environment variables. The secret must exist in SSM parameter store for the given region, under `/artilleryio/<secret-name>`",
+      "note": "Secrets are injected into workers as env vars from AWS SSM Parameter Store; no credential-injecting proxy.",
+      "checked": "2026-09-29"
+    }
   }
 }

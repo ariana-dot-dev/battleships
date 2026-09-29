@@ -1162,7 +1162,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1216,5 +1223,56 @@
     "applied": 21,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 17
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://cerebrium.ai/docs/performance/checkpointing.md",
+      "quote": "Ephemeral filesystem: Any files written to disk before the checkpoint are not copied to the restored container. Only memory is checkpointed.",
+      "note": "Serverless containers are stateless: scale-down after `cooldown` sends SIGTERM then SIGKILL (scaling-apps) with no state saved. The only checkpoint is the explicit, app-triggered one below; nothing is saved automatically on stop/idle.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://cerebrium.ai/docs/performance/checkpointing.md",
+      "quote": "Memory checkpointing takes a snapshot of a container's CPU memory and GPU memory, and uses it to speed up the startup of future containers.",
+      "note": "Early beta, opt-in via `[cerebrium.experimental] checkpointing = true`. Triggered by the app itself with a POST to the in-container sidecar http://169.254.169.253:8234/checkpoint (no external API/CLI). CPU+GPU memory included, filesystem NOT included; one checkpoint per build version ('skips checkpoint creation if: A checkpoint already exists for the current build version'); all later containers of that deployment restore from it (a cold-start template, not a user-managed fork/restore of a specific container).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Serverless inference platform (REST/WebSocket/async endpoints for your own functions, voice-agent examples). REST API covers projects/apps/builds/containers/runs/secrets/volumes; nothing drives Claude Code / Codex or any agent harness. Sitemap has only a generic blog article on sandboxing agent code, no sandbox product.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://cerebrium.ai/docs/toml-reference/toml-reference.md",
+      "quote": "`disable_auth` defaults to `true`, so omitting it leaves app endpoints callable without a token. Set `disable_auth = false` to require the JWT token",
+      "note": "Endpoints are public by default; per-app toggle to require a JWT bearer token. Functions prefixed with '_' are not exposed ('unless marked private by prefixing the function name with an underscore', inference-api). Custom runtime exposes one configured `port`. Inter-cluster routing keeps app-to-app traffic in-region, still authenticated unless auth disabled. No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://cerebrium.ai/docs/other-topics/using-secrets.md",
+      "quote": "Each secret is exposed to the app as an environment variable.",
+      "note": "Project- or app-level secrets, AES-256 at rest, loaded as env vars at container start (restart needed after change). No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://cerebrium.ai/docs/storage/managing-files.md",
+      "quote": "Cerebrium offers file management through a persistent volume that's available to all apps in a project. This storage mounts at `/persistent-storage`",
+      "note": "Not arbitrary attachable volumes: one default volume per region per project (id `default-<region>`), resizable 50 GB-1 TB via dashboard/API (no shrink); global apps also get a fixed 1 TB /global-persistent-storage. Pricing: first 100 GB free then $0.05/GB-month (card).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://cerebrium.ai/docs/storage/managing-files.md",
+      "quote": "It is a single volume shared across every region the app runs in: files written there are visible from all regions, and reads are cached per region.",
+      "note": "Read-write. The regional /persistent-storage is mounted by all apps/containers of the project at once; the global volume is shared across regions. Consistency/locking semantics not documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

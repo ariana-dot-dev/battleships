@@ -178,7 +178,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": null,
     "self_host": true,
@@ -198,7 +198,16 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "datacenter+residential",
-    "ip_note": "Anchor residential proxy $8/GB with country/region/city targeting; BYO HTTP/HTTPS/SOCKS5 proxy or proxyless egress billed $0.20/GB; dedicated sticky IP available; CAPTCHA solving from Starter ($50/mo), Extra Stealth on Growth."
+    "ip_note": "Anchor residential proxy $8/GB with country/region/city targeting; BYO HTTP/HTTPS/SOCKS5 proxy or proxyless egress billed $0.20/GB; dedicated sticky IP available; CAPTCHA solving from Starter ($50/mo), Extra Stealth on Growth.",
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -258,5 +267,71 @@
   "audit_2026_09_29": {
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/security.md",
+      "quote": "This VM is permanently terminated and erased upon session completion, ensuring that browsers are never reused and data remnants are eliminated.",
+      "note": "No machine/memory state is kept. Only opt-in browser profiles (browser.profile.persist: true) save cookies, localStorage and cache when the session ends and reload them in later sessions; Volumes persist files. Neither is a machine snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/api-reference/profiles/create-profile.md",
+      "quote": "Creates a new profile from a browser session. A Profile stores cookies, local storage, and cache.",
+      "note": "Nearest thing is POST /v1/profiles from a running session (stored when the session terminates); new sessions can start from the profile. Browser state only (cookies/localStorage/cache), no disk image, no memory, no fork of a live browser.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://docs.anchorbrowser.io/api-reference/ai-tools/perform-web-task.md",
+      "quote": "The AI agent to use for task completion. Defaults to browser-use.",
+      "note": "perform-web-task / agentTask SDK starts a built-in browser agent in the session from a prompt (agents: browser-use, openai-cua, gemini-computer-use, anthropic-cua, yutori); async variant with status polling; pause/resume agent (POST /v1/sessions/{id}/agent/pause|resume), human-in-the-loop requests/responses, webhooks. Browser agents only; no Claude Code/Codex/OpenCode.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/api-reference/ai-tools/perform-web-task.md",
+      "quote": "The AI agent to use for task completion. Defaults to browser-use.",
+      "note": "perform-web-task / agentTask SDK starts a built-in browser agent in the session from a prompt (agents: browser-use, openai-cua, gemini-computer-use, anthropic-cua, yutori); async variant with status polling; pause/resume agent (POST /v1/sessions/{id}/agent/pause|resume), human-in-the-loop requests/responses, webhooks. Browser agents only; no Claude Code/Codex/OpenCode.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.anchorbrowser.io/security.md",
+      "quote": "We also offer the ability to define granular whitelists of allowed domains, providing precise control over network access at the browser level.",
+      "note": "Stated only on the Trust & Security page; no session API parameter for it in the public OpenAPI spec, so probably configured per team/on request. Enforcement is 'at the browser level' (Anchor-managed browser).",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.anchorbrowser.io/api-reference/browser-sessions/start-browser-session.md",
+      "quote": "Generate a single-use live view URL. After the first viewer connects, the link becomes invalid. Requires a headful browser.",
+      "note": "No user ports are exposed. The only inbound endpoints are the CDP websocket (wss://connect.anchorbrowser.io?apiKey=...&sessionId=..., API-key authenticated) and the live view URL, which can be single-use and read-only (live_view.read_only). No IP allowlists.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/api-reference/ai-tools/perform-web-task.md",
+      "quote": "Secret values to pass to the agent for secure credential handling. Keys and values are passed as environment variables to the agent.",
+      "note": "Secret values (optionally scoped to domains) are hidden from the LLM and typed into the page at type-time ('Real values are never visible to the AI model'), but the real value is typed into the browser in the sandbox; this is not a network proxy injecting headers. Same for 1Password integration and managed identities (credentials used by Anchor to log in). Browser-only; no DB/SSH/git.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.anchorbrowser.io/advanced/volumes.md",
+      "quote": "A volume is a folder your team owns that outlives any single browser session.",
+      "note": "Mounted via browser.volume.id at session start; browser downloads land in downloads/; files readable/writable through the Volume Files API. Price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.anchorbrowser.io/advanced/volumes.md",
+      "quote": "A volume can be mounted by any number of sessions, read-write or read-only.",
+      "note": "Also: 'Several sessions can mount the same volume at once and see each other's files immediately.' Read-write or read-only (read_only: true); session-written files show in the API about a minute after writes stop.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -332,7 +332,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": false,
     "self_host": true,
@@ -361,7 +361,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": true,
+    "ingress_rules": false,
+    "secret_proxy": "ai-only",
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -403,5 +408,49 @@
     "applied": 14,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://buildkite.com/docs/agent/buildkite-hosted/cache-volumes",
+      "quote": "Version commits follow a \"last write\" model—whenever a job terminates successfully (that is, exits with exit code `0`), volumes attached to that job have a new parent committed—the final flushed volume of the exiting agent instance.",
+      "note": "Only cache volumes (paths declared under `cache:` in pipeline.yml, plus cluster-level container-cache and Git-mirror volumes), Linux + macOS, not Windows. Committed only on successful jobs; next job gets a fork of the last committed version. Best-effort: retained up to 14 days from last use, not guaranteed. Root/VM state and memory are always destroyed after each job. Pro/Enterprise only.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://buildkite.com/docs/agent/buildkite-hosted/network-security",
+      "quote": "For organizations building products where a zero-trust build environment and infrastructure is required, the recommendation is to use self-hosted agents to build these products.",
+      "note": "Hosted network-security docs cover only egress IP ranges for allowlisting on the customer's side (Networking > Network Ranges, REST network-ranges API; ranges shared across customers; dedicated static IPs via support). Self-hosted is recommended to \"Control network security rules directly.\" No provider-side egress filtering documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://buildkite.com/docs/agent/buildkite-hosted/terminal-access",
+      "quote": "The terminal access feature is available to users who have/are any of the following:",
+      "note": "No exposed ports/URLs at all on hosted agents; the only inbound path is permission-gated terminal access (Buildkite UI, `bk job ssh`), macOS desktop access, and org-level remote-access on/off. No IP allowlists/security groups for inbound. Value false = no user-configurable ingress for services.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://buildkite.com/docs/apis/model-providers/anthropic",
+      "quote": "The following headers are controlled by the Buildkite proxy and cannot be overridden by the client:",
+      "note": "Model providers (Anthropic only): agents call $BUILDKITE_AGENT_ENDPOINT/ai/anthropic with the per-job token ($BUILDKITE_AGENT_ACCESS_TOKEN); Buildkite injects x-api-key (Buildkite-hosted token on Pro/Enterprise, or your own BYO Anthropic key), so the real key never enters the agent. Works for Claude Code. Other secrets (Buildkite secrets, cluster-scoped) are fetched into the job as values; no generic credential-injecting proxy; no DB/SSH/git coverage.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://buildkite.com/docs/agent/buildkite-hosted/cache-volumes",
+      "quote": "Cache volumes (also known as volumes) are external volumes attached to Buildkite hosted agent instances, and are scoped to specific Buildkite clusters.",
+      "note": "NVMe-backed, min/default 20 GB, size per request, mounted at /cache/bkcache (Linux ext4; macOS sparse bundle). One cache volume per step; plus container-cache (Linux) and Git-mirror volumes. Best-effort attach, not durable. No extra charge (Pro/Enterprise).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://buildkite.com/docs/agent/buildkite-hosted/cache-volumes",
+      "quote": "Each job gets its own private copy of the volume, as it existed at the time of the last committed volume version.",
+      "note": "Volumes are shared across steps/branches of one pipeline only as copy-on-write forks (last successful writer wins), never mounted live by several jobs; \"volumes cannot be shared across multiple pipelines\".",
+      "checked": "2026-09-29"
+    }
   }
 }

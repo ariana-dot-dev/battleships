@@ -169,7 +169,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -217,5 +224,58 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/dev-box/how-to-hibernate-your-dev-box",
+      "quote": "Hibernation is a power-saving state that saves your running applications to your hard disk and then shuts down the virtual machine (VM). When you resume the VM, all your previous work is restored.",
+      "note": "Memory included (Windows hibernation). Automatic triggers: 'Automate hibernation for pools of dev boxes by using auto-stop schedules or stopping on session disconnect' (how-to-configure-dev-box-hibernation) plus hibernate-on-no-connect after a grace period. Stop-on-disconnect only works for hibernation-enabled definitions; hibernation only on 8/16 vCPU SKUs (32 vCPU can only shut down). Separately, SCHEDULED disk snapshots (not this feature): 'Microsoft Dev Box automatically takes short snapshots every 12 hours and long snapshots every seven days. It retains snapshots for 28 days on a rotating basis' (10 short + 4 long).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/dev-box/how-to-restore-from-snapshot",
+      "quote": "Take manual snapshots of your dev box to create restore points before making significant changes to your dev box, such as installing new software or making configuration changes.",
+      "note": "Developer portal 'Take snapshot', and data-plane REST `captureSnapshot` (added api-version 2024-10-01-preview) / `listSnapshots` / `restoreSnapshot` (routes.tsp). Disk-only (no memory). Restore is IN PLACE on the same dev box ('deletes data and apps added since the chosen snapshot. The restore process can take hours'); no documented way to boot a new dev box from a snapshot (no fork/template; images come from Azure Compute Gallery instead).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/dev-box/overview-what-is-dev-box-mcp-server",
+      "quote": "Dev Box lifecycle management**: Create, delete, start, stop, restart, and repair dev boxes across all your projects",
+      "note": "The Dev Box MCP Server lets an external AI agent manage dev boxes (lifecycle, schedules, customization tasks); it does not start/stream/resume an agent harness inside the dev box. No harness API documented.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/dev-box/how-to-configure-network-connections",
+      "quote": "An organization can control network ingress and egress by using a firewall, network security groups, and even Microsoft Defender.",
+      "note": "Only with an Azure network connection (bring-your-own vNet): NSG egress rules (IP/port/service tag) and Azure Firewall application rules (FQDN/FQDN tags) apply at the vNet level, outside the VM, per pool/subnet rather than per dev box. With the Microsoft-hosted network, Microsoft manages the network and no egress controls are offered. Required AVD/Intune/Windows 365 endpoints must stay allowed.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/dev-box/concept-dev-box-architecture",
+      "quote": "Dev box connectivity is provided by Azure Virtual Desktop. No inbound connections direct from the internet are made to the dev box.",
+      "note": "No public IP/ports; access only through Azure Virtual Desktop (RDP via Windows App/browser) authenticated with Microsoft Entra ID and Intune Conditional Access, or (preview) Dev Tunnels for VS Code, also governable by Conditional Access. BYO vNet adds NSG inbound rules. No way to publish an app port to the internet.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full Windows 11 Enterprise VM; pools can make users Local Administrators ('You can assign users to be either Local Administrators or Standard Users', how-to-manage-dev-box-pools), so Windows Defender Firewall rules can be configured inside (no nftables/iptables on Windows; WSL2 has its own kernel). Intune can also push firewall policy.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/dev-box/how-to-configure-customization-tasks",
+      "quote": "You can use secrets from your Azure key vault in your YAML configurations to clone private repositories or run tasks that require an access token.",
+      "note": "Only Key Vault secret references resolved into customization tasks (e.g. git PAT) inside the dev box; no credential-injecting proxy.",
+      "checked": "2026-09-29"
+    }
   }
 }

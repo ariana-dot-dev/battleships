@@ -158,7 +158,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -170,7 +170,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "ai-only",
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -195,5 +203,72 @@
     "applied": 12,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://coder.com/docs/user-guides/workspace-lifecycle.md",
+      "quote": "Stopped: Ephemeral resources destroyed, persistent resources idle",
+      "note": "Stop (manual, schedule or inactivity autostop) runs Terraform to destroy ephemeral resources; only template-defined persistent resources (e.g. home volume) survive. No memory/process save and no Coder-level snapshot. Anything more depends on the customer's infrastructure.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No snapshot/checkpoint concept in the Coder docs index, REST API or CLI reference. Coder is a self-hosted orchestrator over customer infra (Terraform templates); disk snapshots are only whatever the underlying cloud offers, outside Coder.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://coder.com/docs/ai-coder/agents.md",
+      "quote": "Coder Agents is a chat interface and API for delegating development work and research to coding agents in your Coder deployment.",
+      "note": "Harness: Coder's own Go agent ('coder-agents'). Chats API (/api/v2/chats; some endpoints /api/experimental): create chat with prompt, WebSocket stream, follow-up messages, interrupt, list/archive chats, sub-agents. Nuance: the agent loop runs in the Coder control plane and drives the workspace as its tool target, not a harness process inside the workspace. The older Tasks API (Claude Code/Codex/etc. inside the workspace via AgentAPI) is deprecated since v2.36 and 'no longer available by default'; coder/agentapi (Claude Code, Codex, Gemini, OpenCode, Goose, Aider, Amp, Copilot, Cursor CLI...) is archived/deprecated. Premium/licensed feature ('Agent Time' usage).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://coder.com/docs/ai-coder/agent-firewall.md",
+      "quote": "Agent Firewall offers network policy enforcement, which blocks domains and HTTP verbs to prevent exfiltration, and writes logs to the workspace.",
+      "note": "Agent Firewall (ex 'Agent Boundaries', Premium AI Governance) is a process-level jail inside the workspace (nsjail: netns+veth+iptables, needs CAP_NET_ADMIN; or landjail/Landlock), so it constrains the wrapped agent process, not a root user of the workspace; audit logs stream to the control plane. Machine-level egress (IP/CIDR) is whatever the template's infra provides, e.g. a Kubernetes NetworkPolicy created by the template (agent-isolation guide on main branch). Not a Coder-hosted network edge.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://coder.com/docs/ai-coder/agent-firewall.md",
+      "quote": "`method=POST domain=api.example.com path=/users,/posts` - allows specific methods, domain, and paths",
+      "note": "Agent Firewall rules engine: domain / method / path keys (no header rules documented). Same in-workspace process-jail caveat as above.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://coder.com/docs/user-guides/workspace-access/port-forwarding.md",
+      "quote": "`owner` (Default): The implicit sharing level for all listening ports, only visible to the workspace owner",
+      "note": "Port share levels owner / organization / authenticated / public per port; admins can cap the maximum share level per template (Owner disables sharing). Access otherwise via authenticated Coder tunnel (coder port-forward/SSH/Desktop). Infra-level inbound (security groups etc.) is up to the template.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://coder.com/docs/ai-coder/agent-firewall.md",
+      "quote": null,
+      "note": "Template-dependent: VM-based templates give full root; container templates need CAP_NET_ADMIN. Coder's own Agent Firewall nsjail mode uses iptables in a netns inside the workspace and 'Requires CAP_NET_ADMIN', showing it works when the template grants it.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://coder.com/docs/ai-coder/ai-gateway.md",
+      "quote": "Users use their Coder session or API tokens to authenticate with `coderd`, and `coderd` securely communicates with the upstream APIs on their behalf.",
+      "note": "AI Gateway (ex AI Bridge, Premium): OpenAI/Anthropic-style provider keys held centrally in coderd; the workspace holds only a Coder token (ANTHROPIC_AUTH_TOKEN=<coder token>). AI Gateway Proxy covers tools without base-URL override. Coder Agents keeps LLM keys in the control plane ('never enters the workspace'). General user secrets / Vault / external-auth tokens are injected into the workspace as env vars or files (\"Anyone with shell or file access to a workspace can read secrets injected\"). Git SSH keys are fetched on demand into memory, not a proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://coder.com/docs/get-started/customize-your-template/install-command-line-tools.md",
+      "quote": "To make Homebrew survive a restart, you'll edit the template and add a persistent volume.",
+      "note": "Volumes are declared in Terraform templates on the customer's infrastructure (docker_volume, Kubernetes PVC, cloud disks); Coder does not sell storage itself.",
+      "checked": "2026-09-29"
+    }
   }
 }

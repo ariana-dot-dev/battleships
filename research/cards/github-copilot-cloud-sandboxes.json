@@ -130,7 +130,7 @@
     "inbound_https": null,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": false,
@@ -149,7 +149,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": false,
@@ -161,7 +161,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "guest_firewall": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -200,5 +205,51 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes",
+      "quote": "When you stop a session, the cloud sandbox creates a snapshot of its state so you can pick up where you left off later. When you delete a session, both the running environment and the snapshot are removed.",
+      "note": "Cloud sandbox (copilot --cloud / Copilot app / SDK cloud sessions, built on Azure Container Apps Sandboxes). Triggered on session stop. The docs say resume restores 'your files, environment variables, and in-progress work', but do not say whether memory or running processes are included. Snapshot storage is billed at $0.005/GiB-month. Whether idle sessions auto-stop is not documented. The Actions-based Copilot cloud agent environment is ephemeral and has no auto snapshot.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/cloud-sessions",
+      "quote": "Cloud sessions run Copilot work on GitHub-hosted compute and appear in the agents panel on GitHub. Use them when your app should create a session that executes remotely instead of starting a local GitHub Copilot CLI session on the user's machine or your server.",
+      "note": "Copilot SDK (TS/Python/Go/.NET/Java/Rust): createSession({cloud:{repository}}), session.send(prompt), streamed events (assistant.message_delta, session.start), resumeSession(id). Plus the REST 'agent tasks' API (public preview): 'Use the REST API to start and manage Copilot cloud agent tasks' (start a task with prompt/model/custom_agent, list, get). Harness is Copilot's own agent. Third-party Claude and Codex coding agents also run on the cloud agent platform. Interactive copilot --cloud can't be combined with -p/-i.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall",
+      "quote": "By default, Copilot's access to the internet is limited by a firewall.",
+      "note": "Copilot cloud agent (Actions) firewall: org/repo 'Internet access' settings, recommended allowlist plus custom domain/URL allowlist, org can lock it. Caveats: 'Only applies to processes started by the agent via its Bash tool', not to MCP servers or setup steps, and 'Sophisticated attacks may bypass the firewall', so it is not a hard out-of-VM boundary. It is incompatible with Windows and self-hosted runners. IP-level control comes from larger runners with Azure private networking (your VNet/NSG). For cloud sandboxes (ACA) no egress settings are documented beyond 'Cloud sandbox policies share the same configuration as Copilot cloud agent policies' (ambiguous). The local sandbox has allowedHosts/blockedHosts, but that runs on your machine.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall",
+      "quote": "**URLs** (for example, `https://packages.contoso.corp/project-1/`). Traffic will only be allowed on the specified scheme (`https`) and host (`packages.contoso.corp`), and limited to the specified path and descendant paths.",
+      "note": "Scheme plus path-prefix allow rules only. No method or header rules. Cloud agent firewall, with the same bypass caveats as egress_allowlist.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Copilot cloud agent runs on GitHub Actions runner VMs (full VM, passwordless sudo on hosted Ubuntu runners), so iptables/nft should work. Unknown for cloud sandboxes (ACA Sandboxes).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/configure-secrets-and-variables",
+      "quote": "Variables and secrets that you configure are exposed to Copilot as environment variables, except secrets and variables prefixed with `COPILOT_MCP_`, which are only available to MCP servers.",
+      "note": "Agents secrets and variables (org/repo) are injected as env vars and masked in logs. No credential-injecting proxy. The model API is platform-side (Copilot), so there are no model keys in the sandbox.",
+      "checked": "2026-09-29"
+    }
   }
 }

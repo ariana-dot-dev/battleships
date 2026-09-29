@@ -217,7 +217,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -230,7 +230,13 @@
     "scoped_api_keys": null,
     "spend_limits": null,
     "mcp_server": true,
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "secret_proxy": "any-http"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -271,5 +277,57 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "if neither auto-pause nor auto-stop is set, non-ephemeral sandbox classes that support pausing default to an auto-pause interval of 60 minutes with auto-stop disabled",
+      "note": "Windows is a VM class that supports pause; idle auto-pause (default 60 min, configurable, 0 disables) preserves filesystem AND memory: 'The filesystem and memory state are preserved, and CPU is no longer consumed.' Resume continues processes. Stop (manual/auto-stop) only preserves the filesystem (offloaded to nearby storage).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Snapshot from sandbox <br />(filesystem + memory) | ✗             | ✓            | ✓           | ✗",
+      "note": "Lifecycle matrix: Windows column supports snapshot-from-sandbox cold (fs) and hot (fs+memory, includeMemory=True; SDK method _experimental_create_snapshot) and new Windows sandboxes boot from it; fork of a started Windows sandbox also copies filesystem + memory. Windows snapshots can only be produced this way (no base-image builds). Snapshot storage billed, rate unpublished.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/guides/brainbase/universal-harness-api.md",
+      "quote": "Daytona is the default sandbox provider for the Universal Harness API. Brainbase manages the sandbox for you",
+      "note": "No first-party harness API: Claude Code/OpenCode/Codex guides drive agents via generic exec/PTY/SSH; the only harness API is third-party (Brainbase). Guides are Linux-oriented anyway; Windows sandboxes target computer use.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/network-limits.md",
+      "quote": "Each sandbox runs behind a firewall that restricts which external IP addresses and domains it can reach",
+      "note": "networkAllowList (IPv4 CIDR), domainAllowList (wildcards) or networkBlockAll, set at create or updated live; Tier 1/2 orgs are forcibly restricted (essential services only), custom lists need Tier 3/4. Docs apply it to all sandboxes and do not exclude VM/Windows classes, but no Windows-specific confirmation (hence medium).",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/network-limits.md",
+      "quote": "Implement [domain allow listing](#domain-allow-list-format) on your own proxy to control which destinations the sandbox can reach.",
+      "note": "Firewall params are only CIDR / domain / block-all; outboundProxyUrl chains to YOUR upstream proxy (via HTTP_PROXY env), so any HTTP-level rules are customer-side, not Daytona's.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/preview.md",
+      "quote": "If a sandbox has its `public` property set to `true`, preview links are publicly accessible without authentication. Otherwise, authentication is required.",
+      "note": "Private-by-default preview URLs with sandbox-wide token (header) or signed per-port expiring revocable URLs; SSH via tokens. No IP allowlists; any port 1-65535 can be previewed (no port selection).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://www.daytona.io/docs/en/secrets.md",
+      "quote": "Secrets are organization-scoped, encrypted credentials that Daytona injects into a sandbox's outbound HTTPS traffic without ever placing the plaintext inside the sandbox.",
+      "note": "Arbitrary secrets with per-secret host allowlist; sandbox env var holds placeholder dtn_secret_...; proxy substitutes in HTTPS request headers only (no bodies, query, plain HTTP, Basic-auth-encoded), scrubs responses. No DB/SSH/non-HTTP. Docs are class-agnostic; not confirmed specifically for Windows VMs (needs proxy CA trust in the Windows store) - hence medium.",
+      "checked": "2026-09-29"
+    }
   }
 }

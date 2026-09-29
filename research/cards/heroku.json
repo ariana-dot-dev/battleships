@@ -649,7 +649,7 @@
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": null,
@@ -672,7 +672,7 @@
     "lang_java": true,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": null,
     "fork_running": null,
@@ -684,7 +684,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -710,5 +717,70 @@
     "applied": 45,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://devcenter.heroku.com/articles/dynos",
+      "quote": "Any files written get discarded the moment the dyno stops or restarts , including automatic restarts.",
+      "note": "Dynos restart from the deployed slug/image; no state is saved on stop/restart (Cedar dynos also cycle roughly daily).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://devcenter.heroku.com/articles/dynos",
+      "quote": "Each dyno gets its own ephemeral filesystem, with a fresh copy of the most recently deployed code.",
+      "note": "No dyno/machine snapshot or checkpoint API in the Platform API reference; only code releases (slugs) with rollback, and Heroku Postgres backups/forks for data add-ons.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://devcenter.heroku.com/articles/private-spaces",
+      "quote": "All outbound traffic from apps in a Private Space originate from a small, stable list of IP addresses dedicated to the space.",
+      "note": "Private Spaces offer only stable outbound IPs (for the destination to allowlist). The Platform API reference exposes an inbound-ruleset but no outbound ruleset, and the Heroku CLI has trusted-ips but no outbound-rules command. No egress filtering documented for Common Runtime, Private, Shield or Fir.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No egress control at all (see egress_allowlist).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://devcenter.heroku.com/articles/private-spaces-trusted-ip-ranges",
+      "quote": "You can restrict access to Heroku Private Spaces with the Trusted IPs feature. Each space has a set of trusted IP ranges, with each range represented in CIDR block notation.",
+      "note": "Private/Shield/Fir Spaces only: trusted IP ranges (CIDR, default 0.0.0.0/0; on Fir also covers heroku run and logs) and Cedar Internal Routing ('cannot receive external web traffic to their web process type'). Common Runtime apps: web dyno is public on herokuapp.com with no provider-side IP controls; only the web process type is routable.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://devcenter.heroku.com/articles/container-registry-and-runtime",
+      "quote": "containers are not run with root privileges in Heroku",
+      "note": "Dynos are hardened OS containers run as non-root; no iptables/nftables.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://devcenter.heroku.com/articles/config-vars",
+      "quote": "Config vars are exposed to your app’s code as environment variables.",
+      "note": "Secrets are config vars in the dyno environment; Managed Inference also provisions INFERENCE_KEY as a config var. No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://devcenter.heroku.com/articles/active-storage-on-heroku",
+      "quote": "Instead of storing uploaded files to disk, the best practice is to leverage a cloud file storage service such as Amazon’s S3.",
+      "note": "No persistent volumes for dynos; ephemeral filesystem only. Persistence via add-ons (Postgres, Key-Value Store, third-party S3 add-ons like Bucketeer).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://devcenter.heroku.com/articles/dynos",
+      "quote": "no files that are written are visible to processes in any other dyno",
+      "note": "No shared filesystem between dynos.",
+      "checked": "2026-09-29"
+    }
   }
 }

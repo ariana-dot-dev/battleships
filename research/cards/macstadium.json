@@ -296,7 +296,7 @@
     "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": true,
@@ -328,7 +328,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -369,5 +377,65 @@
         "price": "20% of annual spend"
       }
     ]
-  ]
+  ],
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/kubernetes-native/k8s-native-persistent-volumes.md",
+      "quote": "If you want to persist the storage of a standard Orka VM, use the VM commit, save, or push operations.",
+      "note": "Hosted Macs are always-on monthly hardware with no stopped/sleep state; Orka VMs persist only via explicit save/commit/push. 'Use saved state (optimizes startup)' exists for Intel only (not Apple silicon) and is a startup optimisation, not idle checkpointing.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.macstadium.com/orka/orka3-cli-reference/vm-lifecycle-management.md",
+      "quote": "Save a new image from a running VM. This saves the file system and the state of the OS, including any running applications. You can preserve the original image and deploy new VMs with the applied changes from the new image.",
+      "note": "Orka only (contact-sales product): `orka3 vm save` (new image), `vm commit` (update base image, restarts VM), `vm push` (to OCI registry, Apple silicon), via CLI/REST API/Web UI. New VMs boot from the image (template/fork). Treat as disk image: 'running applications' wording notwithstanding, saved (memory) state is listed as Intel-only. Bare hosted Macs (self-serve SKUs on the card) have no snapshots.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/orka-devops-integrations/claude-code.md",
+      "quote": "The Orka3 CLI agent skill gives AI coding agents deep knowledge of the Orka CLI and, when you're authenticated and connected to the VPN, the ability to run commands directly against your cluster.",
+      "note": "The only agent integration is an outside agent skill for driving the orka3 CLI; no API to run an agent harness inside a Mac/VM. CI plugins (Jenkins, Buildkite, TeamCity) only.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.macstadium.com/iaas/cisco-firewalls/network-firewalls-overview.md",
+      "quote": "Filter any Internet and internal traffic real-time. For example, pass traffic from selected IPs or IP ranges (like a Jenkins master) and block all other traffic.",
+      "note": "Dedicated Cisco ASAv/ASA/Firepower firewall per private cloud (included with Orka private clouds; a sales add-on for hosted Macs: 'To provision Firewalls in the MacStadium account, please contact sales'). Customer gets root on the firewall (ASDM/CLI/REST) or files change requests. Per-network ACLs, not per-machine API. Firepower/ASA 5500 list 'web filtering services' (possible domain/URL filtering, not documented in detail). Orka also has cluster-level 'VM Internet Isolation' ('When enabled, VMs cannot access the internet'), set at provisioning/upgrade. Plain hosted Mac without firewall: 'MacStadium gives the maximum flexibility by leaving all ports open to the internet'.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.macstadium.com/iaas/cisco-firewalls/allowing-specific-ips-to-access-macstadium-via-internet.md",
+      "quote": "This document describes how to configure a Static Network Address Translation (NAT) and Access Control List (ACL) on a Cisco ASA Firewall to allow external IP addresses to access the MacStadium hosts.",
+      "note": "Via the dedicated Cisco firewall (sales add-on / private cloud; outside access blocked by default, VPN recommended). Provider also blocks inbound TCP 5900 at the network edge for all hosted Macs since CVE-2026-65400. Without a firewall add-on a hosted Mac has a public IPv4 with all ports open.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.macstadium.com/iaas/cisco-firewalls/network-firewalls-configuration.md",
+      "quote": "Apple also includes a serviceable firewall with OSX.",
+      "note": "macOS with admin/root on dedicated hardware (or Orka VM): macOS application firewall and pf packet filter available (not nftables/iptables). Docs recommend a software firewall when no Cisco firewall is used.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.macstadium.com/orka/orka-resources/shared-vm-storage.md",
+      "quote": "Optionally, you may request to provision a secondary storage export that will be dedicated to shared storage.",
+      "note": "Orka only: extra storage = cluster-wide shared NFS export auto-mounted in VMs (on request; disabled by default on new Orka 3.5 deployments; per-instance shared disk sizing in 3.5.2 on AWS/on-prem). Per-VM Kubernetes persistent volumes 'are not applicable to standard Orka VMs'. No block-volume product for hosted bare Macs documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.macstadium.com/orka/orka-resources/shared-vm-storage.md",
+      "quote": "Starting with Orka 1.6.0, all deployed Intel-based VMs will have access to a shared storage volume in the cluster. Starting with Orka 2.1.0, all deployed ARM-based VMs will have access to the same shared storage.",
+      "note": "Read-write NFS-backed volume (/Volumes/orka; automount on ARM with Orka VM Tools, `mount_9p` on Intel) shared by all VMs in the cluster, for CI artifact caching. Orka (sales) only; off by default for new 3.5 deployments (support ticket).",
+      "checked": "2026-09-29"
+    }
+  }
 }

@@ -202,7 +202,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -217,7 +217,16 @@
     "sso": null,
     "isolation": "vm",
     "image_oci": true,
-    "pause_resume_note": "currently allowlist-only"
+    "pause_resume_note": "currently allowlist-only",
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "egress_allowlist_level": "both",
+    "egress_http_rules": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -293,5 +302,72 @@
   "audit_2026_09_29": {
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/agent-sandbox/product-overview/billing-overview",
+      "quote": "An idle sandbox instance automatically enters the light hibernation state through request sensing and memory snapshot technologies to reduce costs.",
+      "note": "Flash Edition only. Trigger: idle (CPU < 0.01 core, or network < 1,000 B/s, or no requests); wakes on next request (~1 ms claimed). Memory included (processes kept); vCPU not billed, RAM + disk still billed. Separately, deep hibernation 'The entire sandbox instance state, including memory, is saved as a snapshot in persistent storage' (Flash and Container); AgentRun overview says 'Instances with no traffic for an extended period enter a more power-efficient deep sleep mode' (https://www.alibabacloud.com/help/en/agentrun/what-is-agentrun), but Agent Sandbox docs only show deep hibernation via explicit sandbox.pause() (allowlist-only), with auto-resume on connect. autoPause/autoResume create options are mentioned on the Snapshot page but not documented.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://help.aliyun.com/zh/agent-sandbox/user-guide/snapshot-invited-test",
+      "quote": "Snapshot 保存运行中沙箱的文件系统与内存状态，可从快照秒级启动同样状态的新沙箱。",
+      "note": "Translation: 'Snapshot saves the filesystem and memory state of a running sandbox; new sandboxes with the same state can be started from it in seconds.' Flash Edition: invite-only (allowlist), second-gen MicroVM runtime only, running sandboxes only, retained 7 days by default, named/tagged, Sandbox.create(snapshotId) = 1:N fork. Container Edition: Checkpoint via E2B create_snapshot or Checkpoint CR, filesystem only (memory not supported yet), clone via Sandbox.create(snapshotId), optional TTL. Billed as disk (memory + disk size, no 15 GiB allowance).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/agent-sandbox/user-guide/network-access-control",
+      "quote": "Each entry in allowOut can be a CIDR / bare IP / domain (\"example.com\", \"*.example.com\"); denyOut also supports IP / CIDR / domain.",
+      "note": "Flash Edition: allowInternetAccess=false (deny-all) + allowOut/denyOut, updatable at runtime via updateNetwork (the E2B compatibility page contradicts this: 'Network Config Update currently returns success without applying an actual network change'). Domain matching only on HTTP:80 Host and TLS:443 SNI; other ports IP/CIDR only; DNS 8.8.8.8 auto-allowed. VPC mode: the customer security group 'controls outbound access'. Container Edition: Kubernetes NetworkPolicy / TrafficPolicy CRD (CIDR, Service, FQDN) and node security groups.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/agent-sandbox/user-guide/manage-agent-sandbox-egress-traffic",
+      "quote": "In addition to general L7 control dimensions such as domain, path, HTTP method, request headers, and query parameters, SecurityProfile can also control MCP (Model Context Protocol) tool calls",
+      "note": "Container Edition only (ACK/ACS, enhanced-traffic-policy mode with a traffic-proxy sidecar and egress gateway); block rules by domain/path (prefix/exact/regex)/method/headers/query/port, plus MCP tool-level ACL; HTTPS needs TLS termination enabled per domain. Flash Edition only has per-domain header add/override (network.rules), no HTTP-level block rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/agent-sandbox/user-guide/network-access-control",
+      "quote": "allowPublicTraffic: false: every request to the public URL must carry the e2b-traffic-access-token header, whose value is the trafficAccessToken returned when the sandbox was created; requests without the token or with an invalid token return 403.",
+      "note": "Default allowPublicTraffic=true: any port's getHost() URL is public without auth. Tokenized mode set at creation only. Private access via PrivateLink endpoint (<region>-vpc domain) inside your VPC. Container Edition: TrafficPolicy ingress rules, SandboxGateway for data-plane ingress, TrafficAccessToken auto-rotation. No IP allowlist on the public URL documented for Flash.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://help.aliyun.com/zh/agent-sandbox/user-guide/runtime-gen1-vs-gen2",
+      "quote": "仅支持 Ubuntu/Debian 系镜像。镜像需保留 systemd、openssh-server、sudo、chrony、fuse3、iptables 等系统组件，或保证 apt-get 可用；不支持 Alpine、BusyBox 等精简 rootfs",
+      "note": "Second-gen runtime (MicroVM, beta) images must keep sudo and iptables and support Docker inside, which implies own kernel + root, so in-guest iptables should work (not stated explicitly). First-gen runtime (container, no Docker-in-sandbox) unknown. Container Edition docs mention NET_ADMIN only as something L7 policies cannot override.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://www.alibabacloud.com/help/en/agent-sandbox/user-guide/outbound-request-header-transformation",
+      "quote": "With network.rules, when the sandbox sends HTTP/HTTPS requests to specified domains, the platform can add or override request headers, or replace credential placeholders in header values. Real credentials never enter the sandbox as environment variables, files, or code.",
+      "note": "Flash Edition: per-domain full-header injection or placeholder replacement at the node egress proxy (TLS inspection with platform CA; images built after 2026-08-15 / official v0.0.44+). Container Edition: SecurityProfile tokenTransformation at the egress gateway, API-key injection for arbitrary third-party APIs and Alibaba Cloud AK/SK/STS injection with request re-signing, secrets from Kubernetes Secret, KMS or RAM-role STS via CredentialProvider, gated per AgentIdentity (https://help.aliyun.com/zh/agent-sandbox/user-guide/inject-credentials-for-agent-sandbox-egress: '真实凭据存储在集群侧（Kubernetes Secret 或 CredentialProvider），由平台统一管理。'). HTTP(S) headers only; no DB/SSH/git protocols.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/agent-sandbox/user-guide/mount-oss-volume",
+      "quote": "When creating a sandbox, use volume_mounts to mount an existing OSS Volume to a specified directory. The sandbox can then access OSS through file paths, and the data is not deleted when the sandbox is released.",
+      "note": "Network/bucket filesystems, not block volumes: OSS Volume and AgenticFS (NAS) Volume (invited preview), dynamic OSS mount via metadata; gen1 runtime also NAS, PolarLakebase, JuiceFS Enterprise. Mounted at create time; read_only flag. Container Edition: OSS/AgenticFS/NAS PVs via CSI, incl. dynamic mount while running. Storage billed by OSS/NAS, not by Agent Sandbox.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://www.alibabacloud.com/help/en/agent-sandbox/user-guide/acs-agent-sandbox-security-best-practices",
+      "quote": "Unless write access is explicitly required, always mount shared storage volumes as read-only.",
+      "note": "Read-write or read-only. Container Edition OSS/AgenticFS PVs use accessModes ReadWriteMany; Flash Edition named Volumes are Team-level configs mounted by name at sandbox creation, and the API list says 'Data that must be retained, shared, or preserved across sandboxes should be written to external storage such as NAS or OSS.' No explicit statement of concurrent multi-sandbox mounts on the Flash Volume pages.",
+      "checked": "2026-09-29"
+    }
   }
 }

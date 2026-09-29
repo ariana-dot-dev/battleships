@@ -320,7 +320,15 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -356,5 +364,64 @@
   "audit_2026_09_29": {
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://shellbox.dev/",
+      "quote": "After the last SSH session disconnects, wait 120 seconds, then pause. Snapshot saves processes, shell history, and TCP state; restored on next connect.",
+      "note": "Trigger: last SSH session disconnects (+120 s grace), idle timeout in wakeup mode, end of a cron run window, or balance < $5. Memory included (Firecracker/CH memory snapshot on NVMe); restored transparently on next SSH/HTTP connect (~3 s claimed, blog says under a second).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://shellbox.dev/",
+      "quote": "Filesystem cloned. Memory snapshot copied.",
+      "note": "`ssh shellbox.dev stop <name>` snapshots (memory + disk) at any time; `duplicate <src> <new>` forks a box incl. its memory snapshot via btrfs reflink (FAQ: 'duplicate a stopped box as a point-in-time copy'). No named snapshot list / rollback-in-place; each copy is a whole box (billed as a parked slot).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://shellbox.dev/",
+      "quote": "Start a tmux or zellij session, launch your agent, and disconnect:",
+      "note": "The FAQ tells you to run Claude Code/Codex yourself inside the box over SSH; the complete command reference (help --json) has no agent/harness commands.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://shellbox.dev/",
+      "quote": "HTTP requests to this URL are proxied to port 80 on your box.",
+      "note": "Every box gets a public HTTPS URL (port 80 only) plus a stable public IPv6 reachable for ssh/mosh/raw TCP-UDP while running. No auth, private-URL, IP allowlist or port-selection controls documented; custom domains only add hostnames. The fixed port-80 routing is the only provider-side restriction on the HTTPS path.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Firecracker (default) or Cloud Hypervisor microVMs, 'each with its own kernel and disk', login as root. Given the directly public IPv6, an in-guest firewall is the only way to filter inbound. Not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://shellbox.dev/",
+      "quote": "Your private key never leaves your machine.",
+      "note": "No secret store or credential proxy. The docs recommend SSH agent forwarding for git (key stays on the client, but a live agent socket is exposed in the box while connected) or pasting tokens / copying private keys into the box.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://shellbox.dev/",
+      "quote": "Size is set at creation and cannot be changed — delete and recreate to resize.",
+      "note": "Disk is fixed by size multiplier (50 GB per x1, up to 400 GB at x8); no volume commands in the command reference.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No shared volume / network FS documented; duplicate reflink-shares blocks copy-on-write but each box gets its own independent disk.",
+      "checked": "2026-09-29"
+    }
   }
 }

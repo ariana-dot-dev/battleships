@@ -433,7 +433,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -481,5 +490,72 @@
     "applied": 15,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html",
+      "quote": "Lambda freezes the execution environment when the runtime and each extension have completed and there are no pending events.",
+      "note": "Idle environments are only frozen in place and later shut down (state lost; /tmp may survive only on warm reuse). SnapStart snapshots are taken at version publish, not on stop/idle. Durable functions checkpoint workflow steps and recover by replay (application-level, not machine state).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html",
+      "quote": "With SnapStart, Lambda initializes your function when you publish a function version. Lambda takes a Firecracker MicroVM snapshot of the memory and disk state of the initialized execution environment",
+      "note": "SnapStart is the closest thing: memory+disk Firecracker snapshot of the post-init state, taken when you publish a version (PublishVersion API), and every new execution environment resumes from it. But you cannot checkpoint an arbitrary running environment and resume/fork it; only Java 11+, Python 3.12+, .NET 8+; not with EFS, S3 Files, provisioned concurrency or >512 MB /tmp.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/agent-setup-guide.html",
+      "quote": "By configuring your agent with the right combination of plugins, skills, and MCP Servers, you equip it with expertise required to build and manage serverless applications.",
+      "note": "Lambda's only agent material is for local coding agents (Claude Code, Codex, Kiro, OpenCode...) building Lambda apps via MCP/skills; no API to run a harness inside a function. AWS's agent-runtime product is Bedrock AgentCore (separate product, not on this card).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html",
+      "quote": "Security groups control inbound and outbound traffic for your resources, and network ACLs control inbound and outbound traffic for your subnets.",
+      "note": "Only for VPC-attached functions (non-VPC functions get unrestricted internet). A VPC function in a private subnet with no NAT has no internet at all. Domain-level filtering is possible only via separate VPC services (AWS Network Firewall / Route 53 Resolver DNS Firewall), not Lambda itself.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html",
+      "quote": "AWS_IAM – Lambda uses AWS Identity and Access Management (IAM) to authenticate and authorize requests based on the IAM principal's identity policy and the function's resource-based policy.",
+      "note": "No inbound ports at all; the only ingress is invocation (Function URL with AWS_IAM or NONE auth, API Gateway, resource-based policies).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/images-create.html",
+      "quote": "Lambda follows security best practices by defining a default Linux user with least-privileged permissions.",
+      "note": "Firecracker microVM, but code runs as an unprivileged user with no root / CAP_NET_ADMIN, so iptables/nftables cannot be used.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/with-secrets-manager.html",
+      "quote": "AWS parameters and secrets Lambda extension - A runtime-agnostic solution that provides a simple HTTP interface for retrieving secrets",
+      "note": "Secrets are env vars (KMS-encrypted) or fetched into the function via Secrets Manager/Parameter Store extension; the real secret enters the environment.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-filesystem.html",
+      "quote": "You can configure a Lambda function to mount a file system to a local directory. Lambda supports the following file system types: Amazon Elastic File System (Amazon EFS) – Serverless file system that scales automatically with your workloads. Amazon S3 Files – Serverless file system for mounting your Amazon S3 bucket.",
+      "note": "Network file systems only (no block volumes); function must be VPC-attached; EFS or S3 Files, not both. Ephemeral /tmp configurable 512 MB-10 GB.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-filesystem-efs.html",
+      "quote": "With Amazon EFS, your function code can access and modify shared resources safely and at high concurrency.",
+      "note": "Read-write (or read-only connections without ClientWrite); NFS on port 2049; shared across all concurrent environments and other compute.",
+      "checked": "2026-09-29"
+    }
   }
 }

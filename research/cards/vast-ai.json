@@ -1547,7 +1547,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -1564,7 +1564,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -1576,7 +1576,13 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1625,5 +1631,63 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.vast.ai/guides/instances/manage-instances",
+      "quote": "Stop Button (square icon): Pauses instance, preserves data, continues storage charges",
+      "note": "Stopping keeps the container disk on the host (persistent_disk), processes/memory are not saved; no automatic checkpoint on stop/idle is documented. No idle auto-stop.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://github.com/vast-ai/vast-cli/blob/master/vast.py",
+      "quote": "Takes a snapshot of a running container instance and pushes snapshot to the specified repository in container registry.",
+      "note": "vastai take snapshot INSTANCE_ID --repo ... (POST /instances/take_snapshot/{id}/): docker-commit style, filesystem only (optionally pauses processes during commit), pushed to YOUR registry (docker.io default); new instances can boot from that image. Found in the official CLI source, not in the docs site (the docs page for take-snapshot 404s). Also volume clone (vastai clone volume) and vastai copy for data.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.vast.ai/guides/get-started/agents",
+      "quote": "A **skill** or **plugin** lets an agent operate your **account** — find, rent, launch, and tear down instances.",
+      "note": "Vast's agent integration is the reverse direction (skills/plugins for Claude Code/Codex/Cursor that drive the Vast CLI). Inside instances only SSH/Jupyter and a constrained 'vastai execute' command API; no API to drive an agent harness in the instance.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.vast.ai/guides/instances/connect/networking",
+      "quote": "Vast.ai docker instances have full internet access, but generally do not have unique IP addresses.",
+      "note": "No provider-side egress controls documented; Security FAQ: 'Network restrictions depend on the host configuration. Some options: Use SSH key authentication (no passwords); Configure firewall rules in your container; Select providers with static IPs for IP whitelisting'. Marketplace of third-party hosts.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.vast.ai/guides/reference/faq/security",
+      "quote": "Network restrictions depend on the host configuration.",
+      "note": "No egress controls of any kind; no HTTP-level rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.vast.ai/guides/instances/connect/networking",
+      "quote": "You can open custom ports for any docker image using -p arguments in the docker create/run options box in the image config editor pop-up menu.",
+      "note": "Only control is choosing which ports are exposed (mapped to random external ports on a shared host IP, max 64). No provider-side IP allowlists or security groups (Security FAQ points to in-container firewall). Instance Portal tokens (OPEN_BUTTON_TOKEN) and Cloudflare quick tunnels are implemented inside Vast base images, not enforced by the platform.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.vast.ai/cli/reference/create-env-var",
+      "quote": "Create a new user environment variable",
+      "note": "Secrets are account-level environment variables injected into instances (and template env); no credential-injecting proxy. Security FAQ advises 'Don't store credentials in instances'.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.vast.ai/guides/instances/storage/volumes",
+      "quote": "We currently provide **local volumes only**, meaning: A volume is physically tied to the machine it was created on. It can only be attached to instances running on the same physical machine.",
+      "note": "Local volumes survive instance destruction and can be reattached to new instances on the same host; fixed size; Docker instances only (not VMs); billed per GB while they exist at host-set rates. The official CLI also has 'vastai create network volume' / 'search network volumes' (network volume offers) not described in the docs guides; migration guide says 'Vast has no cross-host network volume.'",
+      "checked": "2026-09-29"
+    }
   }
 }

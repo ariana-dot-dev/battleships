@@ -899,7 +899,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": false,
     "live_resize": null,
     "fork_running": false,
@@ -913,7 +913,16 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -982,5 +991,78 @@
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Fargate tasks have no stop/pause-resume lifecycle: a stopped task is gone and its ephemeral storage with it; state survives only on attached EBS (if not deleted on termination) or EFS.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ebs-volumes.html",
+      "quote": "You can either configure new, empty volumes for attachment, or you can use snapshots to load data from existing volumes.",
+      "note": "No task/container checkpoint (no memory, no root-filesystem snapshot). Only an attached EBS data volume can be snapshotted (EC2 EBS snapshot API) and used to seed volumes for new tasks.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Generic container service; only ECS Exec (interactive command execution) exists, no agent-harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html",
+      "quote": "You can specify the destination, port range, and protocol for each outbound rule.",
+      "note": "Per task: awsvpc ENI with up to 5 security groups (IP/CIDR/port egress rules). Domain level at VPC/subnet level via AWS Network Firewall ('You can create allow lists and deny lists with domain names that the stateful rules engine looks for in network traffic.', stateful-rule-groups-domain-names) or Route 53 Resolver DNS Firewall; both separately billed. Private subnet with no NAT = no internet.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/suricata-examples.html",
+      "quote": "pass http $HOME_NET any -> any any (msg:\"Allow WebSocket Upgrade\"; flow:established; http.connection; content:\"Upgrade\"; http.header; content:\"websocket\"; sid:1200001; rev:1;)",
+      "note": "Via AWS Network Firewall Suricata rules (HTTP header/host/URI keywords); VPC/subnet-level, not per task; HTTPS needs Network Firewall TLS inspection. Separate paid service.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html",
+      "quote": "You can specify the source, port range, and protocol for each inbound rule.",
+      "note": "Security groups on each task ENI; public IP optional ('When using a public subnet, you can optionally assign a public IP address to the task's ENI.'); private subnets + ALB/API Gateway for HTTPS.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-security-considerations.html",
+      "quote": "Additional Linux capabilities, such as CAP_SYS_ADMIN and CAP_NET_ADMIN, are restricted to prevent a privilege escalation.",
+      "note": "Fargate only allows adding SYS_PTRACE, so iptables/nftables inside the task cannot work.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html",
+      "quote": "They're referenced as environment variables that use the secrets container definition parameter.",
+      "note": "Secrets Manager / SSM Parameter Store values are injected into the container as env vars (or log driver options); no credential-injecting egress proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ebs-volumes.html",
+      "quote": "You can either configure new, empty volumes for attachment, or you can use snapshots to load data from existing volumes.",
+      "note": "One EBS volume per task (at launch) plus EFS mounts; ephemeral storage 20-200 GB.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/efs-volumes.html",
+      "quote": "That way, your tasks have access to the same persistent storage, no matter the instance on which they land.",
+      "note": "Amazon EFS (NFS) mounted read-write by many tasks concurrently (readOnly option available); EBS task volumes are single-task.",
+      "checked": "2026-09-29"
+    }
   }
 }

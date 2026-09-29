@@ -286,7 +286,15 @@
     "anti_bot": true,
     "captcha_solving": null,
     "egress_ip_type": "datacenter",
-    "ip_note": "Default datacenter IPs; a custom Chromium fork keeps X, LinkedIn and most sites working (owner-reported)"
+    "ip_note": "Default datacenter IPs; a custom Chromium fork keeps X, LinkedIn and most sites working (owner-reported)",
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": 26.69,
@@ -371,5 +379,77 @@
     "applied": 7,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.boat.dev/snapshots.md",
+      "quote": "They are taken **every minute** while the sandbox is ready or idle, and a final one when it **stops**.",
+      "note": "Automatic incremental filesystem snapshots every minute while running plus a final one on stop (manual stop, TTL auto-stop, balance cutoff); resume restores the latest. Disk only: 'Running processes, memory, open ports' are not captured, so resume = reboot (enabled systemd services restart). A stop is refused if the final snapshot fails. Can be turned off per account/sandbox ('snapshots off').",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.boat.dev/api/reference/snapshots/save-named-snapshot.md",
+      "quote": "Freeze a sandbox's current state under a name (`boat snapshot <id> <name>` in the CLI). Answers `202` immediately with the snapshot in `saving`; a running sandbox takes a fresh capture first, which can run minutes.",
+      "note": "Named snapshots (templates) of running or stopped sandboxes, up to 10, no expiry; `boat new --from <name>` boots any number of new sandboxes from them; `boat fork` copies a sandbox's current filesystem into a new one. Filesystem only, no memory. The snapshots page also says 'You never take one by hand' about the rolling per-minute snapshots.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.boat.dev/api/reference/agent/prompt-sandbox-agent.md",
+      "quote": "Queue a natural-language work item for an agent harness (Codex, Claude Code, pi, OpenCode, or Prime Agent) inside the sandbox. Observe progress with `GET /sandboxes/{sandboxId}/events`.",
+      "note": "POST /prompt + events stream, GET /conversations (list/resume), POST /steer (mid-turn follow-up), interrupt (all or one conversation), per-prompt harness/model switch with context carry-over; CLI `boat prompt`/`boat steer`/`boat conversations`; Python/TS SDKs. integrated-agents.md also lists Kimi Code: 'Claude Code, Codex, pi, OpenCode, Prime Agent, and Kimi Code'.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.boat.dev/integrations/eve.md",
+      "quote": "Boat does not yet enforce Eve's fine-grained network policies. The backend accepts `\"allow-all\"` and throws `EveSandboxUnsupportedError` for stricter policies (`\"deny-all\"`, allow-lists, subnet rules), so you never get a false sense of isolation.",
+      "note": "No provider-side egress policy anywhere in the docs; FAQ points to in-VM controls instead. Stated on the Eve integration page, not a platform-level 'not supported' statement, hence medium.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.boat.dev/integrations/eve.md",
+      "quote": "Boat does not yet enforce Eve's fine-grained network policies.",
+      "note": "No provider-side egress control of any kind, so no HTTP-level rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.boat.dev/hosting.md",
+      "quote": "A fresh `host <port>` URL is protected by default and includes `_token`.",
+      "note": "HTTPS URLs only for ports you expose with `host <port>` (up to 50), token-gated by default or public. No IP allowlists/security groups. Raw access to the sandbox IP is opened by the user 'with `ufw`' inside the VM, i.e. a guest firewall, not a provider-side control.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.boat.dev/faq.md",
+      "quote": "Sandboxes are full VMs with sudo, so you can add any controls you need inside them (firewall rules, proxies, encryption).",
+      "note": "Full VM with its own kernel and sudo; hosting.md also tells users to open raw ports 'yourself with `ufw`'.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.boat.dev/environments.md",
+      "quote": "Your environment's variables, your GitHub token, and your model credentials if you configured agents (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, `CHATGPT_ACCOUNT_ID`)",
+      "note": "Secrets, model keys, GitHub token and credential files are written into the sandbox (env vars / files). Mitigations are withholding instead of proxying: 'safe for third parties' / --no-env environments pass nothing and scrub owner secrets on resume/fork. No injection proxy documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.boat.dev/machines.md",
+      "quote": "\"Disk\" is what your own files can grow to; the operating system and pre-installed tools sit outside it.",
+      "note": "Disk is fixed per size (12/50/125/251 GB); no volume product, attach API or extra-disk purchase anywhere in docs/API reference. More disk = bigger size.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.boat.dev/machines.md",
+      "quote": "\"Disk\" is what your own files can grow to; the operating system and pre-installed tools sit outside it.",
+      "note": "No volumes or shared filesystem at all; sharing only by copy (fork, named snapshot, snapshot download).",
+      "checked": "2026-09-29"
+    }
   }
 }

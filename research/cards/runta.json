@@ -141,7 +141,15 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -188,5 +196,64 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://runta.com/docs/runtime/auto-suspend-and-wake-up/",
+      "quote": "Send another request to wake the runtime. The wake-up path restores the runtime\nand then proxies the original request:",
+      "note": "Opt-in, preview: idle_policy suspend_only or suspend_and_wakeup (default disabled) suspends a runtime after N s without inbound HTTP traffic (scan every 60 s) and restores it on the next request / explicit start. Pricing bills suspended runtimes for 'Disk storage only', so state is saved off the host RAM; whether running processes (memory) survive suspend is not stated explicitly.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://runta.com/docs/runtime/checkpoints/",
+      "quote": "A checkpoint is a point-in-time capture of a runtime’s state, including filesystem and running processes.",
+      "note": "Memory included (kind full/live = 'Full VM snapshot'; cold = disk-only of a shut-down runtime, per openapi.yaml CreateCheckpointRequest). 'Restoring a checkpoint creates a new runtime', so one checkpoint can seed many runtimes (fork); Cloud Agents can also be created from a checkpoint. Checkpoint storage price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://runta.com/docs/cloud-agents/",
+      "quote": "By default, each new Cloud Agent gets its own Runta runtime with one managed Pi\nagent instance. Send a prompt through the REST API, watch the agent work, and\ncollect its reply or files.",
+      "note": "Pi only: 'Cloud Agents currently use Pi RPC. The harness.kind field does not select Codex CLI or Claude Code.' REST /v2/agents: create agent, POST runs (prompt + images), SSE event stream with reconnect cursor, follow-ups (steer active run), resume, cancel, list runs, sessions kept across runs, workspace files and artifacts, VNC computer sessions. Several harnesses can share one runtime. Model via managed provider (OpenAI/Anthropic/Kimi/compatible API or a connected Codex subscription). Exo Harness is also offered as a built-in runtime image, driven via web terminal (no separate API documented).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://runta.com/docs/runtime/egress/",
+      "quote": "Policy entries are hostnames or wildcard host patterns, not URLs:",
+      "note": "Per-runtime allowlist or denylist mode (default = empty denylist, i.e. open), set via CLI/SDK/API and replaceable on a running runtime; enforced by Runta's egress gateway. No IP/CIDR or port rules documented.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://runta.com/docs/runtime/publish-a-service/",
+      "quote": "Runta can make your agent publicly accessible.\nEach runtime can publish up to 16 ports.",
+      "note": "Only ports you list in ingress_specs (http/https, up to 16) are published at https://<port>-<runtime_id>.runta.dev; nothing is exposed by default. Published ports are public: no auth token, private mode or IP allowlist documented. Image web UIs (e.g. desktop) are 'published through the runtime's ingress on demand, behind a session gateway' (openapi.yaml); VNC uses expiring credentials.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://runta.com/docs/runtime/secrets-and-secret-injection/",
+      "quote": "Secret stubs match a destination host and optional path. The literal\n${credential} placeholder is replaced with the stored secret value when the\negress gateway injects the outbound request.",
+      "note": "'Runta can authenticate your agent’s request without exposing real credentials to your agents.' Arbitrary host + path pattern, header + template (e.g. Bearer ${credential}); tenant secret store with cache TTL. Also used for Cloud Agent model providers and Codex subscription tokens ('the guest receives neither the real token nor a Codex credential file'). Only HTTP header injection documented; no DB/SSH/git-over-SSH.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://runta.com/openapi.yaml",
+      "quote": null,
+      "note": "The full public OpenAPI contract (runtimes, checkpoints, secrets, images, files, agents) has no volume resource; storage is the runtime's own disk (16-256 GiB, resizable disk_gib). Not explicitly denied in prose.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://runta.com/openapi.yaml",
+      "quote": null,
+      "note": "No shared volume / network filesystem / bucket mount in the API. Multiple Cloud Agent harnesses can share one runtime (same computer), which is not a shared volume.",
+      "checked": "2026-09-29"
+    }
   }
 }

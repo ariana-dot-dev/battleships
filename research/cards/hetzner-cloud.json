@@ -1346,7 +1346,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": false,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -1358,7 +1358,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1468,5 +1477,79 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/backups-snapshots/faq",
+      "quote": "Snapshots are never deleted or updated automatically.",
+      "note": "Powered-off servers simply keep their local disk (persistent_disk, still billed 100%). Same page's comparison table: Snapshots 'Never created automatically'. Optional daily Backups (+20% of server price, 7 slots, deleted with the server) are scheduled disk copies, not stop-triggered snapshots. No memory state anywhere.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.hetzner.cloud/cloud.spec.json",
+      "quote": "Creates an Image (snapshot) from a Server by copying the contents of its disks.",
+      "note": "POST /servers/{id}/actions/create_image (API, CLI hcloud, Console); running or stopped (shut down recommended for consistency). Disk only, no memory; attached Volumes excluded. New servers can boot from it in any location ('Use the Backup/Snapshot to create a new server - a duplicate'); snapshots survive server deletion; default limit 30 snapshots.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS: the Cloud API (OpenAPI spec) covers servers, images, volumes, networks, firewalls, IPs, load balancers, DNS, object storage; no agent/harness endpoints and no exec API. Not stated explicitly, hence medium.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.hetzner.com/cloud/firewalls/faq",
+      "quote": "If you define one or more outbound rules, the outbound direction also changes to implicit \"deny\", and all traffic that doesn't match your rules is dropped.",
+      "note": "Hetzner Cloud Firewalls (free, stateful): allow-only rules by IP/CIDR, protocol (TCP, UDP, ICMP, ESP, GRE) and port, applied per server or via label selector, up to 5 firewalls/server. Caveats: only applies to traffic leaving the L2 domain (public interface); private Networks are not filtered; DNS resolver and rescue traffic always allowed. A server can also be created without public IPv4/IPv6 (private-only) for no-internet.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/firewalls/faq",
+      "quote": "You can filter TCP, UDP, ICMP, ESP and GRE traffic.",
+      "note": "Firewall is L3/L4 only (IP/port/protocol); no HTTP-level or domain rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.hetzner.com/cloud/firewalls/faq",
+      "quote": "The inbound direction has an implicit \"deny\" at the end. All traffic that doesn't match any of your rules will be dropped and will not reach your server.",
+      "note": "Inbound allow rules by source IP/CIDR, protocol and port. Without a Firewall attached, the public IP is fully open (guest firewall only). Private-only servers possible; Load Balancers not firewall-able yet.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM with root and own kernel; iptables/nftables/ufw work (standard for Hetzner Cloud).",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secret management at all; credentials go into the server via cloud-init user_data / SSH keys / your own tooling. No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.hetzner.com/cloud/volumes/overview",
+      "quote": "Volumes are used to expand storage capacity. Our Volumes are based on the networked block storage model and every block of data is stored on three different physical servers at our Hetzner data centers.",
+      "note": "10 GB-10 TB, grow-only, up to 16 per server, same location; not included in server Backups/Snapshots.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/volumes/faq",
+      "quote": "Please note that you can only attach a Volume to one server at a time.",
+      "note": "Volumes are single-attach read-write block devices. No managed NFS in Hetzner Cloud; the separate Hetzner Storage Box product (SMB/CIFS, SFTP) or Object Storage (S3, not a mount) are the shared options, outside the Cloud server product.",
+      "checked": "2026-09-29"
+    }
   }
 }

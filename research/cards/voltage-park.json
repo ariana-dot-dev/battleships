@@ -210,7 +210,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": false
+    "mcp_server": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -232,5 +240,64 @@
   "audit_2026_09_29": {
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://support.voltagepark.com/article/my-instances",
+      "quote": "Shut Down: Gracefully power off the instance while retaining its data.",
+      "note": "Stop keeps the disk (persistent_disk, and stopped instances bill at the full running rate). No snapshot concept anywhere in the docs or the full On-Demand OpenAPI spec. VMs can additionally 'Deallocate compute resources' (storage-only billing), still disk only.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://cloud-api.voltagepark.com/api/v1/openapi.json",
+      "quote": null,
+      "note": "The On-Demand API (VMs, bare metal, storage, billing, org, locations) has no snapshot/image endpoints; the help center never mentions snapshots. Only a Managed Kubernetes add-on restore object with a 'snapshot_captured' timestamp (cluster-level, not machine snapshots).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://support.voltagepark.com/article/api",
+      "quote": "Our Voltage Park On Demand API allows developers to deploy, manage, and monitor virtual machines (VMs) and bare metal instances.",
+      "note": "Plain GPU infrastructure API; no agent/harness tooling.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://support.voltagepark.com/article/my-instances",
+      "quote": "This section displays a list of port mappings that allow external access to services running on your instance.",
+      "note": "VMs only: NAT port forwarding, you choose which internal ports are exposed via POST/DELETE /virtual-machines/{id}/port-forward (external port assigned from the host's available_ports). No IP allowlists or security groups. Bare metal gets a public IP with no documented provider-side filtering. The VAST storage tenant has a client-IP whitelist (storage access, not instance ingress).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VMs and bare-metal servers with ubuntu user + sudo; own kernel.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secret handling of any kind: SSH keys and cloud-init only; any credentials live on the machine. No proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://support.voltagepark.com/article/attach-storage",
+      "quote": "Your storage volumes can be attached to bare metal GPU instances for use. Each bare metal rental can be attached to a single storage volume.",
+      "note": "VAST Data NFS 'shared storage' volumes (POST /storage/), resizable. Bare metal only: 'There is currently no support for attaching on-demand storage to a virtualized rental.' FAQ also says persistent storage is 'not enabled by default' (ask support).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://support.voltagepark.com/article/attach-storage",
+      "quote": "A single storage volume can be attached to as many instances as you need.",
+      "note": "Read-write NFSv3 mount (fstab example uses 'nfs rw'); root_squash/no_squash configurable via API. Bare metal (and its Managed Kubernetes clusters, which auto-mount) only.",
+      "checked": "2026-09-29"
+    }
   }
 }

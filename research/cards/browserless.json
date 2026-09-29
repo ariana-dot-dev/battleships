@@ -339,7 +339,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -372,7 +372,15 @@
       "Anthropic Computer Use",
       "OpenAI Computer Use",
       "Gemini Computer Use"
-    ]
+    ],
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "own_agent_api": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -412,5 +420,72 @@
     "applied": 14,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.browserless.io/baas/session-management/persisting-state",
+      "quote": "await browser.close(); // Closes the browser; session data is saved to disk",
+      "note": "Persisted sessions (POST /session with ttl) keep an isolated userDataDir (cookies, localStorage, cache) on disk across browser restarts, but 'a new browser process starts on reconnect': this is disk/profile persistence (persistent_disk analogue), not a state snapshot; no memory/process state is saved. Persisted-session retention per plan: 1/7/30/90 days (pricing page).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.browserless.io/baas/features/authenticated-profiles",
+      "quote": "Browserless captures the cookies, `localStorage`, and `IndexedDB` from the running browser and persists them under the profile name.",
+      "note": "Browser-profile checkpoint only (CDP Browserless.saveProfile; 2 MB captured-state cap, 50 origins), no memory/tabs. Many new sessions can start from one profile in parallel ('Each session gets its own working copy'), so it acts as a template/fork of auth state, not of a machine.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://docs.browserless.io/rest-apis/agent-run",
+      "quote": "Run a managed AI agent that drives a real browser to complete a task described in plain English.",
+      "note": "Browserless's own managed agent only (Agent Run API, BETA, Cloud plans): POST /agent/run with a prompt, poll GET /agent/run/{id} for status plus streamed step rationales and full turn transcript, list runs, cancel/delete, webhooks. Follow-up endpoint POST /agent/run/{id}/continue exists but is 'Not enabled in v1'. No Claude Code/Codex etc. (those connect to Browserless from outside via MCP/CDP).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.browserless.io/rest-apis/agent-run",
+      "quote": "Run a managed AI agent that drives a real browser to complete a task described in plain English.",
+      "note": "Browserless's own managed agent only (Agent Run API, BETA, Cloud plans): POST /agent/run with a prompt, poll GET /agent/run/{id} for status plus streamed step rationales and full turn transcript, list runs, cancel/delete, webhooks. Follow-up endpoint POST /agent/run/{id}/continue exists but is 'Not enabled in v1'. No Claude Code/Codex etc. (those connect to Browserless from outside via MCP/CDP).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.browserless.io/rest-apis/agent-run",
+      "quote": "`startUrl` sets the first navigation target, `allowedDomains` restricts navigation to an allowlist",
+      "note": "Only for the managed Agent Run API and only for navigation (not documented as a full network egress filter). For BaaS/BQL sessions the controlling client can block requests by URL pattern with reject() (a denylist it sets itself), and the 1Password integration has an origin allow-list for secret fills. No account-level/default-deny network policy documented.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.browserless.io/bap/network-control",
+      "quote": "Match by resource `type`, glob-style `url` patterns, `regex`, or HTTP `method`.",
+      "note": "reject() / request interception run in Browserless's managed browser and can block by method, URL/path regex and resource type, or answer requests with a mocked response; but they are set per session by the same client that drives the browser, not an admin policy the agent cannot change. No header-based rules documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.browserless.io/baas/monitor-sessions/hybrid-automation",
+      "quote": "Create a `liveURL` through CDP and Browserless returns a short-lived link that opens in a browser tab, with no API token embedded.",
+      "note": "No user-exposed ports: session CDP/BQL endpoints require the API token; shareable Live URLs are short-lived, can be made view-only ('interactable: false', enforced server-side) and are torn down after a 1Password secret fill. No IP allowlists for the endpoints documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Hosted cloud exposes only a managed Chromium/Firefox/WebKit via CDP/BQL/REST; no shell or root in the container, so nftables/iptables cannot be run. Self-hosted Docker image is under the user's own control.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.browserless.io/baas/features/1password",
+      "quote": "A 1Password service account lets a browser session fill secrets (usernames, passwords, API keys) straight from your vault **without the value ever reaching your automation code**.",
+      "note": "Not an outbound HTTP credential proxy. Closest analogue: server-side 1Password form-fill (Browserless.loadSecret with op:// reference, optional origin allow-list, https-only, audit log, session lockdown after fill). The secret never reaches the client/agent code or LLM, but it IS typed into the browser page. No DB/SSH/git coverage.",
+      "checked": "2026-09-29"
+    }
   }
 }

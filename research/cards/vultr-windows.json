@@ -177,7 +177,7 @@
     "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": true,
-    "egress_allowlist": true,
+    "egress_allowlist": false,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
@@ -199,7 +199,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": false,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": null,
     "fork_running": null,
@@ -211,7 +211,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -262,5 +270,78 @@
     "applied": 11,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.vultr.com/products/storage/snapshots/provisioning",
+      "quote": "Unlike Automatic Backups for Vultr instances, you must take snapshots manually.",
+      "note": "Nothing is captured on stop/halt; disk simply persists. Automatic Backups (+20% of instance price) are scheduled point-in-time images, not stop-triggered.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.vultr.com/products/storage/snapshots/provisioning",
+      "quote": "Snapshots for Vultr instances are point-in-time images of your entire Cloud Compute instances hard drives. You can use snapshots to create backups or to replicate Cloud Compute instances.",
+      "note": "Console/API/CLI/Terraform; disk only (no memory). New instances can boot from a snapshot (snapshot_id), in any region ('Vultr Snapshots span across all regions'). $0.05/GB-month compressed. Attached Block Storage is not included.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain cloud VM API (instances, snapshots, firewall); no agent-harness control or exec API. Drive Windows via RDP/console yourself.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.vultr.com/products/network/firewall-groups/faq",
+      "quote": "No, Vultr Firewall does not filter outgoing netwok traffic from your instance.",
+      "note": "Firewall groups are inbound-only; NAT Gateway firewall rules are inbound port-forward filters. Only coarse provider-side option: a VPC-only instance (no public IP) without a NAT Gateway has no internet path ('isolated from direct internet access'); with a NAT Gateway there is no per-destination egress filtering. The existing card's egress_allowlist=true looks wrong.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.vultr.com/products/network/firewall-groups/faq",
+      "quote": "No, Vultr Firewall does not filter outgoing netwok traffic from your instance.",
+      "note": "No outbound filtering of any kind, so none at HTTP level.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.vultr.com/products/network/firewall-groups/management/rules",
+      "quote": "Vultr Firewall rules enable traffic filtering using port numbers and source IP addresses for incoming network requests.",
+      "note": "Firewall groups (IPv4/IPv6, protocol, port, source CIDR, service profiles), shared across instances, via Console/API/CLI/Terraform; VPC-only instances with no public IP; NAT Gateway port-forward + firewall rules. No managed HTTPS URLs.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM with Administrator: Windows Defender Firewall works in-guest (Vultr's FAQ describes instance-level firewalls stacking with Vultr Firewall); iptables/nftables on Linux images.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secrets product or credential-injecting proxy; secrets are whatever you place on the VM.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.vultr.com/products/storage/block-storage/faq",
+      "quote": "Yes, you can attach up to 16 Vultr Block Storage volumes to the same Vultr Cloud Compute instance.",
+      "note": "Block Storage (NVMe min 1 GB, HDD min 40 GB), same location only, movable between instances, not covered by automatic backups.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.vultr.com/products/storage/file-system/faq",
+      "quote": "Yes, you can attach multiple Vultr Cloud Compute instances to a single Vultr File System volume provided the instance and the volume are in the same Vultr location.",
+      "note": "Vultr File System (VFS) over virtiofs, read-write, same location, instance needs Memory Backing = Shared. Windows works via virtio-win + WinFsp with only 'best-effort support'; Windows and Linux instances can share one VFS volume. Block Storage itself is single-attach ('you can only attach a Vultr Block Storage volume to one Vultr Cloud Compute instance at a time').",
+      "checked": "2026-09-29"
+    }
   }
 }

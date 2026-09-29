@@ -885,7 +885,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
@@ -907,7 +907,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": false,
     "fork_running": null,
@@ -919,7 +919,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -955,5 +963,77 @@
     "applied": 35,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 6
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.latitude.sh/docs/vms/virtual-machines.md",
+      "quote": "Shutting down a virtual machine does not pause billing. To avoid charges, you have to delete the instance instead.",
+      "note": "Bare metal and VMs are persistent machines (disk persists across power cycles = persistent_disk); no automatic state save/restore or sleep. VM backups are user-triggered only; no scheduled backups documented.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.latitude.sh/docs/vms/backups-and-restore.md",
+      "quote": "A backup captures a point-in-time copy of a virtual machine's disk. You can restore that backup into a new virtual machine whenever you need to recover data or clone the machine. Backups run in the background and don't affect the running instance.",
+      "note": "Virtual machines only (not bare metal). Disk only, no memory; taken live; dashboard + API (Create VM backup / Create VM restore). Restore always creates a NEW VM (clone), optionally in another region; no in-place restore.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Bare-metal/VM IaaS; no agent-harness API or agent product in docs (llms.txt index). Card agent_harnesses=false.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://www.latitude.sh/docs/networking/firewall.md",
+      "quote": "Unlike network firewalls that operate at the perimeter, it runs directly on each protected resource — servers and virtual machines — while letting you configure all firewall rules from a single interface.",
+      "note": "Latitude.sh Firewall ($4/resource/mo) has outbound rules (destination IP/Any, TCP/UDP, port range) but is enforced by a UFW/iptables agent installed inside the server/VM, so root inside can undo it: not provider-side. No perimeter/cloud firewall or security group documented; private networks are unfiltered L2.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://www.latitude.sh/docs/networking/firewall.md",
+      "quote": "Latitude.sh Firewall is built on UFW and only exposes **TCP** and **UDP** rules.",
+      "note": "Only L3/L4 rules, and in-guest.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://www.latitude.sh/docs/networking/firewall.md",
+      "quote": "Latitude.sh Firewall provides centralized management of resource-level *iptables* rules across your infrastructure.",
+      "note": "Inbound rules (source IP/Any, TCP/UDP, ports; default allow SSH 22) exist but are centrally managed, guest-enforced iptables via an agent you install, not provider-side. Servers get public IPs directly (no provider proxy/URL layer). Only provider-side ingress mechanism is DDoS scrubbing (not user-configurable). If the coordinator counts centrally-managed guest-agent firewalls, this would be true(ip).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://www.latitude.sh/docs/networking/firewall.md",
+      "quote": "Latitude.sh Firewall provides centralized management of resource-level *iptables* rules across your infrastructure.",
+      "note": "Bare metal (own kernel, root) and full VMs with sudo; Latitude's own firewall product is iptables/UFW inside the guest, so guest firewalls demonstrably take effect.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secret store or credential-injecting proxy for servers/VMs documented; plain IaaS, you manage secrets inside the machine.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.latitude.sh/docs/storage/block-storage.md",
+      "quote": "A volume lives independently of any server: you create it in a project, map it to one of your servers, and the server reaches it over a private storage network using NVMe/TCP.",
+      "note": "Bare metal only (server must be bonded onto a public network); one server per volume; movable between servers in the same location. Availability limited to locations with high performance storage.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://www.latitude.sh/docs/storage/filesystem.md",
+      "quote": "File storage gives you persistent filesystems that several servers can mount at the same time.",
+      "note": "NFSv3/v4, 32 GB-20 TB, read-write for any server on the project's storage network ('any server on that network can mount the filesystem with read and write access'); bare metal; PRIVATE PREVIEW (access by request).",
+      "checked": "2026-09-29"
+    }
   }
 }

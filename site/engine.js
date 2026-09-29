@@ -23,6 +23,11 @@
     memory_snapshot_fork: 'memory fork', webhooks: 'webhooks', scheduled_wakeups: 'scheduled runs (cron)',
     audit_logs: 'audit logs', eu_data_residency: 'EU data residency', zero_data_retention: 'zero data retention',
     scoped_api_keys: 'scoped API keys', spend_limits: 'spend limits', mcp_server: 'MCP server',
+    // agent infrastructure (feature pass 2026-09-29): see FEAT_WHY in the page for what each one means
+    snapshot_auto: 'automatic snapshots', snapshot_on_demand: 'snapshots on demand', harness_api: 'agent harness API',
+    own_agent_api: 'hosted agent API (their own agent)',
+    ingress_rules: 'inbound access rules', guest_firewall: 'firewall inside (nftables)', secret_proxy: 'secret proxy',
+    secret_proxy_any: 'secret proxy for any API', volume_attach: 'extra volumes', volume_shared: 'shared volumes',
   };
 
   // ---- features -------------------------------------------------------------
@@ -43,6 +48,14 @@
     // "mem" = memory snapshots; an explicit snapshot_mem wins; a bare `true` says snapshots exist but not which kind
     snapshot_mem: f => typeof f.snapshot_mem === 'boolean' ? f.snapshot_mem : f.snapshot == null || f.snapshot === true ? null : f.snapshot === 'mem',
     long_sessions: f => f.max_session_h === undefined ? null : (f.max_session_h === null || f.max_session_h >= 24),
+    // a proxy that adds your credentials to outbound requests, so the secret never enters the machine:
+    // "any-http" covers any API you register, "ai-only" just model-provider keys
+    secret_proxy: f => f.secret_proxy == null ? null : f.secret_proxy === 'any-http' || f.secret_proxy === 'ai-only' || f.secret_proxy === true,
+    secret_proxy_any: f => f.secret_proxy == null ? null : f.secret_proxy === 'any-http',
+    // nftables inside needs root and a kernel of its own; documented or not, every VM/microVM with root has it
+    guest_firewall: f => f.guest_firewall != null ? f.guest_firewall === true
+      : (FEATURE_TESTS.vm_isolation(f) === true && f.root === true ? true : null),
+    volumes: f => f.volume_attach === true || f.volume_shared === true ? true : f.volumes == null ? (f.volume_attach === false && f.volume_shared === false ? false : null) : !!f.volumes,
   };
   function testFeature(features, key) {
     const f = features || {};
@@ -652,7 +665,14 @@
   const usefulHours = W => W.sessions * W.sessionMin / 60 + num(W.alwaysOn) * HOURS_MONTH;
   // A month with N sessions can never have more than N machines running at once. Without this, "150 at once, 36 sessions"
   // is priced as 150 machines turning over all month (starts per hour, seats, quotas) for a workload that is 36 sessions.
-  const consistentW = W => (W.sessions > 0 && W.concurrency > W.sessions) ? Object.assign({}, W, { concurrency: Math.ceil(W.sessions), concurrencyAsked: W.concurrency }) : W;
+  // The other way round: N machines at once can run at most N x 730 h in a month, so long sessions cap how many fit
+  // (2,200 week-long sessions on 100 machines is 369,600 h of work that 100 machines cannot do: priced as the ~434 that fit).
+  const consistentW = W => {
+    if (W.sessions > 0 && W.concurrency > W.sessions) return Object.assign({}, W, { concurrency: Math.ceil(W.sessions), concurrencyAsked: W.concurrency });
+    const cap = W.concurrency > 0 && W.sessionMin > 0 ? W.concurrency * HOURS_MONTH * 60 / W.sessionMin : Infinity;
+    if (W.sessions > cap) return Object.assign({}, W, { sessions: cap, sessionsAsked: W.sessions });
+    return W;
+  };
   function priceSoft(card, W, opts) {
     W = consistentW(W);
     const r0 = priceSoftInner(card, W, opts);

@@ -253,7 +253,13 @@
     "egress_ip_type": null,
     "ip_note": "Egress IP type, proxies and static IPs not documented.",
     "isolation": "vm",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -329,5 +335,50 @@
       "https://cua.ai/docs/reference/sandbox-sdk/runtime-support.md"
     ],
     "researched": "2026-09-29"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://cua.ai/docs/reference/sandbox-sdk/runtime-support.md",
+      "quote": "`Sandbox.snapshot()` | Not implemented | Not implemented; snapshot-derived image inputs are also rejected",
+      "note": "Fleet has no snapshot mechanism at all in cua-sandbox 0.7.0 docs; claims are released/deleted (warm pool replicas, TTL from creation), no documented auto-save on idle/stop. CLI `cua sb suspend` ('preserving memory state') applies to local/retired legacy VM API; for Fleet claims docs say use close()/Pool.delete().",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://cua.ai/docs/concepts/sandbox-lifecycle.md",
+      "quote": "`Sandbox.snapshot()` is not implemented for local sandboxes or Fleet creation paths, and Fleet rejects snapshot-derived images.",
+      "note": "Conflict: homepage markets 'Fork from snapshots, reproduce failures' (https://cua.ai/), but versioned SDK docs (0.7.0; PyPI now 0.8.0 whose release notes add nothing on snapshots) say not implemented; reusable state must be a prebuilt containerDisk boot artifact.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://cua.ai/docs/reference/cua-cli/cli-reference.md",
+      "quote": "Command reference for the cua CLI: authentication, sandboxes, images, platforms, one-shot automation, skills, and trajectories.",
+      "note": "No first-party API to start/stream/resume an agent harness in a Fleet VM. Cua exposes computer-use control (computer-server, Cua Driver MCP, shell/exec, files). Guides show users running Codex, Cursor Cloud Agent workers, OpenAI Agents API executors and OpenClaw inside Fleet VMs with their own controllers; Claude Code/Codex connect to Cua Driver over MCP from outside. Those are integrations, not a harness API.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/share-service-with-signed-url.md",
+      "quote": "Use a signed service URL when a person or external system needs temporary access to a service running inside a Fleet sandbox. The URL is public, time-limited, and revocable. Requests still route only to the named service on the bound sandbox.",
+      "note": "Only services declared on the pool template (name, target_port, protocol, e.g. ssh:22, server:8000) are reachable; default access is authenticated named-service requests via Fleet credentials ('Use `sb.services.request()` for authenticated requests to a named service', runtime-support); signed URLs 60 s-24 h, list/revoke. No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Fleet VMs are KubeVirt (KVM) guests booted from a containerDisk with root/admin; own kernel so iptables/nftables (Linux) or Windows Firewall should work. Not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/secrets.md",
+      "quote": "Pass task-specific credentials from the host into a sandbox at runtime. ... These commands contain the secret values. Shell quoting prevents shell interpretation; it does not redact command logs, traces, process inspection, or application output.",
+      "note": "Secrets are passed as env vars / temp files via shell.run() from the host; no proxy. Fleet auth itself supports workload identity (`cua wif-token`) for the CLI, not for guest workloads.",
+      "checked": "2026-09-29"
+    }
   }
 }

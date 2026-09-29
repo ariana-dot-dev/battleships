@@ -226,7 +226,11 @@
     "anti_bot": false,
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
-    "ip_note": "All traffic egresses from Cloudflare IP ranges; no per-request IP rotation; always identified as bot traffic (non-removable cf-biso-* and Web Bot Auth Signature headers). No third-party proxy option is documented; Outbound Workers can route selected http:// (not https://) hostnames through your own Worker. An optional `location` (ISO country code) session option exists in the Workers binding."
+    "ip_note": "All traffic egresses from Cloudflare IP ranges; no per-request IP rotation; always identified as bot traffic (non-removable cf-biso-* and Web Bot Auth Signature headers). No third-party proxy option is documented; Outbound Workers can route selected http:// (not https://) hostnames through your own Worker. An optional `location` (ISO country code) session option exists in the Workers binding.",
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "egress_allowlist_level": "domain",
+    "guest_firewall": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -278,5 +282,37 @@
       "item": "Workers usage when driving Browser Run from a Worker",
       "price": "Workers Paid: 10M requests/month included then $0.30/M; 30M CPU-ms included then $0.02/M CPU-ms"
     }
-  ]
+  ],
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://developers.cloudflare.com/browser-run/faq/",
+      "quote": "For Puppeteer, Playwright, and CDP, no caching is used. Content exists only in memory for the duration of the rendering operation and is discarded immediately after the response is returned.",
+      "note": "Sessions close on idle (keep_alive 60 s default, max 10 min) and nothing is saved. Kitesurf is explicitly 'stateless'. Only opt-in session recordings (DOM/input events, 30 days) survive, which are replay logs, not restorable state.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://developers.cloudflare.com/browser-run/faq/",
+      "quote": "Cloudflare processes content ephemerally and does not retain customer-submitted HTML or generated output (such as PDFs or screenshots) beyond what is required to perform the rendering operation.",
+      "note": "No browser-state checkpoint or persistent profile API. Docs show DIY cookie/localStorage persistence: Playwright storageState saved to KV by your code (playwright page). The '/snapshot' Quick Action returns page content+screenshot, not a restorable snapshot.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://developers.cloudflare.com/browser-run/features/guardrails/",
+      "quote": "Guardrails limit a Browser Run session's HTTP and HTTPS requests to permitted hostnames.",
+      "note": "allowedDomains (<=50, one wildcard each) + allowedDomainSets (<=4: Cloudflare 'common-cdns' or your hosted HTTPS list); empty allowedDomains blocks all web requests. Fixed at session start. Blocked requests get 403 cf-mitigated: guardrails. Not for Quick Actions, not supported with Kitesurf. Hostnames only, no IP/CIDR rules.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No shell or OS access to the browser host: control is CDP/Puppeteer/Playwright only, so you cannot run nftables/iptables.",
+      "checked": "2026-09-29",
+      "derived": true
+    }
+  }
 }

@@ -202,7 +202,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -220,7 +220,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -232,7 +232,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "own_agent_api": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -269,5 +277,77 @@
   "audit_2026_09_29": {
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
+      "quote": "Checkpoint recovery constructs a brand new sandbox and restores its filesystem from the latest checkpoint the platform captured for the previous sandbox with that `id`. Running processes and any filesystem writes made after the last checkpoint aren't restored.",
+      "note": "Mastra platform workspace sandboxes (PlatformSandbox, backed by Railway or E2B). Opt-in: only when you pass a stable id. The platform captures filesystem checkpoints itself ('stop() tears down the remote sandbox while preserving its recovery checkpoint', workspaces page) and the next start() with that id boots from it; idle timeout destroys the sandbox. Filesystem only, no memory. Exact capture trigger/frequency not documented. Mastra Server deploys sleep after ~10 min without outbound traffic, but no state snapshot is described.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
+      "quote": "Call `snapshot()` after a filesystem update to capture the configured recovery checkpoint immediately.",
+      "note": "Filesystem only; one recovery checkpoint per id (overwritten), not a list of named snapshots. New sandboxes can boot from it by reusing the id, or from a named seedCheckpointName ('boot-only fallback'). Also content-addressed reusable Template() builds. No snapshot of Mastra Server deploys.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://mastra.ai/docs/harness/agent-controller.md",
+      "quote": "`AgentController` is a shared runtime host for interactive agent applications. It coordinates modes, models, storage, workspaces, tool approvals, subagents, and channels.",
+      "note": "Mastra's own agent framework only (your Mastra agents, Mastra Code/Factory), hosted on Mastra Server and driven over its built-in HTTP API (/api/agents/*) and MastraClient / AgentController sessions: send messages, subscribe to events, steer, queue follow-ups, approvals, list/switch threads; Durable Agents let clients reconnect to a run's stream. Beta. The agent runs in the Server deploy, not inside the PlatformSandbox; no API to drive Claude Code/Codex/OpenCode in a sandbox (Mastra Code serves ACP locally over stdio).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://mastra.ai/docs/harness/agent-controller.md",
+      "quote": "`AgentController` is a shared runtime host for interactive agent applications. It coordinates modes, models, storage, workspaces, tool approvals, subagents, and channels.",
+      "note": "Mastra's own agent framework only (your Mastra agents, Mastra Code/Factory), hosted on Mastra Server and driven over its built-in HTTP API (/api/agents/*) and MastraClient / AgentController sessions: send messages, subscribe to events, steer, queue follow-ups, approvals, list/switch threads; Durable Agents let clients reconnect to a run's stream. Beta. The agent runs in the Server deploy, not inside the PlatformSandbox; no API to drive Claude Code/Codex/OpenCode in a sandbox (Mastra Code serves ACP locally over stdio).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
+      "quote": "**networkIsolation** (`'ISOLATED' | 'PRIVATE'`): Network mode. 'ISOLATED' (default) allows outbound internet only. 'PRIVATE' joins the platform environment's private network.",
+      "note": "Both platform sandbox network modes allow outbound internet; no host/IP allowlist or no-internet mode documented for platform sandboxes or Server deploys. (Framework LocalSandbox has allowNetwork:false via Seatbelt/Bubblewrap, but that is self-hosted, inside the machine.)",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
+      "quote": null,
+      "note": "No provider-side egress rules of any kind documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://mastra.ai/docs/mastra-platform/studio.md",
+      "quote": "By default, every Studio deploy on Mastra platform is protected by platform auth. Members of your platform organization sign in with their platform account, and no one else can access the deployed Studio.",
+      "note": "Studio UI only: 'Platform auth applies to the Studio UI only. Your server's API routes are governed by your own server.auth configuration, or remain open if you haven't set one.' Server deploys get a public URL (custom domains); auth is app-level in your code. Platform sandboxes expose no ports (exec over a WebSocket lease); PRIVATE mode joins the environment's private network.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://mastra.ai/docs/mastra-platform/environments.md",
+      "quote": "Environment-scoped variables are the stored variables described on the [Deploy](https://mastra.ai/docs/mastra-platform/deploy) page.",
+      "note": "Secrets are environment variables on the Server deploy (dashboard-managed) and env passed into sandboxes ('Environment variables baked into the sandbox at creation time'). Template setEnvs({ephemeral:true}) keeps build credentials out of the persisted template, but they are still visible to the build. No injecting egress proxy documented. The card's 'gateway tokens' fee is a model gateway billed by token; no doc says it keeps provider keys out of a sandbox.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://mastra.ai/docs/mastra-platform/workspaces.md",
+      "quote": "Every workspace exposes two capabilities:",
+      "note": "A workspace = one object-storage bucket (PlatformFilesystem API) + on-demand sandboxes; plus hosted databases. No block/network volumes for Server deploys or sandboxes.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://mastra.ai/docs/mastra-platform/workspaces.md",
+      "quote": "`PlatformFilesystem` is also a separate provider: configuring both providers doesn't mount the environment bucket inside the sandbox.",
+      "note": "The per-environment bucket is shared read-write (optionally readOnly) by every request and agent of that environment, but only through the file API (read/write/list/delete/move), not mounted into sandboxes. The framework can FUSE-mount S3/GCS into third-party sandboxes (Daytona, E2B...) that support mounts; that is bring-your-own storage.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -169,7 +169,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -187,7 +187,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -205,7 +205,13 @@
     "anti_bot": null,
     "captcha_solving": null,
     "egress_ip_type": null,
-    "ip_note": "Desktops run as Proxmox VMs on rented owner hosts (Lenovo ThinkCentre), with a Hetzner relay fallback for streaming; egress IP type undocumented. Prelaunch: customer rentals pending."
+    "ip_note": "Desktops run as Proxmox VMs on rented owner hosts (Lenovo ThinkCentre), with a Hetzner relay fallback for streaming; egress IP type undocumented. Prelaunch: customer rentals pending.",
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -231,5 +237,63 @@
     "applied": 7,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://computeruse.space/docs-source/virtual-computers.md",
+      "quote": "| Reboot or stop | Disk remains; running processes are not retained |",
+      "note": "Stop/reboot only keeps the local SSD guest disk (that is persistent_disk); no automatic snapshot or memory checkpoint on stop/idle. There is no idle auto-stop at all: rentals are always-on 30-day dedicated hosts. Backups (NAS/S3) are an architecture proposal only.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://computeruse.space/docs-source/status.md",
+      "quote": "| Templates, clone, resize, multi-screen | Roadmap | Capacity-aware runtime implementation |",
+      "note": "No snapshot/checkpoint endpoint in the OpenAPI file, which the docs say lists exactly the implemented handlers ('All paths in that document correspond to current handlers.', https://computeruse.space/docs-source/api.md). Templates/cloning are roadmap; a clone would need a second physical host. Proxmox VM snapshots exist under the hood (mentioned only in cleanup/retention context) but customers get no Proxmox administration.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://computeruse.space/docs-source/status.md",
+      "quote": "| Managed model routing / agent threads | Roadmap | Provider integration, metering and retention |",
+      "note": "The opposite direction exists: a stdio MCP bridge (python -m computeruse.mcp) and REST API let an external agent (Boardly, OpenClaw, Hermes) manage rentals and drive the desktop via screenshots/mouse/keyboard leases. Nothing starts or streams an agent harness inside the guest; no terminal/exec API either ('Terminal/file API and audio | Not deployed'). Boardly (separate product) has take-over/give-back of the desktop, not a harness API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://computeruse.space/docs-source/api.md",
+      "quote": "All paths in that document correspond to current handlers. Planned runtime APIs are documented separately and are not included as if implemented.",
+      "note": "Implemented API has no network-policy endpoints (groups: accounts, keys, rentals, billing, proxies catalog/quote, admin, desktops). Operator-side tenant isolation is only a design goal: 'Each customer guest should have its own isolated network boundary. Deny access to the operator's LAN, host/hypervisor services, other guests and storage administration.' (proxies.md); pilot runs on an unmanaged switch. No customer-configurable allow/deny list.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://computeruse.space/docs-source/api.md",
+      "quote": "All paths in that document correspond to current handlers. Planned runtime APIs are documented separately and are not included as if implemented.",
+      "note": "No HTTP-level egress rules implemented or planned in docs. Supplier-backed outbound proxies are 'Catalog/quote foundation · Supplier activation pending' (a quote does not attach a proxy); these are IP-rotation proxies, not policy rules.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://computeruse.space/docs-source/integrations.md",
+      "quote": "Agents still need model-provider credentials and budgets. ComputerUse's rental price does not pay for unlimited tokens. Prefer short-lived scoped secrets, task budgets and approval for consequential actions.",
+      "note": "No credential-injecting proxy and no secret store. Hosted agents keep their API keys inside the guest ('Its state, channels, API keys and learned skills then become part of the customer workspace'); templates doc says 'Inject customer secrets at provisioning time' (roadmap). Managed model routing is roadmap. No non-HTTP coverage.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://computeruse.space/docs-source/status.md",
+      "quote": "| NAS/S3 storage and disaster recovery | Architecture proposal | Hardware/provider configuration and restore drills |",
+      "note": "Only the fixed local-SSD guest disk (80 GiB Standard / 150 GiB Creator). storage-backups.md: 'Architecture proposal · No storage provider connected'. Storage upgrades mentioned elsewhere as separately billed add-ons but unpriced/not implemented.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://computeruse.space/docs-source/storage-backups.md",
+      "quote": "A NAS can store image backups, approved customer file shares and media projects. Give every tenant a separate authorized share and quota. Do not mount a global share inside every guest.",
+      "note": "Proposal only (page status 'Architecture proposal · No storage provider connected'); a per-tenant NAS share could in future be mounted by several of one customer's computers, but nothing is implemented. virtual-computers.md: NAS/S3 'Neither is automatically a shared customer folder.'",
+      "checked": "2026-09-29"
+    }
   }
 }

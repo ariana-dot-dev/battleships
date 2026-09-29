@@ -567,7 +567,7 @@
     "inbound_https": true,
     "custom_domain": false,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
@@ -587,7 +587,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
     "fork_running": false,
@@ -599,7 +599,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": false
+    "mcp_server": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -626,5 +635,78 @@
     "applied": 18,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.jarvislabs.ai/getting_started/",
+      "quote": "Always store the data under /home, any data stored outside /home will be lost when you pause and resume the instance.",
+      "note": "Pause (manual, API/CLI, or auto-pause on a set duration or zero balance - 'Instances automatically pause when balance reaches zero.', /faqs) releases compute and keeps only storage; resume creates a new instance ('A new instance will be created with all your previous' data). Containers keep only /home; VMs keep their whole disk (SKILL.md: 'VMs are full machines and keep their whole disk'). That is persistent disk, not a snapshot; no memory/process state. llms.txt: autopause is 'not on idle detection'.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/jarvislabsai/jarvislabs/main/jarvislabs/skills/SKILL.md",
+      "quote": "Machine commands (`jl create/list/get/pause/resume/destroy/rename/ssh/exec/upload/download`) = GPU instance lifecycle and access.",
+      "note": "No snapshot/checkpoint/image/clone command in the CLI, Python SDK or docs (word 'snapshot' absent from the docs site). Closest: pause/resume of the same instance, startup scripts, templates (provider-curated framework images).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": null,
+      "note": "The jl CLI/SDK + SKILL.md are for coding agents (Claude Code, Codex, Cursor, OpenCode) running on YOUR machine to drive GPU instances ('jl run' uploads code, runs a script, streams logs) - a generic job/exec API, not an API to drive an agent harness inside the instance. NemoClaw tutorial is DIY self-install.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.jarvislabs.ai/security-groups/",
+      "quote": "Restrict what your VM is allowed to reach on the way out.",
+      "note": "Provider-side security groups (AWS-style, allow-only, union of up to 5 groups, 50 rules/group) with outbound rules by protocol/port/destination CIDR; replace the default 'All traffic → Anywhere' outbound rule to get default-deny egress. DNS (53) and NTP (123) always allowed ('survive any outbound policy you write'). IPv4 only. Limits: VMs only (GPU + CPU VMs), India-01/India-02 regions only; 'Not available for container instances' (Templates); VMs created before the feature need one pause+resume. No hostname rules.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.jarvislabs.ai/security-groups/",
+      "quote": "Source (inbound) / Destination (outbound)\nA CIDR",
+      "note": "Security-group rules are only protocol/port/CIDR; no L7 egress controls documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.jarvislabs.ai/security-groups/",
+      "quote": "By default a Jarvislabs VM has no security group, which means every port on its public IP is reachable from the internet. Security groups are how you narrow that down.",
+      "note": "VMs (India regions): inbound allow rules by port + source CIDR. VMs always have a public IP on eth0 ('Always present — there is no toggle', /vpc) plus optional private VPC. Container (Template) instances: services exposed via Jarvislabs proxy URLs on port 6006 or chosen --http-ports; no auth documented on those URLs beyond the app's own (ComfyUI doc: 'Anyone with the address can queue jobs'); security groups not available for containers.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.jarvislabs.ai/vm/",
+      "quote": "sudo ufw default deny incoming",
+      "note": "VM docs have a full 'Securing Your Instance with Firewall (UFW)' section (root VM). Applies to GPU/CPU VMs; for container (Template) instances NET_ADMIN is not documented (unknown).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secret store or credential-injecting proxy; credentials are handled inside the instance (e.g. `--env HF_TOKEN=...` on serverless deploys, kaggle.json uploads, S3 keys configured with aws configure). No non-HTTP coverage.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.jarvislabs.ai/filestorage/",
+      "quote": "When launching a new instance, create or attach a filesystem during instance configuration.",
+      "note": "Shared Filesystems up to 10 TB, mounted at /home/jl_fs, $0.00014/GB-hour on provisioned capacity, attach at create or resume (`--fs-id`), region-bound. Root/home storage can also be expanded on resume. Card caveat: CPU VMs have no filesystems.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.jarvislabs.ai/filestorage/",
+      "quote": "The same persistent filesystem can be attached to multiple instances, enabling data sharing.",
+      "note": "Read-write distributed filesystem shared by multiple instances in the same region (docs advise avoiding 'intensive file operations on multiple instances simultaneously'); read-only mode not documented. Separate S3-compatible Object Storage exists (not a mount).",
+      "checked": "2026-09-29"
+    }
   }
 }

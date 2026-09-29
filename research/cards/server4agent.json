@@ -185,7 +185,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "ingress_rules": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -231,5 +236,42 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.server4agent.com/llms-full.txt",
+      "quote": "Servers scale to zero when idle; state persists on a durable volume mounted at `/home/node/workspace`.",
+      "note": "Idle scale-to-zero keeps the disk (persistent_disk), not a snapshot; nothing says memory/processes are saved. Paused projects 'stop processes and cron until resumed'.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://www.server4agent.com/docs/api",
+      "quote": "POST /projects/{id}/export packages the project into one file and returns a time-limited link to it",
+      "note": "The full MCP tool list ('MCP tools (complete list)') and the OpenAPI spec have no snapshot/checkpoint/fork endpoint. Project export/import copies the source tree, settings and run plan (no dependency caches, git history or .env) to another server; that is a code bundle, not a machine snapshot.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://www.server4agent.com/llms-full.txt",
+      "quote": "A goal sent to the build agent against a project. Created from the dashboard task composer or via MCP `prompt`. Supports follow-up threads, file attachments (up to 5), optional model tier selection, cancellation, and `awaiting_input` when the agent needs a human answer.",
+      "note": "Provider's own on-server 'build agent' only (no Claude Code/Codex harnesses). MCP `prompt({server_id, prompt})` and REST POST /servers/{id}/tasks ('Give the agent a goal'), GET tasks list/get with status, question, latest progress log; project_id threads a run 'onto that project as a follow-up'; webhooks task.created/completed/failed. No token-level event streaming documented (poll or webhooks).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.server4agent.com/security",
+      "quote": "Once it is live you choose who may open it: anyone with the link, or only your team.",
+      "note": "Per project: visibility private (URL serves nothing) by default vs public; access 'public' or 'team' (sign-in required, can be narrowed to named members). Public apps behind WAF/DDoS protection. No IP allowlists or port selection documented; no raw ports.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://www.server4agent.com/security",
+      "quote": "Injected as environment variables at run time",
+      "note": "Encrypted vault, per-account/server/project scoping, write-only via API, but values enter the server as env vars. No injecting proxy.",
+      "checked": "2026-09-29"
+    }
   }
 }

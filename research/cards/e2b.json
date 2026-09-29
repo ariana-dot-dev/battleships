@@ -189,7 +189,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": false,
@@ -209,7 +209,16 @@
     "egress_ip_type": "datacenter",
     "ip_note": "Egress from rotating ephemeral Google Cloud IPs, no static IP on any plan; BYO SOCKS5 proxy / IP tunneling supported. Managed browser (CDP, stealth, CAPTCHA, residential proxies) only via partner Kernel, not E2B itself.",
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": 12.61,
@@ -313,5 +322,78 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.e2b.dev/sandbox/auto-resume.md",
+      "quote": "| | `\"pause\"` | Sandbox is paused (full memory + filesystem snapshot) when timeout is reached |",
+      "note": "Opt-in: lifecycle.onTimeout defaults to 'kill' (destructive); with onTimeout:'pause' the sandbox is snapshotted (memory + filesystem, running processes survive) when its timeout expires, and autoResume:true wakes it on the next SDK call or HTTP request. Object form keepMemory:false = filesystem-only (reboot on resume, no auto-resume). Paused sandboxes kept indefinitely.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.e2b.dev/sandbox/snapshots.md",
+      "quote": "Snapshots let you create a persistent point-in-time capture of a running sandbox, including both its filesystem and memory state.\nYou can then use a snapshot to spawn new sandboxes that start from the exact same state.",
+      "note": "createSnapshot (memory + filesystem; source briefly paused, same id); one snapshot spawns many sandboxes. Also sandbox.fork(count up to 100) from a running sandbox with memory, and manual pause() (memory by default, keepMemory:false for disk only).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.e2b.dev/agents/claude-code.md",
+      "quote": "Use `--output-format stream-json` to get a real-time JSONL event stream — including tool calls, token usage, and result metadata.",
+      "note": "Many agent guides/templates (Claude Code, Codex, Amp, OpenCode, pi, Prime Agent, Droid, Devin, Hermes, Cursor, Grok ...) but all are driven with the generic sandbox.commands.run('claude -p ...') exec API; session resume via the harness's own --resume flag. SDK reference modules are only Sandbox, commands, filesystem, template, volume: no first-party prompt/conversation API. Third-party managed agents (Claude Managed Agents, Devin Outposts) can use E2B as runtime, but those APIs are not E2B's.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.e2b.dev/network/internet-access.md",
+      "quote": "You can specify IP addresses, CIDR blocks, or domain names that the sandbox is allowed to use:",
+      "note": "allowInternetAccess:false, allowOut/denyOut with IPs, CIDRs, domains and wildcards; domain filtering only for HTTP:80 (Host) and TLS:443 (SNI), other ports CIDR only, no QUIC. Updatable on a running sandbox. Enforced by E2B's egress proxy/host outside the VM.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.e2b.dev/network/internet-access.md",
+      "quote": "A rule key is either an exact DNS name (`api.example.com`) or a single leading wildcard label (`*.example.com`).",
+      "note": "Per-host request transforms (public beta) inject headers on HTTPS requests, but rules are keyed by host only and only transform; no allow/deny by method, path or header documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.e2b.dev/network/restrict-public-access.md",
+      "quote": "When `allowPublicTraffic` / `allow_public_traffic` is set to a falsy value, all requests to the sandbox's public URLs must include the `e2b-traffic-access-token` header with the value from `sandbox.trafficAccessToken` / `sandbox.traffic_access_token`.",
+      "note": "Default: every port public at https://<port>-<id>.e2b.app to anyone with the URL; opt-in per-sandbox token header. No IP allowlist or per-port exposure choice documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.e2b.dev/network/restrict-public-access.md",
+      "quote": "If you are using custom `iptables` or firewall rules inside a sandbox, keep E2B's own connectivity open or the sandbox will lose contact with the SDK:",
+      "note": "Firecracker microVM with root. k3s page: kube-proxy iptables and nftables modes work, but the kernel lacks the `owner` and `TPROXY` netfilter extensions and BPF JIT.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.e2b.dev/secrets.md",
+      "quote": "The egress proxy injects the real value into matching outbound HTTPS requests outside the sandbox. Your sandbox configuration contains only a reference to the secret.",
+      "note": "Private beta. Arbitrary hosts via per-host rules + Secret.fill in headers; HTTPS only (plain HTTP gets nothing); headers only; no non-HTTP protocols (DB, SSH, git over SSH). Max 10 rule domains per sandbox. Also workload identity (per-sandbox OIDC tokens, private beta).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.e2b.dev/volumes/mount.md",
+      "quote": "You can mount one or more volumes to a sandbox when creating it.",
+      "note": "Private beta, US/EU only; mounts fixed at creation (not on resume/fork); network filesystem (locking can hang, no metadata caching); price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.e2b.dev/volumes.md",
+      "quote": "One volume shared across multiple sandboxes",
+      "note": "Read-write only (read-only mounts not supported yet); 'Changes from other sandboxes or standalone volume writes do not trigger events' implies concurrent mounts; also readable/writable standalone via SDK.",
+      "checked": "2026-09-29"
+    }
   }
 }

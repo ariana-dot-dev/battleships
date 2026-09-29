@@ -134,7 +134,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": null,
@@ -148,7 +148,15 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -189,5 +197,72 @@
     "applied": 14,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://leap0.dev/docs/sandboxes",
+      "quote": "Set auto_pause to true if you want Leap0 to pause the sandbox when its timeout is reached.",
+      "note": "Opt-in per sandbox (auto_pause=true at create/restore; default false). Trigger = wall-clock timeout (max 8 h), not idle. Pause captures memory+disk ('The VM state, memory, and disk are captured and uploaded'); paused sandbox resumes automatically on the next request. Without auto_pause the sandbox is killed at timeout. Plain stop/start keeps disk only.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://leap0.dev/docs/snapshots",
+      "quote": "Snapshots let you create a point-in-time capture of a running sandbox, including its in-memory execution state and writable disk state.",
+      "note": "Memory included. Named snapshots; 'You can then restore that snapshot into a brand new sandbox that starts from the same checkpoint.' (fork). Only from running sandboxes; optional kill_sandbox_after. Manual pause() also exists.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://leap0.dev/docs/guides/claude-code",
+      "quote": "You can either bake it into a template or install it at runtime using",
+      "note": "Guides for Claude Code, Codex, OpenCode only install the CLI and run it via the generic process.execute exec API; no first-party harness/session API. MCP server (@leap0/mcp) lets external MCP clients drive sandboxes, which is the reverse direction.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://leap0.dev/docs/firewall",
+      "quote": "Traffic is filtered by allow_domains, allow_cidrs, and optional transforms.",
+      "note": "network_policy modes allow-all (default), deny-all, custom (allow_domains + allow_cidrs). Set at create/restore; persisted with snapshots. Enforced host-side per Firecracker VM.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://leap0.dev/docs/firewall",
+      "quote": "Transforms let you inject or strip headers on a per-domain basis.",
+      "note": "Only HTTP-level feature is per-domain header inject/strip (TLS-terminating for transform domains). No method/path/header filtering rules documented; policy fields are only allow_domains, allow_cidrs, transforms.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://leap0.dev/docs/presigned-urls",
+      "quote": "A presigned URL is a temporary public hostname that routes traffic to a specific port inside a sandbox.",
+      "note": "Default invoke URL https://sbx-<id>[-port].<domain> is used with the org API key in the authorization header per docs examples; presigned URLs give tokenized, expiring (expires_in), revocable public access to one port. No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://leap0.dev/docs/sandboxes",
+      "quote": "Every sandbox runs in its own Firecracker microVM",
+      "note": "Firecracker microVM, own Linux 6.1 kernel; Docker/k3s/systemd templates imply root. Not explicitly documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://leap0.dev/docs/firewall",
+      "quote": "This is useful for credential brokering: the sandbox code makes requests without API keys, and the firewall injects the credentials on the host side. The secrets never enter the sandbox.",
+      "note": "Per-domain header injection for any domain via network_policy.transforms; firewall terminates TLS only for transform domains using a per-sandbox CA. HTTP(S) only. Object-storage mounts likewise keep S3 credentials outside the guest (s3fs). No DB/SSH/git coverage documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://leap0.dev/docs/object-storage",
+      "quote": "Leap0 mounts the bucket inside the sandbox with s3fs without exposing the storage credentials in the sandbox.",
+      "note": "First-party mount of a customer-owned S3-compatible bucket (s3fs), read-write or read_only, add/edit/delete at runtime; the same bucket can be mounted in several sandboxes (not explicitly stated as a shared-volume feature, and s3fs has no strong consistency).",
+      "checked": "2026-09-29"
+    }
   }
 }

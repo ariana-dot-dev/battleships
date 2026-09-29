@@ -976,7 +976,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": false,
@@ -990,7 +990,16 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1069,5 +1078,79 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://namespace.so/docs/architecture/storage/persistent-volumes.md",
+      "quote": "On instance shutdown, the volume's data is automatically snapshotted to ensure integrity.",
+      "note": "Disk only: Persistent Volumes (compute instances) are snapshotted automatically on shutdown; new volumes can be seeded from a snapshot via from_snapshot_id. No memory. Devboxes just keep their persistent storage across stop/start ('Stopped Devboxes retain all persistent storage and resume in seconds') - that is persistent_disk, not an automatic snapshot. Cache volumes commit a new version on clean exit (exit code 0), also automatic but best-effort cache.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://namespace.so/docs/reference/typescript-sdk/compute/manage",
+      "quote": "Suspend a running instance. Execution stops and RAM and disks are snapshotted so the instance can be restored without restarting it.",
+      "note": "Compute instances only (compute.suspendInstance / resume; also CLI 'suspend: Pause an instance, snapshotting its state'). Memory included, but it is suspend/resume of the same instance: no documented way to boot new or forked machines from it. No user-triggered snapshot/checkpoint or fork for Devboxes documented.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://namespace.so/docs/integrations/claude.md",
+      "quote": "Anthropic handles orchestration: the model, the agent loop, context management, and error recovery. Namespace handles execution: shell commands, file operations, tool calls, builds, test runs, etc.",
+      "note": "Namespace is the execution environment for third-party orchestrated agents (Claude Managed Agents, Cursor Cloud Agents, Devin) - each session gets a fresh ephemeral Devbox, driven through the partner's own API. Namespace's own SDK/CLI offers only exec, terminals/sessions, files, display; no Namespace API to start Claude Code/Codex with a prompt or stream agent events.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://namespace.so/docs/security/egress-policy.md",
+      "quote": "`ALLOW` rules permit requests to matching domains. In `BLOCK` mode, the policy denies all requests that are not allowed.",
+      "note": "Workspace egress policies (modes BLOCK / ADVISORY / ALLOW_ALL / DISABLED) applied per GitHub runner profile, per Devbox blueprint, or per instance (network_policy.egress_policy_tag or inline). Matcher proto has only match_domains (wildcards *.), no IP/CIDR/port matcher. Egress logs per instance. Enterprise dedicated egress IP pools.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://buf.build/namespace/cloud/docs/main:namespace.cloud.network.v1beta",
+      "quote": "message Matcher {\n\trepeated string match_domains = 1;\n}",
+      "note": "Rules match on domain only; no method/path/header filtering. With deep_packet_inspection (TLS termination, Namespace CA trusted in the instance) rules can act at HTTP level: INJECT sets a header, PROXY routes via another domain - but these are not method/path allow/deny rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://namespace.so/docs/architecture/networking/ingress.md",
+      "quote": "By default, any member of your workspace has access to any ingress.",
+      "note": "Ingresses are authenticated by default (workspace login; programmatic access with x-nsc-ingress-auth bearer ingress access token); unauthenticated access is opt-in per ingress; custom auth providers (enterprise). You choose which ports to expose (CreateIngress). Devbox shareable URLs: 'private limits access to the Devbox owner. workspace allows access to members of the workspace.' No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Instances are 'micro-VM backed environments optimized to run containers' (compute/manage SDK docs); 'Bare instances run as root' (integrations/nix); Devboxes/containers can run in privileged mode. Not documented explicitly; Devboxes are Docker-based containers inside VMs, so nftables needs privileged mode there.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://namespace.so/docs/security/egress-policy.md",
+      "quote": "`INJECT` rules set an HTTP header to a value from [Namespace Vault](/docs/architecture/storage/secrets). The secret is resolved outside the workload and its value is never exposed to it. `INJECT` requires deep packet inspection.",
+      "note": "Arbitrary domains, header injection only (HTTP/HTTPS via TLS interception; client must trust Namespace CA). Values can come from a Vault secret, a literal, or an endpoint (InjectOpts.from_endpoint). No non-HTTP protocols (DB, SSH, git-over-ssh) documented. Vault secrets can alternatively be injected as env vars (exposed to the workload).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://namespace.so/docs/reference/typescript-sdk/compute/storage.md",
+      "quote": "`client.storage` covers the two volume types Namespace attaches to instances. [Cache volumes](/docs/architecture/storage/cache-volumes) are identified by a tag and reused across runs, with one generation per use. Persistent volumes are block volumes with their own identity and snapshots.",
+      "note": "Compute instances: Persistent Volumes (durable block, tag-identified, persistency_kind PERSISTENT) and NVMe Cache Volumes. Devboxes have their own persistent volume; no extra-volume attach for Devboxes documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://namespace.so/docs/architecture/storage/cache-volumes.md",
+      "quote": "Each compute instance receives its own private copy of the Cache Volume as it existed at the time of the last successful cache commit.",
+      "note": "Cache volumes are shared by tag but each instance gets a private fork (last-write-wins commit), not a live shared filesystem; persistent volumes map one tag to 'a single durable volume'. No shared/network filesystem mounted by several running machines documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -501,7 +501,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -540,5 +547,56 @@
     "applied": 17,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://depot.dev/docs/github-actions/overview.md",
+      "quote": "Builds run on ephemeral EC2 instances that are never reused.",
+      "note": "GHA runners and Depot CI jobs are ephemeral, nothing is saved automatically. Exception in a different Depot product: remote agent sandboxes (`depot claude`) automatically persist the filesystem and Claude Code conversation when the agent exits ('When Claude Code has finished it's work and exits, the session state is preserved for later resumption'); filesystem only, no memory.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://depot.dev/docs/ci/how-to-guides/custom-images.md",
+      "quote": "Add [`depot/snapshot-action`](https://github.com/depot/snapshot-action) as a step (after your setup steps). It captures the full state of the sandbox environment and pushes it to the Depot registry as a reusable image.",
+      "note": "Depot CI only ('The snapshot action can only be used in workflows running on Depot CI. It's not compatible with GitHub Actions'); taken from inside a job step; disk/filesystem image, no memory; any later job can boot from it as its custom image. Not available on the GHA runners the card prices. Sandbox SDK lists Snapshots as 'Coming soon'.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://depot.dev/docs/cli/reference/agents.md",
+      "quote": "Run Claude Code in remote agent sandboxes backed by Depot with automatic session & file system saving and resuming. Sessions are stored by Depot and can be resumed by session ID",
+      "note": "Separate Depot product (remote agent sandboxes, $0.01/min), not the GHA runners: `depot claude [--repository --branch --session-id] \"prompt\"` starts Claude Code remotely, `--resume <id> \"follow-up\"`, `--wait`, `depot claude list-sessions --output json`, dashboard shows full conversation. Claude Code only ('more agents coming soon'). No documented event-streaming API. GHA runners/Depot CI themselves have no harness API.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://depot.dev/blog/now-available-egress-filtering-for-github-actions-runners.md",
+      "quote": "Depot's egress filtering system operates at the network layer using iptables on Linux runners. When a runner starts up, our agent process creates a custom iptables chain called `DEPOT_FILTER` in the filter table.",
+      "note": "Linux runners are ephemeral single-tenant EC2 VMs with sudo; iptables works (Depot uses it). Windows/macOS runners are also full VMs/hosts (not verified for firewall use).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://depot.dev/docs/ci/how-to-guides/manage-secrets-and-variables.md",
+      "quote": "When a Depot CI job starts, secrets are decrypted on demand and dispatched to the sandbox in an isolated VM. The sandbox hydrates the environment with those secrets on a per-step basis as configured in your workflow YAML.",
+      "note": "Secrets enter the machine as env vars (GHA runners use GitHub Actions secrets; Depot CI secrets; `depot claude secrets` are 'available as environment variables in sandbox sessions'). No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://depot.dev/docs/ci/how-to-guides/cache-disks.md",
+      "quote": "Mount a durable disk into your Depot CI jobs to persist data between runs and share a directory across multiple workflows.",
+      "note": "Depot CI cache disks (beta, free during beta), mounted with the depot/cache-mount action under an org-global name. Not documented for the GHA runners product (which has the Depot Cache service instead).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://depot.dev/docs/ci/how-to-guides/cache-disks.md",
+      "quote": "Multiple parallel workflows can mount, read from, and write to the same disk at once.",
+      "note": "Read-write concurrent across jobs/repos in the org (Depot CI only, beta); docs recommend one writer / partitioned directories.",
+      "checked": "2026-09-29"
+    }
   }
 }

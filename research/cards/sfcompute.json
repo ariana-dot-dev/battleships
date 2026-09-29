@@ -509,7 +509,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -521,7 +521,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "own_agent_api": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -637,5 +646,85 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "your persistent disk mounts at the `home` parameter (an absolute path; default the image's WORKDIR, else /root), and ONLY that path survives stops",
+      "note": "Autoresearch nodes auto-stop after an idle window and the disk parks (persistent disk, not a state snapshot): 'Packages install outside /home/dev, so a stop resets them'. The platform may move a parked disk into a stored copy for placement, still disk-only. Sandboxes auto-PARK after ~1.5 s idle but that only hands back spare memory; 'Processes you left running keep running' on the host (no checkpoint/restore). Market VMs: 'Instances have no persistent storage.'",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "snapshot_sandbox(sandbox): capture a RUNNING sandbox's current state as a new forkable snapshot, without stopping it",
+      "note": "Sandbox snapshots include memory ('snapshots the fully initialized machine - memory, processes, page cache, disk') and fork_sandbox clones 1..256 running sandboxes from one, each resuming exact state. Nodes: snapshot_node is disk-only, needs the node stopped, and create_node from_snapshot boots new nodes from it (compatible node type/image). Market VMs: custom images only, no snapshots.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "steer_research(name, expected_version, ...): one action per call. The action is a plan, an instruction to the researcher, a question_id + answer, a planner handoff",
+      "note": "Provider's own agent only: the managed 'researcher' (private preview, off by default) is started with start_research(name, objective, ...), polled with get_research (state, open question, full record of plans/observations/decisions), steered with follow-up instructions, stopped and listed; HTTP /preview/research and `autor research start|get|steer|stop|ls`. It runs platform-side and launches experiment jobs, not inside a user sandbox. No API to drive Claude Code/Codex/OpenCode inside a sandbox (`autor mcp install` only wires those local agents to the platform MCP server).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "steer_research(name, expected_version, ...): one action per call. The action is a plan, an instruction to the researcher, a question_id + answer, a planner handoff",
+      "note": "Provider's own agent only: the managed 'researcher' (private preview, off by default) is started with start_research(name, objective, ...), polled with get_research (state, open question, full record of plans/observations/decisions), steered with follow-up instructions, stopped and listed; HTTP /preview/research and `autor research start|get|steer|stop|ls`. It runs platform-side and launches experiment jobs, not inside a user sandbox. No API to drive Claude Code/Codex/OpenCode inside a sandbox (`autor mcp install` only wires those local agents to the platform MCP server).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "For a HERMETIC sandbox, pass egress: \"none\" to create_sandbox_env / create_sandbox: no network device at all, so nothing inside can reach anything.",
+      "note": "Binary per-sandbox posture only: egress \"open\" (NAT'd internet) or \"none\" (no NIC), fixed at bake time and inherited by forks. No domain or IP allowlists. Nodes/jobs: default open internet with a fixed platform blocklist (SMTP 25, mining-pool ports, cloud metadata IP). Market VM firewalls are ingress-only: 'Firewalls do not filter outbound traffic' (egress rules 'reserved for future use').",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "DNS is unfiltered and TLS is never intercepted",
+      "note": "Node/job egress policy is port/IP-level only; sandbox egress is open/none. No HTTP method/path/header rules documented anywhere.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "The URL IS the secret (an unguessable hostname): treat it like a password, or pass auth: \"bearer\" for a token on top, returned ONCE in that response.",
+      "note": "Sandboxes: per-port expose/unexpose (ports 1024-65535), unguessable HTTPS URL plus optional bearer token. Nodes: no public address by default, expose_port gives a public HTTPS URL. Market VMs: public IPv4 only if enabled at create, workspace firewalls with allow-only ingress rules (protocol, port range, source CIDR), https://docs.sfcompute.com/preview/networking/firewalls: 'Each rule specifies a direction, protocol, port (or port range), and source CIDR'.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Sandboxes are microVMs with their own guest kernel and commands run as root; market instances are full GPU VMs with root. Autoresearch nodes are containers (dev user with passwordless sudo); CAP_NET_ADMIN there is not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "secrets go in env and file bytes go in write_file, never the command string",
+      "note": "Secrets for running code are env vars on run_command (encrypted at rest, redacted in logs). Org 'connections' (HF, S3 keys, registries) are used host-side for import_data/export_data and image pulls: 'A connection's credential is exercised on the host - it never enters the node'. That is a managed data-transfer path, not a proxy injecting credentials into the machine's own outbound requests.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.sfcompute.com/preview/instances",
+      "quote": "Instances have no persistent storage.",
+      "note": "Market VMs have only local disk. Autoresearch nodes get one fixed persistent volume (org node_volume_gib, 250 GiB default) and 'you cannot change the size of the node's own disk or its scratch after create'; no extra attachable volumes. Object storage buckets exist but are copied in with import_data, not mounted.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "hf_cache is a per-MACHINE shared cache at HF_HUB_CACHE (best-effort, LRU-evicted)",
+      "note": "No shared filesystem between machines: files move between nodes via export_data/import_data or copy_file; 'there is no node-to-node path by default'. The only shared mount is the platform-managed Hugging Face cache per host for jobs.",
+      "checked": "2026-09-29"
+    }
   }
 }

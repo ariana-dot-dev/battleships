@@ -296,7 +296,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -336,5 +344,64 @@
     "applied": 30,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 6
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.instacloud.com/reference/api/project/secrets/apply-batch",
+      "quote": "A suspended service is skipped instead of deployed: a deploy would invalidate the RAM snapshot suspension exists to preserve, so it is left untouched and reported with reason `suspended`.",
+      "note": "Trigger: idle timeout on services opted into scale-to-zero (compute/overview: \"Opt one into scale-to-zero and an idle machine suspends until the next request wakes it in seconds.\"); memory included (RAM snapshot, Fly-style suspend). Default is always-on (no suspend). Not for volume-backed services: \"Volume-backed services stop (cold wake) instead of suspending\" and the root disk is rebuilt on every wake. Hosted platform only; self-hosted OSS stops containers instead.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.instacloud.com/projects/branches",
+      "quote": "| Compute `/data` volume | Same size, empty (self-hosted InstaCloud OSS forks the volume files instead) |",
+      "note": "No snapshot/checkpoint endpoint in the full OpenAPI reference. Closest: on-demand `insta compute suspend` (RAM preserved, resumes in place; = pause/resume, cannot fork) and branches, which clone Postgres (copy-on-write) and buckets but recreate compute from the image with an EMPTY volume on the hosted platform. Postgres has its own branching; no machine snapshots.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.instacloud.com/introduction",
+      "quote": "Under the hood the agent runs the [insta CLI](/reference/cli/overview), which you can also drive by hand.",
+      "note": "InstaCloud is infrastructure driven BY a coding agent running elsewhere (CLI, MCP server, skills); no API to launch/drive Claude Code/Codex inside a compute service. Only a generic one-shot exec endpoint (\"Run a one-shot command inside a compute service's machine\").",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.instacloud.com/limitations/overview",
+      "quote": "Services reach each other over their public HTTPS URLs. Compute listens on one HTTP port and a raw TCP port cannot be exposed at all",
+      "note": "Each compute service gets one public HTTPS URL on one chosen HTTP port; no private network, no auth-gated/tokenized URLs or IP allowlists documented. The public/private access toggle (set-service-access, MCP insta_set_service_access) is documented for storage buckets and managed databases, not compute. Custom domains available.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://www.instacloud.com/changelog",
+      "quote": "Compute services now run as full Linux VMs with cgroups and root, so your agent can install Docker inside its own compute and use it the way it would on a laptop",
+      "note": "Sep 11, 2026 changelog; the example installs iptables and runs dockerd inside the microVM, which requires working netfilter. Not an explicit 'nftables supported' statement.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.instacloud.com/deploy/overview",
+      "quote": "Secrets and credential bindings (`insta secrets bind`) are injected as environment variables at deploy time.",
+      "note": "User secrets and bound service credentials land in the container env; no outbound credential-injecting proxy. (InsForge's separate BaaS has a model gateway for app frontends, not a sandbox secret proxy.)",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.instacloud.com/compute/overview",
+      "quote": "Need disk that survives restarts? Attach a persistent `/data` volume:",
+      "note": "One volume per compute service, default 1 GiB on any plan, larger paid and plan-capped (Free 1 GB, Pro 10, Team 50 per card); mount path selectable since 2026-09-24; $0.0002082/GB-h. Volume forces cold stop instead of suspend.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.instacloud.com/changelog",
+      "quote": "Compute services without a persistent volume can now run multiple replicas in the same region.",
+      "note": "A volume belongs to a single-machine service (no replicas with a volume); no shared/network filesystem. S3-compatible storage buckets exist but are accessed via API, not mounted.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -362,7 +362,15 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -405,5 +413,63 @@
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.machine0.io/platform/vm-management",
+      "quote": "**Suspend** snapshots the VM, deletes the cloud instance, and stops machine billing.",
+      "note": "Trigger: the suspend command (the snapshot 'suspended-<machine>-<date>-<time>' is taken automatically and restored on `machine0 start`), and automatic suspension when the prepaid balance hits the suspension threshold (changelog 1.0.166: 'Machines are auto-suspended when your balance drops to a suspension threshold'). Plain `stop` does not snapshot. No idle-timeout auto-suspend documented. Disk only (DigitalOcean-backed snapshot; VM gets a new IP, memory preservation not documented).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.machine0.io/cli/images",
+      "quote": "Snapshot a VM into a reusable image. The VM is stopped automatically before snapshotting.",
+      "note": "`machine0 images new <vm> <image>` (also MCP images tools); disk only, VM is stopped first (no live/memory snapshot). New machines boot from it (`machine0 new clone --image my-image`); images are versioned. $0.078/GB-month.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.machine0.io/mcp/overview",
+      "quote": "Gives agents the same capabilities as the CLI.",
+      "note": "API surface = CLI + remote MCP (machines, images, SSH keys, ssh_exec, sizes). Claude Code / Codex / OpenCode are preinstalled and profiles pre-authenticate them and serve prompts/MCPs, but you SSH in and run `claude` yourself; no API to start an agent with a prompt, stream its events or resume conversations.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.machine0.io/platform/security",
+      "quote": "HTTPS endpoints at `<vm>.mac0.io` are authenticated to the VM owner.",
+      "note": "Provider-side control is only the owner-authenticated HTTPS proxy (to port 80). The dedicated public IPv4 is filtered only by in-guest ufw (22/80/443 open by default), which is not provider-side; no cloud firewall / IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.machine0.io/platform/networking",
+      "quote": "All VMs run `ufw` with ports 22, 80, and 443 open.",
+      "note": "Full DigitalOcean VM with sudo; ufw enabled by default, open more with `sudo ufw allow 8080/tcp`.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.machine0.io/platform/profiles",
+      "quote": "Injected credentials are plain files on the VM and travel with [snapshots](/platform/images).",
+      "note": "Profile secrets and integration credentials (Claude Code, Codex, GitHub, machine0 API key) are written into the VM as env files / credential files (/etc/environment, ~/.claude.json etc.); `--secret` only makes them write-only in the control plane. Profile MCP gateway proxies remote MCP servers (credentials held server-side), but that is MCP only, not HTTP egress injection.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.machine0.io/platform/disks",
+      "quote": "Disks are persistent block storage volumes that live independently of any VM.",
+      "note": "10-16384 GB, 5 per VM, 10 per account; attach at create or to a running VM; ~$0.1667/GB-month; not on GPU sizes or NixOS VMs yet.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.machine0.io/platform/disks",
+      "quote": "A disk lives in one region and attaches to one VM at a time.",
+      "note": "Block volume, read-write, single attach. No shared filesystem documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

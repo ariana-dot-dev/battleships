@@ -1281,7 +1281,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -1298,7 +1298,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -1310,7 +1310,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1352,5 +1360,71 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 18
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.coreweave.com/products/sandboxes/long-running-sandboxes",
+      "quote": "Save results or checkpoints outside the sandbox before its lifetime expires.",
+      "note": "CoreWeave Sandboxes: lifetime expiry terminates the sandbox without saving; snapshot-on-stop exists but is an explicit opt-in flag on the stop call (StopSandbox fileSystemSnapshotOnStop=true / sandbox.stop(snapshot_on_stop=True)); the first-party cws-agent CLI's `stop` snapshots the workspace by default (client-side default, still a user call). CKS GPU nodes: no machine snapshots. Scheduled, not stop-triggered: Distributed File Storage volumes get a `.snapshot` folder, 'Snapshots ... occur every 6 hours and persist for 72 hours'.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.coreweave.com/products/sandboxes/file-system-snapshots",
+      "quote": "A mid-life snapshot captures a running sandbox without stopping it. The sandbox keeps running afterward.",
+      "note": "Sandboxes only (public preview). File System Snapshots: tarball of one chosen working-directory mount (EmptyDir scratch) to object storage (CoreWeave-managed or bring-your-own bucket); filesystem only, no memory/processes, not the whole root FS. New sandboxes can restore it and 'fork one snapshot into several sandboxes'. Also snapshot-on-stop. CKS PVCs can use Kubernetes VolumeSnapshots.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://github.com/coreweave/cws-agent",
+      "quote": "cws-agent session start project1 fix-auth --prompt \"Fix the login bug\"",
+      "note": "First-party (coreweave GitHub org, Apache 2.0) CLI cws-agent: `cws-agent AGENT [NAME]` launches claude, codex, devin, opencode or cursor in a sandbox; starts parallel agent sessions with a prompt (git worktree per task), attach/diff, `cws-agent resume` lists/resumes conversations across running and saved workspaces, `cws-agent run api1 \"task\"` for OpenAI Agents API workers, Telegram/Discord chat bridges. CLI only (no documented REST/SDK harness endpoint or event stream API); docs also list integrations for Claude Managed Agents, OpenAI Agents API, Devin Outposts, Pi, Muse Code.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.coreweave.com/products/sandboxes/reference/profile",
+      "quote": "An HTTPS hostname, exact or with a single leftmost wildcard label, such as `*.example.com`.",
+      "note": "Sandboxes: EgressRule = cidr (with except carve-outs) | https_hostname (TCP 443 only) | tenant | selector | any, with ports; allow-only over default-deny, deny_egress flag, runner-policy allowed_egress/default_egress, DNS egress mode. Enforced by the runner/platform, not in the sandbox. CKS: Kubernetes/Cilium network policies (toCIDR; toFQDN needs a support ticket to enable Cilium's L7 DNS proxy).",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.coreweave.com/products/sandboxes/reference/profile",
+      "quote": "Hostname rules authorize HTTPS access, not DNS queries.",
+      "note": "Sandbox EgressRule schema only has cidr / https_hostname / tenant / any / selector / ports; no method/path/header matching. Cilium L7 HTTP policies on CKS not documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.coreweave.com/products/sandboxes/client/ref/configuration/network-options",
+      "quote": "`egress` and `ingress` are allow-only rule sets over default-deny",
+      "note": "Sandboxes: choose which ports get a public endpoint (a service without `endpoint` gets no public address); IngressRule CIDR allowlists for CUSTOM-visibility ports; runner policy allowed_ingress/default_ingress; deny_ingress. Public endpoints themselves are auth=OPEN only ('The platform does not authenticate callers'); auth=TOKEN returns NOT_IMPLEMENTED. CKS: network policies, LoadBalancer services, VPCs.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.coreweave.com/products/sandboxes/secrets",
+      "quote": "it resolves the values from your W&B team and injects them as environment variables",
+      "note": "W&B Secret Manager secrets are injected as env vars (serverless only); CKS uses Kubernetes Secrets. No credential-injecting egress proxy documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.coreweave.com/products/sandboxes/volumes",
+      "quote": "Registered Volumes are volumes your organization registers once, and any number of sandboxes can then mount them.",
+      "note": "Sandboxes: scratch volumes (die with the sandbox) and Registered Volumes backed by an existing PVC in your CKS cluster (persistent, independent lifecycle). CKS: PVCs on Distributed File Storage (VAST) and local storage.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.coreweave.com/products/sandboxes/volumes",
+      "quote": "Use a registered Volume for data that outlives a sandbox or that several sandboxes read at once",
+      "note": "Read-write by default, read_only per mount or per Volume. Registered Volumes are CKS-backed PVCs (cluster placement). Distributed File Storage PVCs use accessMode ReadWriteMany, only within the cluster where deployed.",
+      "checked": "2026-09-29"
+    }
   }
 }

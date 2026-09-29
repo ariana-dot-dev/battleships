@@ -1294,7 +1294,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": false,
     "self_host": false,
@@ -1313,7 +1313,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
     "fork_running": false,
@@ -1325,7 +1325,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1351,5 +1359,77 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 9
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.verda.com/cpu-and-gpu-instances/shutdown-hibernate-and-delete/",
+      "quote": "We have removed Hibernate because it was the same as Delete while keeping all storage.",
+      "note": "Shutdown just pauses the VM (still billed) with its volumes intact = persistent_disk, not a snapshot. No snapshot feature in the API (a 'hibernate' value survives only in an API action enum).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.verda.com/storage/block-volumes/cloning-a-block-volume/",
+      "quote": "Cloning a volume will duplicate all of its data onto a new volume.",
+      "note": "No named snapshot/image feature; the closest is volume clone (console/API/CLI), which requires the volume to be detached or its instance shut down, can go cross-datacenter, and a cloned/customized OS volume can boot a new instance (API `image` accepts a 'Previously customized OS volume ID'). Disk only, no memory, not of a running machine. Treat as weak/stopped-disk-copy only.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.verda.com/cli/mcp/",
+      "quote": "lets AI agents manage your Verda infrastructure through natural language",
+      "note": "Verda CLI ships an MCP server, `--agent` JSON mode and agent skills for Claude Code/Codex so an outside agent can manage Verda; nothing drives an agent harness running inside an instance.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.verda.com/resources/shared-responsibility-model/",
+      "quote": "you are responsible for managing the configurations of the operating system, network, firewall, access management, and data encryption",
+      "note": "No firewall/security-group objects in the public API (instances, volumes, clusters, ssh-keys, scripts, instance-groups, containers, secrets); docs only show in-guest ufw.",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.verda.com/resources/shared-responsibility-model/",
+      "quote": "you are responsible for managing the configurations of the operating system, network, firewall",
+      "note": "No provider-side network rules at all.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.verda.com/cpu-and-gpu-instances/securing-your-instance/",
+      "quote": "Ufw is a firewall management tool that will block access to all ports unless otherwise specified.",
+      "note": "Instances get a public IP; inbound filtering is only via in-guest ufw per the official hardening guide; no cloud firewall/security groups in API or docs. (Serverless containers expose an authenticated HTTPS endpoint, but that is a different product.)",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.verda.com/cpu-and-gpu-instances/securing-your-instance/",
+      "quote": "We will install and configure `fail2ban` & `ufw`.",
+      "note": "Full VM with root; official guide enables ufw inside the instance.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://api.verda.com/v1/openapi.json",
+      "quote": "File secrets can be used as a secret mount storage",
+      "note": "Secrets API exists only for Serverless Containers (env-var and file-mount secrets). GPU/CPU instances: startup scripts / env vars you set yourself. No credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.verda.com/storage/",
+      "quote": "Use block volumes when you need persistent disk storage for an instance",
+      "note": "NVMe block volumes (attach at creation or later with the instance shut down; resize; clone; kept on delete unless selected). $0.20/GiB-month per card.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.verda.com/storage/",
+      "quote": "shared filesystems when multiple instances or cluster nodes need access to the same files",
+      "note": "Shared Filesystem (SFS): NFS (`mount -t nfs ... nfs.[DC].verda.com`), read-write, shared via console Share settings to any instances in the same location; also usable across all cluster nodes.",
+      "checked": "2026-09-29"
+    }
   }
 }

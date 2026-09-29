@@ -190,7 +190,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_on_demand": true,
+    "own_agent_api": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -229,5 +236,56 @@
       "https://dagger.io/pricing/",
       "https://dagger.io/changelog"
     ]
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/dagger/dagger/main/docs/docs-graphql/schema.graphqls",
+      "quote": "Package the container state as an OCI image, and publish it to a registry",
+      "note": "Container.publish / export: filesystem state only (no memory). Dagger Container values are immutable, so any intermediate state can be reused to start new containers (fork-like); published images can boot new containers. Not a VM snapshot.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/dagger/dagger/main/docs/docs-graphql/schema.graphqls",
+      "quote": "Sending to a never-started agent starts it (signal-with-start).",
+      "note": "EXPERIMENTAL core Agent API (spawn/send/pause/resume/wait/notify/stop/reseed; conversation snapshot readable as an LLM value) drives Dagger's OWN LLM agent loop running in the engine, with containers as tools. Does not drive Claude Code/Codex/OpenCode inside a container. container-use is the reverse direction (an MCP server that external agents like Claude Code call).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/dagger/dagger/main/docs/docs-graphql/schema.graphqls",
+      "quote": "Sending to a never-started agent starts it (signal-with-start).",
+      "note": "EXPERIMENTAL core Agent API (spawn/send/pause/resume/wait/notify/stop/reseed; conversation snapshot readable as an LLM value) drives Dagger's OWN LLM agent loop running in the engine, with containers as tools. Does not drive Claude Code/Codex/OpenCode inside a container. container-use is the reverse direction (an MCP server that external agents like Claude Code call).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/dagger/dagger/main/docs/docs-graphql/schema.graphqls",
+      "quote": "Creates a tunnel that forwards traffic from the caller's network to this service.",
+      "note": "Services are reachable only by clients inside the Dagger session ('Configures a hostname which can be used by clients within the session to reach this container.') unless explicitly tunneled (Service.up / `dagger up`) with chosen frontend/backend port mappings to the caller's machine. No public URLs.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://container-use.com/secrets.md",
+      "quote": "injects actual values as environment variables in the container",
+      "note": "Dagger secrets (env:, file:, cmd:, vault://, op://, aws+sm://, gcp://, libsecret://) are resolved on the host and injected INTO the container via withSecretVariable (env) or withMountedSecret (file). Safeguards are only log redaction, never written to layers, excluded from cache keys; container-use additionally hides values from the model's context, but the sandbox process holds the real secret. Engine-side non-HTTP uses keep the credential out of the container: withRegistryAuth (registry push) and sshfsVolume privateKey.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/dagger/dagger/main/docs/docs-graphql/schema.graphqls",
+      "quote": "Constructs an engine-managed volume backed by operator-provided storage beneath the configured engine state root.",
+      "note": "Container.withMountedVolume (optional readOnly) mounts a Volume: engineVolume (operator-provided storage on the engine) or sshfsVolume (remote SSHFS). Also CacheVolume (withMountedCache) persisting across runs.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/dagger/dagger/main/docs/docs-graphql/schema.graphqls",
+      "quote": "Shares the cache volume amongst many build pipelines",
+      "note": "CacheVolume sharing mode SHARED (default, read-write across concurrent pipelines), LOCKED (serializes writes) or PRIVATE. Volumes can be mounted read-only. Scope is one engine (self-hosted or Cloud Engine).",
+      "checked": "2026-09-29"
+    }
   }
 }

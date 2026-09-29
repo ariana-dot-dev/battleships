@@ -142,7 +142,13 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": null,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -181,5 +187,49 @@
     "applied": 9,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.limrun.com/docs/ios/snapshots.md",
+      "quote": "You can keep building on the same running instance without restoring again. The saved snapshot is for future instances and is only published when this instance terminates.",
+      "note": "Xcode build sandboxes only, and opt-in: the instance must be created with --snapshot-key / spec.snapshot. Trigger: instance termination (delete, or the inactivity/hard timeout per the lifecycle docs); published only if the last build succeeded (\"A failed compile or cancelled build does not produce a new snapshot\"). Restore is automatic on the next create with the same key (prefix-matched restore keys, branch fallbacks). Disk/workspace only (sources + DerivedData), no memory. iOS simulators and Android emulators have no snapshot; only iOS keychain state can be saved/restored as an asset.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.limrun.com/docs/ios/snapshots.md",
+      "quote": "The saved snapshot is for future instances and is only published when this instance terminates.",
+      "note": "No API/CLI to checkpoint a running instance; publication happens only at termination of a snapshot-configured Xcode sandbox (the closest thing: delete with --wait-snapshot). New Xcode sandboxes can restore from a key (effectively a warm template of disk state). No memory snapshots; nothing for simulators/emulators.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.limrun.com/docs/agents/cli.md",
+      "quote": "Install the `lim` CLI and the Limrun skills where your coding agent runs, then ask it for a product change.",
+      "note": "Agents (Claude Code, Cursor, Codex) run outside Limrun and drive devices via the lim CLI, skills and MCP servers (remote https://mcp.limrun.com/mcp and per-instance mcpUrl). Limrun does not host or drive an agent harness inside its instances.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.limrun.com/docs/reference/instances.md",
+      "quote": "A `ready` instance carries the URLs its data plane needs in `status`. Every URL authenticates with the instance token, never the API key.",
+      "note": "Tokenized per-instance endpoints (apiUrl, mcpUrl, ADB WebSocket, targetHttpPortUrlPrefix for HTTP services on the device); separate stream-only token and signed stream URL (anyone holding it can watch and use the device); short-lived scoped tokens. No IP allowlists or private networking documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.limrun.com/docs/android/run-emulator.md",
+      "quote": "Everything runs with the permissions of the ADB shell user, so protected locations are rejected just as they would be for `adb`.",
+      "note": "Android emulators are non-rooted (docs also mention 'non-rooted devices' for Chrome flags); iOS simulators expose no shell. Xcode/Gradle build sandboxes run commands (lim xcode run) but root/network privileges are not documented. Not a general-purpose VM product.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://limrun.com/openapi.json",
+      "quote": "Secret type; the registered types are enumerated below.",
+      "note": "The org secrets API only stores typed signing material (enum: androidSigningKey, appleCertificate, appleProvisioningProfile, appStoreConnectApiKey) used server-side by signing/upload builds; build env passed with --env. No credential-injecting outbound proxy. The 'Apple relay' (scoped token applerelay:*:connect) is a browser-to-Apple sign-in relay for store publishing, not a sandbox egress proxy.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -485,7 +485,13 @@
     "egress_ip_type": null,
     "ip_note": "Proxy modes basic / enhanced / auto (enhanced costs the same 1 credit), country via location.country (default US); IP types not disclosed; no fixed outbound IPs (dedicated static egress is enterprise).",
     "lang_python": true,
-    "lang_node": true
+    "lang_node": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "own_agent_api": true,
+    "harness_api": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -532,5 +538,49 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 12
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.firecrawl.dev/features/browser",
+      "quote": "The sandbox filesystem is ephemeral — downloaded files are lost when the session ends. To persist files, read their content within the session and save it to your own storage. Persistent profiles preserve browser state (cookies, localStorage) but not files on disk.",
+      "note": "Sessions end on ttl (default 600 s, max 3600 s) or activityTtl (default 300 s) and are destroyed; a closed session ID cannot be reused. Only opt-in named browser profiles persist: with saveChanges=true (default when a profile is given) cookies/localStorage are written back when the session closes and loaded by the next session with the same name. No filesystem or memory state is saved.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.firecrawl.dev/features/browser",
+      "quote": "The browser session state only saves when the session is closed.",
+      "note": "The session API is create / execute / list / delete only (v2 OpenAPI); no snapshot, checkpoint or fork endpoint. Profile state is written only on close, so there is no mid-session checkpoint.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://docs.firecrawl.dev/api-reference/endpoint/scrape-execute",
+      "quote": "When `code` is provided, Firecrawl runs it in the browser sandbox. When `prompt` is provided, an AI agent automates the task using natural language.",
+      "note": "Harness = Firecrawl's own browser agent only (not Claude Code/Codex). POST /v2/scrape/{scrapeId}/interact with a prompt (1-10,000 chars) returns the agent's final answer in `output`; follow-up prompts reuse the same live browser ('Each call reuses the same browser session, so state carries over between them'). Synchronous request/response: no event stream (a live-view video stream URL exists) and no conversation list/resume. Prompted sessions bill 7 credits/browser-minute vs 2 for code-only. Separate /agent endpoint is a web-research agent job, not in-sandbox.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.firecrawl.dev/api-reference/endpoint/scrape-execute",
+      "quote": "When `code` is provided, Firecrawl runs it in the browser sandbox. When `prompt` is provided, an AI agent automates the task using natural language.",
+      "note": "Harness = Firecrawl's own browser agent only (not Claude Code/Codex). POST /v2/scrape/{scrapeId}/interact with a prompt (1-10,000 chars) returns the agent's final answer in `output`; follow-up prompts reuse the same live browser ('Each call reuses the same browser session, so state carries over between them'). Synchronous request/response: no event stream (a live-view video stream URL exists) and no conversation list/resume. Prompted sessions bill 7 credits/browser-minute vs 2 for code-only. Separate /agent endpoint is a web-research agent job, not in-sandbox.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.firecrawl.dev/features/browser",
+      "quote": "The sandbox filesystem is ephemeral — downloaded files are lost when the session ends.",
+      "note": "No volumes. Only named browser profiles (cookies, localStorage, sessions) persist across sessions: 'Persistent profiles preserve browser state (cookies, localStorage) but not files on disk.'",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.firecrawl.dev/features/browser",
+      "quote": "Only one session can save to a profile at a time. If another session is already saving, you'll get a `409` error. You can still open the same profile with `saveChanges: false`, or try again later.",
+      "note": "No shared filesystem. Closest analogue: one browser profile can be loaded read-only by several concurrent sessions ('useful when you need multiple concurrent readers'), with a single writer; it is browser state, not a mounted volume.",
+      "checked": "2026-09-29"
+    }
   }
 }

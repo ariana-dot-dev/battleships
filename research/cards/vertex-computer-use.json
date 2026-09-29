@@ -298,7 +298,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -316,7 +316,12 @@
     "anti_bot": null,
     "captcha_solving": null,
     "egress_ip_type": "datacenter",
-    "ip_note": "Computer Use sandbox only (code-execution sandbox has no network); runs in Google Cloud, no proxy/stealth/CAPTCHA options documented; screen API covers the browser, not a full OS desktop."
+    "ip_note": "Computer Use sandbox only (code-execution sandbox has no network); runs in Google Cloud, no proxy/stealth/CAPTCHA options documented; screen API covers the browser, not a full OS desktop.",
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -358,5 +363,50 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 16
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-snapshots",
+      "quote": "Save the exact state of the sandbox, including installed libraries, file system changes, and memory state.",
+      "note": "Memory included. SDK client.sandboxes.snapshots.create with a TTL; restore by creating a new sandbox with sandbox_environment_snapshot; 'Branching: Create multiple sandboxes from the same snapshot' (fork). Same image/arch/runtime version required. Not supported for Code Execution sandboxes ('Snapshots are not supported for Code Execution sandboxes').",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/managed-agents/interact-with-agents",
+      "quote": "The simplest way to use Managed Agents API on Agent Platform is to interact directly with the first-party Antigravity base agent.",
+      "note": "Managed Agents API (Pre-GA, runs on the Agent Platform sandbox environment): Interactions API starts the Antigravity harness (base_agent antigravity-preview-05-2026) with a prompt, streams SSE events, continues via previous_interaction_id and reuses the sandbox via environment_id; Agents API creates/lists/deletes agent configs. Only Google's own Antigravity harness; no Claude Code/Codex. The plain Code Execution/Shell/Computer Use sandboxes only have exec/browser-action APIs.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/managed-agents/sandbox-environment",
+      "quote": "By default, the sandbox operates without external network access. Explicitly enable connectivity by setting a domain allowlist in your environment configuration.",
+      "note": "Managed Agents: domain allowlist, default-deny. Sandbox templates: egress_control_config.internet_access on/off ('Outbound internet access is off unless the template enables it', shell quickstart). With PSC-I, egress is bridged into your VPC and governed by Cloud NGFW rules (FQDN objects + IP ranges, default-deny) per configure-vpc-sc page. All enforced outside the container.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/configure-vpc-sc",
+      "quote": "deploy Secure Web Proxy as the egress inspection point in your VPC for TLS-aware, per-URL policy",
+      "note": "Only via PSC-I egress into your own VPC plus Google Cloud Secure Web Proxy (separately billed GCP product); not a sandbox-native setting.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/configure-vpc-sc",
+      "quote": "Reach that data plane over a private Private Service Connect endpoint (PSC-E) in your VPC instead of over the public internet.",
+      "note": "Private ingress via PSC-E limited to the same project; template declares which container ports are exposed; data-plane/CDP access requires IAM-generated WebSocket headers (generate_browser_ws_headers with a service account).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/custom-containers",
+      "quote": "Security: Must not require root privileges or access to restricted system resources, as the image will run within a secure, isolated sandbox.",
+      "note": "Containerized sandbox (underlying Agent Substrate runs actors under gVisor or cloud-hypervisor microVMs); images must run without root, so in-guest iptables/nftables is not expected to be available. Not tested.",
+      "checked": "2026-09-29"
+    }
   }
 }

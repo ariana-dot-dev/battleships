@@ -280,7 +280,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -299,7 +299,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -311,7 +311,15 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -356,5 +364,72 @@
     "applied": 6,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://guide.ncloud-docs.com/docs/en/server-manage-vpc",
+      "quote": null,
+      "note": "Standard VPC Server VM: Stop just stops the VM; block storage persists (persistent_disk), no state capture on stop/idle documented. Only scheduled snapshots exist for the separate NAS product ('set the automatic creation cycle'), which is a scheduled backup, not this feature.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://guide.ncloud-docs.com/docs/en/server-manage-vpc",
+      "quote": "You can create an image of the current status for a server you're using.",
+      "note": "Two mechanisms, both disk-only (no memory): 'My server image' of a server (new servers can be created from it, also 'replica server'), and Block Storage snapshots (full or incremental) via console/API: 'If you create a snapshot, you can store data in storage and create new storage on the desired server with the generated snapshot to restore the stored data.' (server-snapshot-create-vpc). On KVM g3, a snapshot of the default storage can become a server image (server-snapshot-serverimage-vpc). Bare metal cannot create server images.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://guide.ncloud-docs.com/docs/en/server-acg-vpc",
+      "quote": "If the ACG outbound rule settings do not exist, the request packet sent from the server may be blocked.",
+      "note": "ACG (stateful security group, per network interface) has outbound rules by protocol/IP-CIDR/port; user-created ACGs start with no rules. Network ACL (stateless, per subnet) adds inbound/outbound IP rules (vpc-nacl-vpc). No hostname/domain egress rules found.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://guide.ncloud-docs.com/docs/en/server-acg-vpc",
+      "quote": "Access Control Group (ACG) is an IP/Port-based filtering firewall service that enables you to control and manage network access between servers.",
+      "note": "ACG and Network ACL are L3/L4 only; no HTTP-level egress rules documented for servers.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://guide.ncloud-docs.com/docs/en/server-acg-vpc",
+      "quote": "Access Control Group (ACG) is an IP/Port-based filtering firewall service that enables you to control and manage network access between servers.",
+      "note": "ACG inbound rules (source IP/CIDR or ACG, protocol, port) plus subnet-level Network ACL; private subnets without public IP possible.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://guide.ncloud-docs.com/docs/en/server-acg-vpc",
+      "quote": "without needing to separately manage the existing firewalls (iptables, UFW, and Windows firewall)",
+      "note": "Full KVM (g3) / Xen (g1/g2) VM with root; the ACG page itself refers to the in-guest iptables/UFW firewalls as the alternative.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://guide.ncloud-docs.com/docs/en/secretmanager-overview",
+      "quote": "Secret Manager helps save and manage any important confidential information",
+      "note": "Secret Manager is a KMS-encrypted secret store that the application reads (with rotation via Cloud Functions); no credential-injecting egress proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://guide.ncloud-docs.com/docs/en/server-storage-add-vpc",
+      "quote": "You can add additional storage to a server on top of the default storage.",
+      "note": "Block Storage: KVM g3 up to 20 extra volumes of up to 16 TB (CB1/CB2/FB1/FB2); Xen g1/g2 up to 15 of up to 2 TB (SSD/HDD). Zonal.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://guide.ncloud-docs.com/docs/en/nas-overview",
+      "quote": "If you create a NAS volume and mount it on the server, you can reliably share data across multiple servers.",
+      "note": "NAS product: NFS (Linux) / CIFS (Windows) volumes up to 20 TB, read-write, mounted by multiple servers; separate billing. Object Storage also exists (not a mount).",
+      "checked": "2026-09-29"
+    }
   }
 }

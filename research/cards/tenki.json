@@ -365,7 +365,16 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "vm",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -421,5 +430,72 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://tenki.cloud/docs/changelog.md",
+      "quote": "Paused sandboxes at their maximum duration so their state is preserved.",
+      "note": "Changelog 2026-09-11. The only trigger is reaching max duration (non-sticky sessions). There is NO idle trigger: '--idle-timeout ... never had any effect' was removed 2026-09-18. Pause keeps memory and disk (concepts: 'Pause it to free compute while preserving files and memory'). A process started over exec keeps its PID across a pause. /tmp is cleared, and open TCP/SSH/preview connections close. Resume is an explicit call; there is no wake-on-request. pauseRetentionMs controls how long paused state is kept. Sticky sessions never auto-pause.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://tenki.cloud/docs/sandbox/concepts.md",
+      "quote": "A snapshot captures both a session's disk and memory, so a restored session comes back with its running processes and in-memory state intact, not just its files.",
+      "note": "Memory included. One-to-many: 'you can start many new sessions from the same snapshot' (fork). The session 'briefly pauses, then keeps running'. Snapshots take an optional expires_at and can be published to the workspace registry as images. Attached volumes are not captured or re-attached. Available via CLI, TS/Python/Go SDKs and MCP.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://tenki.cloud/docs/sandbox/sdk.md",
+      "quote": "OpenCode then runs inside the session. The SDKs enable it at create time but do not expose an API for driving it programmatically once the session is running.",
+      "note": "enableOpenCode/openCodeProvider only installs and wires OpenCode at create time. Prebuilt images for Grok, Droid (droid exec), Pi and Anchor are driven through the generic exec API. The Tenki MCP server (@tenkicloud/mcp, plus hosted OAuth MCP) runs the other way round: an outside agent drives sandboxes, not an agent inside them.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://tenki.cloud/docs/sandbox/sessions.md",
+      "quote": "Set allowed domains or IPv4 CIDRs when you create a session to restrict its outbound destinations.\nTenki must enable session egress policies for your workspace first.",
+      "note": "Per-session allowDomains (hostnames, *. wildcards) and allowCidrs (IPv4) are create-time only. allowOutbound:false blocks all outbound. Workspace-level network restrictions sit on top: 'An allowlist cannot override disabled outbound access or widen workspace network permissions.' Not self-serve: support has to enable it for the workspace, otherwise create fails with failed_precondition. Enforcement mechanism (SNI vs DNS vs IP) is not documented.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://tenki.cloud/docs/sandbox/sessions.md",
+      "quote": "`allow_inbound` enables inbound exposure workflows; with `allow_inbound=false`, port exposure is rejected",
+      "note": "Ports are exposed one at a time by explicit call (preview-url create/expose), with an optional TTL (added 2026-09-18) and unbind/delete. There is no public IPv4. BUT preview URLs carry no auth: chrome.md says the preview URL 'is the only thing standing between the public internet and full keyboard and mouse control ... Treat it as a bearer secret'. No IP allowlist and no private/authenticated preview mode. A private alternative is dial(), a byte stream to a guest Unix socket over the authenticated data plane ('nothing is published on the internet'). SSH goes through Tenki's SSH gateway using authorized keys.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VM ('Hardware-isolated VMs — Its own kernel, not a shared-kernel container'), with passwordless sudo, Docker and systemd. The hypervisor is not named. nftables/iptables are not mentioned in the docs.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://tenki.cloud/docs/sandbox/sessions.md",
+      "quote": "Environment variables are plaintext configuration, not a secret-management channel.\nDo not pass long-lived credentials through `env`.",
+      "note": "No credential-injecting proxy. Runtime secrets can only go in as env vars or files (the Anchor blog passes ANCHOR_API_KEY via --env). Template buildSecrets are encrypted and 'never reach the runtime', but they cover builds only. The githubToken create option is documented as letting 'private clones work without provisioning credentials inside the guest'; whether this is proxied is not explained. Runners: 'Tenki does not operate a secrets store' (GitHub Actions secrets).",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://tenki.cloud/docs/sandbox/volumes.md",
+      "quote": "Persistent volumes are workspace-scoped block storage that survives the session it was used in.",
+      "note": "1 MiB to 50 GiB, resizable. Attach at create or on a running session, with a read-only option. Billed from the $0.20/GiB-month workspace storage pool.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://tenki.cloud/docs/sandbox/volumes.md",
+      "quote": "The one worth handling is in-use: the volume is still attached to another session, so detach it from that session or wait, then retry.",
+      "note": "Block volumes attach to one session at a time (an 'in-use' error when attached elsewhere). Concepts mentions 'datasets shared across sessions', but that means sequential reuse. Nothing documents concurrent read-only multi-attach. No network FS or bucket mount.",
+      "checked": "2026-09-29"
+    }
   }
 }

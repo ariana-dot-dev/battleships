@@ -179,7 +179,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": null,
@@ -199,7 +199,16 @@
     "egress_ip_type": null,
     "ip_note": "No proxy or egress-IP options documented; Runloop tutorials pair devboxes with Browserbase/Kernel for stealth/proxy browsers.",
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": 8.29,
@@ -291,5 +300,79 @@
     "applied": 3,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.runloop.ai/docs/devboxes/lifecycle",
+      "quote": "The Devbox disk is being snapshotted and as part of suspension",
+      "note": "Opt-in idle policy: lifecycle.after_idle {idle_time_seconds, on_idle: \"suspend\"} (docs.runloop.ai/docs/devboxes/start-stop: 'suspend when they are idle using the `lifecycle.after_idle` launch parameter'; default does nothing on idle). Resume on HTTP tunnel traffic or Axon event. Disk only: 'Only disk state, not in-memory state is preserved during suspend/resume operations'. Suspend is a Pro-plan ($250/mo) feature. keep_alive expiry (default 1h, max 48h) is a terminal shutdown, not a snapshot.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.runloop.ai/docs/devboxes/snapshots",
+      "quote": "Currently only disk snapshots are supported.",
+      "note": "Sync or async disk snapshot of a running devbox via API/SDK/CLI; new devboxes boot from it ('create 3 parallel devboxes from that snapshot') = fork/fan-out. No memory. Snapshots also available on Basic plan; can be made public.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.runloop.ai/docs/axons/broker/claude",
+      "quote": "Use the Claude JSON protocol to connect Broker to Claude Code CLI",
+      "note": "Axons (beta) + Broker: a broker_mount launches the agent in the devbox; you publish prompts (query / session/prompt) to the Axon and stream agent output over SSE; replay/resume of session history via Remote Agents SDK (TypeScript); suspended devbox auto-resumes on a new Axon event. Harnesses: Claude Code (claude_json protocol) and any ACP agent (docs name OpenCode and Goose).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.runloop.ai/docs/network-policies",
+      "quote": "Network Policies let you restrict egress traffic to specific hostnames, block all external access, or allow communication between your Devboxes.",
+      "note": "allowed_hostnames with first-label wildcards, allow_all, deny-all, devbox-to-devbox toggle, agent-gateway / MCP-hub toggles; separate build vs runtime policies for blueprints; 100 policies/account. No IP/CIDR rules documented.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.runloop.ai/docs/network-policies",
+      "quote": "allowed_hostnames",
+      "note": "Network policy options table lists only allow_all, allowed_hostnames, allow_devbox_to_devbox, allow_agent_gateway, allow_mcp_gateway: no method/path/header rules. (MCP Hub has tool-level allowlists for MCP servers, which is not HTTP egress rules.)",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.runloop.ai/docs/devboxes/tunnels",
+      "quote": "With `auth_mode: \"authenticated\"`, requests must include a bearer token.",
+      "note": "One tunnel per devbox (https://{port}-{key}.tunnel.runloop.ai), enabled explicitly, auth_mode open or authenticated. No public IPv4; SSH only via TLS-wrapped proxy. No IP allowlists documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://docs.runloop.ai/docs/devboxes/capabilities/docker-in-docker",
+      "quote": "When using these blueprints, your Devbox profile is `root`.",
+      "note": "Marketing: 'Secure, isolated, micro-VM* environment (Two layers of security, VM + Container)' (runloop.ai). Root + working dockerd on *-dnd blueprints implies netfilter/CAP_NET_ADMIN inside; on default blueprints (user with sudo inside a container layer) NET_ADMIN not documented. iptables/nftables never mentioned in docs.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.runloop.ai/docs/devboxes/agent-gateways",
+      "quote": "Your real credentials stay secure on Runloop's servers—the agent only gets a temporary gateway token.",
+      "note": "Agent Gateways: gateway_configs with arbitrary endpoint + auth_mechanism bearer/header/basic (+ up to 8 custom headers from secrets); docs show a 'Custom API Gateway' for an internal company API and a private PyPI index. Devbox gets $<PREFIX>_URL + a devbox-bound token. Agent must call the gateway URL (base-URL rewrite, not transparent MITM). HTTP only; MCP Hub does the same for MCP servers. No DB/SSH/git-protocol coverage documented. Account secrets are otherwise injected as env vars.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.runloop.ai/docs/devboxes/mounts/overview",
+      "quote": "Runloop supports four types of mounts",
+      "note": "The four mount types are code (git clone), object (storage object copied/extracted at create: 'Archive objects are automatically extracted to the specified path.'), file (inline content), agent. No persistent/block/network volume product; devbox disk 2-64 GiB only.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.runloop.ai/docs/devboxes/mounts/overview",
+      "quote": "Runloop supports four types of mounts",
+      "note": "Storage objects can be mounted into many devboxes, but as per-devbox copies at create time, not a live shared filesystem.",
+      "checked": "2026-09-29"
+    }
   }
 }

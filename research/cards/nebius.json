@@ -774,7 +774,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": null,
@@ -795,7 +795,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -807,7 +807,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -854,5 +863,79 @@
     "applied": 14,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 10
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.nebius.com/compute/virtual-machines/preemptible.md",
+      "quote": "Compute preserves all data on the volumes attached to a stopped preemptible VM.",
+      "note": "Plain KVM VMs: stop (or preemption) keeps attached disks (persistent_disk) but takes no state snapshot and memory is lost; no snapshot schedules/policies found in docs (llms-full grep).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.nebius.com/compute/storage/disk-snapshots.md",
+      "quote": "To create a snapshot, you don't need to stop a virtual machine.",
+      "note": "Disk snapshots (console/CLI/Go/Python/JS SDK/Terraform compute_v1_disk_snapshot) of boot and additional disks, running or stopped; restore = create a new disk from the snapshot, so new VMs can boot from it (also custom boot images from disks). Disk only, no memory; project-scoped; billed separately.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "GPU/CPU IaaS cloud (Compute VMs, Managed K8s, Soperator, Serverless AI jobs/endpoints/Devlabs); no agent-harness product or API in the docs index. Driving agents would be DIY over SSH/exec.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.nebius.com/vpc/security-groups/overview.md",
+      "quote": "each security rule describes whether ingress or egress traffic with certain parameters (source, destination, protocol) should be allowed or denied.",
+      "note": "VPC security groups on the VM network interface: ALLOW/DENY egress by destination CIDR (up to 8), ports, protocol TCP/UDP/ICMP/ANY, or destination security group; unmatched traffic is denied, so default-deny is possible. Default SG allows all. No hostname/FQDN rules.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.nebius.com/vpc/security-groups/overview.md",
+      "quote": "controlling ingress and egress traffic at the packet level",
+      "note": "Security rules are L3/L4 only (CIDR/port/protocol); no L7 method/path/header filtering documented.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.nebius.com/vpc/security-groups/overview.md",
+      "quote": "You can specify a security group as the source for an ingress security rule",
+      "note": "Security-group ingress rules by source CIDR/port/protocol/SG; public IPv4 is optional per VM (private-only VMs possible, reachable via Nebius Tunnels).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VMs with root and own kernel; iptables/nftables inside the guest work as on any Linux VM.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.nebius.com/mysterybox/overview.md",
+      "quote": "A service account associated with the given VM launches the script and retrieves the secret with the API key.",
+      "note": "SecretStash (formerly MysteryBox) is a secret store: secrets are fetched into the VM or injected as env vars (Serverless AI jobs/endpoints); no credential-injecting egress proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.nebius.com/compute/storage/types.md",
+      "quote": "One Compute network SSD disk can only be added to one running VM at a time.",
+      "note": "Additional network SSD disks (SSD, SSD Non-replicated, SSD IO M3), standalone and reattachable; plus shared filesystems. Attach mode READ_WRITE.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.nebius.com/compute/storage/types.md",
+      "quote": "One shared filesystem can be attached to multiple VMs at once.",
+      "note": "Shared filesystems mounted via virtiofs, same-project only, attach_mode READ_WRITE ('The only supported value is `READ_WRITE`'); can also be exposed as S3 via filesystem buckets. Network disks are single-attach.",
+      "checked": "2026-09-29"
+    }
   }
 }

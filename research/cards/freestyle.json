@@ -251,7 +251,16 @@
     "spend_limits": null,
     "mcp_server": false,
     "isolation": "bare-metal-vm",
-    "image_oci": false
+    "image_oci": false,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": 9.64,
@@ -320,5 +329,79 @@
   "audit_2026_09_29": {
     "applied": 2,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://www.freestyle.sh/docs/vms/lifecycle",
+      "quote": "Configure an idle timeout to let Freestyle pause VMs that have no network activity. [...] A VM paused this way resumes on its next start, or on the next traffic that reaches it.",
+      "note": "Trigger: idleTimeoutSeconds (network-inactivity based; opt-in, no default) or maxRunSeconds; also Free-plan allowance exhaustion pauses VMs. Pause includes memory: 'Pausing freezes the VM and saves its memory. Starting it again resumes the same processes at the same point'. Wakes automatically on HTTP/VPC/tunnel traffic, exec, PTY, file writes.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://www.freestyle.sh/docs/vms/base-snapshots",
+      "quote": "capture its exact memory and disk. The source VM must be running or paused",
+      "note": "vm.snapshot() captures memory + disk of a running or paused VM; new VMs boot from it via vms.create({ snapshotId }) (fork/template; no single fork(count) call). Snapshots persist until deleted; count limits 10/1,000/12,000 by plan.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://www.freestyle.sh/docs/guides/run-claude-code-in-a-sandbox",
+      "quote": "Build a snapshot with Claude Code installed, then use that sandbox three ways: run a one-off prompt, attach an interactive terminal over the PTY API, and drive the CLI from the Claude Agent SDK running on your own machine — bridging the SDK's process to the VM through `spawnClaudeCodeProcess`.",
+      "note": "Only DIY guides (Claude Code, GitHub Copilot CLI, OpenClaw, T3 Code, OpenAI Agents SDK / Mastra adapters) built on generic exec/PTY; no first-party harness-driving API in the SDK/CLI docs. Nothing preinstalled.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://www.freestyle.sh/docs/guides/migrate-from-e2b",
+      "quote": "A Freestyle VM has none until a firewall rule allows it, and only allow rules exist. [...] `allowOut: [\"api.github.com\"]` | A TLS rule per exact domain, `destination: { public: true }` | `allowOut: [\"*.example.com\"]` | Not available yet; only exact names steer",
+      "note": "Default-deny: 'firewall is required on vms.create. A VM gets nothing implicitly — no outbound Internet, no inbound' (firewall page). IP level: allow rules by cidr/public/vmId/vpcId/tunnelId with port+protocol (tcp/udp/icmp). Domain level: TLS egress rule per exact hostname admits the VM to that domain via the edge with no broad Internet grant (steered via /etc/hosts; direct-IP dials still need a firewall grant). No wildcard domains, no deny rules. Outbound SMTP 25/465/587 always blocked.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://www.freestyle.sh/docs/vms/network/tls-outbound",
+      "quote": "An optional `match` beside `transform` selects which HTTP egress requests receive",
+      "note": "match on method + exact path selects which requests get transforms (header injection, RFC 6902 jsonPatch body rewrite); docs say 'Matching does not deny origin access' so match itself is not a deny rule. Actual HTTP-level enforcement: s3 transform scope ('Requests outside the bucket, key prefix, or operation allowlist return 403 before contacting S3') and jsonPatch 'test' op ('a failed test rejects the request'). No header-based matching; 'Freestyle currently supports method and exact path only.'",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://www.freestyle.sh/docs/vms/forward-auth",
+      "quote": "Forward auth lets your application decide whether each public HTTP request may reach a VM. Freestyle terminates HTTPS, asks your authorization endpoint, and forwards only allowed requests.",
+      "note": "Also firewall ingress rules by cidr/public/vmId/vpcId/tunnelId + port/protocol (default no inbound; e.g. 'Ping from one office range only' with source cidr 203.0.113.0/24), explicit per-port domain routing via inbound TLS rules, private VPCs and WireGuard tunnels. Edge-routed domains and SSH gateway bypass firewall rules by design ('Freestyle's Own Traffic Always Works').",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full KVM VM on bare metal with own kernel (6.1.0-15-freestyle) and passwordless sudo; WireGuard/eBPF in kernel. nftables/iptables not explicitly documented, but the router-VM guides configure in-guest routing/NAT.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://www.freestyle.sh/docs/vms/network/tls-outbound",
+      "quote": "Credential injection lets the VM authenticate without receiving the real API key or database password.",
+      "note": "TLS egress rules per exact domain with transform headers (arbitrary HTTP APIs; values write-only, read back as \"***\"), Postgres user/password injection (non-HTTP DB protocol covered), S3 SigV4 signing with bucket/prefix/operation scope, SOCKS5 proxy creds, SMTP brokered at edge, Git over HTTPS via header injection (guide). Requires trusting Freestyle CA in the VM; cert-pinning clients break. SSH-git not covered.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://www.freestyle.sh/docs/guides/migrate-from-e2b",
+      "quote": "Volumes and cloud buckets. Mount object storage from inside the VM with the tool of your choice, or share data between VMs over a VPC.",
+      "note": "Listed under 'Account For What Has No Equivalent'. Only root disk (grow-only live resize up to plan max 32/64/256 GB). S3 mount guide is DIY rclone FUSE.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.freestyle.sh/docs/guides/migrate-from-e2b",
+      "quote": "Volumes and cloud buckets. Mount object storage from inside the VM with the tool of your choice, or share data between VMs over a VPC.",
+      "note": "No first-party shared volume or bucket mount; DIY rclone S3 FUSE (read-write) with edge-scoped S3 credentials can emulate sharing.",
+      "checked": "2026-09-29"
+    }
   }
 }

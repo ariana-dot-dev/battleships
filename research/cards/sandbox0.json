@@ -184,7 +184,15 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "gvisor",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "secret_proxy": "any-http",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -235,5 +243,71 @@
     "applied": 1,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://sandbox0.ai/docs/sandbox/pause-resume.md",
+      "quote": "`ttl` | Soft runtime timeout. Expiry requests the same planned pause transaction.",
+      "note": "Pause (explicit, ttl idle/soft timeout, or billing pause) publishes the block-COW rootfs head as a checkpoint to object storage and resume (explicit or auto_resume on inbound API/SSH/public route) restores it: 'By default, pause publishes the writable block-COW RootFS head and retires the current runtime allocation.' Automatic paths are filesystem-only: 'Existing calls, TTL pause, and automatic resume keep their filesystem-only behavior.' Memory/processes not included unless you explicitly pause with memory:true (experimental).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://sandbox0.ai/docs/sandbox/snapshot-restore.md",
+      "quote": "create named rootfs snapshots from a running or paused sandbox",
+      "note": "Named rootfs snapshots are filesystem-only ('A named RootFS snapshot still contains filesystem state only'); new sandboxes can be claimed from them ('claim a new sandbox with a named rootfs snapshot'), restore in place on a paused sandbox, and fork running/paused sandboxes. Experimental memory:true pause and memory fork retain processes/memory (on supporting deployments).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://sandbox0.ai/managed-agents",
+      "quote": "Sandpi Platform runs coding-agent harnesses in persistent Sandbox0 Environments. You integrate tasks, Sessions, events, files, and usage through an API. Sandpi manages harness execution and the underlying sandbox lifecycle.",
+      "note": "Harnesses: Codex, Claude Code, Pi, Kimi Code, ZCode. Sessions keep native conversation history across Runs (follow-ups), stream/replay Run events, stop a Run, roll back latest Run, fork Environments. Delivered as a sister product 'Sandpi Platform' (api.sandpi.ai, own API token, prepaid credit + 5% top-up fee, sandbox free) - not part of the raw Sandbox0 sandbox API; Sandbox0 itself only offers generic contexts/supervised sessions.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://sandbox0.ai/docs/sandbox/network.md",
+      "quote": "`mode` | Default fallback for unmatched traffic: `allow-all` or `block-all`",
+      "note": "Ordered allow/deny trafficRules match domains, CIDRs, ports and classified appProtocols; enforced by the node-side ctld network runtime; updatable at runtime via PUT /api/v1/sandboxes/{id}/network. Optional customer-managed SOCKS5 egress proxy.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://sandbox0.ai/docs/sandbox/protocol-controls.md",
+      "quote": "HTTP protocol rules inspect outbound HTTP requests. `httpMatch` scopes the rule to matching requests, while `http` defines the operation policy.",
+      "note": "Methods and paths allow/deny (HTTPS requires tlsMode: terminate-reoriginate, i.e. MITM CA injected into sandbox); also MCP tool-name allow/deny for remote MCP calls; audit mode.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://sandbox0.ai/docs/sandbox/services.md",
+      "quote": "`auth` | Applies bearer or header authentication before the request reaches the sandbox",
+      "note": "Only declared Sandbox Services ports are exposed (ingress.public), with per-route method filter, bearer/header auth, CORS, rate limit; plus Private Previews (authenticated, expiring one-time-bootstrap URLs for loopback-only servers). No IP allowlist found.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://sandbox0.ai/docs/sandbox/credential.md",
+      "quote": "Credential features let Sandbox0 authenticate outbound traffic without placing raw secret material inside the sandbox process.",
+      "note": "Team-scoped credential sources + bindings + destination-scoped credentialRules; projections: http_headers, placeholder_substitution (headers/query/body), tls_client_certificate, username_password (SOCKS5/MQTT), ssh_proxy (git-over-SSH: 'The upstream private key is never written into the sandbox'). Rule protocols: http, https, grpc, tls, ssh, socks5, mqtt, redis. HTTPS needs terminate-reoriginate MITM.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://sandbox0.ai/docs/sandbox/template/configuration.md",
+      "quote": "The public spec is runtime-neutral: it contains an image, default memory and RootFS storage, guest security class, claim-lifetime ephemeral mounts, environment variables, metadata, and a default network policy.",
+      "note": "Storage model is a single persistent block-COW rootfs (300 MiB-1 TiB) plus non-persistent ephemeralMounts; no attachable persistent volume object in the docs.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://sandbox0.ai/docs/sandbox/snapshot-restore.md",
+      "quote": "Fork creates a new sandbox with Copy-on-Write rootfs isolation from the source rootfs state.",
+      "note": "State is shared between sandboxes only by snapshot/fork (CoW copies), not a concurrently mounted shared filesystem; no shared volume documented.",
+      "checked": "2026-09-29"
+    }
   }
 }

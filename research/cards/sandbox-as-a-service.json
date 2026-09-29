@@ -135,7 +135,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -153,7 +153,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -167,7 +167,15 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -204,5 +212,77 @@
     "applied": 2,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://sandbox-as-a-service.com/docs/sandboxes",
+      "quote": "There is no persistent volume. When a sandbox is destroyed — by you, by expiry, or because your balance hit zero — the machine and its disk are destroyed with it.",
+      "note": "No stop/pause state; timeout destroys the VM. Security page: 'Sandbox contents are not backed up and not recoverable.'",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://sandbox-as-a-service.com/docs/sandboxes",
+      "quote": "A snapshot captures a running sandbox as a full-VM image that can be restored, filesystem included, into a new sandbox later",
+      "note": "POST /v1/sandboxes/{id}/snapshots (REST only, not in SDK/MCP yet), no reboot; restore via snapshot_id on POST /v1/sandboxes boots NEW sandboxes (template-style, same size). Filesystem only: 'Processes are not resumed'. Kept 7 days, max 3 per account, one capture in flight; storage billed. New since the 2026-09-28 card (card says snapshot none).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://sandbox-as-a-service.com/llms.txt",
+      "quote": null,
+      "note": "API surface is sandboxes, snapshots, exec, files, ports, account/usage (plus an MCP server exposing the same ops as tools for an outside agent). No endpoint to drive an agent harness inside the sandbox; no harnesses preinstalled.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://sandbox-as-a-service.com/docs/execution",
+      "quote": "Outbound internet is open, so package registries and git remotes work. The cloud metadata endpoint is blocked for the sandbox user, and outbound SMTP (ports 25, 465, 587) is blocked account-wide as an anti-abuse measure.",
+      "note": "Only fixed platform blocks (SMTP, metadata, private networks/control plane); create request has no network options (OpenAPI: size, name, timeout_minutes, snapshot_id).",
+      "checked": "2026-09-29"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://sandbox-as-a-service.com/docs/execution",
+      "quote": "Outbound internet is open, so package registries and git remotes work.",
+      "note": "No egress controls of any kind exposed.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://sandbox-as-a-service.com/docs/ports",
+      "quote": "Your machine's firewall is not touched, no port is opened to the internet, and the sandbox's inbound surface stays exactly what it was: nothing.",
+      "note": "No inbound ports by default; per-port opt-in preview URLs (POST /v1/sandboxes/{id}/ports, HTTP/WebSocket only, port 22 refused) that 'carr[y] an unguessable token' (160-bit path token) and can be closed (DELETE .../ports/{port}). 'Who can reach it: Anyone with the link.' No IP allowlist or auth header option. Quote from docs/limits: 'No inbound port is opened on a sandbox either'.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://sandbox-as-a-service.com/security",
+      "quote": "Your commands run as the unprivileged sandbox user, never as root. That user has no sudo and no access to the control-plane SSH key",
+      "note": "Dedicated VM with its own kernel, but customer code has no root/sudo, so it cannot configure nftables/iptables. The platform itself uses in-VM firewall rules (metadata endpoint blocked 'by firewall rules scoped to the sandbox user').",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://sandbox-as-a-service.com/docs/execution",
+      "quote": "String values only. Keys must match [A-Za-z_][A-Za-z0-9_]*. Applied to this command only.",
+      "note": "No secret store or credential proxy; secrets can only be passed as per-exec env vars or written as files, so they enter the sandbox.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://sandbox-as-a-service.com/docs/sandboxes",
+      "quote": "There is no persistent volume.",
+      "note": "Fixed disk per size (40/80/160 GB); persist to your own storage (S3, DB).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://sandbox-as-a-service.com/docs/sandboxes",
+      "quote": "There is no persistent volume.",
+      "note": null,
+      "checked": "2026-09-29"
+    }
   }
 }

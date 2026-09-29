@@ -225,7 +225,14 @@
     "scheduled_wakeups": true,
     "wake_on_request": true,
     "scoped_api_keys": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": true,
+    "harness_api": true,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": "ai-only",
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -275,5 +282,57 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://maritime.sh/docs/how-it-works",
+      "quote": "On micro-VM hosts the process is snapshotted and resumed, not restarted.",
+      "note": "Trigger: idle timeout (configurable --idle / idleTtlSeconds; Computers sleep after 5 idle minutes or 30 s after close_computer). Memory included: Computers docs say 'After 5 idle minutes the desktop sleeps: memory is snapshotted, open windows and all.' Memory snapshot kept 7 days after last action; after that it wakes from a fresh boot with the same disk. Wake is automatic on chat/trigger/HTTP/file/exec calls (~1.1-1.4 s). Caveat: 'On micro-VM hosts' implies non-microVM hosts restart processes instead.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://maritime.sh/docs/sdk/agents",
+      "quote": "Send a message and wait for the reply. Sleeping agents wake automatically. Pass a conversationId to keep a thread.",
+      "note": "First-party REST (POST /api/agents/{id}/chat with optional conversation_id), CLI (maritime chat) and TS/Python SDKs (agents.chat) deliver prompts to the agent harness running in the VM and return its reply. Templates: Claude Code (Claude Agent SDK; docs: 'Each conversation_id resumes its own Claude Code session'), Codex CLI, OpenClaw, Hermes, ZeroClaw, DeepSeek Harness, or any custom container implementing POST /chat. Request/response only (30 s delivery budget, long tasks reply on next message); no event streaming or conversation-list API documented. Logs streaming exists separately (maritime logs -f).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://maritime.sh/docs/web-apps",
+      "quote": "Serve a public, no-login web URL for this agent",
+      "note": "Public HTTPS URL is opt-in per agent (--public with a chosen --port); otherwise the agent is reached through the authenticated control plane (chat API with mk_ bearer keys, scoped keys) and a per-agent invoke URL that takes an X-Maritime-Webhook-Token (tokenless calls 'being phased out'). Computers' viewer/takeover links are short-lived and bound to one computer and mode. No IP allowlists or auth in front of a public URL (public = no-login).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://maritime.sh/blog/ai-agent-security-best-practices",
+      "quote": "Its own dedicated container. On serverless hosts, its own Firecracker microVM with its own guest kernel and a minimal virtio device model",
+      "note": "Derived: containers run as root (Claude Code guide) inside a per-agent Firecracker microVM with its own guest kernel, so nftables/iptables should work; not explicitly documented, and whether the container gets CAP_NET_ADMIN is not stated.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://maritime.sh/docs/how-it-works",
+      "quote": "Agents created without a key get a per-agent token for Maritime's OpenAI-format proxy and draw down your prepaid AI credits at provider list price.",
+      "note": "Maritime LLM proxy: OPENAI_API_KEY/OPENAI_BASE_URL point at Maritime's metered proxy with a per-agent token (Codex docs: 'With no key set, Maritime injects a per-agent proxy token.'); covers model calls only (OpenAI-format / Responses API; Claude Code needs its own ANTHROPIC_API_KEY, 'no proxy fallback'). All other secrets (including your own LLM keys) are AES-256-GCM encrypted env vars injected into the VM, so they are visible inside it. No arbitrary-HTTP or non-HTTP credential injection.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://maritime.sh/docs/how-it-works",
+      "quote": "A persistent volume, mounted at /data for most templates. This is the agent's memory: it survives restarts, redeploys, and sleep/wake. Everything outside it is disposable.",
+      "note": "Each machine has exactly one persistent volume (/data), sized 5 GB base up to 100 GB via the flat Extra SSD add-on ($2/$1.50/$1 per 5 GB-month). That is the machine's own persistent disk, not an extra attachable volume; no API to create/attach additional volumes.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://maritime.sh/blog/ai-agent-security-best-practices",
+      "quote": "Its own persistent volume, with no shared filesystem between agents",
+      "note": "Deliberately no shared filesystem between agents (official Maritime blog). File transfer is via the Files API (100 MB per file).",
+      "checked": "2026-09-29"
+    }
   }
 }

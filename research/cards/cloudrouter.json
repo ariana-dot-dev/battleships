@@ -283,7 +283,14 @@
     "spend_limits": null,
     "mcp_server": false,
     "isolation": "firecracker",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -334,5 +341,57 @@
       "https://cloudrouter.dev"
     ],
     "researched": "2026-09-28"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/manaflow-ai/manaflow/main/packages/cloudrouter/internal/cli/lifecycle.go",
+      "quote": "Extend the sandbox timeout. Sandboxes auto-stop after their timeout expires.",
+      "note": "Backend source creates E2B sandboxes with plain Sandbox.create({timeoutMs, ...}) (no auto-pause), so hitting the timeout (default 600 s) kills the E2B sandbox; the e2b-client wrapper says 'Stop the sandbox (kill it)'. Derived from source, not user docs.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/manaflow-ai/manaflow/main/packages/convex/convex/devbox_v2_http.ts",
+      "quote": "// Neither E2B nor Modal has native pause",
+      "note": "The skill docs claim `cloudrouter stop`/`pause` 'preserves state, can resume', but the backend pause handler only extends the E2B timeout by 1 h and marks the record paused (response note: \"E2B timeout extended (no true pause)\"); resume just flips status back. No snapshot/fork/template-from-sandbox command in the CLI. Existing card's snapshot='mem'/pause_resume=true should be revisited.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/manaflow-ai/cloudrouter/main/README.md",
+      "quote": "Agent skill for managing cloud development sandboxes with [cloudrouter](https://cloudrouter.dev). Gives your AI coding agent the ability to create, sync, and access remote VMs",
+      "note": "Inverse direction: a local agent (Claude Code, Cursor, Codex) uses the CLI/skill to drive sandboxes (start, exec, pty, ssh, upload, browser/computer). CLI source has no command to launch or drive an agent harness inside the sandbox.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/manaflow-ai/cloudrouter/main/.agents/skills/cloudrouter/SKILL.md",
+      "quote": "E2B creates publicly accessible URLs like `https://5173-xxx.e2b.app`. These URLs have **NO authentication**",
+      "note": "Every port is reachable on a public E2B URL with no controls. VS Code/VNC/Jupyter use a token (`?tkn=`) checked by the in-sandbox worker daemon (token read from /home/user/.worker-auth-token), not a provider-side ingress rule.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Default E2B backend = Firecracker microVM with sudo (skill runs `sudo chown ...`). GPU sandboxes on Modal run under gVisor; NET_ADMIN there unknown.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/manaflow-ai/manaflow/main/packages/cloudrouter/internal/cli/start.go",
+      "quote": "startCmd.Flags().IntVar(&startFlagDisk, \"disk\", 0, \"Disk size in GB (overrides --size)\")",
+      "note": "Only root-disk sizing via --disk/--size; no volume commands in CLI or backend. Files move via upload/download (rsync).",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/manaflow-ai/manaflow/main/packages/cloudrouter/internal/cli/start.go",
+      "quote": "startCmd.Flags().IntVar(&startFlagDisk, \"disk\", 0, \"Disk size in GB (overrides --size)\")",
+      "note": "No shared volume/filesystem feature.",
+      "checked": "2026-09-29"
+    }
   }
 }

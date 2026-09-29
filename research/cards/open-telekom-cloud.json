@@ -218,7 +218,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": null,
@@ -249,7 +249,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -290,5 +299,72 @@
     "applied": 13,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.otc.t-systems.com/elastic-volume-service/umn/managing_evs_snapshots/evs_snapshot_overview.html",
+      "quote": "You can create a snapshot to save the disk data at a specified time.",
+      "note": "ECS stop/start keeps the EVS disks (persistent_disk), no state capture on stop. Snapshots are user-initiated; scheduled policy-based backups exist via Cloud Backup and Recovery (CBR), which is not this feature. No memory/hibernate.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.otc.t-systems.com/elastic-volume-service/umn/managing_evs_snapshots/evs_snapshot_overview.html",
+      "quote": "You can create disks from a snapshot to quickly copy the snapshot data to disks.",
+      "note": "Disk only, no memory. EVS snapshots (console/API) roll back the source disk or create new disks. Whole-machine fork via IMS full-ECS image ('You can use an ECS with data disks to create a full-ECS image, complete with an OS, various applications, and your service data. The full-ECS image then can be used to quickly provision identical ECSs'), from a Running or Stopped ECS; CBR backups can also be turned into images.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain IaaS VM (ECS); no agent-harness product or API found in the OTC docs set.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.otc.t-systems.com/virtual-private-cloud/umn/access_control/security_group/security_groups_and_security_group_rules.html",
+      "quote": "A security group has inbound and outbound rules to control traffic that is allowed to reach or leave the instances associated with the security group.",
+      "note": "IP level: security-group outbound rules (default allows all outbound) and VPC network ACL ('firewall') per subnet. Domain level: paid Cloud Firewall (CFW), https://docs.otc.t-systems.com/cloud-firewall/umn/product_overview/what_is_cfw.html: 'Access control based on the domain name'; outbound rules can match domain names / wildcard domain groups (HTTP/HTTPS application layer or L4 network domain groups), at the Internet (EIP/SNAT) and VPC border.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.otc.t-systems.com/virtual-private-cloud/umn/access_control/security_group/security_groups_and_security_group_rules.html",
+      "quote": "A security group has inbound and outbound rules to control traffic that is allowed to reach or leave the instances associated with the security group.",
+      "note": "Security groups (protocol/port/source IP or SG), network ACLs, optional EIP (no public IP unless assigned), CFW inbound rules incl. region blocking, WAF for HTTP.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "ECS is a full KVM VM with root; iptables/nftables inside the guest work as on any VM.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting egress proxy. Secrets via KMS/DEW (Cloud Secret Management) APIs or user data/env inside the VM.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.otc.t-systems.com/elastic-volume-service/umn/managing_shared_evs_disks.html",
+      "quote": "Shared EVS disks are block storage devices that support concurrent read/write operations and can be attached to multiple servers.",
+      "note": "EVS data disks (block) attach to ECSs; also SFS / SFS Turbo NFS file systems and OBS.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.otc.t-systems.com/scalable-file-service/umn/introduction/what_is_sfs.html",
+      "quote": "Servers in multiple availability zones (AZs) of a same region can access the same file system concurrently and share files.",
+      "note": "Read-write. SFS / SFS Turbo (NFS) shared across ECSs; shared EVS disks are multi-attach block devices ('Multiple servers can access the same shared EVS disk at the same time.') needing a cluster file system.",
+      "checked": "2026-09-29"
+    }
   }
 }

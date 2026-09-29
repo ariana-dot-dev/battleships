@@ -158,7 +158,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -188,7 +188,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "ingress_rules": true,
+    "secret_proxy": "ai-only"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -223,5 +228,49 @@
       "https://docs.openhands.dev/openhands/usage/cloud/cloud-api.md",
       "https://www.openhands.dev/pricing"
     ]
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.openhands.dev/enterprise/conversations-and-sandboxes.md",
+      "quote": "After a conversation has been idle (no agent or user activity) for this long, its sandbox is **paused**, releasing CPU and memory. Activity resets the idle timer, so an actively-working agent is not paused for idleness. A paused conversation is resumed automatically on next access.",
+      "note": "Idle-pause (and a forced pause after 12 h of running) keeps the workspace (PVC) and resumes it automatically, but processes/memory are released. That is a persistent workspace disk, not a state snapshot. The runtime-api changelog mentions an internal 'snapshot_and_delete_idle_pvcs' cleanup job and an internal workspace archive taken at deletion ('not directly accessible to users'). These are storage housekeeping, not a user-facing snapshot/restore.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.openhands.dev/openhands/usage/api/v1.md",
+      "quote": "**Sandboxes**: list/start/pause/resume the execution environments that power conversations.",
+      "note": "The V1 sandbox API has only create/search/get/pause/resume/delete. There is no snapshot, checkpoint or template-from-sandbox endpoint. The SDK's 'Fork a Conversation' copies the conversation history, not the machine state. Custom images come from sandbox specs/Docker images.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.openhands.dev/enterprise/conversations-and-sandboxes.md",
+      "quote": "| Send a follow-up message | `POST /api/v1/app-conversations/{conversation_id}/send-message` |\n| Read events | `GET /api/v1/conversation/{conversation_id}/events/search` |",
+      "note": "Harness: the OpenHands agent (plus ACPAgent via the SDK/agent-server). The Cloud/Enterprise V1 REST API starts a conversation with a prompt (POST /api/v1/app-conversations, with a streaming stream-start variant), sends follow-ups, reads events, searches/lists conversations, downloads the trajectory, and pauses/resumes the sandbox. The Agent Server inside each sandbox also exposes HTTP/WebSocket conversation and event APIs (Python SDK: OpenHandsCloudWorkspace / APIRemoteWorkspace). The API docs name no third-party harnesses such as Claude Code or Codex (ACP agents only via the SDK).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.openhands.dev/enterprise/docker-in-sandbox.md",
+      "quote": "Controlling where sandboxes can reach on your *wider* network is governed by where you place the OpenHands Enterprise instance. Because the internal Kubernetes layer is managed as part of the appliance, the lever you own is the network around it: use your VPC and subnet placement, security groups, or on-premises firewall rules to constrain the instance's egress",
+      "note": "There are no per-sandbox egress controls in OpenHands Cloud or Enterprise. A self-hosted Enterprise install can only restrict egress for the whole instance, using your own VPC/security groups/firewall. The managed Cloud documents no egress controls at all.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.openhands.dev/sdk/guides/agent-server/cloud-workspace.md",
+      "quote": "sending your Cloud API key in the `Authorization` header plus the sandbox's `X-Session-API-Key`. That session key is issued by OpenHands Cloud for the running sandbox",
+      "note": "Each sandbox's agent-server API is reachable only with a per-sandbox session API key. VS Code is reached through a tokenized URL (/api/vscode/url). The remote-sandbox page says only 'Remote sandboxes may expose additional service URLs (e.g., VS Code, app ports) depending on the provider'. No IP allowlist or per-port public/private controls are documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://docs.openhands.dev/openhands/usage/llms/openhands-llms.md",
+      "quote": "The `openhands/` prefix tells the SDK to automatically route requests to the OpenHands LLM proxy—no need to manually set a base URL.",
+      "note": "Only the OpenHands LLM provider acts as a proxy. It is a LiteLLM gateway (llm-proxy.app.all-hands.dev), so the upstream model keys stay out of the sandbox, but an OpenHands LLM key is still used inside. Custom secrets are plain env vars: 'All custom secrets are automatically exported as environment variables in the agent's runtime environment' (secrets-settings). SDK LookupSecret values are 'resolved lazily by the agent-server inside the sandbox'. Output masking exists, but there is no credential-injecting proxy for arbitrary HTTP, git, databases or SSH.",
+      "checked": "2026-09-29"
+    }
   }
 }

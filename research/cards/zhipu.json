@@ -145,7 +145,12 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": true,
+    "harness_api": true,
+    "egress_allowlist_level": "domain",
+    "secret_proxy": "any-http",
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -190,5 +195,43 @@
       "https://docs.bigmodel.cn/cn/managed-agents/api-reference.md"
     ],
     "researched": "2026-09-29"
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.bigmodel.cn/cn/managed-agents/create-session.md",
+      "quote": "开启后，平台会在成功执行结束时尝试保存快照，下一轮优先从最近一次成功快照恢复；失败轮不更新快照。",
+      "note": "Opt-in per session at creation with header x-checkpoint: true (x-checkpoint-ttl 1-30 days, default 30). Triggered automatically at the end of each successful turn (session returns to idle); the next turn restores from the latest successful snapshot. Disk only: 'Checkpoint 只保留磁盘，不保留正在运行的进程和内存状态。' Best-effort: subject to account quota/service availability, falls back to a fresh sandbox on failure. Without it, /workspace, /tmp and runtime-installed packages are lost between turns; /mnt/session/outputs always persists.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.bigmodel.cn/cn/managed-agents/overview.md",
+      "quote": "先订阅 SSE，再把用户消息作为事件发送；Agent 自主调用工具并实时回传。事件历史在服务端持久化，可随时完整拉取。",
+      "note": "The product is a harness API (Anthropic Managed Agents-style Agent/Environment/Session/Events): POST /v1/sessions/:id/events (user.message, user.interrupt, tool confirmations, custom tool results), GET /v1/sessions/:id/events/stream (SSE), event history list, session list/get/archive, scheduled Deployments (cron). Harness is Zhipu's own platform-run agent loop on glm-5.3 / glm-5.3-flash / glm-5.3-flashx only; not Claude Code/Codex/OpenCode. Private beta (header zai-beta: managed-agents-2026-05-26).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.bigmodel.cn/cn/managed-agents/sandbox-reference.md",
+      "quote": "出站网络受 Environment 网络策略控制（unrestricted / limited + allowed_hosts），并统一限制为 HTTP/HTTPS 端口 80/443；由平台侧网关强制执行。",
+      "note": "Environment networking: 'unrestricted' (default, public hosts on ports 80/443 only) or 'limited' with allowed_hosts (up to 256 hostnames or *.example.com wildcards; no scheme/port/path), plus allow_package_managers and allow_mcp_servers toggles. Enforced by a platform-side gateway. Ports are hard-limited to 80/443 in all modes; no IP/CIDR rules.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://docs.bigmodel.cn/cn/managed-agents/vaults.md",
+      "quote": "Agent 与沙箱拿不到凭据原文；MCP 与 HTTPS 出站由平台侧注入，不进入提示词。",
+      "note": "Vault credential types: static_bearer / mcp_oauth (MCP servers), bearer / oauth for any plain HTTPS host (identity key = host; OAuth auto-refresh), and environment_variable: the sandbox sees an omasec_ placeholder and 'the real secret is substituted into the outbound request only when the target host matches the credential networking rule' ('真实密钥仅在目标主机命中该凭据 networking 规则时由平台代入出站请求'). Secrets are write-only (never echoed). HTTP(S) only: sandbox egress is limited to ports 80/443, so no database/SSH/raw git-over-SSH coverage.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.bigmodel.cn/cn/managed-agents/memory-stores.md",
+      "quote": "Memory Store 是持久的——挂载到任意多个会话，Agent 在工作中读取和沉淀记忆，你可以随时审计每一次变更。",
+      "note": "One Memory Store can be mounted into many concurrent sessions, read-write or read-only (docs: '共享记忆用 read_only：多个 Agent 共享一份知识库时，只给需要沉淀的会话 read_write'); writes become versioned Memory entries with sha256 preconditions for concurrent edits. Text-memory semantics, not a general POSIX network FS. Uploaded Files can also be mounted read-only into multiple sessions.",
+      "checked": "2026-09-29"
+    }
   }
 }

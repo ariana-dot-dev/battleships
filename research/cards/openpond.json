@@ -159,7 +159,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -189,7 +189,13 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_on_demand": true,
+    "own_agent_api": true,
+    "harness_api": false,
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -226,5 +232,57 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 11
+  },
+  "feature_evidence": {
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://openpond.ai/docs/sandbox-sdk/runtimes-snapshots-and-cleanup",
+      "quote": "Create a snapshot when a prepared filesystem is worth reusing. A snapshot can be validated, published as an approved template where supported, or forked into another sandbox.",
+      "note": "Filesystem snapshot (memory not mentioned; assume disk only). SDK: createSnapshot, fork, forkSnapshot, restore, publishSnapshot/templates, snapshotCatalog; bounded by quotas.maxSnapshots. New sandboxes can boot from a snapshot (fork / published template).",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://openpond.ai/docs/sandbox-sdk",
+      "quote": "when a model should plan and complete the task",
+      "note": "Provider's own agent: openpond-sdk work.run({prompt, messages history, sandboxId reuse, budgetUsd, maxSteps}) streams onEvent events (status/assistant/tool/output/done) and returns outputs; follow-ups by passing prior messages + inputs or reusing sandboxId. Model is an OpenPond-hosted model given 'bounded file and command tools' (agent loop appears to run host-side calling tools in the sandbox). No Claude Code/Codex/OpenCode driving API. Also Workflows (saved prompt) via schedules/webhooks.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://openpond.ai/docs/sandbox-sdk",
+      "quote": "when a model should plan and complete the task",
+      "note": "Provider's own agent: openpond-sdk work.run({prompt, messages history, sandboxId reuse, budgetUsd, maxSteps}) streams onEvent events (status/assistant/tool/output/done) and returns outputs; follow-ups by passing prior messages + inputs or reusing sandboxId. Model is an OpenPond-hosted model given 'bounded file and command tools' (agent loop appears to run host-side calling tools in the sandbox). No Claude Code/Codex/OpenCode driving API. Also Workflows (saved prompt) via schedules/webhooks.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://github.com/openpond/openpond/blob/main/packages/cloud/src/sandbox-template/manifest.ts",
+      "quote": "egress: z.enum([\"restricted\", \"allow\", \"block\"]).default(\"restricted\"),",
+      "note": "Undocumented on the docs site; evidence from the official open-source SDK/CLI: sandbox create accepts networkPolicy {internetEgress: 'block'|'allow', allowedHosts: [...]} (Work sandboxes are created with internetEgress 'block', allowedHosts []), and template manifests declare network.egress restricted/allow/block (default restricted). Semantics of 'restricted' and whether allowedHosts is enforced (domain level) are not documented; enforcement is in the hosted control plane (not visible).",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://openpond.ai/docs/sandbox-sdk/files-processes-and-previews",
+      "quote": "unless the result is intentionally public",
+      "note": "openPort(port, {access: 'private'|'public', authPolicy bearer token or custom header, cors, customDomain}); ports exposed only when explicitly opened; quotas.maxOpenPorts caps count; preview tokens. No IP allowlist documented.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "SDK/CLI source references a 'firecracker-direct-k8s' execution profile and 'Firecracker sandbox templates' (microVM with own kernel). Root access not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://openpond.ai/docs/sandbox-sdk/pricing-and-budgets",
+      "quote": "Durable volumes accrue storage usage while retained.",
+      "note": "Durable volumes: SDK create({volumes:[{name, mountPath, storageGb, deleteOnSandboxDelete}]}); pricing page: Volumes 2 (Free) / 20 (Starter, Pro), retained volume storage 5/100/100 GiB; $0.00000002/GiB-s (~$0.0518/GiB-month).",
+      "checked": "2026-09-29"
+    }
   }
 }

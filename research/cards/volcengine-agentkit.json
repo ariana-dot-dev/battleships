@@ -274,7 +274,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
@@ -287,7 +287,15 @@
     "hipaa": null,
     "sso": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": true,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "secret_proxy": "ai-only",
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -325,5 +333,64 @@
     "applied": 20,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 6
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.volcengine.com/docs/agentkit/Creating_tools?lang=zh",
+      "quote": "启用快照功能后，平台将会在沙箱模板实例到期前自动创建快照，保存实例数据和环境，可用于后续恢复实例。恢复操作详见使用快照恢复实例。开启快照功能后，仅在实例到期前由系统触发快照创建操作，主动删除或异常回收的实例不保留。",
+      "note": "Gloss: 'once snapshots are enabled, the platform automatically snapshots a sandbox-template instance before it expires, saving instance data and environment for later restore; only expiry triggers it, deleted/abnormally reclaimed instances are not kept.' Opt-in per template (EnableSnapshot: '是否在实例过期前自动创建快照'). Trigger = end of instance lifetime (max 24 h), not idle/stop. Memory: not stated ('数据状态'/data state); the separate veFaaS pause/resume keeps a file-system snapshot and explicitly does NOT keep memory ('Memory data: not retained'), pause is manual and beta/ticket-gated. Restore creates a new instance with a new 60-86400 s lifetime. Snapshot storage price not published.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.volcengine.com/docs/agentkit/Using_snapshots_to_restore_instances?lang=zh",
+      "quote": "您可以在调试、升级、变更配置等关键操作前手动创建快照，也可以依赖实例到期前由平台自动创建的快照。",
+      "note": "Gloss: 'you can manually create a snapshot before critical operations, or rely on the automatic pre-expiry snapshot.' Added 2026-09-10 (release notes: '支持随时手动为沙箱实例创建快照'). Documented via console button '手动快照' only (no API seen). Limits: requires snapshot feature enabled on the template; 'each manual snapshot can be restored only once' (每个手动快照仅可恢复 1 次); restore spins up a new instance ('从快照恢复出一个新实例'), so no fan-out/fork template. Memory inclusion not stated.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.volcengine.com/docs/agentkit/RunningCodexinasandboxviaAgentKitCLI?lang=zh",
+      "quote": "相同的session-id可在多次执行间复用同一个实例（包括工作目录、Codex历史记录等）。",
+      "note": "Gloss: 'the same session-id reuses the same instance across executions (incl. working directory, Codex history)'. Also on the page: '--model-name（可选）: 沙箱内Codex使用的模型名称' (model used by Codex inside the sandbox). Code Sandbox preset has Codex CLI built in ('内置 Codex CLI'); the AgentKit CLI (`agentkit sandbox create/exec/web`) configures Codex's model and launches it with a prompt, but the prompt is passed as a shell command (`--command \"codex exec ...\"`), so it is only a thin Codex wrapper, not an event-streaming harness API. Also: Agent Runtime is driven by prompt + session_id (`agentkit invoke \"...\"`, session_id/user_id headers) for hosted VeADK/LangGraph/ADK agents; ArkClaw/Hermes sandboxes have built-in agents reachable via WebChat or a Feishu bot channel. AgentKit Harness CLI (invite-only since 2026-06-19) deploys/invokes Runtime agents. Harnesses: Codex (sandbox), ArkClaw, Hermes Agent, VeADK agents (Runtime). No Claude Code/OpenCode support seen.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.volcengine.com/docs/agentkit/CreateTool_-_Creates_tool?lang=zh",
+      "quote": "NetworkConfiguration.VpcConfiguration.SecurityGroupIds.N string[] 可选 示例值：SecurityGroupIds.1=sg-w08tvkc3e****",
+      "note": "Private-network mode puts the sandbox in your VPC/subnet with security groups; EnableSharedInternetAccess=false ('工具将使用私有网络中已配置的公网NAT网关出口访问公网') makes egress go through your own NAT (or none, if no NAT). So egress control is IP/port-level via VPC security groups/NAT/ACL, enforced outside the guest. No domain allowlist. Default public mode uses the platform's shared exit with no documented filtering. Same model on veFaaS sandbox apps (VPC + security group; 'Default network interface card to access the public network' can be disabled).",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.volcengine.com/docs/agentkit/Creating_tools?lang=zh",
+      "quote": "配置沙箱模板托管资源认证信息，用来控制谁可以访问此沙箱模板托管资源。",
+      "note": "Gloss: 'inbound identity auth: controls who can access resources hosted by this sandbox template' - API Key or OAuth JWT (mutually exclusive). Network access can be public (default) or private (VPC only: '私网访问：通过私网访问沙箱模板，安全性更高'). veFaaS sandbox apps expose instances only through configured APIG gateway routes (unified or wildcard domain).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": "ai-only",
+      "source": "https://docs.volcengine.com/docs/agentkit/Creating_model_service?lang=zh",
+      "quote": "Proxy API Key 是模型服务对外暴露的统一访问凭证。调用方（如 Agent 或第三方应用）使用该 Key 向模型服务发起请求，由模型服务代理转发至实际的供应商模型，调用方无需直接持有供应商的原始 API Key，实现密钥隔离与统一管控。",
+      "note": "Gloss: 'The Proxy API Key is the unified credential exposed by the model service; callers (agents or apps) use it and the model service proxies to the real provider, so callers never hold the provider's original API key.' AgentKit model gateway (needs a gateway instance, billed); supports Ark, OpenAI- and Anthropic-compatible providers; sandbox templates (ArkClaw/Hermes/Code) can pick a model service + Proxy API Key (whereas picking Ark directly 'may risk key leakage'). For non-LLM APIs: the Identity credential store (API Key / OAuth Client in KMS) is fetched by the agent at runtime (secret enters the agent), except MCP tools behind the AgentKit Gateway, where the gateway does '出站凭据注入' (outbound credential injection) - but that path serves Runtime agents and MCP tools only ('仅承载 MCP 工具，不承载沙箱模板'). Plain sandbox env vars otherwise. No SSH/DB/git coverage.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.volcengine.com/docs/vefaas/E2Bcompatibilityinstructions?lang=en",
+      "quote": "Volume.create()​ Creates a storage volume.",
+      "note": "E2B-compatible Volume API on veFaaS sandbox ('Storage volume management. It supports volume creation, connection, destruction, listing'); veFaaS also mounts FileNAS (up to 10 per function, VPC required). AgentKit sandbox templates mount up to 2 TOS (object storage) bucket paths ('一个沙箱模板最多支持配置 2 个 TOS 挂载点'). No block volumes. Volume billing is by TOS/NAS.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.volcengine.com/docs/agentkit/Creating_tools?lang=zh",
+      "quote": "启用 TOS 挂载：启用后沙箱模板实例对应目录的数据，将存储至 TOS 服务，实现数据持久化和跨实例复用。",
+      "note": "Gloss: 'enable TOS mount: data in the instance directory is stored in TOS, for persistence and reuse across instances.' Mount point per local dir can be '读写权限或只读权限' (read-write or read-only); all instances of a template inherit the mount. veFaaS: 'Multiple functions can share a single FileNAS file system to enable file sharing' (NAS, read-write).",
+      "checked": "2026-09-29"
+    }
   }
 }

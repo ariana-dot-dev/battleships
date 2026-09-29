@@ -1410,7 +1410,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": null,
@@ -1430,7 +1430,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -1442,7 +1442,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1486,5 +1495,79 @@
     "applied": 40,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 6
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.crusoecloud.com/storage/disks/overview.md",
+      "quote": "The disks are erased when the physical server reboots, or the VM is stopped and restarted, or if there are any other hardware or software failures.",
+      "note": "Plain VMs: stop keeps only the OS disk and attached persistent/shared disks (that is persistent_disk); local NVMe on GPU/s1a VMs is erased; no memory/state capture. No snapshot or backup feature appears anywhere in the docs sitemap.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.crusoecloud.com/compute/images/overview.md",
+      "quote": "Once customers have created a virtual machine (VM) from a base image and customized it with preferred configurations and software, they can stop the VM and create a custom image from its boot disk.",
+      "note": "Only form is a custom image of the OS/boot disk (crusoe compute images create --vm-name); VM must be SHUTOFF ('Create a custom image from a VM while it is not SHUTOFF' is not allowed); disk only, no memory; new VMs can boot from it (template-like), region/project scoped. No snapshots of persistent data disks or running VMs documented.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "GPU IaaS (VMs, CMK, Slurm, managed inference); no agent-harness API documented. The card's mcp_server is a management MCP, not a harness.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.crusoecloud.com/networking/firewall-rules/overview.md",
+      "quote": "`ingress` is \"outside world to the VM\" and `egress` is \"VM to the outside world\"",
+      "note": "VPC firewall rules: allow-only, implicit deny, five-tuple (IP/CIDR + ports, tcp/udp/icmp). Default VPC ships default-allow-tcp-udp-egress / default-allow-icmp-egress which you can delete for default-deny; custom VPCs start with everything denied. CLI: '--direction ... Allowed directions: `INGRESS`, `EGRESS`' (the Terraform section of the managing page still says ingress is the only direction; stale). No domain rules. Outbound SMTP 25/465/2525 blocked by default.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.crusoecloud.com/networking/firewall-rules/overview.md",
+      "quote": "VPC Firewall Rules rely on a five-tuple to filter L3 traffic and determine if it is allowed to pass",
+      "note": "L3/L4 only; no HTTP-level egress rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.crusoecloud.com/networking/firewall-rules/overview.md",
+      "quote": "VPC Firewall Rules allow developers to granularly control access to VPC networks, subnets, and individual VMs.",
+      "note": "Ingress rules by source IP/CIDR and port; default VPC allows SSH from the internet (deletable); ingress destination must be the VM's private IP. Load balancers also available.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Full VMs (not containers) with Ubuntu images and sudo user 'ubuntu' (root login deprecated); customers can even change kernels on custom images.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No credential-injecting proxy or secrets service in the docs (sitemap has no secrets/proxy pages); secrets live on the VM as usual. Customer-managed keys exist for storage encryption only.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.crusoecloud.com/storage/disks/overview.md",
+      "quote": "Persistent Disks are remote block storage volumes that are attached to a virtual machine.",
+      "note": "1 GiB-10 TiB, up to 16 disks per VM incl. OS disk, attach/detach while running or stopped, $0.08/GiB-month. Shared Disks 1-1000 TiB, up to 8 per VM, $0.07/GiB-month.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.crusoecloud.com/storage/disks/overview.md",
+      "quote": "Shared Disks are shared network filesystems, designed to be accessed from many virtual machines concurrently.",
+      "note": "Shared Disks: read-write NFS (VAST), min 1 TiB, not encrypted in transit. Persistent block disks can also multi-attach but only read-only: 'can be attached to multiple VMs in `read-only` mode' (CLI/Terraform only).",
+      "checked": "2026-09-29"
+    }
   }
 }

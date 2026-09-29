@@ -420,7 +420,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -434,7 +434,16 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "gvisor",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -550,5 +559,79 @@
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/sandbox-snapshots.md",
+      "quote": "Snapshots are triggered from outside the Sandbox, typically just before termination.",
+      "note": "Timeout (max 24 h) and idle_timeout terminate the sandbox; no pause/sleep state and no automatic checkpoint. Docs tell you to call snapshot_filesystem() yourself before terminating and restore into a new sandbox.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://modal.com/docs/guide/sandbox-snapshots.md",
+      "quote": "Sandbox memory snapshots are copies of a Sandbox’s entire state, both in memory and on the filesystem. These Snapshots can be restored later to create a new Sandbox, which is an exact clone of the original Sandbox.",
+      "note": "Filesystem snapshots (GA, snapshot_filesystem(), disk only, become Images that boot any number of new sandboxes; 30-day default TTL, ttl=None for indefinite) and directory snapshots (mount into running sandboxes). Memory snapshots (_experimental_snapshot, alpha): RAM + FS, but snapshotting terminates the sandbox, no GPU, 7-day expiry; restore via _experimental_from_snapshot creates a clone. VM-runtime memory snapshots only for enabled customers.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://modal.com/llms.txt",
+      "quote": "Run a background coding agent with OpenCode",
+      "note": "Only examples (OpenCode server, Claude Agent SDK, Cursor Cloud Agents) built on generic exec/tunnels; no first-party API to start/stream/resume a harness. Modal is an execution backend for Anthropic's Claude Managed Agents (harness driven by Anthropic, not a Modal API). Sidecars doc mentions 'Separating an agent harness from its execution environment' as a pattern only.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://modal.com/docs/guide/sandbox-networking.md",
+      "quote": "| **IP-range allowlist**        | `outbound_cidr_allowlist`   | Only allows traffic to the listed CIDR ranges (any protocol).  |\n| **Domain allowlist** *(Beta)* | `outbound_domain_allowlist` | Only allows TLS traffic (port 443) to the listed domain names. |",
+      "note": "Also block_network=True (no internet). Domain allowlist is SNI-based (beta, wildcards), Modal resolves hostname itself; experimental runtime updates of allowlists without restart.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/sandbox-networking.md",
+      "quote": "TLS traffic is not decrypted, so the `Host` header, URL path, and body are never inspected.",
+      "note": "Built-in controls are host/IP only. DIY option: experimental proxy_traffic_via_sidecar routes all port-443 traffic to a user-run Sidecar (alpha, allowlisted workspaces) where you can run e.g. mitmproxy for method/path filtering; that is user-operated, not a provider rule engine.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://modal.com/docs/guide/sandbox-networking.md",
+      "quote": "Use `inbound_cidr_allowlist` to restrict which IP addresses can connect\n**inbound** to the Sandbox through tunnels and Sandbox Connect Tokens:",
+      "note": "Default: no inbound. Ports exposed explicitly (encrypted_ports/h2_ports/unencrypted_ports); Sandbox Connect Tokens give authenticated HTTP/WebSocket access with an unspoofable X-Verified-User-Data header.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://modal.com/docs/guide/vm-sandboxes.md",
+      "quote": "This gives\neach Sandbox a real Linux kernel",
+      "note": "Derived for the VM runtime (beta; runtime=\"vm\" in SDK 1.6.0) with root. Default runtime is gVisor (root, own netstack); iptables support there is not documented.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://modal.com/docs/examples/sidecar_secrets_injection.md",
+      "quote": "Rather than passing that key into the Sandbox,\nyou can keep it in a separate, trusted container and let that container add it to\noutbound requests",
+      "note": "No managed credential-injecting proxy. modal.Secret = env vars injected into the container. A DIY pattern exists: run your own proxy (Caddy/nginx/Envoy/mitmproxy) as a Sidecar holding the Secret, optionally forced via proxy_traffic_via_sidecar; this can cover any HTTP API but you build/operate it; Sidecars are alpha and restricted to allowlisted workspaces.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://modal.com/docs/guide/volumes.md",
+      "quote": "Volumes are a high-performance distributed file system for Modal applications.",
+      "note": "modal.Volume mounted via volumes={...} on Sandbox.create; also CloudBucketMount (S3/R2/GCS, read-write or read_only) and deprecated NetworkFileSystem. Distributed FS with explicit commit/reload semantics, not a block device.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://modal.com/docs/guide/volumes.md",
+      "quote": "Concurrent modification from multiple containers is supported, but concurrent\nmodifications of the same files should be avoided. Last write wins",
+      "note": "Read-write (or read_only mount option); sub_path mounts isolate sessions on one Volume; v2 volumes: concurrent writes from hundreds of containers. Changes visible to others only after commit + reload. Bucket mounts also shareable.",
+      "checked": "2026-09-29"
+    }
   }
 }

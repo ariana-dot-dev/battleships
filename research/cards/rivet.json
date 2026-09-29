@@ -211,7 +211,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -229,7 +229,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": null,
@@ -242,7 +242,14 @@
     "scoped_api_keys": null,
     "spend_limits": null,
     "mcp_server": null,
-    "isolation": "v8-isolate + wasm (agentOS); processes (Actors)"
+    "isolation": "v8-isolate + wasm (agentOS); processes (Actors)",
+    "snapshot_auto": false,
+    "harness_api": true,
+    "egress_allowlist_level": "domain",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -283,5 +290,64 @@
     ],
     "researched": "2026-09-28"
   },
-  "checked": "2026-09-29"
+  "checked": "2026-09-29",
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://rivet.dev/agentos/docs/persistence.md",
+      "quote": "agentOS persists the `/home/agentos` filesystem, durable session catalog, and completed session history across actor sleep. A later client call wakes a fresh VM. Adapter processes, running commands, shells, live subscriptions, and in-progress ACP deltas do not survive VM shutdown.",
+      "note": "Actor sleeps after idle timeout (RivetKit default 30 s) and the VM shuts down; /home/agentos lives in the actor's SQLite and is continuously persisted (this is persistent_disk, not a snapshot). Running processes, shells and in-memory mounts are explicitly lost; the agent session is restored lazily via ACP session/resume or session/load on next prompt.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://rivet.dev/agentos/docs/agents/claude.md",
+      "quote": "await agent.sessions.open({\n\tagent: \"claude\",\n\tenv: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY! },\n});\n\nconst result = await agent.sessions.prompt({",
+      "note": "First-party ACP-based sessions API: sessions.open / sessions.prompt, conn.on(\"sessionEvent\") streaming, listSessions / readHistory / getSession, resume after sleep (\"Native ACP `session/resume`\"), permission requests (ask/allow_all/reject_all), dashboard Transcript tab. Harnesses: Pi (default), Claude Code (beta), Codex (beta), OpenCode, custom agents. Source for listing: https://rivet.dev/agentos/docs/sessions.md \"Also SQLite-only reads: `getSession`, `listSessions`, `getSessionConfig`\".",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://rivet.dev/agentos/docs/permissions.md",
+      "quote": "For `network`, a pattern matches a resource, not a bare hostname: `dns://<host>` for name resolution and `tcp://<host>:<port>` for the connection. Allowing a host needs both, and `*` matches any port. The operations are `fetch`, `http`, `dns`, and `listen`.",
+      "note": "Default-deny network (\"External DNS and network connections are denied until you opt in\"); rules are host(+port) patterns enforced by the trusted sidecar/kernel outside the V8/WASM executor, with DNS pinning and blocking of restricted ranges (architecture/networking). Patterns are host:port; IP/CIDR patterns are not documented explicitly, so level = domain (ports also filterable). Set by the trusted host config, not by the guest.",
+      "checked": "2026-09-29",
+      "level": "domain"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://rivet.dev/agentos/docs/permissions.md",
+      "quote": "Every non-`fs` scope matches by `patterns` instead of `paths`. For `network`, a pattern matches a resource, not a bare hostname: `dns://<host>` for name resolution and `tcp://<host>:<port>` for the connection.",
+      "note": "Network policy matches only dns/tcp host:port resources; no method/path/header rules documented. Custom HTTP-level mediation would have to be built with host functions.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://rivet.dev/agentos/docs/networking.md",
+      "quote": "Preview URLs are port forwarding for VM services: a time-limited, public URL that proxies HTTP to a port inside the VM, for browser or external access (use `httpRequest` for server-to-server). Preview creation is intentionally actor-only through the native `createPreviewUrl` and `expirePreviewUrl` actions",
+      "note": "Guest listeners are loopback-only by default; exposure is per port via signed, expiring, revocable preview tokens (max lifetime configurable, default cap 24 h) or trusted per-port loopbackExemptPorts; server-to-server access via authenticated actor httpRequest. Actor connections authenticated in onBeforeConnect.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://rivet.dev/agentos/docs/limitations.md",
+      "quote": "It implements a focused subset of the kernel surface, so a few Linux-specific features are not available:\n\n- Kernel modules and eBPF",
+      "note": "agentOS is a virtual POSIX kernel over V8 isolates + WASM, no root, no apt/arbitrary binaries (registry only); no netfilter/iptables in the virtual kernel. Network control is the host-side permission policy instead. Derived from architecture, not an explicit 'no iptables' statement.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://rivet.dev/agentos/docs/models-and-credentials.md",
+      "quote": "Pass LLM provider keys via the `env` option on `openSession`.",
+      "note": "Model keys enter the VM as session env vars (and are stored plaintext in the per-VM SQLite). The alternative pattern is host functions: \"Credentials ... Stay on the host. Host functions run your functions server-side; agents see only inputs and outputs\" (versus-sandbox) - an RPC tool mechanism, not a transparent outbound credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://rivet.dev/agentos/docs/filesystem.md",
+      "quote": "Back a guest path with external storage by adding it to the `mounts` config. Each mount takes a `path` and an optional `readOnly` flag, and the guest only ever sees the mounted subtree, never the wider host.",
+      "note": "Built-in mount plugins: host directory, S3 / S3-compatible (block-store format, 4 MB chunks), Google Drive, in-memory, external-sandbox filesystem; dynamic mountFs()/unmountFs(). Storage is the customer's own bucket/drive; Rivet sells no separate volume product. Host/remote mounts read-only by default, writable opt-in.",
+      "checked": "2026-09-29"
+    }
+  }
 }

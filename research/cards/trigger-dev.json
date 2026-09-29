@@ -260,7 +260,12 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": null,
-    "image_oci": null
+    "image_oci": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": false,
+    "own_agent_api": true,
+    "harness_api": false,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -306,5 +311,42 @@
     "applied": 21,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://trigger.dev/docs/how-it-works.md",
+      "quote": "While waiting for a subtask or during a long programmed pause (e.g., `wait.for({ minutes: 5 })`), the system uses CRIU (Checkpoint/Restore In Userspace) to create a checkpoint of the task's entire state, including memory, CPU registers, and open file descriptors.",
+      "note": "Triggered by waits (subtask triggerAndWait, wait.for/until >= 60 s, wait.forToken, input-stream waits) and by chat.agent idling out (idleTimeoutInSeconds, default 30 s). Memory/process state included (CRIU); on the microVM runtime (private beta) it becomes a full Firecracker VM snapshot. Restored transparently when the wait resolves. Scope is a task run, not a general VM.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://trigger.dev/docs/how-it-works.md",
+      "quote": null,
+      "note": "No user-facing snapshot/checkpoint object, restore-to-point or fork API; checkpoints are an engine-internal side effect of waits (you can force one only indirectly by waiting >= 60 s). Replays re-run from the payload, not from state.",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://trigger.dev/docs/ai-chat/server-chat.md",
+      "quote": "`AgentChat` lets you chat with agents from server-side code. It works inside tasks (agent-to-agent), request handlers, webhook processors, and scripts.",
+      "note": "Provider's own harness: chat.agent (AI SDK-based, you define the agent). AgentChat.sendMessage() starts a run, streams output and sends follow-ups to the same run; Sessions give durable two-way streams; Management API lists sessions; MCP server to chat with agents. No first-party wrapper for Claude Code/Codex/OpenCode (only a Claude Agent SDK guide running inside a task).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://trigger.dev/docs/ai-chat/server-chat.md",
+      "quote": "`AgentChat` lets you chat with agents from server-side code. It works inside tasks (agent-to-agent), request handlers, webhook processors, and scripts.",
+      "note": "Provider's own harness: chat.agent (AI SDK-based, you define the agent). AgentChat.sendMessage() starts a run, streams output and sends follow-ups to the same run; Sessions give durable two-way streams; Management API lists sessions; MCP server to chat with agents. No first-party wrapper for Claude Code/Codex/OpenCode (only a Claude Agent SDK guide running inside a task).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://trigger.dev/docs/deploy-environment-variables.md",
+      "quote": "When creating an environment variable, you can mark it as a **Secret**. Secret values are hidden in the dashboard and cannot be viewed after creation.",
+      "note": "Secrets are environment variables delivered to the task process (optionally synced from Infisical or via syncEnvVars build extension). No credential-injecting egress proxy.",
+      "checked": "2026-09-29"
+    }
   }
 }

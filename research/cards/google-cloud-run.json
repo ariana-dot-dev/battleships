@@ -596,7 +596,15 @@
     "mcp_server": null,
     "isolation": "gvisor",
     "image_oci": true,
-    "sandboxes_in_instance": true
+    "sandboxes_in_instance": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -660,5 +668,64 @@
     "applied": 9,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/instances/create-and-manage-instances",
+      "quote": "Stopping an instance terminates the active container runtime, deleting all in-memory files and unpersisted sy",
+      "note": "Quote truncated at page text boundary ('...unpersisted system state'). Services scale to zero and jobs exit with no state capture; jobs 'checkpointing' guidance is application-level (write partial results to GCS/DB).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/code-execution",
+      "quote": "Create a snapshot of the running sandbox's modified file system using the sandbox tar command",
+      "note": "No snapshot/checkpoint for Cloud Run services, jobs, worker pools or instances themselves (not in API or docs). Only the nested 'Cloud Run sandboxes' (Preview, in-container `sandbox` CLI) can export their overlay filesystem to a local tar file (`sandbox tar`, `--export-tar`/`--import-tar`/`--sync-tar`) and seed new nested sandboxes from it: filesystem only, no memory, stored inside the host container.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/ai-agents",
+      "quote": "Examples of agent frameworks include Agent Development Kit (ADK) , Dify , LangGraph , and n8n .",
+      "note": "Cloud Run hosts agents you build (ADK, A2A, n8n, OpenClaw on Instances) and adds Agent Identity / Agent Registry (Preview), but has no API to start/stream/resume Claude Code, Codex, Gemini CLI etc. inside a container; the nested sandbox CLI is a generic exec tool.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc",
+      "quote": "You can also add network tags directly on Cloud Run service revisions for more granular network security, such as applying VPC firewall rules .",
+      "note": "With Direct VPC egress and egress setting 'all-traffic' ('Sends all outbound traffic through the VPC network'), VPC firewall egress rules (IP/CIDR/port, targeted by network tag) apply; without VPC egress, internet access is unrestricted. Same page: NGFW Enterprise URL filtering and TLS inspection are NOT supported for Direct VPC egress. Domain filtering not documented for Cloud Run. Separately, nested Cloud Run sandboxes (Preview) block all outbound traffic by default ('By default, all outbound traffic from the sandbox is blocked.'; `--allow-egress` flag, all-or-nothing).",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/run/docs/securing/ingress",
+      "quote": "This page describes how to use ingress settings to restrict network access to your Cloud Run services and instances.",
+      "note": "Ingress settings all / internal / internal-and-cloud-load-balancing, run.app URL can be disabled, IAM invoker authentication (roles/run.invoker) on by default unless public access allowed, IAP, Cloud Armor via load balancer. One HTTP container port per service.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/configuring/services/secrets",
+      "quote": "When you mount each secret as a volume, Cloud Run makes the secret available to the container as files.",
+      "note": "Secret Manager secrets are exposed as env vars or mounted files; the real value enters the container. Nested sandboxes don't inherit host env/secrets by default, but there is no credential-injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/run/docs/configuring/services/nfs-volume-mounts",
+      "quote": "After you mount the file share as a volume, you access it as if it were a directory on your local file system, using your programming language's file system operations and libraries.",
+      "note": "Network volumes only: Cloud Storage buckets (gcsfuse, first-party) and NFS (Filestore or own NFS server; gen2 only, no locking), plus in-memory volumes. No block persistent disks.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/run/docs/configuring/services/cloud-storage-volume-mounts",
+      "quote": "Cloud Storage FUSE does not provide concurrency control for multiple writes (file locking) to the same file. When multiple writes try to replace a file, the last write wins and all previous writes are lost.",
+      "note": "Same bucket / NFS share mounted by all instances of a service and by other services concurrently; read-write or read-only (READ_ONLY flag). NFS mounted in no-lock mode.",
+      "checked": "2026-09-29"
+    }
   }
 }

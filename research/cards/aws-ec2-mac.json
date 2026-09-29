@@ -317,7 +317,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": false,
     "live_resize": null,
     "fork_running": false,
@@ -329,7 +329,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": false
+    "mcp_server": false,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -377,5 +386,79 @@
     "applied": 7,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 1
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/hibernating-prerequisites.html",
+      "quote": "You must use an instance family that supports hibernation. However, bare metal instances are not supported.",
+      "note": "Mac instances are bare metal on Dedicated Hosts, so no hibernation (memory) and no automatic snapshot on stop. EBS root/data volumes simply persist across stop/start (persistent_disk). Stop/terminate triggers a host scrubbing workflow that erases the internal SSD (x86 up to 50 min / 3 h, Apple silicon up to 4.5 h). Scheduled EBS snapshots possible via Data Lifecycle Manager/AWS Backup (backups, not this feature).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html",
+      "quote": "After customizing the instance to meet your specific requirements, create and register a new AMI. You can then use the new AMI to launch new instances with your customizations.",
+      "note": "Disk only (EBS snapshots / AMIs), no memory. New Mac instances can boot from the custom macOS AMI (on another allocated Mac Dedicated Host, subject to AMI/instance-type compatibility).",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "Plain bare-metal macOS; no agent harness or harness API in EC2. SSM Run Command / SSH are generic exec.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/stateful-rule-groups-domain-names.html",
+      "quote": "You can create allow lists and deny lists with domain names that the stateful rules engine looks for in network traffic.",
+      "note": "IP/CIDR/port: security-group outbound rules ('outbound rules control the outgoing traffic from your instance') and NACLs, free. Domain: AWS Network Firewall (SNI/Host) and Route 53 Resolver DNS Firewall, separately billed VPC services. All enforced outside the instance.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/suricata-examples.html",
+      "quote": "This rule blocks outbound HTTP connections that have an IP address in the HTTP HOST header.",
+      "note": "AWS Network Firewall Suricata rules can match HTTP keywords (http.host, http.header, etc.; page also shows URL-category filtering 'with TLS inspection'). HTTPS needs Network Firewall TLS inspection; paid separate service.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html",
+      "quote": "Inbound rules control the incoming traffic to your instance, and outbound rules control the outgoing traffic from your instance.",
+      "note": "Security groups, NACLs, private subnets (no public IP), ALB/NLB etc.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Bare-metal Mac with sudo/root; macOS has no nftables/iptables but its built-in pf (pfctl) packet filter runs in the host's own kernel. Not documented by AWS.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html",
+      "quote": "Have the application retrieve a set of temporary credentials and use them.",
+      "note": "AWS credentials come via IAM instance role (temporary keys in instance metadata, visible inside the machine); other secrets via Secrets Manager/SSM Parameter Store fetched into the instance. No credential-injecting egress proxy for EC2.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-mac-instances.html",
+      "quote": "EBS hotplug is supported.",
+      "note": "Extra EBS volumes can be attached (hotplug) to Mac instances; AWS recommends EBS over the unmanaged internal SSD.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/efs/latest/ug/installing-amazon-efs-utils.html",
+      "quote": "You can manually install the Amazon EFS client on Amazon EC2 (EC2) Linux instances and on EC2 Mac instances running macOS Big Sur, macOS Monterey, and macOS Ventura.",
+      "note": "Amazon EFS (NFSv4, read-write, many concurrent clients) can be mounted on Mac instances; the page lists Big Sur/Monterey/Ventura (its efs-utils link also names Sonoma); newer macOS versions not listed. EBS Multi-Attach is documented only for Linux and Windows instances (io1/io2), not macOS.",
+      "checked": "2026-09-29"
+    }
   }
 }

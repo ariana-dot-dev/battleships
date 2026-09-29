@@ -875,7 +875,7 @@
     "inbound_https": false,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": false,
@@ -897,7 +897,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": false,
     "fork_running": null,
@@ -909,7 +909,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -956,5 +965,79 @@
     "applied": 12,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://upcloud.com/docs/products/block-storage/backups/",
+      "quote": "UpCloud users have two options for scheduling backups of their Cloud Servers – easy-to-use Simple Backups, and custom-scheduled Flexible Backups. In addition, users have the option to take manual instant on-demand backups.",
+      "note": "Plain IaaS VM: block storage simply persists across power-off (persistent_disk, not a snapshot). Only time-scheduled backups (Simple Backups daily/weekly/monthly at +10–60% of plan price; Flexible Backups daily/weekly with 1 day–3 year retention) — no snapshot triggered by stop/idle; no memory state.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://upcloud.com/docs/products/block-storage/backups/",
+      "quote": "On-demand backups offer instant snapshots of the selected storage devices and can be taken manually at any time.",
+      "note": "Disk only (per block-storage device), no memory. Taken while running ('created without interruption'), via control panel/API (POST storage backup) /CLI; $0.06/GB-month (card). Restore to origin requires the server to be shut down; 'backups can be cloned to a new storage device ... used as a primary storage device to run an earlier state of the Cloud Server' => new machines can boot from it; any storage can also become a custom image (template) for new servers in the same data centre.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://upcloud.com/docs/llms.txt",
+      "quote": null,
+      "note": "Generic IaaS (servers/storage/network API, CLI, Terraform). No agent/sandbox product or agent-harness API anywhere in the docs index or changelog; agents must be installed and driven by the user (e.g. over SSH).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://developers.upcloud.com/1.3/11-firewall/",
+      "quote": "The firewall filters packets by:\nTraffic direction (in, out)\nIP family (IPv4, IPv6)\nNetwork protocol (TCP, UDP, ICMP)\nSource and/or destination IP addresses\nFor TCP and UDP protocols, the source and/or destination ports",
+      "note": "Provider-side L3 firewall 'positioned directly before the network interface' (docs/products/networking/firewall), accept/drop rules, default rule can be drop => default-deny egress possible. Public & Utility firewall is stateless (must allow return traffic), max 1000 rules per server; SDN firewall (stateful rulesets acting as security groups, up to 50 per server) for private networks. Public interfaces can be detached entirely ('Public network access is optional and can be disabled entirely'); NAT Gateway for private-only servers. No hostname/domain rules. Outbound SMTP 25 blocked by default.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://upcloud.com/docs/products/networking/firewall/",
+      "quote": "UpCloud provides robust Layer 3 firewalling",
+      "note": "Firewall and NAT Gateway are L3/L4 only; no L7 egress proxy/WAF product in the docs index. (Managed Load Balancer has HTTP rules but for inbound traffic.)",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://upcloud.com/docs/products/networking/firewall/",
+      "quote": "This ensures that all inbound and outbound traffic is filtered according to your configured rules, enhancing security and control over your cloud environment.",
+      "note": "IP/port inbound rules per server (source IP ranges, ports, protocol), SDN security-group rulesets; public IPs optional (0-5 per server), private SDN networks, Managed Load Balancer in front. No tokenized preview URLs (plain VM).",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "KVM-based Cloud Server with root and its own kernel; nftables/iptables work as on any Linux VM.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secret store or credential-injecting proxy for Cloud Servers; secrets live in the VM (user files/env, cloud-init user data, metadata service at 169.254.169.254). Nothing covers non-HTTP protocols.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://upcloud.com/docs/products/cloud-servers/storage/",
+      "quote": "Storage space can be added to a Cloud Server by creating and attaching new, empty storage devices.",
+      "note": "Block storage MaxIOPS/Standard/Archive, 1 GB–4 TB per device, up to 16 devices per server; detach/move between servers in the same location.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://upcloud.com/docs/products/file-storage/concepts/",
+      "quote": "File Storage uses NFS to provide shared storage that can be simultaneously accessed by multiple Cloud Servers.",
+      "note": "Managed NFS v4.1 File Storage over SDN Private Networks, read-write or read-only per subnet per share ('Read/Write Access' / 'Read-Only Access'), up to 50 shares per instance; available only in some locations (availability page lists e.g. de-fra1, dk-cph1, fi-hel1/2, nl-ams1, se-sto1, us-nyc1; not all). Block storage devices attach to one server at a time. S3-compatible Managed Object Storage is separate (no first-party mount).",
+      "checked": "2026-09-29"
+    }
   }
 }

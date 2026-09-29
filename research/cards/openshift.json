@@ -124,7 +124,7 @@
     "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
@@ -154,7 +154,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -177,5 +186,71 @@
     "applied": 2,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index",
+      "quote": "The lifetime of this ephemeral storage does not extend beyond the life of the individual pod, and this ephemeral storage cannot be shared across pods.",
+      "note": "Card models Harbor running plain Pods (restartPolicy Never) on a customer OCP cluster. No save-on-stop: the container filesystem is discarded with the pod; only PVC data persists. No idle/stop checkpointing in OCP.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index",
+      "quote": "A snapshot represents the state of the storage volume in a cluster at a particular point in time. Volume snapshots can be used to provision a new volume.",
+      "note": "CSI VolumeSnapshot of PVCs only (requires a snapshot-capable CSI driver; 'Cloning and snapshotting is disabled for disks with ReadWriteMany access mode enabled' for some drivers). Container root fs and memory not captured; restore = new PVC for a new pod. (OpenShift Virtualization VMs have their own VM snapshots; not used by the Harbor backend.)",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "OCP is a generic container platform; no first-party API to drive an agent harness inside a pod (Harbor itself is the third-party harness driver, via oc exec).",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/network_security/index",
+      "quote": "As a cluster administrator, you can use an egress firewall to limit the external hosts that some or all pods can access from within the cluster. [...] The egress firewall matches network traffic that meets any of the following criteria: An IP address range in CIDR format A DNS name that resolves to an IP address A port number",
+      "note": "EgressFirewall CR (OVN-Kubernetes) is per project/namespace (max one CR, 8,000 rules), cluster-admin only, supports dnsName incl. wildcards; NetworkPolicy egress rules give per-pod IP/port control. Enforced by OVN outside the pod. Caveat: 'Egress firewall rules do not apply to traffic that goes through routers.' Harbor's adapter declares network_allowlist=False (does not configure it).",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/ingress_and_load_balancing/index",
+      "quote": "haproxy.router.openshift.io/ip_allowlist Sets an allowlist for the route. The allowlist is a space-separated list of IP addresses and CIDR ranges for the approved source addresses. Requests from IP addresses that are not in the allowlist are dropped.",
+      "note": "Ports are only exposed externally if you create a Service/Route; NetworkPolicy ingress rules isolate pods ('you can create NetworkPolicy objects in that project to indicate the allowed incoming connections'); Route IP allowlists; LB allowedSourceRanges.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/authentication_and_authorization/index",
+      "quote": "You can drop all capabilites from containers by setting the requiredDropCapabilities parameter to ALL. This is what the restricted-v2 SCC does.",
+      "note": "Pods under restricted-v2 (and Harbor's custom harbor-task-scc: requiredDropCapabilities ALL, adds only CHOWN/DAC_OVERRIDE/FOWNER/FSETID/KILL/NET_BIND_SERVICE/SETGID/SETUID/SYS_CHROOT) lack NET_ADMIN, so iptables/nftables inside fail. A cluster admin could grant NET_ADMIN via a custom SCC, or use OpenShift Virtualization / Sandboxed Containers (Kata VMs).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index",
+      "quote": "The Secret object type provides a mechanism to hold sensitive information such as passwords, OpenShift Container Platform client configuration files, private source repository credentials, and so on. Secrets decouple sensitive content from the pods.",
+      "note": "Secrets are mounted as files or env vars into the pod (also Secrets Store CSI driver from external vaults); no credential-injecting egress proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index",
+      "quote": "Pods use claims as volumes. The cluster inspects the claim to find the bound volume and mounts that volume for a pod.",
+      "note": "PersistentVolumeClaims mounted into pods (block/file, depends on cluster storage). Harbor's SCC allows persistentVolumeClaim volumes, but its pod spec mounts none by default.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index",
+      "quote": "The volume can be mounted as read/write by many nodes.",
+      "note": "ReadWriteMany (RWX) PVCs, read-write, when the storage backend supports it (e.g. NFS, CephFS/ODF); ReadOnlyMany also available.",
+      "checked": "2026-09-29"
+    }
   }
 }

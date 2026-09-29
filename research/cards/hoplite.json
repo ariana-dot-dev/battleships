@@ -168,7 +168,13 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": true
+    "mcp_server": true,
+    "snapshot_auto": true,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "ingress_rules": true,
+    "guest_firewall": false,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -208,5 +214,49 @@
     "applied": 16,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://hoplite.sh/docs/sandboxes",
+      "quote": "Modal snapshot-replace workspaces (the default for new workspaces) archive after the organization's idle policy and before the provider's maximum runtime, then transparently restore the worktree for the next thread operation.",
+      "note": "Triggered by idle policy / provider max runtime; filesystem (worktree) only, processes and previews must restart. Also: 'While active work is running, Modal also keeps a baseline recovery snapshot and refreshes it periodically' and auto-restores it if the runtime dies; plus a durable workspace checkpoint is saved automatically on each agent reply ('Rewind points on replies', /docs/cli/acp).",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://hoplite.sh/docs/threads/run",
+      "quote": "To restore saved workspace state through the API, [list checkpoints](/docs/api/listThreadCheckpoints) and explicitly [restore the selected checkpoint](/docs/api/restoreCheckpoint).",
+      "note": "Checkpoints are created automatically per agent reply and can be listed/restored on demand (API, MCP, ACP 'Rewind to here'), but the OpenAPI spec has no create-checkpoint/snapshot endpoint and no fork/boot-new-workspace-from-checkpoint. No memory.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://hoplite.sh/docs/factory",
+      "quote": "The public API gives your application repository-backed projects, persistent thread workspaces, agent execution, diffs, checkpoints, and PR operations.",
+      "note": "Drives Hoplite's own coding agent (models incl. Claude/GPT, BYOK, ChatGPT/Claude subscription routing): REST createThread (prompt), appendThreadMessage (follow-ups), listThreads/listThreadMessages, SSE /api/events/stream, stopRun/retryThread, tool-approval resolution; also MCP server (api.hoplite.sh/mcp), CLI and ACP. CLI handoff imports Claude Code / Codex / OpenCode / Cursor session transcripts into a Hoplite thread; those harnesses themselves are not driven. The agent loop runs on Hoplite's side and executes tools in the sandbox.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://hoplite.sh/docs/workspace/security",
+      "quote": "Preview links require Hoplite sign-in and membership in the owning workspace.",
+      "note": "Ports are chosen in .hoplite/settings.json (ports.preview/additional); previews go through Hoplite's authenticated proxy on a separate origin; API integrations use a 5-minute gateway credential. Docker Compose published ports are forced to loopback.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://hoplite.sh/docs/sandboxes",
+      "quote": "Commands in a Docker Compose workspace run as an unprivileged user without `sudo`.",
+      "note": "Standard runtime is a Modal sandbox (gVisor) where toolchains are installed 'so no root access is needed'; Docker Compose VM runtime is explicitly non-root and Docker requests pass a policy proxy rejecting added capabilities/host network. No way to run nftables/iptables documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://hoplite.sh/docs/agent/models",
+      "quote": "Eligible cloud runs can use the initiating member's connected Claude subscription. The connection stays outside the thread sandbox.",
+      "note": "Not a proxy for the sandbox's own outbound traffic. Model credentials (platform keys, BYOK, ChatGPT/Claude subscriptions, gateways) are used by Hoplite's agent loop OUTSIDE the sandbox, so they never enter it (arguably 'ai-only' in effect, set false for consistency with omnara). MCP secrets are KMS-encrypted and decrypted by the worker. Project secrets for arbitrary APIs are plain env vars injected into every sandbox command (readable by code), and a short-lived GitHub token is stored in private config inside the sandbox.",
+      "checked": "2026-09-29"
+    }
   }
 }

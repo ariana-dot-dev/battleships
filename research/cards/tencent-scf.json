@@ -187,7 +187,7 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": null,
@@ -222,7 +222,15 @@
     "spend_limits": null,
     "mcp_server": null,
     "isolation": "container",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -264,5 +272,64 @@
     "applied": 24,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://www.tencentcloud.com/document/product/583/9694",
+      "quote": "The platform will repossess instances that have not processed requests for a certain period of time.",
+      "note": "Idle instances are simply reclaimed; state is lost. /tmp (512 MB default, up to 10 GB paid) survives only while a warm instance is reused. No checkpoint-on-stop is documented anywhere in SCF docs.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://www.tencentcloud.com/document/product/583/9210",
+      "quote": "Because of the nature of SCF, you must write your function code in a stateless style. State characteristics in the lifecycle of a function such as local file storage will be destroyed after the function invocation ends.",
+      "note": "No snapshot, checkpoint or SnapStart-like feature in the SCF docs, and the SCF API data types (VpcConfig, CfsConfig, PublicNetConfigIn, ...) have no Snapshot structure. Provisioned concurrency pre-warms instances; that is not a snapshot. Tencent's separate Agent Runtime product (AGS) advertises session snapshots, but it is not SCF.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://www.tencentcloud.com/document/product/583/9694",
+      "quote": "The SCF platform is responsible for the creation, management, and deletion of all function runtime instances, and you have no permissions to manage them.",
+      "note": "SCF only runs functions (event, web, async up to 24 h). It has no API to drive Claude Code, Codex or another agent harness. Tencent's agent-sandbox product is Agent Runtime / Agent Sandbox (cloud.tencent.com/product/ags, 'VM 级隔离', '会话快照'). It is a separate product, not on this card, and worth its own provider id.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://cloud.tencent.com/document/product/583/19703",
+      "quote": "部署在 VPC 中的云函数默认隔离外网。",
+      "note": "SCF's own control is coarse: public network access is an on/off switch (API PublicNetConfigIn.PublicNetStatus 'DISABLE'/'ENABLE'). A VPC-only function with public access off has no internet, so this is a no-internet mode. Instances live in the platform's VPC and reach your VPC through a function gateway that SNATs to one IP in your subnet (FAQ 583/55718). Internet via your VPC therefore goes through your NAT gateway, where VPC-level IP controls apply. That last point is derived: SCF's VpcConfig has only VpcId/SubnetId and no security-group field. There is no domain allowlist. A fixed egress EIP is available.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://cloud.tencent.com/document/product/583/96100",
+      "quote": "CAM 鉴权：需要对函数 CAM 鉴权验证，用户可以基于函数 InvokeFunctionUrl 接口进行资源管理和使用权限配置。",
+      "note": "There are no raw inbound ports; the only ingress is invocation. Function URLs are off by default. Each URL can be public (https://<app-id>-<url-id>.<region>.tencentscf.com) and/or VPC-internal (.in.<region>.tencentscf.com, per 583/96099), with auth set to CAM (signed) or NONE (open). Other invocation paths are the TencentCloud API InvokeFunction (CAM) and API Gateway/CLB triggers. No IP allowlist on function URLs is documented.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://www.tencentcloud.com/document/product/583/32748",
+      "quote": "External storage of encrypted information: Keys related to authentication and encryption can be extracted from the code into environment variables, avoiding security risks caused by the presence of relevant keys hard-coded in the code.",
+      "note": "Secrets are plain env vars. Execution-role temporary credentials are also put into the function as env vars (TENCENTCLOUD_SECRETID / SECRETKEY / SESSIONTOKEN), so the real credentials enter the instance. There is no injecting proxy.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://www.tencentcloud.com/document/product/583/37497",
+      "quote": "Tencent Cloud SCF can be seamlessly integrated with CFS. After proper configuration, your functions can easily access files stored in CFS.",
+      "note": "Network file systems only (CFS General and CFS Turbo series, mounted under /mnt/, per 583/122883 and 583/46199). The function must be in the same VPC as the CFS mount target, and CFS is billed separately by CFS. There are no block volumes. Ephemeral /tmp is 512 MB free, up to 10 GB paid.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://cloud.tencent.com/document/product/583/122883",
+      "quote": "多个函数可共用一个文件系统，实现文件共享。",
+      "note": "Read-write NFS (the docs example writes /mnt/myfolder/filel.txt). It is shared across functions and concurrent instances, and also with CVM/TKE. Default mount uid/gid is 10000.",
+      "checked": "2026-09-29"
+    }
   }
 }

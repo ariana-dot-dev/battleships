@@ -801,7 +801,15 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "gvisor",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -877,5 +885,71 @@
     "applied": 1,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 7
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/sandbox/configuration.md",
+      "quote": "# Auto-terminate after 1 hour\nsandbox = Sandbox(keep_warm_seconds=3600)",
+      "note": "Sandboxes terminate when keep_warm_seconds expires; no pause/sleep with state capture is documented, snapshots are explicit SDK calls. Only exception: attached DurableDisks are snapshotted to object storage on container stop ('Beam snapshots a disk to object storage each time the container using it stops', https://docs.beam.cloud/v2/data/durable-disks.md). That is disk-only persistence of an extra attached disk, not the sandbox's state, so not counted here.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.beam.cloud/v2/sandbox/snapshots.md",
+      "quote": "You can also create a memory snapshot of a running Sandbox, which will capture the state of the sandbox's memory - including all running processes and exposed ports.",
+      "note": "Two kinds: create_image_from_filesystem() (filesystem -> image id usable as base image for any Sandbox/app) and snapshot_memory() (memory + processes + exposed ports; SDK docstring says also GPU state). New sandboxes boot from them via Image.from_id / Sandbox().create_from_memory_snapshot(), i.e. fork. Snapshots are free per pricing page.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/beam-cloud/beta9/main/sdk/src/beta9/abstractions/sandbox.py",
+      "quote": "A sandboxed container for running Python code or arbitrary processes.",
+      "note": "The Sandbox SDK exposes only process exec/run_code, filesystem, ports, snapshots, network, Docker. No API to start/stream/resume Claude Code/Codex/etc. Beam's 'agents' docs are a petri-net agent framework, and the new MCP server (beta9 PR #1920/#1942) lets an outside agent drive Beam (deploy, pods, secrets), not a harness running inside a sandbox. 'Managed agents' in commits are Beam's worker-machine agents.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.beam.cloud/v2/sandbox/networking.md",
+      "quote": "For more fine-grained control, you can specify an allow list of CIDR ranges that your Sandbox is permitted to connect to. All other outbound traffic will be blocked.",
+      "note": "block_network=True (no outbound) or allow_list of max 10 CIDRs (IPv4/IPv6), no hostnames. Updatable at runtime via update_network_permissions() without restart. Same for Pods.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/sandbox/networking.md",
+      "quote": "Must use proper CIDR notation (e.g., \"8.8.8.8/32\" for a single IP, \"10.0.0.0/8\" for a range)",
+      "note": "Only CIDR-level egress controls are documented; nothing at HTTP method/path/header level.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/beam-cloud/beta9/main/sdk/src/beta9/abstractions/sandbox.py",
+      "quote": "Whether the sandbox should be authorized for external access. Default is False.",
+      "note": "You choose which ports are exposed (ports=[...] at creation or expose_port() at runtime); exposed ports get SSL-terminated public URLs (https://<id>-<port>.app.beam.cloud). The SDK has an `authorized` flag (default False) which, as for Beam endpoints/pods, appears to require the Beam bearer token when True; the sandbox docs page itself does not document it. No IP allowlists for inbound. Pods are served from a static IP range (on request).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/sandbox/configuration.md",
+      "quote": "You can attach secrets to your sandbox using Beam's secret management system - they will be exposed as environment variables inside the Sandbox",
+      "note": "Secrets are only env vars inside the container; no credential-injecting egress proxy documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.beam.cloud/v2/sandbox/configuration.md",
+      "quote": "Mount fast storage volumes to persist files between sessions",
+      "note": "Three kinds attachable to a Sandbox: distributed Volumes, CloudBucket (your S3-compatible bucket), DurableDisk (node-local SSD snapshotted to object storage, 'The `disks` parameter is accepted by ... Sandbox'). Volumes free to 1 TB then $0.021/GB-month.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.beam.cloud/v2/data/durable-disks.md",
+      "quote": "If several containers need to read and write the same files at the same time, use a [Volume](/v2/data/volume) instead. Volumes are shared, distributed storage.",
+      "note": "Volumes are read-write shared across containers/sandboxes (writes visible to others within ~60 s); CloudBuckets also shared. DurableDisks: one writer at a time, any number of read-only mounts.",
+      "checked": "2026-09-29"
+    }
   }
 }

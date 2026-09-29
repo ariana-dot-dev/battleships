@@ -221,7 +221,16 @@
     "spend_limits": true,
     "mcp_server": null,
     "isolation": "vm",
-    "image_oci": true
+    "image_oci": true,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": true,
+    "egress_allowlist_level": "both",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -281,5 +290,79 @@
     "applied": 2,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/cli.md",
+      "quote": "`--idle-timeout-minutes` terminates the sandbox sooner when nothing is using it",
+      "note": "Lifetime and idle timeouts terminate (delete) the sandbox; no pause/sleep state exists. Snapshots are 'coming soon'.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/overview.md",
+      "quote": "**Snapshots** - save, restore, and fork a sandbox mid-run, preserving & branching your trajectories (coming soon).",
+      "note": "Announced, not shipped. No snapshot methods in the prime-sandboxes SDK.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": true,
+      "source": "https://docs.primeintellect.ai/verifiers/v1/harnesses",
+      "quote": "verifiers supports a range of harnesses out of the box, including Claude Code, Codex, the tool-enabled `bash` harness, the CDP-driven `browser_use` harness, and the minimal tool-less `null` harness.",
+      "note": "First-party open-source verifiers library (plus prime eval / Hosted Evaluations / prime-rl) runs Claude Code, Codex, OpenCode (OpenCodeEnv), mini-swe-agent etc. inside Prime sandboxes (runtime 'prime') with a task prompt and records traces live via an interception server. Batch eval/RL-oriented: no documented follow-up messages or conversation resume API.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.primeintellect.ai/sandboxes/cli.md",
+      "quote": "Both flags are repeatable and accept domains (`example.com`, `*.example.com`) or IPv4 addresses/CIDRs; IPv6 is not supported.",
+      "note": "Allowlist or denylist (mutually exclusive), deny-all incl. DNS; replaceable on a running sandbox via `prime sandbox network`. Overview calls them 'VM-only egress controls'.",
+      "checked": "2026-09-29",
+      "level": "both"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/PrimeIntellect-ai/prime/main/packages/prime-sandboxes/src/prime_sandboxes/models.py",
+      "quote": "Schemes, credentials, ports, paths, query\n    strings, bare ``*``, IPv6, and wildcards in other positions are rejected.",
+      "note": "Egress entries are hostnames/IPv4/CIDR only; no method/path/header rules.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.primeintellect.ai/sandboxes/tunnel.md",
+      "quote": "By default, anyone with the URL can reach your tunnel. To require credentials, provide a username when creating the tunnel",
+      "note": "No port-exposure API on sandboxes (not publicly reachable by default). Prime Tunnel (first-party reverse proxy, started per port from inside) publishes a chosen port at an HTTPS URL, optionally behind server-enforced HTTP basic auth. No IP allowlists. SSH via ephemeral-key `prime sandbox ssh` only.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Hardware-isolated microVM with its own guest kernel booting the OCI image as root filesystem; supports Docker/systemd/kernel-dependent workloads. Not documented explicitly.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/sdk.md",
+      "quote": "Both are injected into the sandbox as standard environment variables.",
+      "note": "Sandbox secrets are encrypted at rest but land as env vars inside the VM. Separately, verifiers routes harness model traffic through an interception server outside the sandbox ('The harness does *not* call the provider endpoint directly'), which acts like an LLM-only proxy for eval/RL runs, but it is not documented as a credential-hiding feature.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://www.primeintellect.ai/blog/sandboxes",
+      "quote": "In the near future, we will expand Prime Sandboxes to offer GPU microVMs, state snapshotting, sandbox forking, and shared persistent workspaces.",
+      "note": "Only the per-sandbox root disk (2-128 GiB), deleted with the sandbox. Persistent workspaces are announced, not shipped.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.primeintellect.ai/blog/sandboxes",
+      "quote": "persistent workspaces will let agents build on each other's work across rollouts instead of starting over.",
+      "note": "Future roadmap item; nothing shared today.",
+      "checked": "2026-09-29"
+    }
   }
 }

@@ -147,7 +147,13 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": true,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -173,5 +179,49 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.strongcompute.com/basic-concepts/workstations-images-and-containers",
+      "quote": "Unlike ordinary containers, Strong Compute containers automatically persist their state when they are stopped and started, so you do not need to install your project dependencies all over again.",
+      "note": "ISC dev containers: on stop the container filesystem is committed as a new image layer and shipped to cloud storage ('committed to the container image and shipped back to cloud storage when the container is stopped'), then restored on the next start on any cluster/burst workstation. Also committed when an interruptible/burst experiment is launched. Filesystem only, no memory/processes. Skipped with `isc container stop --no-save` (changes lost). /shared and /data scratch volumes are not saved. Containers auto-stop when org balance runs out (May 2025 changelog); no idle auto-stop documented.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://docs.strongcompute.com/change-log/january-2026.md",
+      "quote": "Container image clone: users can create new base images from their container image, which can then be used to create new containers.",
+      "note": "`isc container restart` (CLI inside the container or Control Plane) commits the running container's changes to its image on demand, but restarts it and kills SSH sessions. Image clone turns a container image into a base image for new containers (template-like fork). Disk only, no memory. Experiment 'Checkpoint artifacts' are app-level training checkpoints (cycling_utils AtomicDirectory), not machine snapshots.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "GPU training platform (ISC) + FinOps SaaS; the only APIs are the `isc` CLI (train/cancel/experiments/container restart|stop) and beta experiment-creation endpoints (March 2026). No agent-harness API. 'Agents' in the docs are ISC node agents / 'Agent Smith Lite' metrics collector, not coding agents.",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.strongcompute.com/advanced-and-coming-soon/saving-and-working-with-data/a-guide-for-fast-pull-push-for-s3-compatible-object-storage.md",
+      "quote": "Configure the credentials for your object storage",
+      "note": "No secrets feature or credential proxy; the docs tell users to write S3 keys into ~/.aws/credentials inside the container. Dataset import credentials are entered in Control Plane (provider-side fetch), and the FinOps product stores vendor API keys encrypted, but neither injects credentials into sandbox traffic.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.strongcompute.com/basic-concepts/datasets.md",
+      "quote": "Your dataset will then be mounted to your development container at `/data/<dataset-id>` and available there to you during development.",
+      "note": "Only persistent attachable storage is Datasets: immutable, read-only, up to 1 TB, imported from an S3-compatible bucket or Hugging Face, selected at container start. Containers capped at 50 GB. No persistent read-write volumes ('In future we are looking at developing methods to have persistent storage for larger read/write needs').",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://docs.strongcompute.com/basic-concepts/workstations-images-and-containers",
+      "quote": "Is read-write accessible to all containers belonging to the same organisation running in interactive mode on a cluster.",
+      "note": "/shared: read-write, org-private, 100 GB per cluster, scratch (not shipped to cloud storage; on burst workstations it is created empty and private to that container). Datasets are also mounted read-only by many containers/experiment nodes at once.",
+      "checked": "2026-09-29"
+    }
   }
 }

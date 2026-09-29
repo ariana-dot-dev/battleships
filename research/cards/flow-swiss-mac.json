@@ -348,7 +348,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
+    "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
@@ -367,7 +367,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": null,
     "fork_running": false,
@@ -379,7 +379,16 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "egress_allowlist_level": "ip",
+    "ingress_rules": true,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -416,5 +425,79 @@
       "item": "First Support",
       "price": "from CHF 5,000/month (~$6,043), consumption-based; phone + TAM"
     }
-  ]
+  ],
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://doc.flow.swiss/platform/pricing/billing-faq",
+      "quote": "A device in a stopped state continues to reserve the dedicated Mac device and therefore incur charges until you destroy/delete it.",
+      "note": "Dedicated physical Mac; stopping just powers it off and the local SSD persists (persistent_disk, not snapshot). No snapshot feature exists for Mac Bare Metal at all.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://doc.flow.swiss/platform/pricing/mac-bare-metal",
+      "quote": null,
+      "note": "Volume snapshots exist only for Flow Compute (VM) volumes. Mac pricing lists Elastic IPs as the only optional resource, and the Mac API surface in the official goclient/CLI/Terraform provider (devices, actions, workflows, VNC, networks, routers, elastic IPs, security groups) has no snapshot/image endpoints. On delete the Mac is wiped via MDM Erase.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://doc.flow.swiss/developer-center/api",
+      "quote": "All of the functionality that you are familiar with in the Flow control panel is also available through the API",
+      "note": "API is infrastructure lifecycle only (create/delete device, power actions, VNC, networking). No agent harness API or preinstalled agents.",
+      "checked": "2026-09-29"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://github.com/flowswiss/terraform-provider-flow/blob/HEAD/docs/resources/mac_bare_metal_security_group_rule.md",
+      "quote": "`direction` (String) direction of the security group rule (ingress or egress)",
+      "note": "Mac Bare Metal has its own security groups (network-layer firewall, protocol/port/CIDR rules, IPv4 only) with egress rules; generic docs: 'Traffic that does not satisfy any rule is dropped' and default group 'allows all traffic'. Enforced in the network, outside the Mac. No hostname/domain rules. Egress behaviour on Mac inferred from the shared security-group model, not tested.",
+      "checked": "2026-09-29",
+      "level": "ip"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://doc.flow.swiss/products/compute/networking/security-groups",
+      "quote": "Security Groups are network-based firewalls and stop traffic at the network layer before it reaches the server.",
+      "note": "Only L3/L4 (protocol, port, CIDR) rules; no HTTP-level filtering product.",
+      "checked": "2026-09-29"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://doc.flow.swiss/products/mac-bare-metal/devices",
+      "quote": "For security reasons, only two TCP ports are open from the outside. These are ports 5900 (VNC) and 22 (SSH). The port settings can be restricted or extended in the Control Panel via Mac Bare Metal > Networking > Security Groups > Default.",
+      "note": "Security groups with source-CIDR restrictions; the Elastic IP can be unchecked at creation so the device is 'reachable only internally' (private network, routers, VPN). No HTTPS preview URLs.",
+      "checked": "2026-09-29"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": null,
+      "quote": null,
+      "note": "Dedicated bare-metal Mac, default user 'has root privileges'; macOS pf firewall (not nftables/iptables) is usable by root.",
+      "checked": "2026-09-29",
+      "derived": true
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": null,
+      "quote": null,
+      "note": "No secrets feature of any kind for Mac Bare Metal; credentials must be placed on the Mac by the user.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://doc.flow.swiss/platform/pricing/mac-bare-metal",
+      "quote": null,
+      "note": "Block Volumes ('you can add multiple additional Volumes') are a Flow Compute (VM) feature; Mac storage is the fixed internal SSD per flavor (256 GB-4 TB). No volume endpoints in the Mac API/SDK.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://doc.flow.swiss/products/compute/volumes",
+      "quote": "Volumes cannot be assigned to more than one instance at a time.",
+      "note": "No shared filesystem for Macs. Flow Object Storage (S3-compatible) exists but has no first-party mount; user could self-mount.",
+      "checked": "2026-09-29"
+    }
+  }
 }
