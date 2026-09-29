@@ -226,6 +226,12 @@
       if (g.type !== W.gpu) gpuNote = (gpuNote ? gpuNote + '; ' : '') + (g.fallback ? `no ${W.gpu}: priced with ${g.type}` : `${W.gpu} sold as ${g.type}`);
     }
     if (W.os === 'windows' && known(m.windows_vcpu_h)) parts.licence = shape.vcpu * m.windows_vcpu_h;
+    // asked for more than the largest machine: price enough of the largest machines to hold that capacity, so a capped
+    // (flagged) row never looks cheaper than an honest bigger machine elsewhere, or than this provider's own bigger size
+    if (shape && shape.clamped && known(shape.vcpu) && known(shape.ram) && shape.vcpu > 0 && shape.ram > 0) {
+      const k = Math.max(1, W.vcpu / shape.vcpu, W.ram / shape.ram);
+      if (k > 1) { for (const key in parts) parts[key] *= k; shape = Object.assign({}, shape, { capacityFactor: k }); }
+    }
     const mult = num(m.multiplier, 1);
     for (const k in parts) parts[k] *= mult;
     const total = parts.compute + parts.memory + parts.gpu + parts.licence;
@@ -477,10 +483,14 @@
     }));
     const peak = W.concurrency + W.alwaysOn;
     const sessH = W.alwaysOn > 0 ? HOURS_MONTH : W.sessionMin / 60;
-    // sandbox starts the workload needs: per day on average, and per minute at steady state (C boxes turning over every D min)
+    // sandbox starts the workload needs. At peak the fleet really does turn over at full speed (C boxes every D min),
+    // but it can never start more sessions than a day holds (sessions/30): 20 at once on 2-minute tasks is 600 starts
+    // an hour only if there are 600 tasks to run.
     const reusedN = best.modes.map(r => r.reused).find(Boolean);
     const startsDay = reusedN ? 0 : W.sessions / 30;
-    const startsMin = reusedN || !(W.sessionMin > 0) ? 0 : Math.max(W.concurrency, 1) / W.sessionMin;
+    const steadyMin = reusedN || !(W.sessionMin > 0) ? 0 : Math.max(W.concurrency, 1) / W.sessionMin;
+    const startsHourCap = Math.min(steadyMin * 60, startsDay);
+    const startsMin = Math.min(steadyMin, startsDay);
     let bestPlan = null; const planErrs = [];
     // a regime may only be sold on certain plans (mode.plans = [plan names])
     const allowedPlans = best.modes.map(r => r.mode.plans || (r.mode.requires_plan ? [].concat(r.mode.requires_plan) : null)).filter(Array.isArray);
@@ -505,7 +515,7 @@
       if (known(p.max_total_vcpu) && totV != null && totV > p.max_total_vcpu) capHit.push([`${p.name}: max ${p.max_total_vcpu} vCPU running at once (needs ${Math.round(totV)})`, totV / Math.max(1, p.max_total_vcpu)]);
       if (known(p.max_total_ram_gib) && totR != null && totR > p.max_total_ram_gib) capHit.push([`${p.name}: max ${p.max_total_ram_gib} GiB running at once (needs ${Math.round(totR)})`, totR / Math.max(1, p.max_total_ram_gib)]);
       if (known(p.max_gpus) && totG > p.max_gpus) capHit.push([`${p.name}: max ${p.max_gpus} GPUs at once (needs ${totG})`, totG / Math.max(1, p.max_gpus)]);
-      const startsHour = startsMin * 60;
+      const startsHour = startsHourCap;
       if (known(p.max_starts_per_hour) && startsHour > p.max_starts_per_hour) capHit.push([`${p.name}: max ${p.max_starts_per_hour} starts/hour (needs ~${Math.round(startsHour)})`, startsHour / Math.max(1, p.max_starts_per_hour)]);
       // how far over each limit the workload is (1 = at the limit); used to pick the least-bad plan when all violate
       let severity = 0;
