@@ -15,8 +15,11 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://pricemogged.com/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500&family=Inter:wght@400;500;600&display=swap">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- fonts load without blocking the first paint (text shows in the fallback font for a moment, then swaps) -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500&family=Inter:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500&family=Inter:wght@400;500;600&display=swap"></noscript>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <style>
 /* One small system: 5 colours (ink, ink-2, line, wash, warn) · 4 sizes (12/14/18/28) · 2 weights (400/600)
    · 2 families (Inter; Funnel Display for the two headlines) · spacing in 4s · square corners · 1px hairlines. */
@@ -129,6 +132,19 @@ input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px var(--fil
 
 /* estimator layout: controls left, results right */
 .est{display:grid;grid-template-columns:320px minmax(0,1fr);align-items:start}
+/* while the first pricing runs, a calm placeholder in the estimator's own layout instead of half-built boxes */
+.bootsk{display:none}
+.booting .est{display:none}
+.booting .bootsk{display:grid;grid-template-columns:320px minmax(0,1fr);gap:0;position:relative}
+.bootsk .bk{display:flex;flex-direction:column;gap:14px;padding:24px;border:1px solid var(--line)}
+.bootsk .bk.main{border-left:0}
+.bootsk i{display:block;height:14px;background:var(--wash);animation:bkpulse 1.4s ease-in-out infinite}
+.bootsk i.t{height:30px;width:55%}.bootsk i.p{height:120px}
+.bootsk .side i:nth-child(odd){width:70%}
+.bootsk .bkmsg{position:absolute;left:0;right:0;top:40%;text-align:center;margin:0;color:var(--ink-2);font-size:var(--t4)}
+@keyframes bkpulse{0%,100%{opacity:1}50%{opacity:.55}}
+@media (max-width:980px){.booting .bootsk{grid-template-columns:1fr}.bootsk .bk.main{border-left:1px solid var(--line);border-top:0}}
+@media (prefers-reduced-motion:reduce){.bootsk i{animation:none}}
 aside.controls{position:sticky;top:48px;max-height:calc(100vh - 56px);overflow:auto}
 .grp{border-top:1px solid var(--line);padding:12px 16px}
 .grp:first-child{border-top:0}
@@ -220,6 +236,13 @@ body.boats .boatglyph{display:inline}
 .price b{font-weight:600}
 .price small{display:none}
 .grouphead{padding:24px 24px 8px;color:var(--ink-2);border-top:1px solid var(--line)}
+/* a group with hidden rows: the whole heading toggles it; open, it sticks under the tab bar so it can always be closed */
+.gtoggle{display:flex;width:100%;align-items:baseline;gap:6px;text-align:left;font:inherit;background:var(--bg);border-left:0;border-right:0;border-bottom:0;cursor:pointer}
+.gtoggle .gact{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:var(--t4);color:var(--ink-2)}
+.gtoggle .gact svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;transition:transform .15s}
+.gtoggle.open .gact svg{transform:rotate(180deg)}
+.gtoggle:hover .gact{color:var(--ink)}
+.gtoggle.open{position:sticky;top:46px;z-index:4;padding-top:14px;padding-bottom:14px;box-shadow:0 1px 0 var(--line)}
 .grouphead b{font-weight:600;color:var(--ink)}
 .more{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--line);padding:8px 24px 8px 64px;color:var(--ink-2)}
 .more:hover{color:var(--ink)}
@@ -583,7 +606,8 @@ details.more-in[open]>summary{display:none}
   </div>
 </nav>
 
-<section class="panel" id="p-estimate">
+<section class="panel booting" id="p-estimate">
+  <div class="bootsk" aria-hidden="true"><div class="bk side"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="bk main"><i class="t"></i><i class="p"></i><i></i><i></i><i></i><i></i><i></i></div><p class="bkmsg">Pricing every provider for your workload…</p></div>
   <div class="est">
     <aside class="controls tile" id="controls">
       <div class="grp"><div class="chips" id="presets"></div><label class="f"><h3><svg viewBox="0 0 16 16"><rect x="1.5" y="3" width="5" height="4"/><rect x="9.5" y="3" width="5" height="4"/><rect x="1.5" y="9" width="5" height="4"/><rect x="9.5" y="9" width="5" height="4"/></svg> Fleet size</h3>
@@ -741,7 +765,7 @@ document.querySelectorAll('[data-repo]').forEach(a=>{ a.href=REPO_URL+(a.dataset
 if(window.BOAT_ASSETS&&BOAT_ASSETS.ships&&BOAT_ASSETS.ships['rowboat-l']) document.documentElement.style.setProperty('--boat-thumb',`url("${BOAT_ASSETS.ships['rowboat-l']}")`);
 const setRangeFill=el=>{ const lo=+el.min||0, hi=+el.max||100, v=+el.value; el.style.setProperty('--p',(hi>lo?(v-lo)/(hi-lo)*100:0)+'%'); };
 document.addEventListener('input',e=>{ if(e.target&&e.target.type==='range') setRangeFill(e.target); },true);
-if(window.BoatTheme){ document.getElementById('heroSea').innerHTML=BoatTheme.hero('PriceMogged'); document.getElementById('footSea').innerHTML=BoatTheme.footer(); }
+// hero + footer scenery are pre-rendered into the HTML at build time (build.js), so nothing to draw here
 const D=window.PMDATA, CARDS=D.cards, U=D.usage;
 const store={get(k,d){try{const v=localStorage.getItem('pm-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('pm-'+k,JSON.stringify(v))}catch(e){}}};
 const fmt=x=>x==null||!isFinite(x)?'—':(x>=100000?'$'+Math.round(x/1000)+'k':x>=1000?'$'+Math.round(x).toLocaleString('en-US'):x>=10?'$'+x.toFixed(0):'$'+x.toFixed(2));
@@ -761,7 +785,13 @@ function setBoats(on){document.body.classList.toggle('boats',on); const t=on?T.o
 $('#boats').checked=store.get('boats',false); $('#boats').onchange=e=>setBoats(e.target.checked);
 
 // ---- tabs
-function showTab(t){ $$('#tabs [role=tab]').forEach(x=>x.setAttribute('aria-selected',x.dataset.tab===t)); $$('section.panel').forEach(p=>p.hidden=p.id!=='p-'+t); store.set('tab',t);
+// Hidden tabs are built on first view (or when the page is idle), not during load. Markdown tabs wait for marked.js,
+// which loads deferred so it never blocks the first paint.
+const LAZY={}, LAZY_DONE=new Set();
+function ensureTab(t){ if(!LAZY[t]||LAZY_DONE.has(t)) return;
+  if(!window.marked&&(t==='providers'||t==='bench')&&document.readyState!=='complete'){ addEventListener('load',()=>ensureTab(t),{once:true}); return; }
+  LAZY_DONE.add(t); LAZY[t](); }
+function showTab(t){ ensureTab(t); $$('#tabs [role=tab]').forEach(x=>x.setAttribute('aria-selected',x.dataset.tab===t)); $$('section.panel').forEach(p=>p.hidden=p.id!=='p-'+t); store.set('tab',t);
   const cur=$(`#tabs [data-tab="${t}"]`); if(cur) $('#tabMenuLabel').textContent=cur.textContent; setTabMenu(false); if(t==='how') renderFlow(); }
 // phones: the tabs fold into one menu button showing the current tab
 function setTabMenu(open){ $('#tabs').classList.toggle('open',open); $('#tabMenu').setAttribute('aria-expanded',open); }
@@ -1031,9 +1061,14 @@ function run(){
   // expand / collapse toggle under each group
   const more=(k,total,def)=>total<=def?'':showAll[k]?`<button class="more" data-more="${k}" data-less="1">Show fewer</button>`:`<button class="more" data-more="${k}">Show ${total-def} more</button>`;
   $('#rank').innerHTML=(strictOk.length?`<div class="gmark" id="g-meets"></div>`+strictOk.slice(0,NM).map(rowHtml).join('')+more('meets',strictOk.length,DM):'')
-    +(softOk.length?`<div class="grouphead" id="g-soft" data-tip="Priced as close to this workload as each provider can get, minor mismatches first. Hover a ! to see what doesn’t match."><b>With compromises</b> · ${softOk.length}</div>`+softOk.slice(0,NS).map((r,i)=>rowHtml(r,strictOk.length+i)).join('')+more('soft',softOk.length,DS):'')
+    +(softOk.length?(softOk.length>DS
+      ?`<button type="button" class="grouphead gtoggle${showAll.soft?' open':''}" id="g-soft" aria-expanded="${showAll.soft}" data-tip="Priced as close to this workload as each provider can get, minor mismatches first. Hover a ! to see what doesn’t match."><b>With compromises</b> · ${softOk.length}<span class="gact">${showAll.soft?'Show fewer':'Show all'}<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></span></button>`
+      :`<div class="grouphead" id="g-soft" data-tip="Priced as close to this workload as each provider can get, minor mismatches first. Hover a ! to see what doesn’t match."><b>With compromises</b> · ${softOk.length}</div>`)+softOk.slice(0,NS).map((r,i)=>rowHtml(r,strictOk.length+i)).join('')+more('soft',softOk.length,DS):'')
   $$('#rank .more').forEach(b=>b.onclick=()=>{ const k=b.dataset.more, less=!!b.dataset.less; showAll[k]=!less; run();
     if(less){ const h=$('#g-'+k); if(h&&h.getBoundingClientRect().top<0) h.scrollIntoView({block:'start'}); } });
+  // the "With compromises" heading opens / closes its group; closing brings you back to the heading
+  $$('#rank .gtoggle').forEach(h=>h.onclick=()=>{ const k=h.id.replace('g-',''), closing=showAll[k]; tip(); showAll[k]=!closing; run();
+    if(closing){ const nh=$('#g-'+k); if(nh&&nh.getBoundingClientRect().top<60) nh.scrollIntoView({block:'start'}); } });
   $$('#rank .iso').forEach(b=>b.onclick=e=>{ e.stopPropagation(); tip(); isoOnly=isoOnly===b.dataset.iso?null:b.dataset.iso; run(); });
   $$('#rank .r').forEach(el=>el.onclick=e=>{if(e.target.closest('.detail')||e.target.closest('.iso'))return; tip(); open=open===el.dataset.id?null:el.dataset.id; run();});
   $$('#rank .bar span').forEach(s=>{s.onmousemove=e=>tip(e,s.dataset.t);s.onmouseleave=()=>tip();});
@@ -1427,7 +1462,7 @@ function tableNotes(root){ $$(root+' table').forEach(tb=>{ const notes=[]; tb.qu
       if(cut<40) return;
       td.innerHTML=html.slice(0,cut)+' <details class="more-in"><summary>more</summary>'+html.slice(cut)+'</details>'; });
   }); }
-if(ids.length) showProv(ids.includes('boat')?'boat':ids[0]);
+LAZY.providers=()=>{ if(ids.length) showProv(ids.includes('boat')?'boat':ids[0]); };
 
 // ---- matrix: every feature column is a filter. Click its title: require (✓) → exclude (✕) → any.
 const MK=['vm_isolation','image_oci','docker_inside','nested_virt','desktop','browser','browser_and_desktop','computer_use','anti_bot','captcha_solving','residential_ip','ssh','snapshot','fork','fork_running','memory_snapshot_fork','pause_resume','wake_on_request','persistent_disk','auto_stop_idle','live_resize','custom_image','image_snapshot','agent_harnesses','mcp_server','lang_python','lang_node','public_ipv4','inbound_https','egress_allowlist','egress_http_rules','credential_injection','static_egress_ip','gpu','windows','macos','arm64','self_host','byoc','open_source','soc2','hipaa','sso','eu_data_residency'];
@@ -1460,16 +1495,19 @@ function renderMatrix(){
   const cl=$('#mchips .mclear'); if(cl) cl.onclick=()=>{ mf={}; store.set('mfilter',mf); renderMatrix(); };
 }
 ['mq','miso','munk'].forEach(id=>$('#'+id).addEventListener(id==='mq'?'input':'change',renderMatrix));
-renderMatrix();
+LAZY.matrix=renderMatrix;
 
 // ---- benchmarks
-$('#benchmd').innerHTML=(D.perfCosts?md(D.perfCosts)+'<hr class="sep">':'')+(D.bench?md(D.bench):'<div class="empty">No benchmark notes.</div>');
-tableNotes('#benchmd');
+LAZY.bench=()=>{ $('#benchmd').innerHTML=(D.perfCosts?md(D.perfCosts)+'<hr class="sep">':'')+(D.bench?md(D.bench):'<div class="empty">No benchmark notes.</div>'); tableNotes('#benchmd'); };
 
-// ---- boot
+// ---- boot: the estimator first (its skeleton is already on screen), then the hidden tabs one by one when idle
 setBoats($('#boats').checked);
 applyPreset('fullstack');
+$('#p-estimate').classList.remove('booting');
 const t0=(location.hash||'').slice(1)||store.get('tab','estimate'); if($(`#tabs button[data-tab="${t0}"]`)) showTab(t0);
+const idle=window.requestIdleCallback||(f=>setTimeout(f,120));
+const buildRest=()=>{ const next=Object.keys(LAZY).find(k=>!LAZY_DONE.has(k)); if(!next) return; ensureTab(next); idle(buildRest); };
+addEventListener('load',()=>idle(buildRest));
 addEventListener('resize',()=>{clearTimeout(window.__rt);window.__rt=setTimeout(run,150);});
 })();
 </script>

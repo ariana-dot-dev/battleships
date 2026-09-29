@@ -51,8 +51,16 @@ const data = {
 let html = fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8');
 html = html.replace('/*__ENGINE__*/', () => fs.readFileSync(path.join(__dirname, 'engine.js'), 'utf8'));
 // boat.dev scenery: the docs videos' 3D boat renders (assets/ships) + the landing page's sea mask, inlined (site/assets)
-html = html.replace('/*__ASSETS__*/', () => 'window.BOAT_ASSETS=' + JSON.stringify({ ships: Object.fromEntries(fs.readdirSync(path.join(__dirname, 'assets', 'ships')).filter(f => f.endsWith('.png')).map(f => [f.slice(0, -4), 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, 'assets', 'ships', f)).toString('base64')])), mask: fs.readFileSync(path.join(__dirname, 'assets', 'seamask.txt'), 'utf8').trim() }) + ';');
-html = html.replace('/*__THEME__*/', () => fs.readFileSync(path.join(__dirname, 'theme.js'), 'utf8'));
+const ASSETS = { ships: Object.fromEntries(fs.readdirSync(path.join(__dirname, 'assets', 'ships')).filter(f => f.endsWith('.png')).map(f => [f.slice(0, -4), 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, 'assets', 'ships', f)).toString('base64')])), mask: fs.readFileSync(path.join(__dirname, 'assets', 'seamask.txt'), 'utf8').trim() };
+// The hero and footer scenery are rendered here, into the HTML, so they are in the very first paint instead of
+// waiting for the page's scripts. The page itself only needs the rowboat (slider handle) at runtime.
+globalThis.BOAT_ASSETS = ASSETS; require('./theme.js');
+html = html.replace('<div id="heroSea"></div>', () => `<div id="heroSea">${globalThis.BoatTheme.hero('PriceMogged')}</div>`);
+html = html.replace('<div class="bfoot-sea" id="footSea"></div>', () => `<div class="bfoot-sea" id="footSea">${globalThis.BoatTheme.footer()}</div>`);
+// the boat images, once, as symbols both scenes <use> (placed first in the hero so they exist before the scenes paint)
+html = html.replace('<div id="heroSea">', () => `${globalThis.BoatTheme.sprites()}<div id="heroSea">`);
+html = html.replace('/*__ASSETS__*/', () => 'window.BOAT_ASSETS=' + JSON.stringify({ ships: { 'rowboat-l': ASSETS.ships['rowboat-l'] } }) + ';');
+html = html.replace('/*__THEME__*/', () => '');
 html = html.replace('/*__DATA__*/', () => 'window.PMDATA=' + JSON.stringify(data).replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--') + ';');
 fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
 fs.writeFileSync(path.join(__dirname, 'dist', 'pricemogged.html'), html);

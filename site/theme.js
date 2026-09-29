@@ -51,9 +51,15 @@
   const SPRITE = { 'ship-large-l': [440, 354], 'ship-large-r': [441, 355], 'ship-medium-l': [330, 305], 'ship-medium-r': [329, 306],
     'ship-small-l': [271, 286], 'ship-small-r': [272, 286], 'rowboat-l': [206, 104], 'barrel': [98, 86] };
   // one sprite with its bottom on the water row `y`, rocking
+  // each boat image is defined once for the whole page (sprites(), as <symbol>s) and placed with <use>, so the hero
+  // and the footer share the same bytes instead of each carrying its own copy
+  const used = new Set();
   function vessel(name, x, y, i) {
-    const w = SPRITE[name][0] * K, h = SPRITE[name][1] * K;
-    return `<g class="ride" style="--bob-delay:${r2(-i * 1.3)}s"><image href="${(A().ships || {})[name]}" x="${r2(x)}" y="${r2(y - h)}" width="${r2(w)}" height="${r2(h)}"/></g>`;
+    const w = SPRITE[name][0] * K, h = SPRITE[name][1] * K; used.add(name);
+    return `<g class="ride" style="--bob-delay:${r2(-i * 1.3)}s"><use href="#spr-${name}" x="${r2(x)}" y="${r2(y - h)}" width="${r2(w)}" height="${r2(h)}"/></g>`;
+  }
+  function sprites() {
+    return `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${[...used].map(n => `<symbol id="spr-${n}" viewBox="0 0 ${SPRITE[n][0]} ${SPRITE[n][1]}"><image href="${(A().ships || {})[n]}" width="${SPRITE[n][0]}" height="${SPRITE[n][1]}"/></symbol>`).join('')}</defs></svg>`;
   }
 
   // the hero: sea, a small fleet drawn back to front (none under the title, subtitle or header), the title on the horizon
@@ -86,5 +92,5 @@
       + `<g class="sail r s3">${vessel('ship-small-r', 0, 205, 2)}</g></g></svg>`;
   }
 
-  root.BoatTheme = { hero, footer };
+  root.BoatTheme = { hero, footer, sprites };
 })(typeof window !== 'undefined' ? window : globalThis);
