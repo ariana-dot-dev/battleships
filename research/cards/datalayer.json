@@ -179,7 +179,14 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null
+    "mcp_server": null,
+    "snapshot_auto": false,
+    "snapshot_on_demand": true,
+    "harness_api": false,
+    "secret_proxy": false,
+    "volume_attach": true,
+    "volume_shared": true,
+    "own_agent_api": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -202,5 +209,56 @@
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
+  },
+  "feature_evidence": {
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://datalayer.ai/docs/credits",
+      "quote": "Credits are consumed while Runtimes are running, even if they are not actively being used. Ensure to terminate Runtimes when they are no longer needed to optimize credit usage.",
+      "note": "Snapshots are only taken on user Pause (UI/API/CLI) or explicit Take Snapshot. No idle auto-pause documented; runtimes simply run until their prepaid time reservation ends (older docs: 'After this time, the Runtime will be automatically terminated'). Agent-runtimes has conversation-level auto-checkpoints (message history), not machine state.",
+      "checked": "2026-09-29"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://datalayer.ai/docs/code-sandbox-snapshots",
+      "quote": "Takes the state of the sandbox as it is now, and leaves the sandbox running — unlike pausing it, which stops the sandbox to keep its state.",
+      "note": "Two mechanisms. (1) Runtime Snapshots: API/CLI/UI/MCP (`create_snapshot`, `datalayer snapshots create`, `snapshot_sandbox`); new runtimes can launch from one (`create_runtime(snapshot_name=...)`), loadable into any running sandbox, export/import to file. BUT it is kernel state only: 'The Runtime state is serialized using Python's pickle module' (picklable Python variables, not processes/disk). (2) Pause/Resume: 'Pausing preserves Agent Runtime state and creates an Agent Runtime Snapshot'; agent runtimes use CRIU full-pod checkpoints ('pause/resume/terminate controls backed by checkpointing (CRIU) semantics', `agent-runtimes checkpoints ls/delete`), i.e. memory included, but resume only restores the same runtime. Snapshot storage price unpublished.",
+      "checked": "2026-09-29"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://agent-runtimes.datalayer.tech/endpoints/",
+      "quote": "Agent Runtimes exposes a comprehensive REST and WebSocket API for managing agents, executing prompts, and monitoring system status",
+      "note": "Reviewed: drives Datalayer’s own Agent Runtimes (pydantic-ai agents), not a coding harness. Harness = Datalayer's own open-source Agent Runtimes (pydantic-ai-based agents defined by Agentspecs), launched into a cloud runtime pod as a sidecar next to the Jupyter kernel (`agent-runtimes agents create ai-agents-env ... --cloud`; `create_runtime(agent_spec_id=...)`), then driven from outside via AG-UI (SSE), Vercel AI, ACP (WebSocket) or A2A with streaming, tool approvals, pause/resume and conversation persistence (`run_cloud_agent_chat` sends a prompt to a cloud runtime agent). Not Claude Code/Codex/OpenCode: those connect the other way, as MCP clients of the hosted Datalayer MCP server (mcp.datalayer.run).",
+      "checked": "2026-09-29"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "http://web.archive.org/web/20251011032842/https://docs.datalayer.app/secrets/",
+      "quote": "The secrets will be injected in all Runtimes as environment variables. The environment variable name will be the secret name.",
+      "note": "Live core SDK docs: 'Secrets are encrypted at rest and securely transmitted to runtimes when needed.' Agent-runtimes identity OAuth tokens (GitHub, GitLab, Google...) are also handed to skills/codemode as env vars (GITHUB_TOKEN etc.). Model inference can route via Datalayer ('inferenceProvider = local | datalayer') but no credential-injecting egress proxy is documented.",
+      "checked": "2026-09-29"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://datalayer.ai/docs/contents/volumes",
+      "quote": "Attach the Volume to a Code Sandbox at an absolute path with read-only or read/write access.",
+      "note": "'A Volume is durable, mutable storage managed as a Contents source'; created with capacity and storage tier (`datalayer contents volumes create --capacity-bytes ...`), scoped to a user or a Space; a Kubernetes persistent claim fixed at pod creation (attach before start; running sandbox refused with ATTACHMENT_NOT_MOUNTABLE). Persists after sandbox deletion; bills until deleted (price unpublished). Also Cloud Storage bucket mounts and local-folder bridge mounts.",
+      "checked": "2026-09-29"
+    },
+    "volume_shared": {
+      "value": true,
+      "source": "https://datalayer.ai/docs/contents/home-folder",
+      "quote": "You can attach the Home Folder to multiple sandboxes; avoid simultaneous writes to the same file unless your workflow coordinates them.",
+      "note": "Home Folder (user + every org/team folder) lives on 'the platform's shared filesystem' and is mounted read/write ('Every mount is read/write'), hot-attachable to running Datalayer runtimes. Volumes list 'the runtime currently holding it' and are validated for 'concurrent access', so Volumes themselves look single-holder; the shared case is the Home Folder / team folders (and bucket mounts).",
+      "checked": "2026-09-29"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://agent-runtimes.datalayer.tech/endpoints/",
+      "quote": "Agent Runtimes exposes a comprehensive REST and WebSocket API for managing agents, executing prompts, and monitoring system status",
+      "note": "Harness = Datalayer's own open-source Agent Runtimes (pydantic-ai-based agents defined by Agentspecs), launched into a cloud runtime pod as a sidecar next to the Jupyter kernel (`agent-runtimes agents create ai-agents-env ... --cloud`; `create_runtime(agent_spec_id=...)`), then driven from outside via AG-UI (SSE), Vercel AI, ACP (WebSocket) or A2A with streaming, tool approvals, pause/resume and conversation persistence (`run_cloud_agent_chat` sends a prompt to a cloud runtime agent). Not Claude Code/Codex/OpenCode: those connect the other way, as MCP clients of the hosted Datalayer MCP server (mcp.datalayer.run).",
+      "checked": "2026-09-29"
+    }
   }
 }
