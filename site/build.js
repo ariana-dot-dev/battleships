@@ -1,4 +1,4 @@
-// Build a single self-contained HTML page from research/cards, regimes, verify, benchmarks and usage profiles.
+﻿// Build a single self-contained HTML page from research/cards, regimes, verify, benchmarks and usage profiles.
 // usage: node site/build.js  ->  site/dist/pricemogged.html
 const fs = require('fs'), path = require('path');
 const R = path.join(__dirname, '..', 'research');
@@ -61,7 +61,7 @@ html = html.replace('<div class="bfoot-sea" id="footSea"></div>', () => `<div cl
 html = html.replace('<div id="heroSea">', () => `${globalThis.BoatTheme.sprites()}<div id="heroSea">`);
 html = html.replace('/*__ASSETS__*/', () => 'window.BOAT_ASSETS=' + JSON.stringify({ ships: { 'rowboat-l': ASSETS.ships['rowboat-l'] } }) + ';');
 html = html.replace('/*__THEME__*/', () => '');
-html = html.replace('/*__DATA__*/', () => 'window.PMDATA=' + JSON.stringify(data).replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--') + ';');
+html = html.replace('/*__DATA__*/', () => JSON.stringify(data).replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\u0021--'));
 fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
 fs.writeFileSync(path.join(__dirname, 'dist', 'pricemogged.html'), html);
 console.log(`cards=${cards.length} regimes=${Object.keys(data.regimes).length} verify=${Object.keys(data.verify).length} perfRef=${perfRef} usage=${!!data.usage} bytes=${html.length}`);

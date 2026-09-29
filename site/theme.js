@@ -50,46 +50,50 @@
   const K = 0.467;
   const SPRITE = { 'ship-large-l': [440, 354], 'ship-large-r': [441, 355], 'ship-medium-l': [330, 305], 'ship-medium-r': [329, 306],
     'ship-small-l': [271, 286], 'ship-small-r': [272, 286], 'rowboat-l': [206, 104], 'barrel': [98, 86] };
-  // one sprite with its bottom on the water row `y`, rocking
-  // each boat image is defined once for the whole page (sprites(), as <symbol>s) and placed with <use>, so the hero
-  // and the footer share the same bytes instead of each carrying its own copy
+  // one sprite with its bottom on the water row `y`, rocking. Boats are HTML boxes laid over the (static) sea svg, not
+  // svg children: an animated transform on its own layer runs on the compositor, so the boats keep rocking while the
+  // page loads and nothing gets repainted each frame. Each image is defined once for the page (sprites(), a CSS class),
+  // so the hero and the footer share the same bytes.
   const used = new Set();
-  function vessel(name, x, y, i) {
+  const pct = (v, of) => r2((v / of) * 100) + '%';
+  function vessel(name, x, y, i, H, sailing) {
     const w = SPRITE[name][0] * K, h = SPRITE[name][1] * K; used.add(name);
-    return `<g class="ride" style="--bob-delay:${r2(-i * 1.3)}s"><use href="#spr-${name}" x="${r2(x)}" y="${r2(y - h)}" width="${r2(w)}" height="${r2(h)}"/></g>`;
+    return `<i class="ship ride spr-${name}" style="left:${sailing ? 0 : pct(x, W)};top:${pct(y - h, H)};width:${pct(w, W)};height:${pct(h, H)};animation-delay:${r2(-i * 1.3)}s"></i>`;
   }
   function sprites() {
-    return `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${[...used].map(n => `<symbol id="spr-${n}" viewBox="0 0 ${SPRITE[n][0]} ${SPRITE[n][1]}"><image href="${(A().ships || {})[n]}" width="${SPRITE[n][0]}" height="${SPRITE[n][1]}"/></symbol>`).join('')}</defs></svg>`;
+    return `<style>${[...used].map(n => `.spr-${n}{background-image:url(${(A().ships || {})[n]})}`).join('')}</style>`;
   }
 
   // the hero: sea, a small fleet drawn back to front (none under the title, subtitle or header), the title on the horizon
   function hero(title) {
     const H = 520, HOR = 100, BASE = 158, rows = buildSea(H, HOR, 92, 7);
     const far = rows.filter(r => r.y < BASE), near = rows.filter(r => r.y >= BASE);
-    return `<svg class="sea-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${title} on boat.dev's sea">`
+    return `<div class="sea-wrap"><svg class="sea-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${title} on boat.dev's sea">`
       + `<defs><mask id="seamask"><image href="${A().mask}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none"/></mask></defs>`
       + `<g fill="none" stroke="${ROYAL}" mask="url(#seamask)">${layer(far)}</g>`
       + `<text class="sea-title" x="${W / 2}" y="${BASE}" text-anchor="middle">${title}</text>`
-      + `<g fill="none" stroke="${ROYAL}" mask="url(#seamask)">${layer(near)}</g>`
-      + vessel('ship-small-r', 30, 280, 0)
-      + vessel('ship-medium-l', 1030, 310, 1)
-      + vessel('barrel', 1100, 440, 4)
-      + vessel('rowboat-l', 900, 470, 3)
-      + vessel('ship-large-r', 150, 480, 2) + `</svg>`;
+      + `<g fill="none" stroke="${ROYAL}" mask="url(#seamask)">${layer(near)}</g></svg>`
+      + `<div class="fleet" aria-hidden="true">`
+      + vessel('ship-small-r', 30, 280, 0, H)
+      + vessel('ship-medium-l', 1030, 310, 1, H)
+      + vessel('barrel', 1100, 440, 4, H)
+      + vessel('rowboat-l', 900, 470, 3, H)
+      + vessel('ship-large-r', 150, 480, 2, H) + `</div></div>`;
   }
 
   // the footer: flat water with a fleet sailing across at different speeds and a barrel, drawn back to front
   function footer() {
     const H = 210, rows = buildFlat(H, 19);
-    return `<svg class="foot-sea" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" aria-hidden="true">`
+    return `<div class="sea-wrap foot-wrap"><svg class="foot-sea" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" aria-hidden="true">`
       + `<defs><linearGradient id="fsf" x1="0" x2="1"><stop offset="0" stop-color="#000"/><stop offset=".2" stop-color="#fff"/><stop offset=".8" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>`
       + `<mask id="fsm" maskUnits="userSpaceOnUse" x="-400" y="-400" width="${W + 800}" height="${H + 800}"><rect x="0" y="-400" width="${W}" height="${H + 800}" fill="url(#fsf)"/></mask></defs>`
-      + `<g mask="url(#fsm)"><g fill="none" stroke="${ROYAL}">${layer(rows)}</g>`
-      + `<g class="sail l s2">${vessel('ship-medium-l', 0, 150, 1)}</g>`
-      + vessel('barrel', 340, 165, 4)
-      + `<g class="sail r s1">${vessel('ship-large-r', 0, 190, 0)}</g>`
-      + `<g class="sail l s4">${vessel('rowboat-l', 0, 198, 3)}</g>`
-      + `<g class="sail r s3">${vessel('ship-small-r', 0, 205, 2)}</g></g></svg>`;
+      + `<g mask="url(#fsm)"><g fill="none" stroke="${ROYAL}">${layer(rows)}</g></g></svg>`
+      + `<div class="fleet fade" aria-hidden="true">`
+      + `<div class="sail l s2">${vessel('ship-medium-l', 0, 150, 1, H, true)}</div>`
+      + vessel('barrel', 340, 165, 4, H)
+      + `<div class="sail r s1">${vessel('ship-large-r', 0, 190, 0, H, true)}</div>`
+      + `<div class="sail l s4">${vessel('rowboat-l', 0, 198, 3, H, true)}</div>`
+      + `<div class="sail r s3">${vessel('ship-small-r', 0, 205, 2, H, true)}</div></div></div>`;
   }
 
   root.BoatTheme = { hero, footer, sprites };

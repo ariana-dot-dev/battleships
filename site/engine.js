@@ -715,13 +715,19 @@
         if (fm.includes('beta')) c.push({ t: /estimate/i.test(`${m.label} ${m.note || ''}`) ? 'preview pricing published as estimates: final price may differ' : 'beta / preview pricing: may change', s: 1 });
         if (fm.includes('peer')) c.push({ t: `peer-hosted capacity: variable reliability, no SLA${m.peer_note ? ' (' + m.peer_note + ')' : ''}`, s: 1 });
         if (m.ratio_inferred) c.push({ t: 'vCPU per GiB not published (inferred)', s: 1 });
-        if (m.cpu_class === 'shared' && !fm.includes('burstable') && W.cpuUtil > 0.5) c.push({ t: 'shared vCPU: may be throttled under sustained load', s: 1 });
+        // every cloud VM shares hosts; this only flags a tier the provider itself sells WITHOUT a CPU guarantee,
+        // next to (usually) its own dedicated-core tier, so the caveat names that tier instead of a vague "shared CPU"
+        const noGuarantee = () => {
+          const sib = (card.modes || []).find(x => x && x !== m && (x.cpu_class === 'dedicated' || /dedicated|performance|ccx/i.test(`${x.label || ''}`)) && !flagsOf(x).includes('legacy'));
+          return sib ? `no reserved cores on this tier: ${card.name} sells dedicated cores separately (“${sib.label}”)` : 'the provider sells this tier without a guaranteed CPU share';
+        };
+        if (m.cpu_class === 'shared' && !fm.includes('burstable') && W.cpuUtil > 0.5) c.push({ t: noGuarantee(), s: 1 });
         if (/(^|[^a-z])(cn|mainland|china)([^a-z]|$)/i.test(`${m.key} ${m.label}`) && !/intl|international|overseas/i.test(`${m.key} ${m.label}`))
           c.push({ t: 'mainland-China region (local account / ICP rules)', s: 1 });
         const fl = flagsOf(m);
         if (fl.includes('stock')) c.push({ t: `stock-limited${m.stock_note ? ': ' + m.stock_note : ' (often sold out)'}`, s: 1 });
         if (fl.includes('commit')) c.push({ t: `${m.commit_term || 'term'} commitment`, s: 1 });
-        if (fl.includes('burstable')) c.push({ t: m.baseline_pct ? `burstable CPU (${m.baseline_pct}% baseline): throttled under sustained load` : 'shared CPU, no baseline published: may slow down under sustained load', s: W.cpuUtil > num(m.baseline_pct, 100) / 100 ? 2 : 1 });
+        if (fl.includes('burstable')) c.push({ t: m.baseline_pct ? `burstable CPU: ${m.baseline_pct}% of each vCPU guaranteed, throttled above that` : noGuarantee(), s: W.cpuUtil > num(m.baseline_pct, 100) / 100 ? 2 : 1 });
         if (m.gpu_min_count > 1 && W.gpu && W.gpu !== 'none' && W.gpuCount < m.gpu_min_count) c.push({ t: `${m.gpu_min_count}-GPU nodes only`, s: 2 });
       }
       // personas who call a sandbox API (interpreters, platforms, RL, CUA) can't just use a raw VM: boot time, quotas, no API

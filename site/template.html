@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PriceMogged: cloud sandbox, VM and runtime pricing for agents</title>
@@ -284,6 +284,16 @@ details.chartbox>summary h3{font-weight:400}
 .wn-fix>span{color:var(--ink-2);margin-right:4px}
 .wn-b{font-size:var(--t4);border:0;background:var(--fill);color:var(--ink);padding:6px 10px;cursor:pointer}
 .wn-b:hover{background:var(--fill-2)}
+.cmpbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 24px 14px;font-size:var(--t4);color:var(--ink-2)}
+.cmpl{margin-right:4px}
+.cmpk,.cmpmore{font:inherit;font-size:var(--t4);border:0;padding:5px 10px;cursor:pointer;text-align:left;color:var(--ink-2);background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+.cmpk span{color:var(--ink-2)}
+.cmpk[aria-pressed="false"]::before{content:"+ "}
+.cmpk[aria-pressed="true"]{color:var(--ink);background:var(--fill);box-shadow:none}
+.cmpk[aria-pressed="true"]::before{content:"✓ "}
+.cmpk:hover,.cmpmore:hover{color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink-2)}
+.cmpmore{box-shadow:none;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:720px){.cmpbar{padding:4px 16px 14px}}
 @keyframes flash{from{background:var(--fill-2)}to{background:transparent}}
 .r.flash{animation:flash 1.6s ease-out}
 .chartbox p{color:var(--ink-2);margin:12px 0}
@@ -395,19 +405,25 @@ header.top{display:none}
 .star.big svg{width:16px;height:16px}
 .hero-scene{position:relative;margin:0 calc(50% - 50vw);overflow:hidden}
 .sea-svg,.foot-sea{display:block;width:100%;height:auto}
-.bfoot-sea .foot-sea{width:min(1600px,100%);margin:0 auto}
-.hero-scene .sea-svg{width:min(1600px,100%);margin:0 auto}
+.sea-wrap{position:relative;width:min(1600px,100%);margin:0 auto}
+.foot-wrap{overflow:hidden}
 .sea-title{font-family:var(--display);font-size:112px;font-weight:400;letter-spacing:.01em;fill:var(--ink);stroke:var(--bg);stroke-width:12px;paint-order:stroke}
 .hero-sub{position:absolute;left:50%;top:40%;transform:translateX(-50%);width:min(700px,84vw);margin:0;text-align:center;font:400 clamp(15px,1.8vw,25px)/1.45 var(--display);color:var(--ink);background:var(--bg);box-shadow:0 0 34px 26px var(--bg);border-radius:24px}
 .hero-sub mark,.bfoot-made mark{background:var(--ink);color:var(--bg);padding:0 .25em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .sea-svg g[stroke],.foot-sea g[stroke]{stroke:var(--royal)}
-.ride{transform-box:fill-box;transform-origin:50% 100%;animation:ride 5.2s ease-in-out infinite alternate;animation-delay:var(--bob-delay,0s)}
-@keyframes ride{from{transform:translateY(-1.5px) rotate(-1.2deg)}to{transform:translateY(1.5px) rotate(1.2deg)}}
-.sail{animation:sail-r 70s linear infinite}
+/* boats: html boxes over the static sea; transform-only animations stay on the compositor (smooth even while the page works) */
+.fleet{position:absolute;inset:0;pointer-events:none}
+.fleet.fade{-webkit-mask-image:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent);mask-image:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent)}
+.ship{position:absolute;display:block;background:center bottom/100% 100% no-repeat;will-change:transform}
+.ride{transform-origin:50% 88%;animation:ride 3.6s ease-in-out infinite}
+/* a real swell: roll one way, rise, roll the other way, dip */
+@keyframes ride{0%,100%{transform:translateY(0) rotate(-4deg)}25%{transform:translateY(-5px) rotate(0deg)}50%{transform:translateY(0) rotate(4deg)}75%{transform:translateY(3px) rotate(0deg)}}
+.sail{position:absolute;inset:0;will-change:transform;animation:sail-r 70s linear infinite}
 .sail.l{animation-name:sail-l}
 .sail.s2{animation-duration:92s;animation-delay:-40s}.sail.s3{animation-duration:58s;animation-delay:-36s}.sail.s4{animation-duration:120s;animation-delay:-20s}
-@keyframes sail-r{from{transform:translateX(-200px)}to{transform:translateX(1260px)}}
-@keyframes sail-l{from{transform:translateX(1260px)}to{transform:translateX(-200px)}}
+/* -200 → 1260 on the 1200-wide sea, as a share of the sea's width */
+@keyframes sail-r{from{transform:translateX(-16.7%)}to{transform:translateX(105%)}}
+@keyframes sail-l{from{transform:translateX(105%)}to{transform:translateX(-16.7%)}}
 .bfoot{position:relative;margin:96px calc(50% - 50vw) -48px;padding:0}
 .bfoot-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:40px;max-width:1320px;margin:0 auto;padding:0 16px 32px}
 .bfoot-made{display:flex;flex-direction:column;gap:8px}
@@ -754,7 +770,7 @@ details.more-in[open]>summary{display:none}
 <script>/*__ASSETS__*/</script>
 <script>/*__THEME__*/</script>
 <script>/*__ENGINE__*/</script>
-<script>/*__DATA__*/</script>
+<script type="application/json" id="pmdata">/*__DATA__*/</script>
 <script>
 (function(){
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -766,7 +782,8 @@ if(window.BOAT_ASSETS&&BOAT_ASSETS.ships&&BOAT_ASSETS.ships['rowboat-l']) docume
 const setRangeFill=el=>{ const lo=+el.min||0, hi=+el.max||100, v=+el.value; el.style.setProperty('--p',(hi>lo?(v-lo)/(hi-lo)*100:0)+'%'); };
 document.addEventListener('input',e=>{ if(e.target&&e.target.type==='range') setRangeFill(e.target); },true);
 // hero + footer scenery are pre-rendered into the HTML at build time (build.js), so nothing to draw here
-const D=window.PMDATA, CARDS=D.cards, U=D.usage;
+// the data ships as JSON (parsing JSON is much cheaper than compiling a 4 MB object literal)
+const D=window.PMDATA=JSON.parse(document.getElementById('pmdata').textContent), CARDS=D.cards, U=D.usage;
 const store={get(k,d){try{const v=localStorage.getItem('pm-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('pm-'+k,JSON.stringify(v))}catch(e){}}};
 const fmt=x=>x==null||!isFinite(x)?'—':(x>=100000?'$'+Math.round(x/1000)+'k':x>=1000?'$'+Math.round(x).toLocaleString('en-US'):x>=10?'$'+x.toFixed(0):'$'+x.toFixed(2));
 const fmtH=x=>x==null?'—':'$'+(x<1?x.toFixed(3):x.toFixed(2));
@@ -963,7 +980,8 @@ function pool(){const cat=$('#category').value; return CARDS.filter(c=>cat==='al
 
 const SEG=[['compute','Compute',['compute','licence']],['memory','Memory',['memory']],['gpu','GPU',['gpu']],['storage','Storage & snapshots',['storage','snapshots']],['network','Network',['egress','ipv4']],['plan','Plan, seats & fees',['plan','fees']]];
 const SEGC=['var(--s1)','var(--s2)','var(--s3)','var(--s4)','var(--s5)','var(--s6)'];
-const showAll={meets:false,soft:false};
+const showAll={meets:false,soft:false,cmp:false};
+let okComp=new Set(store.get('okComp',[]));
 let barmode=store.get('barmode','total');
 $$('#barmode button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.m===barmode); b.onclick=()=>{barmode=b.dataset.m; store.set('barmode',barmode); $$('#barmode button').forEach(x=>x.setAttribute('aria-pressed',x===b)); run();};});
 let open=null;
@@ -971,7 +989,9 @@ $('#perRegime').checked=store.get('perRegime',true);
 $('#perRegime').onchange=()=>{store.set('perRegime',$('#perRegime').checked); run();};
 let lastWO=null, focusProv=null;
 window.__pm={ run:()=>run(), readW:()=>readW(), readOpts:()=>readOpts() }; // test/measurement hook
+let holdRun=false;
 function run(){
+  if(holdRun) return;
   window.__ran=true;
   queueMicrotask(()=>document.querySelectorAll('input[type=range]').forEach(setRangeFill)); // sliders rendered by this run
   $('#capVal').textContent=$('#idleCapture').value+'%';
@@ -999,7 +1019,20 @@ function run(){
     $$('#scchips .mhr').forEach(b=>b.onclick=()=>{$('#region').value='any'; run();});
     $$('#scchips .mhk:not(.mhr)').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); dirty(); $$('#reqs .chip').forEach(x=>x.setAttribute('aria-pressed',req.has(x.dataset.k))); run();}); }
   const perRegime=$('#perRegime').checked;
-  const res=pool().flatMap(c=>{
+  // the first ranking is priced in small slices at boot (see prewarm) so the page never freezes; use those rows once
+  const pre=prewarm&&prewarm.key===pwKey(W,O,perRegime)?prewarm.m:null; prewarm=null;
+  const res=pool().flatMap(c=>(pre&&pre.get(c))||rowsFor(c,W,O,perRegime));
+  RUN_REST(W,O,perRegime,res,hrs,nf);
+}
+let prewarm=null;
+const pwKey=(W,O,perRegime)=>JSON.stringify([W,O,perRegime]);
+// price every provider for the current settings in ~12 ms slices, yielding to the browser in between (keeps boats moving)
+async function prewarmRun(){ const W=readW(), O=readOpts(), perRegime=$('#perRegime').checked, m=new Map(), cs=pool();
+  const tick=()=>new Promise(r=>window.scheduler&&scheduler.yield?scheduler.yield().then(r):setTimeout(r,0));
+  let t=performance.now();
+  for(const c of cs){ m.set(c,rowsFor(c,W,O,perRegime)); if(performance.now()-t>12){ await tick(); t=performance.now(); } }
+  prewarm={key:pwKey(W,O,perRegime),m}; }
+function rowsFor(c,W,O,perRegime){
     if(!perRegime) return [PM.priceSoft(c,W,O)];
     // one ranking entry per billing regime (region-pinned variants and retired regimes stay inside the offer picker)
     let ms=(c.modes||[]).filter(m=>!PM.flagsOf(m).includes('legacy')&&!/^region-/.test(m.key));
@@ -1015,14 +1048,23 @@ function run(){
       if(r.eligible&&need.length){ r.soft=true; r.compromises=need.map(x=>x[0]).concat(r.compromises||[]); r.severity=Math.max(r.severity||1,...need.map(x=>x[1])); }
       return r; }).filter(r=>r.eligible);
     return rows.length?rows:[PM.priceSoft(c,W,O)];
-  });
+}
+function RUN_REST(W,O,perRegime,res,hrs,nf){
   // a bill with no compute price for real running hours is a data gap, not a free provider
   res.forEach(r=>{ if(r.eligible&&r.hours>0&&!W.showZero){ const b=r.breakdown||{}; if((b.compute||0)+(b.memory||0)+(b.gpu||0)+(b.fees||0)<=0.01){ r.eligible=false; r.reasons=['no usable compute price for this workload']; } } });
   res.forEach(r=>{ r.key=r.card.id+'|'+(r.regime?r.regime.key:''); r.weird=weirdness(r); });
+  // compromises you said you're fine with stop counting: a row whose every mismatch is accepted ranks with the full matches
+  // one toggle per single mismatch: "missing Docker inside, desktop GUI" is two things you may accept separately
+  const atoms=t=>{ const m=String(t).match(/^(missing|unverified:)\s+(.+)$/); return m?m[2].split(', ').map(x=>m[1]+' '+x):[t]; };
+  res.forEach(r=>{ if(!r.eligible||!r.soft||!(r.compromises||[]).length) return;
+    r.cmpAtoms=[...new Set(r.compromises.flatMap(atoms))];
+    if(r.cmpAtoms.every(t=>okComp.has(t))){ r.soft=false; r.accepted=r.cmpAtoms; } });
   // one ranking: meets by price; compromises by severity then price; ≤3 distinct regimes per provider
   const RK=PM.rankRows(res,W,perRegime?3:1);
   const isoKeep=r=>!isoOnly||(isoOfRow(r)||[])[0]===isoOnly;
   const strictOk=RK.meets.filter(isoKeep), softOk=RK.soft.filter(isoKeep), bad=RK.noPrice, offTopic=RK.offTopic;
+  // how many ranked rows each mismatch touches (rows you already accepted count too, so their toggle stays visible)
+  const cmpCount=new Map(); softOk.concat(strictOk.filter(r=>r.accepted)).forEach(r=>(r.cmpAtoms||[]).forEach(t=>cmpCount.set(t,(cmpCount.get(t)||0)+1)));
   { // 'far below comparable': compare with the median of the same kind of product (VMs with VMs, CI runners with CI runners)
     const cls=r=>{const m=r.regime||(r.card.modes||[]).find(x=>(r.modeKeys||[]).includes(x.key)); return m?PM.productClass(r.card,m):'?';};
     const med=l=>{const ph=l.map(r=>r.perHour).filter(x=>x>0).sort((a,b)=>a-b); return ph.length>=5?ph[Math.floor(ph.length/2)]:null;};
@@ -1055,20 +1097,28 @@ function run(){
     const chip=(r.regime&&multi?`<span class="regime" data-tip="${esc(r.regime.label||r.regime.key)}">${esc(shortChip(r.regime,r.card,r))}</span>`:'')+isoTag(r);
     const icons=[];
     if(r.soft) icons.push(ic('warn','!',`Doesn't fully match:\n• ${r.compromises.join('\n• ')}`));
+    else if(r.accepted) icons.push(ic('blue','✓',`Ranked as a full match because you're fine with:\n• ${r.accepted.join('\n• ')}`));
     if(r.pinned&&!r.regime) icons.push(ic('blue','✎','You customised this offer'));
     return `<div class="r${isBoat(r.card)?' me':''}${open===r.key?' open':''}" data-id="${esc(r.key)}"><div class="pos">${i+1}</div><div class="nm"><span class="pname">${esc(r.card.name)}</span>${chip}<span class="icons">${icons.join('')}</span></div><div class="bar">${segs}</div><div class="price" data-tip="${esc(fmtH(r.perHour))} per hour of work"><b>${fmt(r.total)}</b><small data-tip="${esc(fmtH(r.perHour))} per hour of work done${r.reused?` · priced as ${r.reused} machines kept on and reused`:''}">${fmtH(r.perHour)}/h</small></div>${open===r.key?detail(r):''}</div>`;};
   const DM=10, DS=strictOk.length?5:10, NM=showAll.meets?1e9:DM, NS=showAll.soft?1e9:DS;
   // expand / collapse toggle under each group
   const more=(k,total,def)=>total<=def?'':showAll[k]?`<button class="more" data-more="${k}" data-less="1">Show fewer</button>`:`<button class="more" data-more="${k}">Show ${total-def} more</button>`;
+  // "I'm fine with": one toggle per kind of mismatch (most common first), like the fix buttons under "One setting away"
+  const kinds=[...cmpCount].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])), KS=8;
+  const kindsShown=showAll.cmp?kinds:kinds.filter((k,i)=>i<KS||okComp.has(k[0]));
+  const cmpBar=kinds.length?`<div class="cmpbar"><span class="cmpl">I’m fine with:</span>${kindsShown.map(([t,n])=>`<button type="button" class="cmpk" aria-pressed="${okComp.has(t)}" data-t="${esc(t)}" data-tip="${okComp.has(t)?'Count this as a mismatch again':'I’m fine with that: providers whose only mismatches you accept rank with the full matches'}">${esc(t)} <span>· ${n}</span></button>`).join('')}${kinds.length>kindsShown.length?`<button type="button" class="cmpmore">${kinds.length-kindsShown.length} more</button>`:showAll.cmp&&kinds.length>KS?`<button type="button" class="cmpmore" data-less="1">fewer</button>`:''}</div>`:'';
   $('#rank').innerHTML=(strictOk.length?`<div class="gmark" id="g-meets"></div>`+strictOk.slice(0,NM).map(rowHtml).join('')+more('meets',strictOk.length,DM):'')
+    +(!softOk.length&&cmpBar?`<div class="grouphead" id="g-soft"><b>With compromises</b> · 0</div>`+cmpBar:'')
     +(softOk.length?(softOk.length>DS
       ?`<button type="button" class="grouphead gtoggle${showAll.soft?' open':''}" id="g-soft" aria-expanded="${showAll.soft}" data-tip="Priced as close to this workload as each provider can get, minor mismatches first. Hover a ! to see what doesn’t match."><b>With compromises</b> · ${softOk.length}<span class="gact">${showAll.soft?'Show fewer':'Show all'}<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></span></button>`
-      :`<div class="grouphead" id="g-soft" data-tip="Priced as close to this workload as each provider can get, minor mismatches first. Hover a ! to see what doesn’t match."><b>With compromises</b> · ${softOk.length}</div>`)+softOk.slice(0,NS).map((r,i)=>rowHtml(r,strictOk.length+i)).join('')+more('soft',softOk.length,DS):'')
+      :`<div class="grouphead" id="g-soft" data-tip="Priced as close to this workload as each provider can get, minor mismatches first. Hover a ! to see what doesn’t match."><b>With compromises</b> · ${softOk.length}</div>`)+cmpBar+softOk.slice(0,NS).map((r,i)=>rowHtml(r,strictOk.length+i)).join('')+more('soft',softOk.length,DS):'')
   $$('#rank .more').forEach(b=>b.onclick=()=>{ const k=b.dataset.more, less=!!b.dataset.less; showAll[k]=!less; run();
     if(less){ const h=$('#g-'+k); if(h&&h.getBoundingClientRect().top<0) h.scrollIntoView({block:'start'}); } });
   // the "With compromises" heading opens / closes its group; closing brings you back to the heading
   $$('#rank .gtoggle').forEach(h=>h.onclick=()=>{ const k=h.id.replace('g-',''), closing=showAll[k]; tip(); showAll[k]=!closing; run();
     if(closing){ const nh=$('#g-'+k); if(nh&&nh.getBoundingClientRect().top<60) nh.scrollIntoView({block:'start'}); } });
+  $$('#rank .cmpk').forEach(b=>b.onclick=()=>{ tip(); const t=b.dataset.t; okComp.has(t)?okComp.delete(t):okComp.add(t); store.set('okComp',[...okComp]); run(); });
+  $$('#rank .cmpmore').forEach(b=>b.onclick=()=>{ showAll.cmp=!b.dataset.less; run(); });
   $$('#rank .iso').forEach(b=>b.onclick=e=>{ e.stopPropagation(); tip(); isoOnly=isoOnly===b.dataset.iso?null:b.dataset.iso; run(); });
   $$('#rank .r').forEach(el=>el.onclick=e=>{if(e.target.closest('.detail')||e.target.closest('.iso'))return; tip(); open=open===el.dataset.id?null:el.dataset.id; run();});
   $$('#rank .bar span').forEach(s=>{s.onmousemove=e=>tip(e,s.dataset.t);s.onmouseleave=()=>tip();});
@@ -1502,12 +1552,15 @@ LAZY.bench=()=>{ $('#benchmd').innerHTML=(D.perfCosts?md(D.perfCosts)+'<hr class
 
 // ---- boot: the estimator first (its skeleton is already on screen), then the hidden tabs one by one when idle
 setBoats($('#boats').checked);
-applyPreset('fullstack');
-$('#p-estimate').classList.remove('booting');
+// fill the controls now, but price after the first paint and in slices, so the header, hero and skeleton show at once
+holdRun=true; applyPreset('fullstack'); holdRun=false;
 const t0=(location.hash||'').slice(1)||store.get('tab','estimate'); if($(`#tabs button[data-tab="${t0}"]`)) showTab(t0);
 const idle=window.requestIdleCallback||(f=>setTimeout(f,120));
 const buildRest=()=>{ const next=Object.keys(LAZY).find(k=>!LAZY_DONE.has(k)); if(!next) return; ensureTab(next); idle(buildRest); };
-addEventListener('load',()=>idle(buildRest));
+requestAnimationFrame(()=>setTimeout(async()=>{
+  await prewarmRun(); run(); $('#p-estimate').classList.remove('booting');
+  if(document.readyState==='complete') idle(buildRest); else addEventListener('load',()=>idle(buildRest));
+},0));
 addEventListener('resize',()=>{clearTimeout(window.__rt);window.__rt=setTimeout(run,150);});
 })();
 </script>
