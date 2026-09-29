@@ -692,7 +692,13 @@
       : v === 'any' ? (opts[k] == null || opts[k] === 'any') : opts[k] === v);
     return sameW && sameO;
   }
+  // How much the machine size matters (opts.sizing):
+  //  'any'      don't care: the provider sizes it (browser sessions, managed agents). The nearest size it sells is used
+  //             (its largest if yours is bigger) and unpublished / bigger / capped sizes are not mismatches.
+  //  'min'      at least what you set (default).
+  //  'reserved' at least what you set AND guaranteed cores: burstable / no-reserved-core tiers are mismatches at any load.
   function priceSoftInner(card, W, opts) {
+    if (opts.sizing === 'any' && !W.clampShape) W = Object.assign({}, W, { clampShape: true });
     const strict = priceCard(card, W, opts);
     const wantsBrowser = (opts.required || []).some(k => ['browser', 'desktop', 'computer_use'].includes(k));
     // things that make a strictly-priced row a compromise anyway
@@ -702,7 +708,7 @@
       if (r.unknowns && r.unknowns.length) c.push({ t: `unverified: ${r.unknowns.map(x => x.replace(/ unverified$/, '')).join(', ')}`, s: r.unknowns.length >= 2 ? 2 : SEVERITY.unverified });
       // a browser session has no machine size to publish; that only matters when you're buying compute
       const browserRow = (card.modes || []).filter(m => (r.modeKeys || []).includes(m.key)).every(m => productClass(card, m) === 'browser');
-      if (r.shape && r.shape.unsized) c.push({ t: 'machine size not published', s: browserRow && wantsBrowser ? 1 : SEVERITY.unsized });
+      if (r.shape && r.shape.unsized && opts.sizing !== 'any') c.push({ t: 'machine size not published', s: browserRow && wantsBrowser ? 1 : SEVERITY.unsized });
       if (card.category === 'browser' && !wantsBrowser) c.push({ t: 'browser-session product, not a general sandbox', s: SEVERITY.browser });
       // a product class this workload's question isn't about (e.g. a browser session for CI builds)
       if (Array.isArray(W.classes)) {
@@ -722,7 +728,7 @@
       // a quota you can raise within what you're willing to do is a step to take (shown on the row), not a compromise;
       // only a hard cap that cannot be raised is one
       else if (fl && fl.over && fl.raise === 'none') c.push({ t: fl.text, s: 2 });
-      if (r.shape && known(r.shape.vcpu) && r.shape.vcpu > 2 * W.vcpu && !r.shape.clamped)
+      if (r.shape && known(r.shape.vcpu) && r.shape.vcpu > 2 * W.vcpu && !r.shape.clamped && opts.sizing !== 'any')
         c.push({ t: `smallest size offered is ${r.shape.vcpu} vCPU / ${+(+r.shape.ram).toFixed(1)} GiB`, s: 1 });
       const ms = (card.modes || []).filter(m => (r.modeKeys || []).includes(m.key));
       // product-level session cap: a 1-hour interpreter can't be a 24/7 dev box without constant restarts
@@ -750,7 +756,8 @@
           const sib = (card.modes || []).find(x => x && x !== m && (x.cpu_class === 'dedicated' || /dedicated|performance|ccx/i.test(`${x.label || ''}`)) && !flagsOf(x).includes('legacy'));
           return sib ? `no reserved cores on this tier: ${card.name} sells dedicated cores separately (“${sib.label}”)` : 'the provider sells this tier without a guaranteed CPU share';
         };
-        if (m.cpu_class === 'shared' && !fm.includes('burstable') && W.cpuUtil > 0.5) c.push({ t: noGuarantee(), s: 1 });
+        const reserved = opts.sizing === 'reserved';
+        if (m.cpu_class === 'shared' && !fm.includes('burstable') && (W.cpuUtil > 0.5 || reserved)) c.push({ t: noGuarantee(), s: reserved ? 2 : 1 });
         if (/(^|[^a-z])(cn|mainland|china)([^a-z]|$)/i.test(`${m.key} ${m.label}`) && !/intl|international|overseas/i.test(`${m.key} ${m.label}`))
           c.push({ t: 'mainland-China region (local account / ICP rules)', s: 1 });
         const fl = flagsOf(m);
@@ -759,9 +766,11 @@
         // only a mismatch when this workload actually needs more CPU than the tier guarantees: a mostly idle agent on a
         // burstable / no-reserved-cores tier runs the same (same rule as the shared-vCPU line above)
         if (fl.includes('burstable')) {
-          if (m.baseline_pct) { if (W.cpuUtil > m.baseline_pct / 100) c.push({ t: `burstable CPU: ${m.baseline_pct}% of each vCPU guaranteed, throttled above that`, s: 2 }); }
-          else if (W.cpuUtil > 0.5) c.push({ t: noGuarantee(), s: 1 });
+          if (m.baseline_pct) { if (W.cpuUtil > m.baseline_pct / 100 || reserved) c.push({ t: `burstable CPU: ${m.baseline_pct}% of each vCPU guaranteed, throttled above that`, s: 2 }); }
+          else if (W.cpuUtil > 0.5 || reserved) c.push({ t: noGuarantee(), s: reserved ? 2 : 1 });
         }
+        // reserved cores asked, and the tier doesn't say whether its cores are dedicated: a detail to confirm
+        else if (reserved && m.cpu_class !== 'dedicated' && m.cpu_class !== 'shared') c.push({ t: 'unverified: reserved (dedicated) cores', s: 1 });
         if (m.gpu_min_count > 1 && W.gpu && W.gpu !== 'none' && W.gpuCount < m.gpu_min_count) c.push({ t: `${m.gpu_min_count}-GPU nodes only`, s: 2 });
       }
       // personas who call a sandbox API (interpreters, platforms, RL, CUA) can't just use a raw VM: boot time, quotas, no API
