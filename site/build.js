@@ -11,6 +11,8 @@ for (const f of readDir(path.join(R, 'cards'), '.json')) {
   try {
     const c = JSON.parse(fs.readFileSync(path.join(R, 'cards', f), 'utf8'));
     if (!c.id || !Array.isArray(c.modes)) { problems.push(`${f}: missing id or modes`); continue; }
+    // quoted evidence per feature stays in the cards (and the public repo); the page doesn't show it, so it doesn't ship
+    delete c.feature_evidence;
     cards.push(c);
   } catch (e) { problems.push(`${f}: ${e.message}`); }
 }
