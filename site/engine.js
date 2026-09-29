@@ -710,6 +710,11 @@
       if (W.persistentDisk && mf.persistent_disk === false && (!mf.snapshot || mf.snapshot === 'none') && mf.pause_resume !== true) c.push({ t: 'no persistent disk: files lost when it stops or sleeps', s: 2 });
       // a concurrency cap that exists but isn't published (Codespaces)
       if ((r.planObj || {}).concurrency_unpublished && W.concurrency + num(W.alwaysOn) > 5) c.push({ t: 'has a concurrency cap, value not published', s: 1 });
+      // no published limit on machines at once is unknown, not unlimited: for a fleet (20+ at once) it is a detail to confirm,
+      // exactly like an unconfirmed feature, for every provider (publishing a limit must not rank worse than hiding one)
+      else if (W.concurrency + num(W.alwaysOn) >= 20 && !known((r.planObj || {}).concurrency) && !(fl && fl.likely)
+        && ![(card.fleet || {}).default_max_instances, (card.fleet || {}).default_max_vcpu].some(known))
+        c.push({ t: 'unverified: how many machines can run at once', s: SEVERITY.unverified });
       for (const m of ms) {
         const fm = flagsOf(m);
         if (fm.includes('beta')) c.push({ t: /estimate/i.test(`${m.label} ${m.note || ''}`) ? 'preview pricing published as estimates: final price may differ' : 'beta / preview pricing: may change', s: 1 });

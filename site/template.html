@@ -289,22 +289,29 @@ details.chartbox>summary h3{font-weight:400}
 .wn-b:hover{background:var(--fill-2)}
 .cmpwrap{padding:4px 24px 20px}
 .cmpl{margin:0 0 12px;font-size:var(--t4);color:var(--ink-2);max-width:80ch}
-.cmpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.cmpcell{background:var(--bg);box-shadow:inset 0 0 0 1px var(--line);padding:14px 14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.cmpcell header{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:10px}
+.cmpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;align-items:start}
+.cmpcell{background:var(--bg);box-shadow:inset 0 0 0 1px var(--line);padding:12px 12px 12px 14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.cmpcell.open{padding-bottom:16px}
+.cmpcell header{display:flex;align-items:center;gap:8px}
+.cmphead{flex:1 1 auto;min-width:0;display:grid;grid-template-columns:28px minmax(0,1fr) 12px;align-items:center;gap:10px;font:inherit;text-align:left;border:0;padding:0;background:none;color:inherit;cursor:pointer}
+.cmpchev{width:12px;height:12px;fill:none;stroke:var(--ink-2);stroke-width:1.6;transition:transform .15s}
+.cmpcell.open .cmpchev{transform:rotate(180deg)}
+.cmphead:hover .cmph{text-decoration:underline;text-underline-offset:3px}
 .cmpt{display:flex;flex-direction:column;gap:2px;min-width:0}
 .cmpi{display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;background:var(--fill);color:var(--ink)}
 .cmpi svg{width:16px;height:16px}
-.cmpcell h5{margin:0;font:600 var(--t4)/1.3 var(--sans);color:var(--ink)}
+.cmph{font:600 var(--t4)/1.3 var(--sans);color:var(--ink)}
 .cmpn{font-size:var(--t4);color:var(--ink-2)}
+.cmpn b{font-weight:600;color:var(--ink)}
 .cmpchips{display:flex;flex-wrap:wrap;gap:6px}
 .cmpk,.cmpmore,.cmpall{font:inherit;font-size:var(--t4);border:0;padding:5px 10px;cursor:pointer;text-align:left;color:var(--ink-2);background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
 .cmpk span{color:var(--ink-2)}
 .cmpk[aria-pressed="false"]::before,.cmpall[aria-pressed="false"]::before{content:"+ "}
 .cmpk[aria-pressed="true"],.cmpall[aria-pressed="true"]{color:var(--ink);background:var(--fill);box-shadow:none}
-.cmpk[aria-pressed="true"]::before,.cmpall[aria-pressed="true"]::before{content:"âœ“ "}
+.cmpk[aria-pressed="true"]::before,.cmpall[aria-pressed="true"]::before{content:"✓ "}
 .cmpk:hover,.cmpmore:hover,.cmpall:hover{color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink-2)}
-.cmpall{padding:3px 8px;white-space:nowrap}
+.cmpall{white-space:nowrap;font-weight:600}
+.cmpall[aria-pressed="false"]{box-shadow:inset 0 0 0 1px var(--ink-2);color:var(--ink)}
 .cmpmore{box-shadow:none;text-decoration:underline;text-underline-offset:3px}
 @media (max-width:720px){.cmpwrap{padding:4px 16px 16px}.cmpgrid{grid-template-columns:1fr}}
 @keyframes flash{from{background:var(--fill-2)}to{background:transparent}}
@@ -1003,7 +1010,7 @@ function pool(){const cat=$('#category').value; return CARDS.filter(c=>cat==='al
 const SEG=[['compute','Compute',['compute','licence']],['memory','Memory',['memory']],['gpu','GPU',['gpu']],['storage','Storage & snapshots',['storage','snapshots']],['network','Network',['egress','ipv4']],['plan','Plan, seats & fees',['plan','fees']]];
 const SEGC=['var(--s1)','var(--s2)','var(--s3)','var(--s4)','var(--s5)','var(--s6)'];
 const showAll={meets:false,soft:false,cmp:false};
-let okComp=new Set(store.get('okComp',[])), cmpOpen=new Set();
+let okComp=new Set(store.get('okComp',[])), cmpOpen=new Set(), cmpExp=new Set();
 // types of mismatch for the "I'm fine with" grid: first match wins; strip = the words the cell title already says
 const CMP_GROUPS=[
   {k:'missing',t:'Features missing',icon:'x',re:/^missing /,strip:/^missing /},
@@ -1159,11 +1166,11 @@ function RUN_REST(W,O,perRegime,res,hrs,nf){
   // a cell counts distinct ranked rows (a row missing two features counts once)
   softOk.concat(strictOk.filter(r=>r.accepted)).forEach(r=>new Set((r.cmpAtoms||[]).map(t=>cmpGroup(t).k)).forEach(k=>cells.get(k).rows++));
   const chipTxt=(g,t)=>{ const s=g.strip?t.replace(g.strip,''):t; return s.charAt(0).toUpperCase()+s.slice(1); };
-  const cellHtml=({g,items,rows})=>{ const open=cmpOpen.has(g.k), shown=open?items:items.filter((x,i)=>i<KS||okComp.has(x[0])), all=items.every(x=>okComp.has(x[0]));
-    return `<section class="cmpcell"><header><span class="cmpi" aria-hidden="true">${CMP_ICON[g.icon]}</span><div class="cmpt"><h5>${esc(g.t)}</h5><span class="cmpn">${rows} provider row${rows===1?'':'s'}</span></div>`
-      +`<button type="button" class="cmpall" data-g="${g.k}" aria-pressed="${all}" data-tip="${all?'Count this whole group as a mismatch again':'I’m fine with everything in this group'}">fine with all</button></header>`
-      +`<div class="cmpchips">${shown.map(([t,n])=>`<button type="button" class="cmpk" aria-pressed="${okComp.has(t)}" data-t="${esc(t)}" data-tip="${esc(t)}: ${okComp.has(t)?'click to count it as a mismatch again':'click if you’re fine with that'}">${esc(chipTxt(g,t))} <span>· ${n}</span></button>`).join('')}`
-      +`${items.length>shown.length?`<button type="button" class="cmpmore" data-g="${g.k}">${items.length-shown.length} more</button>`:open&&items.length>KS?`<button type="button" class="cmpmore" data-g="${g.k}" data-less="1">fewer</button>`:''}</div></section>`; };
+  // each cell is closed by default: its header (icon, title, rows, how many you accepted) opens the chips
+  const cellHtml=({g,items,rows})=>{ const open=cmpOpen.has(g.k), shown=open?items:items.filter((x,i)=>i<KS||okComp.has(x[0])), all=items.every(x=>okComp.has(x[0])), exp=cmpExp.has(g.k), acc=items.filter(x=>okComp.has(x[0])).length;
+    return `<section class="cmpcell${exp?' open':''}"><header><button type="button" class="cmphead" data-g="${g.k}" aria-expanded="${exp}"><span class="cmpi" aria-hidden="true">${CMP_ICON[g.icon]}</span><span class="cmpt"><span class="cmph">${esc(g.t)}</span><span class="cmpn">${rows} provider row${rows===1?'':'s'} · ${items.length} kind${items.length===1?'':'s'}${acc?` · <b>${acc} accepted</b>`:''}</span></span><svg class="cmpchev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button></header>`
+      +(!exp?'':`<div><button type="button" class="cmpall" data-g="${g.k}" aria-pressed="${all}" data-tip="${all?'Count this whole group as a mismatch again':'I’m fine with everything in this group'}">fine with all ${items.length}</button></div><div class="cmpchips">${shown.map(([t,n])=>`<button type="button" class="cmpk" aria-pressed="${okComp.has(t)}" data-t="${esc(t)}" data-tip="${esc(t)}: ${okComp.has(t)?'click to count it as a mismatch again':'click if you’re fine with that'}">${esc(chipTxt(g,t))} <span>· ${n}</span></button>`).join('')}`
+      +`${items.length>shown.length?`<button type="button" class="cmpmore" data-g="${g.k}">${items.length-shown.length} more</button>`:open&&items.length>KS?`<button type="button" class="cmpmore" data-g="${g.k}" data-less="1">fewer</button>`:''}</div>`)+`</section>`; };
   const cmpBar=kinds.length?`<div class="cmpwrap"><p class="cmpl">What doesn’t match, by type. Tap anything you’re fine with: providers whose only mismatches you accept move up into the full matches.</p><div class="cmpgrid">${[...cells.values()].filter(c=>c.items.length).sort((a,b)=>b.rows-a.rows).map(cellHtml).join('')}</div></div>`:'';
   $('#rank').innerHTML=(strictOk.length?`<div class="gmark" id="g-meets"></div>`+strictOk.slice(0,NM).map(rowHtml).join('')+more('meets',strictOk.length,DM):'')
     +(!softOk.length&&cmpBar?`<div class="grouphead" id="g-soft"><b>With compromises</b> · 0</div>`+cmpBar:'')
@@ -1177,6 +1184,7 @@ function RUN_REST(W,O,perRegime,res,hrs,nf){
     if(closing){ const nh=$('#g-'+k); if(nh&&nh.getBoundingClientRect().top<60) nh.scrollIntoView({block:'start'}); } });
   $$('#rank .cmpk').forEach(b=>b.onclick=()=>{ tip(); const t=b.dataset.t; okComp.has(t)?okComp.delete(t):okComp.add(t); store.set('okComp',[...okComp]); run(); });
   $$('#rank .cmpmore').forEach(b=>b.onclick=()=>{ const g=b.dataset.g; b.dataset.less?cmpOpen.delete(g):cmpOpen.add(g); run(); });
+  $$('#rank .cmphead').forEach(b=>b.onclick=()=>{ tip(); const g=b.dataset.g; cmpExp.has(g)?cmpExp.delete(g):cmpExp.add(g); run(); });
   $$('#rank .cmpall').forEach(b=>b.onclick=()=>{ tip(); const on=b.getAttribute('aria-pressed')!=='true'; [...cmpCount.keys()].filter(t=>cmpGroup(t).k===b.dataset.g).forEach(t=>on?okComp.add(t):okComp.delete(t)); store.set('okComp',[...okComp]); run(); });
   $$('#rank .iso').forEach(b=>b.onclick=e=>{ e.stopPropagation(); tip(); isoOnly=isoOnly===b.dataset.iso?null:b.dataset.iso; run(); });
   $$('#rank .r').forEach(el=>el.onclick=e=>{if(e.target.closest('.detail')||e.target.closest('.iso'))return; tip(); open=open===el.dataset.id?null:el.dataset.id; run();});
