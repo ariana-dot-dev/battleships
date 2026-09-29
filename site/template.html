@@ -300,8 +300,9 @@ details.chartbox>summary h3{font-weight:400}
 .cmpt{display:flex;flex-direction:column;gap:2px;min-width:0}
 .cmpi{display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;background:var(--fill);color:var(--ink)}
 .cmpi svg{width:16px;height:16px}
+.cmph,.cmpn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cmph{font:600 var(--t4)/1.3 var(--sans);color:var(--ink)}
-.cmpn{font-size:var(--t4);color:var(--ink-2)}
+.cmpn{font-size:var(--t4);line-height:1.3;color:var(--ink-2)}
 .cmpn b{font-weight:600;color:var(--ink)}
 .cmpchips{display:flex;flex-wrap:wrap;gap:6px}
 .cmpk,.cmpmore,.cmpall{font:inherit;font-size:var(--t4);border:0;padding:5px 10px;cursor:pointer;text-align:left;color:var(--ink-2);background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
@@ -1013,17 +1014,17 @@ const showAll={meets:false,soft:false,cmp:false};
 let okComp=new Set(store.get('okComp',[])), cmpOpen=new Set(), cmpExp=new Set();
 // types of mismatch for the "I'm fine with" grid: first match wins; strip = the words the cell title already says
 const CMP_GROUPS=[
-  {k:'missing',t:'Features missing',icon:'x',re:/^missing /,strip:/^missing /},
-  {k:'unverified',t:'Features not confirmed',icon:'q',re:/^unverified|unverified$|required features unverified/,strip:/^unverified:\s*/},
-  {k:'kind',t:'Different kind of product',icon:'shapes',re:/different kind of product|adjacent product|browser-session product|not a like-for-like/,strip:/^different kind of product:\s*/},
-  {k:'size',t:'Machine size',icon:'chip',re:/^capped at|smallest size|size not allowed|size not published|GPU nodes|no H\d|max [\d.,]+ (GiB RAM|vCPU)$/},
-  {k:'limits',t:'Plan limits: sessions, concurrency, starts',icon:'clock',re:/max [\d.,]+ concurrent|sessions capped|sessions end after|starts\/(day|min)|running at once|concurrency cap/},
-  {k:'money',t:'Plan, deal or verification first',icon:'card',re:/paid plan|commitment|talk to sales|email support|negotiated|enterprise price|promotional|quota|verification/},
-  {k:'avail',t:'Availability and stability',icon:'warn',re:/stock-limited|interruptible|spot|beta|preview|peer-hosted|estimates/},
-  {k:'cpu',t:'CPU guarantee',icon:'gauge',re:/burstable|reserved cores|guaranteed CPU/},
-  {k:'state',t:'Files and state',icon:'disk',re:/persistent disk|keep state|disk beyond|snapshot/},
-  {k:'region',t:'Region',icon:'globe',re:/region|mainland/},
-  {k:'other',t:'Other',icon:'dots',re:/./},
+  {k:'missing',t:'Missing features',d:'The provider says it doesn’t offer a feature you require',icon:'x',re:/^missing /,strip:/^missing /},
+  {k:'unverified',t:'Not confirmed',d:'Features or limits the provider doesn’t publish either way',icon:'q',re:/^unverified|unverified$|required features unverified/,strip:/^unverified:\s*/},
+  {k:'kind',t:'Other product type',d:'A different kind of product than you asked for (CI runner, app platform, browser session…)',icon:'shapes',re:/different kind of product|adjacent product|browser-session product|not a like-for-like/,strip:/^different kind of product:\s*/},
+  {k:'size',t:'Machine size',d:'No size that matches yours: capped below it, only bigger ones, or sizes not published',icon:'chip',re:/^capped at|smallest size|size not allowed|size not published|GPU nodes|no H\d|max [\d.,]+ (GiB RAM|vCPU)$/},
+  {k:'limits',t:'Plan limits',d:'Caps on session length, machines at once or starts per day/minute',icon:'clock',re:/max [\d.,]+ concurrent|sessions capped|sessions end after|starts\/(day|min)|running at once|concurrency cap/},
+  {k:'money',t:'Upfront steps',d:'A paid plan, commitment, sales deal, quota request or verification before you can run this',icon:'card',re:/paid plan|commitment|talk to sales|email support|negotiated|enterprise price|promotional|quota|verification/},
+  {k:'avail',t:'Availability',d:'Stock-limited, interruptible (spot), beta or preview pricing',icon:'warn',re:/stock-limited|interruptible|spot|beta|preview|peer-hosted|estimates/},
+  {k:'cpu',t:'CPU guarantee',d:'The tier doesn’t guarantee the CPU this workload needs',icon:'gauge',re:/burstable|reserved cores|guaranteed CPU/},
+  {k:'state',t:'Files and state',d:'Files or state don’t survive the way you asked',icon:'disk',re:/persistent disk|keep state|disk beyond|snapshot/},
+  {k:'region',t:'Region',d:'Region or local-account rules',icon:'globe',re:/region|mainland/},
+  {k:'other',t:'Other',d:'Everything else',icon:'dots',re:/./},
 ];
 const cmpGroup=t=>CMP_GROUPS.find(g=>g.re.test(t));
 const CMP_ICON=(()=>{ const s=d=>'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';
@@ -1168,7 +1169,7 @@ function RUN_REST(W,O,perRegime,res,hrs,nf){
   const chipTxt=(g,t)=>{ const s=g.strip?t.replace(g.strip,''):t; return s.charAt(0).toUpperCase()+s.slice(1); };
   // each cell is closed by default: its header (icon, title, rows, how many you accepted) opens the chips
   const cellHtml=({g,items,rows})=>{ const open=cmpOpen.has(g.k), shown=open?items:items.filter((x,i)=>i<KS||okComp.has(x[0])), all=items.every(x=>okComp.has(x[0])), exp=cmpExp.has(g.k), acc=items.filter(x=>okComp.has(x[0])).length;
-    return `<section class="cmpcell${exp?' open':''}"><header><button type="button" class="cmphead" data-g="${g.k}" aria-expanded="${exp}"><span class="cmpi" aria-hidden="true">${CMP_ICON[g.icon]}</span><span class="cmpt"><span class="cmph">${esc(g.t)}</span><span class="cmpn">${rows} provider row${rows===1?'':'s'} · ${items.length} kind${items.length===1?'':'s'}${acc?` · <b>${acc} accepted</b>`:''}</span></span><svg class="cmpchev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button></header>`
+    return `<section class="cmpcell${exp?' open':''}"><header><button type="button" class="cmphead" data-g="${g.k}" aria-expanded="${exp}" data-tip="${esc(g.d||g.t)}"><span class="cmpi" aria-hidden="true">${CMP_ICON[g.icon]}</span><span class="cmpt"><span class="cmph">${esc(g.t)}</span><span class="cmpn">${rows} row${rows===1?'':'s'} · ${items.length} kind${items.length===1?'':'s'}${acc?` · <b>${acc} accepted</b>`:''}</span></span><svg class="cmpchev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button></header>`
       +(!exp?'':`<div><button type="button" class="cmpall" data-g="${g.k}" aria-pressed="${all}" data-tip="${all?'Count this whole group as a mismatch again':'I’m fine with everything in this group'}">fine with all ${items.length}</button></div><div class="cmpchips">${shown.map(([t,n])=>`<button type="button" class="cmpk" aria-pressed="${okComp.has(t)}" data-t="${esc(t)}" data-tip="${esc(t)}: ${okComp.has(t)?'click to count it as a mismatch again':'click if you’re fine with that'}">${esc(chipTxt(g,t))} <span>· ${n}</span></button>`).join('')}`
       +`${items.length>shown.length?`<button type="button" class="cmpmore" data-g="${g.k}">${items.length-shown.length} more</button>`:open&&items.length>KS?`<button type="button" class="cmpmore" data-g="${g.k}" data-less="1">fewer</button>`:''}</div>`)+`</section>`; };
   const cmpBar=kinds.length?`<div class="cmpwrap"><p class="cmpl">What doesn’t match, by type. Tap anything you’re fine with: providers whose only mismatches you accept move up into the full matches.</p><div class="cmpgrid">${[...cells.values()].filter(c=>c.items.length).sort((a,b)=>b.rows-a.rows).map(cellHtml).join('')}</div></div>`:'';
