@@ -63,6 +63,18 @@ footer.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;pa
 nav.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:6;background:var(--bg)}
 nav.tabs button{border:0;background:none;padding:12px 8px;color:var(--ink-2);white-space:nowrap;cursor:pointer}
 nav.tabs button[aria-selected="true"]{color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}
+nav.tabs .tlist{display:contents}
+nav.tabs .tmenu{display:none}
+@media (max-width:720px){
+  nav.tabs{display:block;overflow:visible;margin-top:8px}
+  nav.tabs .tmenu{display:flex;width:100%;justify-content:space-between;align-items:center;padding:16px 0;font:600 var(--t3)/1.2 var(--sans);color:var(--ink)}
+  nav.tabs .tmenu svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;transition:transform .15s}
+  nav.tabs.open .tmenu svg{transform:rotate(180deg)}
+  nav.tabs .tlist{display:none;position:absolute;left:0;right:0;top:100%;background:var(--bg);border:1px solid var(--line);box-shadow:0 12px 32px rgba(0,0,0,.12);flex-direction:column;padding:8px 0;z-index:7}
+  nav.tabs.open .tlist{display:flex}
+  nav.tabs .tlist button{padding:14px 20px;text-align:left;font-size:var(--t3)}
+  nav.tabs .tlist button[aria-selected="true"]{box-shadow:inset 3px 0 0 var(--ink);background:var(--wash)}
+}
 section.panel{padding-top:16px}
 .tile{border:1px solid var(--line);margin-top:-1px;background:var(--bg)}
 .pad{padding:24px}
@@ -442,10 +454,16 @@ details.more-in[open]>summary{display:none}
 }
 /* phones: every section is its own card with air around it, and a faint band marks where each part starts */
 @media (max-width:720px){
-  .tile{margin:16px 0 0 !important}
+  body{padding-left:24px;padding-right:24px}
+  .hero{padding-top:20px}
+  .hero-bar{margin-bottom:24px}
+  .hero-sub{margin:20px 0 16px !important;padding:0 24px !important;font-size:19px !important;line-height:1.45}
+  .bfoot-top{padding:0 24px 40px}
+  .tile{margin:24px 0 0 !important}
+  .pad{padding:20px !important}
   .usage-grid,.atlas,.provgrid{gap:0}
-  .scenario{background:var(--wash);padding:20px 16px}
-  .grp{padding:16px}
+  .scenario{background:var(--wash);padding:24px 20px;gap:12px}
+  .grp{padding:18px 20px}
   .grp:nth-child(even){background:var(--wash)}
   .grouphead{background:var(--wash);padding:16px;margin-top:16px}
   .r{padding:12px 16px}
@@ -463,7 +481,8 @@ details.more-in[open]>summary{display:none}
 .md th,.md td{overflow-wrap:break-word;word-break:normal;hyphens:none}
 @media (max-width:720px){.md th,.md td{min-width:14ch}.md th:first-child,.md td:first-child{min-width:0}}
 /* one line where two boxes meet: first/last children never draw a line against their container's border */
-#rank>.r:first-child,#rank>.grouphead:first-child{border-top:0}
+#rank>.r:first-child,#rank>.grouphead:first-child,#rank>.gmark:first-child+.r{border-top:0}
+#rank .gmark,#rank .grouphead{scroll-margin-top:64px}
 .tbl tbody tr:last-child td{border-bottom:0}
 .tbl th:last-child,.tbl td:last-child{border-right:0}
 .plist button:last-child{border-bottom:0}
@@ -503,13 +522,16 @@ details.more-in[open]>summary{display:none}
     <p class="hero-sub">The most comprehensive comparison of platforms offering <mark>cloud runtime / sandbox / VM compute</mark> for agents</p></div>
   <div hidden><div id="kicker"></div><h1 id="wordmark">pricemogged</h1><p id="tagline"></p><pre id="sea"></pre><div id="meta"></div></div>
 </header>
-<nav class="tabs" role="tablist" id="tabs">
+<nav class="tabs" id="tabs">
+  <button class="tmenu" id="tabMenu" type="button" aria-haspopup="true" aria-expanded="false"><span id="tabMenuLabel">Estimator</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
+  <div class="tlist" role="tablist">
   <button role="tab" data-tab="estimate" aria-selected="true">Estimator</button>
   <button role="tab" data-tab="usage" aria-selected="false">Real usage</button>
   <button role="tab" data-tab="how" aria-selected="false">How providers charge</button>
   <button role="tab" data-tab="providers" aria-selected="false">Provider regimes</button>
   <button role="tab" data-tab="matrix" aria-selected="false">Feature matrix</button>
   <button role="tab" data-tab="bench" aria-selected="false">Benchmarks</button>
+  </div>
 </nav>
 
 <section class="panel" id="p-estimate">
@@ -684,8 +706,14 @@ function setBoats(on){document.body.classList.toggle('boats',on); const t=on?T.o
 $('#boats').checked=store.get('boats',false); $('#boats').onchange=e=>setBoats(e.target.checked);
 
 // ---- tabs
-function showTab(t){ $$('#tabs button').forEach(x=>x.setAttribute('aria-selected',x.dataset.tab===t)); $$('section.panel').forEach(p=>p.hidden=p.id!=='p-'+t); store.set('tab',t); if(t==='how') renderFlow(); }
-$$('#tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+function showTab(t){ $$('#tabs [role=tab]').forEach(x=>x.setAttribute('aria-selected',x.dataset.tab===t)); $$('section.panel').forEach(p=>p.hidden=p.id!=='p-'+t); store.set('tab',t);
+  const cur=$(`#tabs [data-tab="${t}"]`); if(cur) $('#tabMenuLabel').textContent=cur.textContent; setTabMenu(false); if(t==='how') renderFlow(); }
+// phones: the tabs fold into one menu button showing the current tab
+function setTabMenu(open){ $('#tabs').classList.toggle('open',open); $('#tabMenu').setAttribute('aria-expanded',open); }
+$('#tabMenu').onclick=e=>{ e.stopPropagation(); setTabMenu(!$('#tabs').classList.contains('open')); };
+document.addEventListener('click',e=>{ if(!e.target.closest('#tabs')) setTabMenu(false); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') setTabMenu(false); });
+$$('#tabs [role=tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
 $('#tagline').textContent=`${CARDS.length} sandbox providers, every billing regime, priced for your workload`; $('#footnote').textContent=`Public pricing pages, checked ${D.asOf}.`;
 
@@ -921,11 +949,13 @@ function run(){
     if(r.soft) icons.push(ic('warn','!',`Doesn't fully match:\n• ${r.compromises.join('\n• ')}`));
     if(r.pinned&&!r.regime) icons.push(ic('blue','✎','You customised this offer'));
     return `<div class="r${isBoat(r.card)?' me':''}${open===r.key?' open':''}" data-id="${esc(r.key)}"><div class="pos">${i+1}</div><div class="nm"><span class="pname">${esc(r.card.name)}</span>${chip}<span class="icons">${icons.join('')}</span></div><div class="bar">${segs}</div><div class="price" data-tip="${esc(fmtH(r.perHour))} per hour of work"><b>${fmt(r.total)}</b><small data-tip="${esc(fmtH(r.perHour))} per hour of work done${r.reused?` · priced as ${r.reused} machines kept on and reused`:''}">${fmtH(r.perHour)}/h</small></div>${open===r.key?detail(r):''}</div>`;};
-  const NM=showAll.meets?1e9:10, NS=showAll.soft?1e9:(strictOk.length?5:10);
-  const more=(k,n)=>n>0?`<button class="more" data-more="${k}">Show ${n} more</button>`:'';
-  $('#rank').innerHTML=(strictOk.length?strictOk.slice(0,NM).map(rowHtml).join('')+more('meets',strictOk.length-NM):'')
-    +(softOk.length?`<div class="grouphead" data-tip="Priced as close to this workload as each provider can get, minor mismatches first. Hover a ! to see what doesn’t match."><b>With compromises</b> · ${softOk.length}</div>`+softOk.slice(0,NS).map((r,i)=>rowHtml(r,strictOk.length+i)).join('')+more('soft',softOk.length-NS):'')
-  $$('#rank .more').forEach(b=>b.onclick=()=>{showAll[b.dataset.more]=true; run();});
+  const DM=10, DS=strictOk.length?5:10, NM=showAll.meets?1e9:DM, NS=showAll.soft?1e9:DS;
+  // expand / collapse toggle under each group
+  const more=(k,total,def)=>total<=def?'':showAll[k]?`<button class="more" data-more="${k}" data-less="1">Show fewer</button>`:`<button class="more" data-more="${k}">Show ${total-def} more</button>`;
+  $('#rank').innerHTML=(strictOk.length?`<div class="gmark" id="g-meets"></div>`+strictOk.slice(0,NM).map(rowHtml).join('')+more('meets',strictOk.length,DM):'')
+    +(softOk.length?`<div class="grouphead" id="g-soft" data-tip="Priced as close to this workload as each provider can get, minor mismatches first. Hover a ! to see what doesn’t match."><b>With compromises</b> · ${softOk.length}</div>`+softOk.slice(0,NS).map((r,i)=>rowHtml(r,strictOk.length+i)).join('')+more('soft',softOk.length,DS):'')
+  $$('#rank .more').forEach(b=>b.onclick=()=>{ const k=b.dataset.more, less=!!b.dataset.less; showAll[k]=!less; run();
+    if(less){ const h=$('#g-'+k); if(h&&h.getBoundingClientRect().top<0) h.scrollIntoView({block:'start'}); } });
   $$('#rank .r').forEach(el=>el.onclick=e=>{if(e.target.closest('.detail'))return; tip(); open=open===el.dataset.id?null:el.dataset.id; run();});
   $$('#rank .bar span').forEach(s=>{s.onmousemove=e=>tip(e,s.dataset.t);s.onmouseleave=()=>tip();});
   wireOffer();
