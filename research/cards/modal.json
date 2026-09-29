@@ -104,7 +104,7 @@
         "B200": 6.2496,
         "B300": 7.0992
       },
-      "note": "The request is set to the minimum (cpu 0.125 = 0.125 card-vCPU; 128 MiB) and cpu/memory limits are set to the workload size, so the guest sees W.vcpu CPUs (nproc = ceil(limit)). Billing is max(request, actual) per second, so it tracks usage. active_floor 0.03125 = 0.125 / 4 vCPU (the exact floor is 0.125/W.vcpu). Burst capacity is NOT guaranteed (it needs spare host capacity), so the workload may be throttled. The memory limit is a hard OOM. Optimistic regime. Floor verified 2026-09-28: 'minimum of 0.125 cores per container' (modal.com/pricing); 'a default request of 0.125 CPU cores and 128 MiB of memory' (modal.com/docs/guide/resources). Docs do not say whether page cache counts toward memory usage. ASSUMES a small CPU/memory request (0.125 core / 128 MiB): guaranteed capacity is only that request; anything above it is best-effort burst.",
+      "note": "The request is set to the minimum (cpu 0.125 = 0.125 card-vCPU; 128 MiB) and cpu/memory limits are set to the workload size, so the guest sees W.vcpu CPUs (nproc = ceil(limit)). Billing is max(request, actual) per second, so it tracks usage. active_floor 0.03125 = 0.125 / 4 vCPU (the exact floor is 0.125/W.vcpu). Burst capacity is NOT guaranteed (it needs spare host capacity), so the workload may be throttled. The memory limit is a hard OOM. Optimistic regime. Floor verified 2026-09-28: 'minimum of 0.125 cores per container' (modal.com/pricing); 'a default request of 0.125 CPU cores and 128 MiB of memory' (modal.com/docs/guide/resources). Docs do not say whether page cache counts toward memory usage. ASSUMES a small CPU/memory request (0.125 core / 128 MiB): guaranteed capacity is only that request; anything above it is best-effort burst. Memory above the request is not guaranteed either: Modal can EVICT a sandbox that exceeds its memory request (docs recommend requesting p90-95 of memory), so the RAM half of this regime is optimistic and can kill the session; only CPU is safe to under-request.",
       "regions": null,
       "gpu_only": false,
       "flags": [],
@@ -272,7 +272,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Needed for Docker-in-sandbox, systemd, eBPF and FUSE. Memory is static (exactly the request; default 1 GiB); CPU is elastic. The docs point to the same cpu/memory rates, with no VM surcharge published. No GPU. Root FS max 512 GiB. Region multipliers presumably apply as for other sandboxes (not stated). Verified 2026-09-28 (modal.com/docs/guide/vm-sandboxes): 'Memory provisioning is static for VM Sandboxes: you get exactly as much RAM as you request'; 'CPU provisioning is elastic. You can burst above your requested amount.' So RAM = alloc (usage cannot exceed request), CPU = max(request, used).",
+      "note": "Needed for Docker-in-sandbox, systemd, eBPF and FUSE. Memory is static (exactly the request; default 1 GiB); CPU is elastic. The docs point to the same cpu/memory rates, with no VM surcharge published. No GPU. Root FS max 512 GiB. Region multipliers apply as for other sandboxes (region-selection docs cover any Sandbox). Verified 2026-09-28 (modal.com/docs/guide/vm-sandboxes): 'Memory provisioning is static for VM Sandboxes: you get exactly as much RAM as you request'; 'CPU provisioning is elastic. You can burst above your requested amount.' So RAM = alloc, CPU = max(request, used). Selected with runtime=\"vm\" (SDK 1.6.0, 2026-09-28; gVisor still default, 'the default may change'). Public beta since Aug 2026: pricing, behaviour and scale limits may still change. VM memory snapshots are gated to enabled customers.",
       "regions": null,
       "flags": [
         "beta"
@@ -428,7 +428,7 @@
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": true,
-    "eu_data_residency": true,
+    "eu_data_residency": null,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -466,7 +466,8 @@
       "effect": "rate_factor",
       "modes": [
         "on-demand",
-        "low-request-burst"
+        "low-request-burst",
+        "vm-sandbox"
       ],
       "why": "Modal multiplies all sandbox resource charges (incl. GPU) by 1.15x for a broad-region pin and 1.75x for a narrow-region pin; data residency (e.g. EU) requires a pin. Applied only to modes without a baked multiplier (region-broad / region-narrow already carry 1.15 / 1.75). VM Sandbox excluded: whether the multiplier applies there is not stated.",
       "source": "https://modal.com/docs/guide/region-selection"
@@ -538,7 +539,7 @@
     "raise_time_days": null,
     "verification": null,
     "tiers": "Starter 100 concurrent containers / 10 GPUs; Team ($250/month) 5,000 containers / 50 GPUs; Enterprise custom.",
-    "notes": "Pricing checked against current official page; old 1,000 Team-container claims are stale. 10/50 CPU fleet fits Starter, 300/1,000 Team within quota, not a reservation. GPU count is total GPUs concurrently used, confirmed by scale guide, not GPU-container count. Per-Function hard cap 4,000 distinct from workspace total. Verification/credit-card requirements for all new users not resolved; no approval SLA.",
+    "notes": "Pricing checked against current official page; old 1,000 Team-container claims are stale. 10/50 CPU fleet fits Starter, 300/1,000 Team within quota, not a reservation. GPU count is total GPUs concurrently used, confirmed by scale guide, not GPU-container count. Per-Function hard cap 4,000 distinct from workspace total. No approval SLA. New-account spend ceiling: the Workspace budget maximum grows only after successful incremental charges, and usage stops at the limit. SDK 1.6.0 (2026-09-28) made the v2 Sandbox backend default with 'substantially higher creation rates and concurrency limits for CPU Sandboxes'; Sandbox.create raises ResourceExhaustedError if unschedulable. No numeric creation-rate limit is published; the pricing page still lists 100 (Starter) / 5000 (Team) containers.",
     "sources": [
       "https://modal.com/pricing",
       "https://modal.com/docs/guide/scale"
@@ -547,6 +548,7 @@
   },
   "audit_2026_09_29": {
     "applied": 5,
-    "source": "checked against the provider's live pricing and docs pages"
+    "source": "checked against the provider's live pricing and docs pages",
+    "reviewed": 5
   }
 }

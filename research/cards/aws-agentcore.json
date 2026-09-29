@@ -21,7 +21,7 @@
       "features": {
         "custom_image": false,
         "code_interpreter": true,
-        "isolation": "container",
+        "isolation": "vm",
         "image_oci": false
       },
       "pricing": "resource",
@@ -213,7 +213,7 @@
         "browser": true,
         "computer_use": true,
         "custom_image": false,
-        "isolation": "container",
+        "isolation": "vm",
         "image_oci": false
       },
       "pricing": "resource",
@@ -262,7 +262,14 @@
       "gpu_only": false,
       "features": {
         "arm64": true,
-        "isolation": "vm"
+        "isolation": "vm",
+        "gpu": true,
+        "gpu_types": [
+          "T4",
+          "A10G",
+          "L4",
+          "L40S"
+        ]
       },
       "pricing": "sizes",
       "vcpu_h": null,
@@ -348,7 +355,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "EC2 on-demand (us-east-1) + Runtime:Instance-based management fee from the Price List API (c7i.xlarge $0.02142 = 12%; G-series GPU 7.8%, e.g. g6.xlarge $0.062774). Sessions persist up to 14 days; up to 20 agents per capacity-provider session. EBS/IPv4 billed separately by EC2."
+      "note": "EC2 on-demand (us-east-1) + Runtime:Instance-based management fee from the Price List API (c7i.xlarge $0.02142 = 12%; G-series GPU incl. gr6 7.8%, e.g. g6.xlarge $0.062774). Sessions persist up to 14 days (maxLifetime 1,209,600 s); up to 20 agents per capacity-provider session. Instances run Linux x86_64 and arm64; microVM runtimes (Runtime v1/v2) are arm64 Linux containers only. EBS/IPv4 billed separately by EC2; EBS capacity-provider volumes bill while stopped."
     }
   ],
   "storage": {
@@ -377,12 +384,12 @@
       "max_vcpu": 2,
       "max_ram_gib": 8,
       "sizes_allowed": null,
-      "note": "Code Interpreter/Browser: 1,000 concurrent sessions (adjustable). Runtime: 5,000 active sessions in us-east-1/us-west-2, 2,500 elsewhere; 25 new sessions/s; 8 h max lifetime; 15 min idle timeout."
+      "note": "Code Interpreter/Browser: 1,000 concurrent sessions (adjustable via support ticket). Runtime: 5,000 active sessions in us-east-1/us-west-2, 2,500 elsewhere (Service Quotas); 8 h max lifetime; 15 min idle timeout. Session creation rate limits (adjustable): Runtime 25 TPS; StartCodeInterpreterSession 30 TPS; StartBrowserSession 30 TPS. Code Interpreter session timeout default 900 s, up to 8 h."
     }
   ],
   "free": {
     "monthly_credit": 0,
-    "one_time_credit": 200
+    "one_time_credit": 100
   },
   "features": {
     "linux": true,
@@ -476,7 +483,9 @@
     "Network: \"standard EC2 data transfer rates\"; Internet egress (AWS Price List API, AWSDataTransfer us-east-1, 2026-09): first 100 GB/month free aggregated across all services and regions, then $0.09/GB first 10 TB, $0.085 next 40 TB, $0.07 next 100 TB, $0.05 over 150 TB. eu-west-1 is also $0.09; ap-south-1 $0.1093; ap-northeast-1 $0.114; ap-southeast-1 $0.12 (first-10-TB tier). The engine uses the flat us-east-1 first tier.",
     "AWS Free Tier $200 credit for new accounts is generic; no AgentCore-specific free quota.",
     "Runtime v1 (microVM, custom container image) and Code Interpreter (containerized, AWS-managed images) share the same v1 meter but are separate modes (runtime-v1 / code-interpreter). Runtime v2 reclaims idle memory at higher unit rates.",
-    "Idle tail: a Runtime microVM session stays alive (and keeps billing memory, CPU ~0) until idleRuntimeSessionTimeout, default 900 s, unless the caller stops it; Code Interpreter sessions default to a 900 s timeout too. For short sessions this tail dominates: a 1-minute call at 2 GB bills ~16 min of memory. Engine assumes billing ends when work ends."
+    "Idle tail: a Runtime microVM session stays alive (and keeps billing memory, CPU ~0) until idleRuntimeSessionTimeout, default 900 s, unless the caller stops it; Code Interpreter sessions default to a 900 s timeout too. For short sessions this tail dominates: a 1-minute call at 2 GB bills ~16 min of memory. Engine assumes billing ends when work ends.",
+    "Runtime session storage (preview): a per-session filesystem of up to 1 GB on microVM Runtime modes persists across stop/resume (14-day idle expiry, reset on version update). It is free during the public preview; the future price is unannounced. Not available for Code Interpreter or Browser.",
+    "Correction: the pricing-page Instances example is per 3-hour session (3 h x $0.289/h c7g.2xlarge = $0.867; fee $0.867 x 0.12 = $0.104). It is consistent apart from $0.289 vs the $0.29/h list price. Supersedes the caveat calling the example wrong."
   ],
   "sources": [
     "https://aws.amazon.com/bedrock/agentcore/pricing/",
@@ -501,6 +510,7 @@
   },
   "audit_2026_09_29": {
     "applied": 3,
-    "source": "checked against the provider's live pricing and docs pages"
+    "source": "checked against the provider's live pricing and docs pages",
+    "reviewed": 8
   }
 }

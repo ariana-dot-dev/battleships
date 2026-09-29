@@ -38,26 +38,42 @@
       "max_ram_gib": 32,
       "sizes": [
         {
-          "name": "default 1 vCPU / 2 GB",
+          "name": "0.25 vCPU / 0.5 GB (bursts to 1/2)",
+          "vcpu": 0.25,
+          "ram_gib": 0.5,
+          "disk_gib": 8,
+          "hour": 0.0474,
+          "month_cap": null
+        },
+        {
+          "name": "0.5 vCPU / 1 GB (bursts to 2/4)",
+          "vcpu": 0.5,
+          "ram_gib": 1,
+          "disk_gib": 8,
+          "hour": 0.0948,
+          "month_cap": null
+        },
+        {
+          "name": "default 1 vCPU / 2 GB (bursts to 4/8)",
           "vcpu": 1,
           "ram_gib": 2,
-          "disk_gib": 20,
+          "disk_gib": 8,
           "hour": 0.189,
           "month_cap": null
         },
         {
-          "name": "burst 2 vCPU / 4 GB",
+          "name": "2 vCPU / 4 GB (bursts to 8/16)",
           "vcpu": 2,
           "ram_gib": 4,
-          "disk_gib": 20,
+          "disk_gib": 16,
           "hour": 0.378,
           "month_cap": null
         },
         {
-          "name": "burst 4 vCPU / 8 GB",
+          "name": "4 vCPU / 8 GB (bursts to 16/32)",
           "vcpu": 4,
           "ram_gib": 8,
-          "disk_gib": 20,
+          "disk_gib": 32,
           "hour": 0.756,
           "month_cap": null
         }
@@ -73,7 +89,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Published as $0.00315 / $0.00630 / $0.01260 per minute, 'billed to the second', only while the session runs; idle sessions hibernate (VM state snapshot) and bill no compute. Bursting is automatic; billing is assumed to follow the tier the machine is in at each second (v1 docs: bill = allocated memory tier integrated over time). Linear: $0.0945 per (1 vCPU + 2 GB)-hour. Verified 2026-09-28: billed on 'the tier you provisioned, integrated over time' (docs-v1.opencomputer.dev/sandboxes/usage.md), not resident memory; 'A rolling idle timeout (default 300s) resets on every operation - exec, file access, agent activity', then 'auto-hibernates if possible, otherwise stops'; 'no cost while hibernated' (docs.opencomputer.dev/sandboxes/overview)."
+      "note": "Published as $0.00079 / $0.00158 / $0.00315 / $0.00630 / $0.01260 per minute for the 0.25/0.5, 0.5/1, 1/2, 2/4 and 4/8 baselines, 'billed to the second', only while running; hibernated time bills no compute. Bare sandboxes burst automatically to 4x baseline and 'Burst time is billed at the peak rate' (the full 4x peak price, not an intermediate tier), so the burst_share knob understates bursty sandbox cost; pick the baseline that fits steady load. Agent sessions: default 2 GB/1 vCPU, burst to 4 GB/2 vCPU ($0.00630/min) or 8 GB/4 vCPU ($0.01260/min). Linear: $0.0945 per (1 vCPU + 2 GB)-hour. Idle timeout resets on every operation (exec, file access, agent activity), then the sandbox 'auto-hibernates if possible, otherwise stops'."
     }
   ],
   "storage": {
@@ -218,7 +234,7 @@
     "gpu_desktop": false,
     "credential_injection": true,
     "egress_http_rules": null,
-    "wake_on_request": null,
+    "wake_on_request": true,
     "live_resize": true,
     "fork_running": null,
     "memory_snapshot_fork": null,
@@ -236,7 +252,7 @@
     "captcha_solving": null,
     "egress_ip_type": null,
     "ip_note": "Browser Sessions (CDP URL, stealth flag, profiles, live view) are invite-only preview; sandbox egress goes through OpenComputer's secrets proxy; no residential/proxy product documented.",
-    "isolation": "qemu-vm",
+    "isolation": "microvm",
     "image_oci": false
   },
   "perf": {
@@ -305,7 +321,8 @@
     "Pro/Max included credit (10x fee) is shared between model tokens and machine time (\"credit applies to both model calls (at API rates) and machine time\"); the estimate assumes all of it goes to machine time, which is optimistic if the agent also spends tokens.",
     "SSH: none. Interactive access is a PTY \"like SSH but over WebSocket\" via the SDK (docs.opencomputer.dev/sandboxes/interactive-terminals). Desktop: none documented; only headless Chromium (\"drive a browser\").",
     "Fork (features check 2026-09-28): v1 docs say checkpoints let you \"Fork new sandboxes from it ... like git branches for VMs\" (disk-only or full disk+memory+CPU checkpoint). Docker-inside and /dev/kvm are not documented (null).",
-    "Product pivot (2026-09): homepage now 'The platform for long-running agents' (serverless agents defined in TypeScript); docs.opencomputer.dev and its llms.txt cover only Serverless Agents, and the sandbox and browser-session doc pages there return 404. Sandbox docs survive only on docs-v1.opencomputer.dev (older runtime: 1/4/8/16 GB tiers). The sandboxes marketing page is the only current sandbox price source."
+    "Product pivot (2026-09): homepage now 'The platform for long-running agents' (serverless agents defined in TypeScript); docs.opencomputer.dev and its llms.txt cover only Serverless Agents, and the sandbox and browser-session doc pages there return 404. Sandbox docs survive only on docs-v1.opencomputer.dev (older runtime: 1/4/8/16 GB tiers). The sandboxes marketing page is the only current sandbox price source.",
+    "Idle default: for bare SDK sandboxes the default timeout is 0 = never auto-hibernate, so a sandbox created with defaults bills until killed; idle hibernation needs an explicit timeout (e.g. 300 s). Agent sessions hibernate when idle by default (docs-v1.opencomputer.dev/sandboxes/timeout.md)."
   ],
   "sources": [
     "https://opencomputer.dev/pricing",
@@ -324,6 +341,7 @@
   ],
   "audit_2026_09_29": {
     "applied": 6,
-    "source": "checked against the provider's live pricing and docs pages"
+    "source": "checked against the provider's live pricing and docs pages",
+    "reviewed": 5
   }
 }

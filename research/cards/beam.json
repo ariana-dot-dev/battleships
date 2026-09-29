@@ -21,7 +21,8 @@
       "features": {
         "auto_stop_idle": false,
         "wake_on_request": false,
-        "isolation": "gvisor"
+        "isolation": "gvisor",
+        "raw_tcp_inbound": false
       },
       "pricing": "resource",
       "vcpu_h": 0.0675,
@@ -763,7 +764,7 @@
     "ssh": true,
     "public_ipv4": false,
     "inbound_https": true,
-    "custom_domain": null,
+    "custom_domain": false,
     "raw_tcp_inbound": true,
     "egress_allowlist": true,
     "static_egress_ip": null,
@@ -786,7 +787,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": null,
     "live_resize": null,
     "fork_running": null,
@@ -825,12 +826,12 @@
         "on-demand",
         "sandbox-gpu"
       ],
-      "why": "Beam bills a sandbox until terminate() or until its keep_warm_seconds TTL expires, so an idle tail after the last command is billed at full rate (-1 = never expires; docs examples use 30 min-2 h). Factor = (session + TTL) / session; 1 = explicit terminate().",
+      "why": "Beam bills a sandbox until terminate() or until its keep_warm_seconds TTL expires. The SDK default TTL is 600 s (10 min) when keep_warm_seconds is not set, so a sandbox that is never terminate()d bills a 10-minute idle tail; -1 never expires; docs examples use 30 min-2 h. Factor = (session + TTL) / session; 1 = explicit terminate().",
       "source": "https://docs.beam.cloud/v2/sandbox/configuration"
     }
   ],
   "caveats": [
-    "CPU is priced per physical core = 2 vCPU; vcpu_h is the per-core price / 2. The SDK's cpu= unit is undocumented (runtime shows millicores); if cpu=1 is 1 vCPU billed as a core, effective cost doubles.",
+    "CPU is priced per physical core = 2 vCPU; vcpu_h is the per-core price / 2. The SDK documents cpu= as \"The number of CPU cores allocated to the container. Default is 1.0\" (default memory 128 MiB), so cpu=1 = 1 billed core = 2 vCPU as priced. Whether a 'core' in the SDK is a full physical core (2 hyperthreads) is not stated explicitly.",
     "Dated price change: Beam blogs of June 2026 quote sandbox CPU $0.0000528/core-s ($0.19/core-h) and RAM $0.0000056/GB-s; current page $0.0000375 and $0.0000064 (CPU -29%, RAM +14%).",
     "Sandbox CPU/RAM are 3x the serverless container rate (alt mode). The page's cost calculator uses the serverless rate, not the sandbox rate.",
     "free.monthly_credit set null (2026-09-28): the $30/month Developer credit appears on the 2026-08-29 Wayback capture of beam.cloud/pricing but not on 2026-09-12 or the live page; legacy-account entitlement unknown, so no credit is deducted. https://web.archive.org/web/20260829214155/https://www.beam.cloud/pricing , https://web.archive.org/web/20260912172148/https://www.beam.cloud/pricing",
@@ -843,7 +844,9 @@
     "perf from benchmarks.json (computesdk cold start 105 ms, burst 1,324 ms, dax 64.9 s); no hpc CPU result.",
     "unverified: may bill active CPU/RAM. Beam's sandbox docs say \"You only pay for what you use. Start small and scale up as needed.\" but no page says whether billing uses requested or consumed cpu/memory; alloc (requested) assumed as the upper bound.",
     "BYOC regime is a management fee only: add your own cloud bill (compute, storage, egress from AWS/GCP/Azure).",
-    "Sandbox root-filesystem size and price are not published (pricing/billing/sandbox-configuration pages re-checked 2026-09-28); only storage volumes are priced (free up to 1 TB, then $0.021/GB-month). Disk left unknown."
+    "Sandbox root-filesystem size and price are not published (pricing/billing/sandbox-configuration pages re-checked 2026-09-28); only storage volumes are priced (free up to 1 TB, then $0.021/GB-month). Disk left unknown.",
+    "Durable disks: node-local SSD persistent directory snapshotted to object storage, single writer, attachable to Pod, function, endpoint, task_queue and Sandbox; price not published.",
+    "Opt-in VM sandboxes (SDK use_vm, Cloud Hypervisor microVM, CPU only, added 2026-09-26) are in the SDK but not in docs or on the pricing page; rate unknown, not modelled."
   ],
   "sources": [
     "https://www.beam.cloud/pricing",
@@ -872,6 +875,7 @@
   },
   "audit_2026_09_29": {
     "applied": 1,
-    "source": "checked against the provider's live pricing and docs pages"
+    "source": "checked against the provider's live pricing and docs pages",
+    "reviewed": 7
   }
 }
