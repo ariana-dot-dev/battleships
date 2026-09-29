@@ -169,6 +169,7 @@ details.grp[open] .sumval{visibility:hidden}
 .wlpick:focus-within{box-shadow:inset 0 -2px 0 var(--ink)}
 .mh{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:var(--t4);color:var(--ink-2)}
 .mhk{color:var(--ink-2);background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+.mhw{display:inline-flex;align-items:center;gap:2px}
 .mhk[aria-pressed="true"]{color:var(--ink);background:var(--fill);box-shadow:none}
 .mhk[aria-pressed="true"]::before{content:"✓ "}
 .mhk[aria-pressed="false"]::before{content:"+ "}
@@ -827,7 +828,7 @@ $('#tagline').textContent=`${CARDS.length} sandbox providers, every billing regi
 const S=U&&U.sessions?U.sessions.minutes:null;
 const SHOP={any:null,sandbox:['sandbox-api','code-interpreter'],interp:['code-interpreter','sandbox-api'],agent:['sandbox-api','vm','dedicated','dev-env'],machine:['vm','dedicated','sandbox-api','dev-env'],ci:['ci-runner','sandbox-api','vm'],gpu:['gpu-instance','gpu-node','sandbox-api','vm'],desktop:['sandbox-api','desktop-vm','browser','vm'],browser:['browser','sandbox-api','desktop-vm','vm'],stealth:['browser'],mac:['desktop-vm','vm','dev-env'],rl:['sandbox-api','vm','dedicated','paas-job']};
 const PRESETS=[
- {k:'fullstack',access:3,shop:'agent',n:'Full-stack agents platform',prof:'fam-containers-VMs',req:['docker_inside','nested_virt','desktop'],why:'A platform running agents that build and test real apps: Docker for services and test databases, /dev/kvm (nested virtualisation) for Android emulators and VMs, and a desktop to check the UI they built.',w:{vcpu:4,ram:8,disk:20,sessions:2200,sessionMin:480,concurrency:100,alwaysOn:0,snapshotGiB:250,egress:300,ipv4:0,seats:3,persistentDisk:true}},
+ {k:'fullstack',access:3,shop:'agent',n:'Full-stack agents platform',prof:'fam-containers-VMs',req:['vm_isolation','docker_inside','nested_virt','desktop'],why:'A platform running agents that build and test real apps: Docker for services and test databases, /dev/kvm (nested virtualisation) for Android emulators and VMs, and a desktop to check the UI they built.',w:{vcpu:4,ram:8,disk:20,sessions:2200,sessionMin:480,concurrency:100,alwaysOn:0,snapshotGiB:250,egress:300,ipv4:0,seats:3,persistentDisk:true}},
  {k:'agents',access:3,shop:'agent',n:'Coding-agent fleet (mostly idle)',prof:'fam-coding-agent',why:'Coding agents that each get their own machine for a work session of about 8 hours. Most of that time the agent is thinking or waiting on the model, so the machine is mostly idle.',w:{vcpu:4,ram:8,disk:20,sessions:1100,sessionMin:480,concurrency:50,alwaysOn:0,snapshotGiB:250,egress:100,ipv4:0,seats:3,persistentDisk:true}},
  {k:'agentsbusy',access:3,shop:'agent',n:'Coding-agent fleet (always looping)',prof:'custom',cpu:80,ramu:65,idle:0,why:'The same coding-agent fleet, but the agents keep their machines busy the whole session: builds, tests and installs back to back.',w:{vcpu:4,ram:8,disk:20,sessions:1100,sessionMin:480,concurrency:50,alwaysOn:0,snapshotGiB:250,egress:300,ipv4:0,seats:3,persistentDisk:true}},
  {k:'interp',access:3,shop:'interp',n:'Code interpreter bursts',prof:'short',why:'An AI app that runs short pieces of code for its users: lots of one-minute runs, each on a small machine.',w:{vcpu:1,ram:2,disk:5,sessions:200000,sessionMin:1,concurrency:100,alwaysOn:0,snapshotGiB:0,egress:20,ipv4:0,seats:1,persistentDisk:false}},
@@ -909,6 +910,13 @@ function dirty(){ edited=true; }
 const DIAL_SETS={
   agents:[['concurrency','Agents running at once',1,5000,'n'],['sessions','Agent sessions a month',10,500000,'n'],['sessionMin','Length of a session',5,1440,'min']],
   browsers:[['concurrency','Browsers open at once',1,5000,'n'],['sessions','Tasks a month',100,5000000,'n'],['sessionMin','Length of a task',1,120,'min'],['egress','Data downloaded a month',1,100000,'gib']],
+};
+// why a feature matters, shown as a (?) next to its chip in the scenario card
+const FEAT_WHY={
+  vm_isolation:'Its own Linux kernel instead of sharing the host’s with other customers (containers, gVisor and isolates share or emulate one):\n'
+    +'• The agent can use what a shared kernel keeps locked: kernel modules, eBPF, sysctls, mounting filesystems, its own firewall rules. It has real root, with no special container flags from the provider.\n'
+    +'• Docker, systemd and /dev/kvm work the normal way, not through privileged-container workarounds, so what the agent builds runs like it will in production.\n'
+    +'• A hardware-enforced wall: untrusted code your agents run has to break a hypervisor, not just the kernel it shares with everyone else on the host.',
 };
 const SCEN={
   fullstack:{opt:['persistent_disk','snapshot_mem','fork','ssh','browser','eu_data_residency'],dials:[...DIAL_SETS.agents,['snapshotGiB','Saved workspaces',0,20000,'gib']]},
@@ -1016,7 +1024,8 @@ function run(){
     // description first; toggles and sliders live together in the frame below it
     $('#scchips').innerHTML=(()=>{// fixed order (the scenario's own features, then its optional ones, then anything else you required, by name) so a chip never moves when toggled
 const extra=[...req].filter(k=>!(pp&&pp.req||[]).includes(k)&&!sopt.includes(k)).sort((a,b)=>(PM.FEATURE_LABELS[a]||a).localeCompare(PM.FEATURE_LABELS[b]||b));
-const ks=[...new Set([...(pp&&pp.req||[]),...sopt,...extra])]; return ks.map(k=>`<button class="mhk" data-k="${k}" aria-pressed="${req.has(k)}" data-tip="Click to ${req.has(k)?'drop':'require'} this">${esc(PM.FEATURE_LABELS[k]||k)}</button>`).join('');})()+($('#region').value!=='any'?`<button class="mhk mhr" aria-pressed="true" data-tip="Click to allow any region">${esc($('#region').value.toUpperCase())} region</button>`:'');
+const ks=[...new Set([...(pp&&pp.req||[]),...sopt,...extra])]; return ks.map(k=>{ const chip=`<button class="mhk" data-k="${k}" aria-pressed="${req.has(k)}" data-tip="Click to ${req.has(k)?'drop':'require'} this">${esc(PM.FEATURE_LABELS[k]||k)}</button>`;
+  return FEAT_WHY[k]?`<span class="mhw">${chip}${ic('why','?',FEAT_WHY[k])}</span>`:chip; }).join('');})()+($('#region').value!=='any'?`<button class="mhk mhr" aria-pressed="true" data-tip="Click to allow any region">${esc($('#region').value.toUpperCase())} region</button>`:'');
     $('#scFeatSec').hidden=!$('#scchips').innerHTML;
     $('#scenario').innerHTML=`${pp&&pp.why?`<p class="why">${esc(pp.why)}</p>`:''}${pp&&edited?`<div class="adj">Adjusted from the scenario's defaults <button type="button" id="scReset">Reset</button></div>`:''}${W.sessions>0&&W.concurrency>W.sessions?`<div class="adj">Only ${nf(W.sessions)} sessions a month, so at most ${nf(Math.ceil(W.sessions))} can run at once: priced that way.</div>`:''}`;
     if($('#scReset')) $('#scReset').onclick=()=>applyPreset(curPreset);
