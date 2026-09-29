@@ -89,6 +89,10 @@ select option{background:var(--bg);color:var(--ink)}
 input[type=range]{width:100%;accent-color:var(--ink)}
 input:hover,select:hover{background-color:var(--fill-2)}
 input:focus,select:focus{outline:0;box-shadow:inset 0 -2px 0 var(--ink)}
+/* sliders: no underline when touched; keyboard focus shows as a soft ring on the thumb */
+input[type=range]:focus,input[type=range]:focus-visible{box-shadow:none;outline:0}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--fill-2)}
+input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px var(--fill-2)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .row+.row,.row3+.row,.seg+.row,.row+.f,.chips+.row,.grp>.f+.f,details.grp>.f+.f,.f+.seg,.f+.row,.seg+.f,.tog+.f,.f+.tog{margin-top:8px}
@@ -128,8 +132,8 @@ details.grp[open] .sumval{visibility:hidden}
 .results{min-width:0;border-left:0}
 
 /* results: scenario → count line → ranking */
-.scenario{padding:16px 24px;display:flex;flex-direction:column;gap:8px;border-bottom:0}
-#scenario{display:flex;flex-direction:column;gap:8px}
+.scenario{padding:24px 28px 28px;display:flex;flex-direction:column;gap:12px;border-bottom:0}
+#scenario{display:flex;flex-direction:column;gap:10px}
 .wlpick{position:relative;display:inline-flex;align-items:center;gap:8px;align-self:flex-start;max-width:100%;cursor:pointer}
 .wlpick span{font:400 var(--t1)/1.15 var(--display)}
 .wlpick svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5}
@@ -151,7 +155,17 @@ details.grp[open] .sumval{visibility:hidden}
 .adj{display:flex;gap:8px;align-items:center;font-size:var(--t4);color:var(--ink-2)}
 .adj button{font-size:var(--t4);padding:2px 8px;border:0;background:var(--fill);color:var(--ink);cursor:pointer}
 .adj button:hover{background:var(--fill-2)}
-.why{color:var(--ink-2);max-width:80ch}
+.why{margin:0;color:var(--ink-2);max-width:72ch;font-size:var(--t3);line-height:1.6}
+#scenario:empty{display:none}
+/* the scenario's controls: one frame, two labelled sections (features, scale) */
+.scframe{margin-top:12px;background:var(--wash);padding:20px 24px 24px;display:flex;flex-direction:column;gap:28px}
+.scsec{display:flex;flex-direction:column;gap:14px;margin:0}
+.sclab{margin:0;font:600 var(--t4)/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.sclab span{margin-left:8px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-2)}
+.scframe .mh{gap:8px}
+.scframe .mhk{background:var(--bg);padding:8px 12px}
+.scframe .mhk[aria-pressed="true"]{background:var(--fill-2)}
+.scframe .dials{margin-top:0;gap:20px 32px}
 .sumline{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:8px 24px 12px;color:var(--ink-2)}
 .sumline b{color:var(--ink);font-weight:600}
 .viewctl{display:flex;gap:16px;align-items:center}
@@ -462,7 +476,10 @@ details.more-in[open]>summary{display:none}
   .tile{margin:24px 0 0 !important}
   .pad{padding:20px !important}
   .usage-grid,.atlas,.provgrid{gap:0}
-  .scenario{background:var(--wash);padding:24px 20px;gap:12px}
+  .scenario{background:var(--wash);padding:24px 20px;gap:14px}
+  .scframe{background:var(--bg);padding:20px 18px 22px;margin:4px -4px 0;gap:28px}
+  .scframe .mhk[aria-pressed="true"]{background:var(--fill)}
+  .scframe .dials{grid-template-columns:1fr;gap:22px}
   .grp{padding:18px 20px}
   .grp:nth-child(even){background:var(--wash)}
   .grouphead{background:var(--wash);padding:16px;margin-top:16px}
@@ -615,7 +632,9 @@ details.more-in[open]>summary{display:none}
       </details>
     </aside>
     <div class="results">
-      <div class="tile scenario"><label class="wlpick"><span id="presetName"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg><select id="presetSel" aria-label="Workload"></select></label><div id="scenario"></div><div id="dials" class="dials"></div></div>
+      <div class="tile scenario"><label class="wlpick"><span id="presetName"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg><select id="presetSel" aria-label="Workload"></select></label><div id="scenario"></div>
+        <div class="scframe"><section class="scsec" id="scFeatSec"><h4 class="sclab">Features <span>tap to require or drop</span></h4><div id="scchips" class="mh"></div></section>
+        <section class="scsec" id="scDialSec"><h4 class="sclab">Scale <span>same settings as the panel</span></h4><div id="dials" class="dials"></div></section></div></div>
       <div class="tile sumline"><div id="summary"></div>
         <div class="viewctl"><label class="tog" data-tip="Show each billing regime of a provider as its own row (up to 3 per provider)."><input type="checkbox" id="perRegime" checked> per regime</label>
           <div class="seg" id="barmode"><button data-m="total" aria-pressed="true">Total</button><button data-m="split" aria-pressed="false">Split</button></div></div></div>
@@ -887,13 +906,15 @@ function run(){
   { const pp=PRESETS.find(p=>p.k===curPreset), sopt=(SCEN[curPreset]||{}).opt||[];
     const load=W.alwaysOn?`${W.alwaysOn} machine${W.alwaysOn>1?'s':''} on 24/7`:`${nf(W.sessions)} sessions × ${W.sessionMin>=60?(W.sessionMin/60).toFixed(1)+' h':Math.round(W.sessionMin)+' min'}, up to ${nf(W.concurrency)} at once`;
     const sc=$('#scale').value!=='1'?` · fleet ×${$('#scale').value}`:'';
-    $('#scenario').innerHTML=`<div class="mh">${(()=>{const ks=[...new Set([...(pp&&pp.req||[]),...req,...sopt])]; return ks.length?ks.map(k=>`<button class="mhk" data-k="${k}" aria-pressed="${req.has(k)}" data-tip="Click to ${req.has(k)?'drop':'require'} this">${esc(PM.FEATURE_LABELS[k]||k)}</button>`).join(''):'';})()}${$('#region').value!=='any'?` <button class="mhk mhr" aria-pressed="true" data-tip="Click to allow any region">${esc($('#region').value.toUpperCase())} region</button>`:''}</div>
-      ${pp&&pp.why?`<div class="why">${esc(pp.why)}</div>`:''}${pp&&edited?`<div class="adj">Adjusted from the scenario's defaults <button type="button" id="scReset">Reset</button></div>`:''}${W.sessions>0&&W.concurrency>W.sessions?`<div class="adj">Only ${nf(W.sessions)} sessions a month, so at most ${nf(Math.ceil(W.sessions))} can run at once: priced that way.</div>`:''}`;
+    // description first; toggles and sliders live together in the frame below it
+    $('#scchips').innerHTML=(()=>{const ks=[...new Set([...(pp&&pp.req||[]),...req,...sopt])]; return ks.map(k=>`<button class="mhk" data-k="${k}" aria-pressed="${req.has(k)}" data-tip="Click to ${req.has(k)?'drop':'require'} this">${esc(PM.FEATURE_LABELS[k]||k)}</button>`).join('');})()+($('#region').value!=='any'?`<button class="mhk mhr" aria-pressed="true" data-tip="Click to allow any region">${esc($('#region').value.toUpperCase())} region</button>`:'');
+    $('#scFeatSec').hidden=!$('#scchips').innerHTML;
+    $('#scenario').innerHTML=`${pp&&pp.why?`<p class="why">${esc(pp.why)}</p>`:''}${pp&&edited?`<div class="adj">Adjusted from the scenario's defaults <button type="button" id="scReset">Reset</button></div>`:''}${W.sessions>0&&W.concurrency>W.sessions?`<div class="adj">Only ${nf(W.sessions)} sessions a month, so at most ${nf(Math.ceil(W.sessions))} can run at once: priced that way.</div>`:''}`;
     if($('#scReset')) $('#scReset').onclick=()=>applyPreset(curPreset);
-    syncDials();
+    syncDials(); $('#scDialSec').hidden=!$('#dials').innerHTML; $('.scframe').hidden=$('#scFeatSec').hidden&&$('#scDialSec').hidden;
     // every feature chip is a toggle: same state as the Must have section
-    $$('#scenario .mhr').forEach(b=>b.onclick=()=>{$('#region').value='any'; run();});
-    $$('#scenario .mhk:not(.mhr)').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); dirty(); $$('#reqs .chip').forEach(x=>x.setAttribute('aria-pressed',req.has(x.dataset.k))); run();}); }
+    $$('#scchips .mhr').forEach(b=>b.onclick=()=>{$('#region').value='any'; run();});
+    $$('#scchips .mhk:not(.mhr)').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); dirty(); $$('#reqs .chip').forEach(x=>x.setAttribute('aria-pressed',req.has(x.dataset.k))); run();}); }
   const perRegime=$('#perRegime').checked;
   const res=pool().flatMap(c=>{
     if(!perRegime) return [PM.priceSoft(c,W,O)];
@@ -1349,12 +1370,15 @@ if(ids.length) showProv(ids.includes('boat')?'boat':ids[0]);
 const MK=['vm_isolation','image_oci','docker_inside','nested_virt','desktop','browser','browser_and_desktop','computer_use','anti_bot','captcha_solving','residential_ip','ssh','snapshot','fork','fork_running','memory_snapshot_fork','pause_resume','wake_on_request','persistent_disk','auto_stop_idle','live_resize','custom_image','image_snapshot','agent_harnesses','mcp_server','lang_python','lang_node','public_ipv4','inbound_https','egress_allowlist','egress_http_rules','credential_injection','static_egress_ip','gpu','windows','macos','arm64','self_host','byoc','open_source','soc2','hipaa','sso','eu_data_residency'];
 const FL=k=>PM.FEATURE_LABELS[k]||k.replace(/_/g,' ');
 let mf=store.get('mfilter',{}), msortD=1;
-const isoOf=c=>c.isolation||(c.features||{}).isolation||'';
-const ISO=[...new Set(CARDS.map(isoOf).filter(Boolean))].sort();
-$('#miso').innerHTML='<option value="any">Any isolation</option>'+ISO.map(x=>'<option>'+esc(x)+'</option>').join('');
+// isolation classes a provider offers, across the card and every product (mode): microVM, VM, gVisor, container, isolate...
+const isoClasses=c=>[...new Set([c.isolation,(c.features||{}).isolation,...(c.modes||[]).map(m=>PM.modeFeatures(c,m).isolation)]
+  .filter(Boolean).map(i=>(ISO_NAME(i)||[])[0]).filter(Boolean))];
+const isoOf=c=>isoClasses(c).join(' · ');
+const ISO=[...new Set(CARDS.flatMap(isoClasses))].sort();
+$('#miso').innerHTML='<option value="any">Any isolation</option>'+ISO.map(x=>'<option>'+esc(x)+'</option>').join('')+'<option value="unknown">Not published</option>';
 function mMatch(c){ const f=c.features||{}, q=$('#mq').value.trim().toLowerCase(), unk=$('#munk').checked;
   if(q&&!c.name.toLowerCase().includes(q)) return false;
-  if($('#miso').value!=='any'&&isoOf(c)!==$('#miso').value) return false;
+  { const v=$('#miso').value, cl=isoClasses(c); if(v==='unknown'?cl.length>0:v!=='any'&&!cl.includes(v)) return false; }
   for(const k in mf){ const t=PM.testFeature(f,k); if(mf[k]>0&&!(t===true||(unk&&t==null))) return false; if(mf[k]<0&&!(t===false||(unk&&t==null))) return false; }
   return true; }
 function renderMatrix(){
