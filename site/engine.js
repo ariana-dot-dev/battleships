@@ -627,15 +627,20 @@
     // things that make a strictly-priced row a compromise anyway
     const softOnly = r => {
       const c = [];
-      if (r.unknowns && r.unknowns.length) c.push({ t: `unverified: ${r.unknowns.map(x => x.replace(/ unverified$/, '')).join(', ')}`, s: SEVERITY.unverified });
-      if (r.shape && r.shape.unsized) c.push({ t: 'machine size not published', s: SEVERITY.unsized });
+      // one unverified must-have is a detail to check; several at once usually means the product isn't built for it
+      if (r.unknowns && r.unknowns.length) c.push({ t: `unverified: ${r.unknowns.map(x => x.replace(/ unverified$/, '')).join(', ')}`, s: r.unknowns.length >= 2 ? 2 : SEVERITY.unverified });
+      // a browser session has no machine size to publish; that only matters when you're buying compute
+      const browserRow = (card.modes || []).filter(m => (r.modeKeys || []).includes(m.key)).every(m => productClass(card, m) === 'browser');
+      if (r.shape && r.shape.unsized) c.push({ t: 'machine size not published', s: browserRow && wantsBrowser ? 1 : SEVERITY.unsized });
       if (card.category === 'browser' && !wantsBrowser) c.push({ t: 'browser-session product, not a general sandbox', s: SEVERITY.browser });
       // a product class this workload's question isn't about (e.g. a browser session for CI builds)
       if (Array.isArray(W.classes)) {
         const cls = [...new Set((card.modes || []).filter(m => (r.modeKeys || []).includes(m.key)).map(m => productClass(card, m)))];
         const off = cls.filter(x => !W.classes.includes(x));
         // an app platform can run the same containers, you just orchestrate them yourself: minor. A browser session or CI job can't: material.
-        if (off.length && off.length === cls.length) c.push({ t: `different kind of product: ${off.map(x => CLASS_LABEL[x] || x).join(', ')}`, s: off.every(x => ['paas', 'paas-job', 'vm', 'dedicated'].includes(x)) ? 1 : 2 });
+        // ...but only when the question is about general compute at all; asked for browser infrastructure only, a raw VM is material
+        const generalAsk = W.classes.some(x => ['sandbox-api', 'vm', 'dedicated', 'dev-env', 'paas', 'paas-job'].includes(x));
+        if (off.length && off.length === cls.length) c.push({ t: `different kind of product: ${off.map(x => CLASS_LABEL[x] || x).join(', ')}`, s: generalAsk && off.every(x => ['paas', 'paas-job', 'vm', 'dedicated'].includes(x)) ? 1 : 2 });
       }
       // Fleet feasibility: can a normal account actually get this many machines?
       const fl = fleetCheck(card, r, W);
