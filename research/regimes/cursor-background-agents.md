@@ -1,0 +1,10 @@
+# Cursor Cloud / background agents
+As of 2026-09-28. Category: `agent-platform`. USD list prices unless explicitly labelled otherwise.
+| Regime | When / unit | List pricing | Compute / caps | Source |
+|---|---|---|---|---|
+| Individual | Included model-usage pools, then API-rate on-demand | Pro $20; Pro Plus $60; Ultra $200/month | Cloud agents included; VM size unpublished | [Account pricing](https://cursor.com/docs/account/pricing) |
+| Teams | Per user plus usage | Standard $40/user/month; Premium $120 with 5× Standard agent limits | Enterprise resources expandable through support | [Pricing](https://cursor.com/docs/account/pricing), [setup](https://cursor.com/docs/cloud-agent/setup) |
+| Team third-party models | Additional Cursor Token Rate | $0.25 per million tokens over model API pricing (included, on-demand and BYOK usage); first-party models exempt | This is NOT a VM compute price | [Pricing](https://cursor.com/docs/account/pricing) |
+Cloud agents run in isolated VMs with repositories, dependencies, network and computer/browser controls. Current documentation permits parallel agents without publishing a guaranteed numeric concurrency allocation. Default VM resources are bounded but CPU/RAM/disk values are **null**; Enterprise may request increases. Self-serve custom resource sizing is not yet supported. Environment builds preserve disk, not live memory/processes. [Overview](https://cursor.com/docs/cloud-agent), [setup](https://cursor.com/docs/cloud-agent/setup)
+## Gotchas / examples
+No separate VM-hour tariff was established; infer neither free unlimited compute nor historical hardware sizes. On-demand continues at model rates; upgrade is the other exhaustion path. India-only Start plan has distinct INR pricing and no on-demand option, so not a USD-equivalent substitute. One developer pays at least Pro's $20 plus any on-demand usage, not $20 for 176 guaranteed VM-hours. The standard 50×8×22 hours has no deterministic token count, VM size or confirmed 50-way capacity; normalized 4/8 hourly price, 50-GiB snapshot and egress costs all null. Regime-only.

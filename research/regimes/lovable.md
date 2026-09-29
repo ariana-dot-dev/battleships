@@ -1,0 +1,13 @@
+# Lovable: build credits versus deployed-app compute
+As of 2026-09-28. Category: `agent-platform`. USD list prices unless explicitly labelled otherwise.
+| Regime | When / unit | List numbers | Source |
+|---|---|---|---|
+| Pro / Business base | Subscription with credits, unlimited members | $25 / $50 monthly for 100 credits; larger tiers published | [USD plan tables](https://docs.lovable.dev/introduction/subscription-plans) |
+| Build agent | Complexity-dependent credits | No fixed message or VM-hour rate; long-run check-in at 20 credits by default | [Credits](https://docs.lovable.dev/introduction/credits-and-usage) |
+| Free grants | Usage-specific, not cash | Free 5 build credits/day capped 30/month; paid daily build credits uncapped monthly; Cloud 20 credits/month; AI 4 credits/month | [Plans](https://docs.lovable.dev/introduction/subscription-plans) |
+| Cloud / AI / connectors | Resources/tokens draw same balance, reported as Run credits | No publicly verified agent VM tariff | [Cloud](https://docs.lovable.dev/features/cloud), [credits](https://docs.lovable.dev/introduction/credits-and-usage) |
+## Compute / caps / overage
+One credit balance now covers build/chat, deployed hosting/database/network/storage/compute and app AI. Usage-specific grants apply first to their category. These aren't unlimited app hosting or reserved builder VMs. Plan/Build credits depend on work; a single Build message can run up to 10 hours, with credit check-ins that are notifications, not hard budgets. At zero balance work pauses; paid top-ups/auto top-up can resume it. [Usage](https://docs.lovable.dev/introduction/credits-and-usage)
+Builder CPU/RAM/disk/concurrency are null. Database instance selection and monthly estimates exist in the app; those are deployed-backend resources, not the coding agent machine. [Advanced settings](https://docs.lovable.dev/features/advanced-settings)
+## Examples / gotchas
+A Pro user buying the base allowance spends $25; nominal $0.25 per included credit is an arithmetic allocation, not a universal top-up or compute rate. Fifty members can collaborate without 50 paid seats, but that does not prove 50 independent 4/8 agents. The 8,800-hour workload, snapshot and egress cost cannot be inferred from credits without task/resource usage. Old claims of separate $25 Cloud/$1 AI dollar wallets should not override current unified-credit docs. The browser pricing page localized to EUR with VAT; USD values above come from explicit USD documentation, not currency relabelling.

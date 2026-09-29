@@ -1,0 +1,789 @@
+﻿// Pricemogged estimator engine. Pure functions; consumes engine cards (research/ENGINE_CARD.md).
+(function (root) {
+  const HOURS_MONTH = 730;
+  const num = (x, d = 0) => (typeof x === 'number' && isFinite(x) ? x : d);
+  const known = x => typeof x === 'number' && isFinite(x);
+
+  const FEATURE_LABELS = {
+    snapshot_any: 'snapshots', snapshot_mem: 'memory snapshots', fork: 'fork/clone', pause_resume: 'pause/resume',
+    persistent_disk: 'persistent disk', volumes: 'volumes', auto_stop_idle: 'idle auto-stop', long_sessions: '≥24 h sessions',
+    custom_image: 'custom image (Docker or snapshot)', image_snapshot: 'start from your own snapshot', image_oci: 'your own Docker/OCI image',
+    vm_isolation: 'full VM (own kernel)', docker_inside: 'Docker inside', nested_virt: 'nested virtualization', root: 'root', systemd: 'systemd',
+    browser: 'browser', desktop: 'desktop GUI', computer_use: 'computer-use API', code_interpreter: 'code interpreter',
+    browser_control: 'browser automation API', desktop_control: 'desktop control API', browser_and_desktop: 'browser + desktop control',
+    anti_bot: 'anti-bot stealth', captcha_solving: 'CAPTCHA solving', residential_ip: 'residential IPs',
+    agent_harnesses: 'preinstalled agents', ssh: 'SSH', public_ipv4: 'public IPv4', inbound_https: 'HTTPS preview URLs',
+    custom_domain: 'custom domains', raw_tcp_inbound: 'raw TCP inbound', egress_allowlist: 'egress allowlist',
+    static_egress_ip: 'static egress IP', private_network: 'private networking', self_host: 'self-hosting', byoc: 'BYOC',
+    open_source: 'open source', soc2: 'SOC 2', hipaa: 'HIPAA', sso: 'SSO', gpu: 'GPU', arm64: 'arm64',
+    windows: 'Windows', macos: 'macOS',
+    lang_python: 'Python', lang_node: 'Node.js', lang_go: 'Go', lang_rust: 'Rust', lang_java: 'Java',
+    gpu_desktop: 'GPU desktop', credential_injection: 'credential injection', egress_http_rules: 'HTTP method/path egress rules',
+    wake_on_request: 'wake on request', live_resize: 'live resize', fork_running: 'live fork (no pause)',
+    memory_snapshot_fork: 'memory fork', webhooks: 'webhooks', scheduled_wakeups: 'scheduled runs (cron)',
+    audit_logs: 'audit logs', eu_data_residency: 'EU data residency', zero_data_retention: 'zero data retention',
+    scoped_api_keys: 'scoped API keys', spend_limits: 'spend limits', mcp_server: 'MCP server',
+  };
+
+  // ---- features -------------------------------------------------------------
+  const FEATURE_TESTS = {
+    // a custom starting image is either a Docker/OCI image or a saved machine you start new ones from (snapshot):
+    // a provider without Docker images but with snapshots (boat.dev, Hetzner) still gives you your own image
+    image_oci: f => f.image_oci != null ? f.image_oci === true : (['dockerfile', 'oci-image'].includes(f.custom_image) ? true : null),
+    // a real VM boundary (own kernel): microVMs and VMs yes; containers, gVisor, isolates no
+    vm_isolation: f => { const i = String(f.isolation || ''); if (!i) return null;
+      return /firecracker|cloud-hypervisor|qemu|kata|hyper-v|microvm|bare-metal|apple-vm|dedicated|\bvm\b/.test(i) ? true : /container|gvisor|isolate|wasm/.test(i) ? false : null; },
+    custom_image: f => { const ci = f.custom_image, img = ci === true || f.image_oci === true || (typeof ci === 'string' && ci !== 'none'), snap = f.snapshot != null && f.snapshot !== 'none';
+      return img || snap ? true : (ci === false || ci === 'none') && f.snapshot === 'none' ? false : null; },
+    image_snapshot: f => f.snapshot == null ? null : f.snapshot !== 'none',
+    // agents can drive both a browser and a whole desktop (not just one of them)
+    browser_and_desktop: f => { const b = f.browser_control ?? f.browser, d = f.desktop_control ?? f.computer_use; return b === true && d === true ? true : (b === false || d === false) ? false : null; },
+    residential_ip: f => f.egress_ip_type == null ? null : /residential|mobile/.test(String(f.egress_ip_type)),
+    snapshot_any: f => f.snapshot == null ? null : f.snapshot !== 'none',
+    snapshot_mem: f => f.snapshot == null ? null : f.snapshot === 'mem',
+    long_sessions: f => f.max_session_h === undefined ? null : (f.max_session_h === null || f.max_session_h >= 24),
+  };
+  function testFeature(features, key) {
+    const f = features || {};
+    if (FEATURE_TESTS[key]) return FEATURE_TESTS[key](f);
+    const v = f[key];
+    if (v === undefined || v === null) return null;
+    if (Array.isArray(v)) return v.length > 0;
+    return !!v;
+  }
+  // A full virtual machine (plain VM / dedicated server, or a microVM with its own kernel and root) runs Docker and has
+  // root + SSH-able userland by construction: don't call those "unverified" just because a docs page never says so.
+  const VM_ISOLATION = /firecracker|cloud-hypervisor|qemu|bare-metal|kvm|microvm|\bvm\b/i;
+  const modeFeatures = (card, m) => {
+    const f = Object.assign({}, card.features || {}, (m && m.features) || {});
+    const cls = productClass(card, m);
+    const isVM = ['vm', 'dedicated'].includes(cls) || (f.root === true && VM_ISOLATION.test(String(f.isolation || card.isolation || '')));
+    if (isVM) for (const k of ['docker_inside', 'root']) if (f[k] === null || f[k] === undefined) f[k] = true;
+    return f;
+  };
+
+  // ---- regime flags ------------------------------------------------------------
+  // spot (interruptible), sales (negotiated / contact-sales / annual commit), alt (adjacent product: DIY containers,
+  // batch jobs), beta, legacy (superseded, never priced), addon (not a plan). Explicit `flags` win; else inferred.
+  function flagsOf(x) {
+    // anything labelled legacy / retired is never priced, whatever flags a card set
+    const lbl = `${x.key || ''} ${x.label || ''} ${x.name || ''}`;
+    if (/\blegacy\b|deprecated|retired|grandfathered/i.test(lbl)) return [...new Set([...(x.flags || []), 'legacy'])];
+    if (Array.isArray(x.flags)) return x.flags;
+    const t = `${x.key || ''} ${x.label || ''} ${x.name || ''}`.toLowerCase();
+    const f = [];
+    if (/\bspot\b|preempt|evict|interruptible/.test(t)) f.push('spot');
+    if (/enterprise|sales|contact|negotiat|annual commit|custom contract|^custom$/.test(t)) f.push('sales');
+    if (/\bbatch\b|\bjobs?\b|non-interactive|diy|services \(|container rates/.test(t)) f.push('alt');
+    if (/legacy|deprecated|retired/.test(t)) f.push('legacy');
+    if (/add-on|addon/.test(t)) f.push('addon');
+    return f;
+  }
+  function allowed(x, opts) {
+    const f = flagsOf(x);
+    if (f.includes('legacy') || f.includes('addon')) return false;
+    if (f.includes('spot') && !opts.allowSpot) return false;
+    if (f.includes('sales') && !opts.allowSales) return false;
+    if (f.includes('alt') && !opts.allowAlt) return false;
+    if (f.includes('promo') && !opts.allowPromo) return false;
+    return true;
+  }
+  function modeOS(card, m) {
+    // an empty os list means "OS doesn't apply" (browser sessions run server-side on Linux)
+    if (Array.isArray(m.os) && m.os.length) return m.os;
+    if (card.category === 'macos') return ['macos'];
+    if (card.category === 'windows') return ['windows'];
+    return ['linux'];
+  }
+  // What a regime IS (not whether it's "adjacent" — that depends on the question being asked).
+  function productClass(card, m) {
+    if (m && m.product_class) return m.product_class;
+    if (card.product_class) return card.product_class;
+    const t = `${(m && m.key) || ''} ${(m && m.label) || ''}`.toLowerCase(), cat = card.category;
+    if (cat === 'browser') return 'browser';
+    if (/\brunner|\bci\b|actions|pipelines|codebuild|cloud build|build minutes/.test(t)) return 'ci-runner';
+    if (/interpreter|code.?exec/.test(t)) return 'code-interpreter';
+    if (/byoc|bring your own|self-hosted (compute|runner)/.test(t)) return 'byoc';
+    if (/\bdiy\b|container rates|\bservices?\b \(|web service|background worker|deploy(ed|ment)s?\b/.test(t)) return 'paas';
+    if (/\bbatch\b|\bjobs?\b|serverless function/.test(t) && cat !== 'agent-sandbox') return 'paas-job';
+    if (cat === 'self-host') return 'reference';
+    if (cat === 'macos' || cat === 'windows') return 'desktop-vm';
+    if (cat === 'agent-sandbox') return 'sandbox-api';
+    if (cat === 'dev-env') return 'dev-env';
+    if (cat === 'gpu-cloud') return m && num(m.gpu_min_count, 1) > 1 ? 'gpu-node' : (m && m.gpu && Object.values(m.gpu).some(known) ? 'gpu-instance' : 'vm');
+    if (cat === 'paas') return /batch|\bjobs?\b|worker|function|lambda|task/.test(t) ? 'paas-job' : 'paas';
+    if (cat === 'hyperscaler') return /dedicated|metal|bare/.test(t) ? 'dedicated' : 'vm';
+    return 'other';
+  }
+  const CLASS_LABEL = { 'sandbox-api': 'sandbox API', 'code-interpreter': 'code interpreter', 'ci-runner': 'CI runner', vm: 'VM', dedicated: 'dedicated server',
+    'dev-env': 'dev environment', browser: 'browser session', 'desktop-vm': 'desktop VM', 'gpu-instance': 'GPU instance', 'gpu-node': 'multi-GPU node',
+    paas: 'app platform', 'paas-job': 'batch / job platform', byoc: 'bring-your-own-cloud fee', reference: 'self-host reference', other: 'other product' };
+  // alt means "different product" — unless this workload's question is exactly that product class
+  const altIgnored = (card, m, W) => Array.isArray(W && W.classes) && W.classes.includes(productClass(card, m));
+
+  const isGpuOnly = m => m.gpu_only === true || (m.gpu_only === undefined && /gpu/i.test(`${m.key} ${m.label}`));
+
+  // ---- shape a machine for a resource-priced mode --------------------------
+  function shapeResource(m, W) {
+    let v = Math.max(W.vcpu, num(m.min_vcpu, 0));
+    let ram = W.ram;
+    const fixed = m.ram_fixed_per_vcpu;
+    const [rmin, rmax] = Array.isArray(m.ram_per_vcpu) ? m.ram_per_vcpu : [null, null];
+    const snapV = x => {
+      if (Array.isArray(m.vcpu_options) && m.vcpu_options.length) {
+        const o = m.vcpu_options.filter(n => n >= x).sort((a, b) => a - b)[0];
+        return o === undefined ? null : o;
+      }
+      return x;
+    };
+    for (let i = 0; i < 4; i++) {
+      v = snapV(v);
+      if (v == null && W.clampShape) { v = Math.max(...m.vcpu_options); ram = Math.min(ram, known(fixed) ? v * fixed : ram); var clampedV = true; }
+      if (v == null) return { error: `needs ${W.vcpu} vCPU, largest option is ${Math.max(...m.vcpu_options)}` };
+      if (known(fixed)) { if (v * fixed < ram) { v = Math.ceil(ram / fixed); continue; } ram = v * fixed; }
+      if (known(rmin) && ram < v * rmin) ram = v * rmin;
+      if (known(rmax) && ram > v * rmax) { v = Math.ceil(ram / rmax); continue; }
+      break;
+    }
+    let clamped = typeof clampedV !== 'undefined' && !!clampedV;
+    if (known(m.max_vcpu) && v > m.max_vcpu) { if (!W.clampShape) return { error: `max ${m.max_vcpu} vCPU per sandbox` }; v = m.max_vcpu; clamped = true; }
+    if (known(m.max_ram_gib) && ram > m.max_ram_gib) { if (!W.clampShape) return { error: `max ${m.max_ram_gib} GiB RAM per sandbox` }; ram = m.max_ram_gib; clamped = true; }
+    return { vcpu: v, ram, clamped, label: `${v} vCPU / ${+ram.toFixed(2)} GiB` };
+  }
+  // ---- GPUs: exact aliases (same chip, naming differs) and a rough performance ladder for fallbacks
+  const GPU_ALIAS = { 'H100': ['H100', 'H100-SXM', 'H100-PCIe', 'H100-NVL'], 'A100-80GB': ['A100-80GB', 'A100-SXM-80GB', 'A100-80GB-SXM'],
+    'A10': ['A10', 'A10G'], 'RTX-6000-Ada': ['RTX-6000-Ada', 'L40'] };
+  const GPU_TIER = ['T4', '16GB-class', 'L4', 'A10', 'A10G', 'RTX-A5000', 'RTX-3090', 'RTX-4000-SFF-ADA', 'A40', 'RTX-A6000', 'RTX-PRO-6000-MIG-24GB',
+    'L40', 'RTX-6000-Ada', 'L40S', 'RTX-4090', 'RTX-PRO-4500', 'RTX-5090', 'A100-40GB', 'RTX-PRO-6000-MIG-48GB', 'A100-80GB', 'A100-SXM-80GB', 'A100-80GB-SXM',
+    'RTX-PRO-6000', 'H100-PCIe', 'H100-NVL', 'H100', 'H200', 'MI355X', 'B200', 'B300'];
+  function gpuLookup(m, want, fallback) {
+    const g = m.gpu || {};
+    if (known(g[want])) return { type: want, price: g[want] };
+    const al = Object.entries(GPU_ALIAS).find(([k, v]) => k === want || v.includes(want));
+    if (al) for (const n of al[1]) if (known(g[n])) return { type: n, price: g[n] };
+    if (!fallback) return null;
+    const have = Object.keys(g).filter(n => known(g[n]));
+    if (!have.length) return null;
+    const ti = n => GPU_TIER.indexOf(n);
+    const t = ti(want);
+    if (t < 0) return null;
+    // only a close substitute: a GPU at least as capable, or at most 4 rungs below (never a T4 for an H100)
+    const near = have.filter(n => ti(n) >= 0 && ti(n) >= t - 4);
+    if (!near.length) return null;
+    const best = near.sort((a, b) => (Math.abs(ti(a) - t) - Math.abs(ti(b) - t)) || (ti(b) - ti(a)))[0];
+    return { type: best, price: g[best], fallback: true };
+  }
+
+  // alloc = what you reserve; active = average actually used; peak = highest usage in the billing window
+  // (e.g. AgentCore memory, exe.dev hourly CPU peak); max = max(requested, used) with request = size → 1.
+  const basisFactor = (basis, util, floor, peak) =>
+    basis === 'active' ? Math.max(util, num(floor, 0))
+    : basis === 'peak' ? Math.max(known(peak) ? peak : 1, util, num(floor, 0))
+    : 1;
+
+  // Hourly running cost of one instance in a mode, split by component.
+  function hourly(m, W, card) {
+    const parts = { compute: 0, memory: 0, gpu: 0, licence: 0 };
+    let shape, diskIncluded = num(card.storage && card.storage.included_disk_gib, 0), monthCap = null;
+    if (m.pricing === 'sizes') {
+      let fits = (m.sizes || []).filter(s => s.vcpu >= W.vcpu && s.ram_gib >= W.ram && known(s.hour)), clamped = false;
+      // sessions sold without a published machine size (browser-hours, agent sessions): usable, flagged
+      if (!fits.length) {
+        const un = (m.sizes || []).filter(s => known(s.hour) && (s.vcpu == null || s.ram_gib == null));
+        // a published half of the shape still has to fit (e.g. memory tiers sold without a vCPU count)
+        const half = un.filter(s => (s.vcpu == null || s.vcpu >= W.vcpu) && (s.ram_gib == null || s.ram_gib >= W.ram));
+        fits = half.length ? half : un;
+      }
+      if (!fits.length && W.clampShape) { // compromise: the biggest preset on offer
+        const all = (m.sizes || []).filter(s => known(s.hour)).sort((a, b) => (b.vcpu * 4 + b.ram_gib) - (a.vcpu * 4 + a.ram_gib));
+        if (all.length) { fits = [all[0]]; clamped = true; }
+      }
+      if (!fits.length) return { error: `no preset with ≥${W.vcpu} vCPU and ≥${W.ram} GiB` };
+      // a size may add a per-vCPU rate billed on usage (Upstash PAYG: $/active core-h depends on the box size)
+      const sizeH = s => s.hour + (known(s.vcpu_h) && known(s.vcpu) ? s.vcpu * s.vcpu_h * basisFactor(m.cpu_basis, W.cpuUtil, m.active_floor, W.cpuPeakUtil) : 0);
+      const s = fits.sort((a, b) => sizeH(a) - sizeH(b))[0];
+      parts.compute = sizeH(s); monthCap = known(s.month_cap) ? s.month_cap : null;
+      if (known(s.disk_gib)) diskIncluded = s.disk_gib;
+      const unsized = s.vcpu == null || s.ram_gib == null;
+      shape = { vcpu: s.vcpu, ram: s.ram_gib, name: s.name, clamped, unsized,
+        label: unsized ? `${s.name} (size not published)` : `${s.name} (${s.vcpu} vCPU / ${s.ram_gib} GiB)` };
+    } else {
+      shape = shapeResource(m, W);
+      if (shape.error) return shape;
+      if (!known(m.vcpu_h) && !known(m.ram_gib_h) && !known(m.instance_h)) return { error: 'no published per-resource rate' };
+      // instance_h: flat $ per running machine-hour on top of the resource rates (smol-machines)
+      parts.compute = shape.vcpu * num(m.vcpu_h) * basisFactor(m.cpu_basis, W.cpuUtil, m.active_floor, W.cpuPeakUtil) + num(m.instance_h);
+      parts.memory = shape.ram * num(m.ram_gib_h) * basisFactor(m.ram_basis, W.ramUtil, m.active_floor, W.ramPeakUtil);
+    }
+    let gpuNote = null;
+    if (W.gpu && W.gpu !== 'none') {
+      const g = gpuLookup(m, W.gpu, W.gpuFallback);
+      if (!g) return { error: `no ${W.gpu} GPU` };
+      // some offers only come as whole nodes (e.g. 8 GPUs): you pay for the node
+      const nGpu = Math.max(W.gpuCount, num(m.gpu_min_count, 1));
+      parts.gpu = g.price * nGpu;
+      if (nGpu > W.gpuCount) gpuNote = `sold as ${nGpu}-GPU nodes only`;
+      if (g.type !== W.gpu) gpuNote = (gpuNote ? gpuNote + '; ' : '') + (g.fallback ? `no ${W.gpu}: priced with ${g.type}` : `${W.gpu} sold as ${g.type}`);
+    }
+    if (W.os === 'windows' && known(m.windows_vcpu_h)) parts.licence = shape.vcpu * m.windows_vcpu_h;
+    const mult = num(m.multiplier, 1);
+    for (const k in parts) parts[k] *= mult;
+    const total = parts.compute + parts.memory + parts.gpu + parts.licence;
+    return { parts, total, shape, diskIncluded, monthCap, gpuNote };
+  }
+
+  const addInto = (a, b, f = 1) => { for (const k in b) a[k] = (a[k] || 0) + b[k] * f; return a; };
+  function sumB(b) { let s = 0; for (const k in b) s += b[k]; return s; }
+
+  // Price the sessions part and the always-on part for one mode.
+  function priceMode(card, m, W, opts, perfFactor) {
+    const h = hourly(m, W, card);
+    if (h.error) return { error: h.error };
+    const out = { mode: m, shape: h.shape, notes: [], diskIncluded: h.diskIncluded };
+    if (h.gpuNote) out.notes.push(h.gpuNote);
+    if (h.shape && h.shape.clamped) out.notes.push(`largest size is ${h.shape.label}`);
+    if (h.shape && h.shape.unsized) out.notes.push('machine size per session not published');
+    if (W.sessions > 0) {
+      if (m.requires_always_on) out.burstError = 'commit regime only covers always-on instances';
+      else {
+        const minMin = num(m.min_billed_seconds) / 60;
+        const gran = Math.max(1, num(m.granularity_s, 1)) / 60;
+        let minutes = Math.max(W.sessionMin * (opts.perf ? perfFactor : 1), minMin);
+        minutes = Math.ceil(minutes / gran - 1e-9) * gran + num(m.boot_overhead_s) / 60;
+        const hours = W.sessions * minutes / 60;
+        const b = addInto({}, h.parts, hours);
+        if (h.monthCap != null) {
+          const capTotal = Math.max(1, W.concurrency) * h.monthCap, raw = h.total * hours;
+          if (raw > capTotal) { const s = capTotal / raw; for (const k in b) b[k] *= s; out.notes.push('monthly cap reached'); }
+        }
+        b.fees = W.sessions * num(m.start_fee);
+        // Reuse: if minimums / rounding make one-machine-per-session dearer than keeping the peak number of
+        // machines on all month and running sessions back-to-back on them, a real user would do the latter.
+        const warmN = Math.max(1, W.concurrency);
+        const perMachineMonth = h.monthCap != null ? Math.min(h.total * HOURS_MONTH, h.monthCap) : h.total * HOURS_MONTH;
+        const warm = warmN * perMachineMonth;
+        const sessionTotal = sumB(b);
+        if (!m.no_reuse && warm > 0 && warm < sessionTotal * 0.98 && warmN * HOURS_MONTH >= W.sessions * W.sessionMin / 60) {
+          const s = warm / sumB(Object.assign({}, b, { fees: 0 }));
+          for (const k in b) if (k !== 'fees') b[k] *= s;
+          out.notes.push(`priced as ${warmN} machine${warmN > 1 ? 's' : ''} kept on and reused (cheaper than one per session)`);
+          out.reused = warmN;
+        }
+        out.burst = { hours, b };
+      }
+    }
+    // billed per build / per start only (no hourly rate): can't be priced as a machine kept on
+    if (W.alwaysOn > 0 && h.total === 0 && num(m.start_fee) > 0 && !m.requires_always_on) out.alwaysError = 'priced per build / start, not per hour';
+    else if (W.alwaysOn > 0) {
+      let b;
+      if (m.requires_always_on && known(m.always_on_month_per_instance)) b = { compute: m.always_on_month_per_instance * W.alwaysOn };
+      else {
+        const full = h.total * HOURS_MONTH;
+        const per = h.monthCap != null ? Math.min(full, h.monthCap) : full;
+        b = addInto({}, h.parts, HOURS_MONTH * W.alwaysOn * (full ? per / full : 1));
+      }
+      out.always = { hours: HOURS_MONTH * W.alwaysOn, b };
+    }
+    return out;
+  }
+
+  function pricePool(card, m, W) {
+    if (W.gpu && W.gpu !== 'none') return { error: `no ${W.gpu} GPU` };
+    if (known(m.vm_max_vcpu) && W.vcpu > m.vm_max_vcpu) return { error: `pool VMs max ${m.vm_max_vcpu} vCPU each` };
+    if (known(m.vm_max_ram_gib) && W.ram > m.vm_max_ram_gib) return { error: `pool VMs max ${m.vm_max_ram_gib} GiB each` };
+    const vms = Math.max(1, W.concurrency + W.alwaysOn);
+    const needV = vms * W.vcpu, needR = vms * W.ram;
+    const t = (m.pool_tiers || []).filter(t => known(t.month) && t.vcpu >= needV && t.ram_gib >= needR && (!known(t.max_vms) || t.max_vms >= vms))
+      .sort((a, b) => a.month - b.month)[0];
+    if (!t) return { error: `no pool tier with ${needV} vCPU / ${needR} GiB for ${vms} VMs` };
+    const hours = W.sessions * W.sessionMin / 60 + W.alwaysOn * HOURS_MONTH;
+    return { mode: m, pool: true, shape: { label: `${t.name} pool (${t.vcpu} vCPU / ${t.ram_gib} GiB shared)` }, hours,
+      b: { compute: t.month }, diskIncluded: num(card.storage && card.storage.included_disk_gib), notes: ['flat pool: the tier is billed whether used or not'] };
+  }
+
+  // ---- per-provider knobs --------------------------------------------------------
+  // Returns a workload copy + hourly factor for one mode after applying the provider's knobs.
+  function applyKnobs(card, m, W, knobVals) {
+    let W2 = W, rate = 1, hours = 1, egressRate = null, snapRate = null;
+    for (const k of card.knobs || []) {
+      if (Array.isArray(k.modes) && !k.modes.includes(m.key)) continue;
+      let v = knobVals && knobVals[k.id] !== undefined ? knobVals[k.id] : k.default;
+      if (!known(v)) continue;
+      // optional linear map from the slider value to the factor: factor = offset + scale × value
+      if (k.map && (known(k.map.offset) || known(k.map.scale))) v = num(k.map.offset, 0) + num(k.map.scale, 1) * v;
+      if ((k.effect === 'rate_factor' || k.effect === 'hours_factor') && !(v > 0)) continue; // never zero out a bill
+      if (k.effect === 'rate_factor') rate *= v;
+      else if (k.effect === 'hours_factor') hours *= v;
+      else if (k.effect === 'cpu_util') W2 = Object.assign({}, W2, { cpuUtil: v });
+      else if (k.effect === 'ram_util') W2 = Object.assign({}, W2, { ramUtil: v });
+      else if (k.effect === 'egress_gib_rate') egressRate = v;       // e.g. proxy $/GB for browser products
+      else if (k.effect === 'snapshot_gib_month') snapRate = v;
+      // per-session products (code-interpreter containers): v short calls share one session, so there are
+      // sessions/v starts, each v× as long (session minimum and per-start fee then apply per shared session)
+      else if (k.effect === 'session_pack' && v >= 1) W2 = Object.assign({}, W2, { sessions: W2.sessions / v, sessionMin: W2.sessionMin * v });
+    }
+    return { W: W2, rate, hours, egressRate, snapRate };
+  }
+
+  // ---- main ------------------------------------------------------------------
+  function priceCard(card, W, opts) {
+    opts = opts || {};
+    const ov = (opts.overrides && opts.overrides[card.id]) || {};
+    const cardReasons = [];
+    if (W.ipv4 > 0 && card.network && card.network.ipv4_available === false) cardReasons.push('no dedicated IPv4');
+    if (cardReasons.length) return { card, eligible: false, reasons: cardReasons, unknowns: [] };
+
+    const perfOf = m => {
+      const p = (m && m.perf && known(m.perf.cpu_runs_s)) ? m.perf : card.perf;
+      return opts.perf && opts.perfRef && p && known(p.cpu_runs_s) ? opts.perfRef / p.cpu_runs_s : 1;
+    };
+    const wantGpu = W.gpu && W.gpu !== 'none';
+    const skipped = [], priced = [];
+    for (const m of card.modes || []) {
+      if (ov.mode && ov.mode !== 'auto' && m.key !== ov.mode) continue;
+      if (!ov.mode || ov.mode === 'auto') if (!allowed(m, altIgnored(card, m, W) ? Object.assign({}, opts, { allowAlt: true }) : opts)) {
+        const f = flagsOf(m);
+        if (!f.includes('legacy')) skipped.push(`${m.label || m.key}: needs opt-in (${f.filter(x => x !== 'beta').join(', ')})`);
+        continue;
+      }
+      if (!modeOS(card, m).includes(W.os)) { skipped.push(`no ${W.os === 'macos' ? 'macOS' : W.os === 'windows' ? 'Windows' : 'Linux'}`); continue; }
+      if (!wantGpu && isGpuOnly(m)) continue;
+      if (opts.region && opts.region !== 'any') {
+        const rg = m.regions !== undefined ? m.regions : (card.features && card.features.regions);
+        if (Array.isArray(rg) && !rg.includes(opts.region)) { skipped.push(`no ${opts.region.toUpperCase()} region`); continue; }
+        if (rg === null && m.regions === null) { skipped.push(`${m.label}: region not guaranteed`); continue; }
+      }
+      const f = modeFeatures(card, m);
+      if (W.arch === 'arm64' && !f.arm64) { skipped.push('no arm64'); continue; }
+      const fails = [], unk = [];
+      for (const key of opts.required || []) {
+        const r = testFeature(f, key);
+        if (r === false) fails.push(`no ${FEATURE_LABELS[key] || key}`);
+        else if (r === null) (opts.strictUnknown ? fails : unk).push(`${FEATURE_LABELS[key] || key} unverified`);
+      }
+      if (fails.length) { skipped.push(...fails); continue; }
+      // knobs + idle auto-suspend adjust this mode's billed hours / rate
+      const kn = applyKnobs(card, m, W, ov.knobs);
+      let hoursF = kn.hours;
+      const idleOk = opts.idleSuspend && W.idleShare > 0 && !m.requires_always_on && m.pricing !== 'pool'
+        && modeFeatures(card, m).auto_stop_idle === true;
+      let idleF = 1;
+      if (idleOk) { idleF = 1 - W.idleShare * num(opts.idleCapture, 0.5); hoursF *= idleF; }
+      let Wm = hoursF !== 1 ? Object.assign({}, kn.W, { sessionMin: kn.W.sessionMin * hoursF }) : kn.W;
+      // Average CPU utilisation already includes the idle stretches. Once suspension removes those hours,
+      // the remaining (awake) hours are busier: condition utilisation on being awake so CPU is not discounted twice.
+      // (RAM stays resident while idle, so ram utilisation is unchanged.)
+      if (idleF < 1) Wm = Object.assign({}, Wm, { cpuUtil: Math.min(1, Wm.cpuUtil / idleF) });
+      const pf = perfOf(m);
+      const mm = kn.rate !== 1 ? Object.assign({}, m, { multiplier: num(m.multiplier, 1) * kn.rate }) : m;
+      const r = m.pricing === 'pool' ? pricePool(card, m, Wm) : priceMode(card, mm, Wm, opts, pf);
+      if (r.error) { skipped.push(r.error); continue; }
+      // an always-on machine only earns the idle discount if it wakes itself on incoming traffic
+      if (r.always && hoursF !== 1 && !m.requires_always_on) {
+        const alwaysF = modeFeatures(card, m).wake_on_request === true ? hoursF : kn.hours;
+        for (const k in r.always.b) r.always.b[k] *= alwaysF;
+      }
+      r.unknowns = unk;
+      r.perfFactor = pf;
+      r.idleOk = idleOk && !(r.always && !r.burst &&modeFeatures(card, m).wake_on_request !== true);
+      if (r.idleOk) r.notes.push(`idle auto-suspend saves ~${Math.round(W.idleShare * num(opts.idleCapture, 0.5) * 100)}% of billed time`);
+      priced.push(r);
+    }
+    // a card can say why it has no price (licence only, discontinued); a card whose every regime is retired is discontinued
+    const allLegacy = (card.modes || []).length && (card.modes || []).every(m => flagsOf(m).includes('legacy'));
+    const fail = rs => ({ card, eligible: false, unknowns: [], reasons: card.no_price_reason ? [card.no_price_reason]
+      : allLegacy ? ['discontinued / closed to new customers'] : [...new Set(rs.length ? rs : ['no priceable regime'])] });
+    if (!priced.length) return fail(skipped);
+
+    // Candidate combinations: a pool covers everything; otherwise best sessions-mode + best always-on-mode.
+    const needB = W.sessions > 0, needA = W.alwaysOn > 0;
+    const cands = [];
+    for (const r of priced.filter(r => r.pool)) cands.push({ b: Object.assign({}, r.b), hours: r.hours, modes: [r], shape: r.shape, diskIncluded: r.diskIncluded, notes: r.notes, unknowns: r.unknowns });
+    const rs = priced.filter(r => !r.pool);
+    const bB = needB ? rs.filter(r => r.burst).sort((a, b) => sumB(a.burst.b) - sumB(b.burst.b))[0] : null;
+    const bA = needA ? rs.filter(r => r.always).sort((a, b) => sumB(a.always.b) - sumB(b.always.b))[0] : null;
+    if ((!needB || bB) && (!needA || bA) && (bB || bA)) {
+      const b = {}; let hours = 0;
+      if (bB) { addInto(b, bB.burst.b); hours += bB.burst.hours; }
+      if (bA) { addInto(b, bA.always.b); hours += bA.always.hours; }
+      const ms = [bB, bA].filter(Boolean);
+      cands.push({ b, hours, modes: ms, shape: (bB || bA).shape, diskIncluded: (bB || bA).diskIncluded,
+        notes: ms.flatMap(r => r.notes), unknowns: [...new Set(ms.flatMap(r => r.unknowns))] });
+    }
+    if (!needB && !needA) cands.push({ b: {}, hours: 0, modes: [rs[0] || priced[0]], shape: null, diskIncluded: 0, notes: [], unknowns: [] });
+    if (!cands.length) return fail(skipped.concat(priced.flatMap(r => [r.burstError, r.alwaysError]).filter(Boolean)));
+
+    const best = cands.sort((a, b) => sumB(a.b) - sumB(b.b))[0];
+    const b = best.b, caveats = best.notes.slice(), reasons = [];
+    const kb = applyKnobs(card, best.modes[0].mode, W, ov.knobs);
+
+    // storage
+    const st = card.storage || {};
+    const extraDisk = Math.max(0, W.disk - num(best.diskIncluded));
+    if (extraDisk > 0) {
+      if (W.persistentDisk && known(st.persistent_disk_gib_month)) {
+        // persistent volumes billed all month whether running or not (withruntime)
+        b.storage = (W.concurrency + W.alwaysOn || 1) * extraDisk * st.persistent_disk_gib_month;
+      } else if (known(st.disk_gib_month)) {
+        const persistent = W.persistentDisk && st.disk_billed_when_stopped ? W.concurrency + W.alwaysOn : 0;
+        b.storage = (persistent > 0 ? persistent * extraDisk : extraDisk * best.hours / HOURS_MONTH) * st.disk_gib_month;
+      } else caveats.push(`disk beyond ${num(best.diskIncluded)} GiB: price unknown`);
+    }
+    if (W.snapshotGiB > 0) {
+      const f = modeFeatures(card, best.modes[0].mode);
+      if (f.snapshot === 'none' && !(f.persistent_disk === true && W.persistentDisk)) reasons.push('cannot retain state (no snapshots)');
+      else if (f.snapshot === 'none') caveats.push('state kept on the persistent disk (no snapshots)');
+      else if (known(kb.snapRate) || known(st.snapshot_gib_month)) b.snapshots = Math.max(0, W.snapshotGiB - num(st.snapshot_free_gib_account)) * (known(kb.snapRate) ? kb.snapRate : st.snapshot_gib_month);
+      else caveats.push('snapshot storage price unknown');
+    }
+    // network
+    const nw = card.network || {};
+    const egRate = known(kb.egressRate) ? kb.egressRate : nw.egress_gib;
+    const egressFor = free => known(egRate) ? Math.max(0, W.egress - num(free)) * egRate : 0;
+    if (W.egress > 0) {
+      if (known(egRate)) b.egress = egressFor(nw.egress_free_gib);
+      else if (!(known(nw.egress_free_gib) && W.egress <= nw.egress_free_gib)) caveats.push('egress price not published');
+    }
+    if (W.ipv4 > 0) {
+      if (known(nw.ipv4_month)) b.ipv4 = W.ipv4 * nw.ipv4_month;
+      else caveats.push('IPv4 price unknown');
+    }
+    if (reasons.length) return fail(reasons);
+
+    // plans
+    const usage = sumB(b);
+    const basePlans = (card.plans && card.plans.length) ? card.plans : [{ name: 'Pay as you go', fee: 0 }];
+    // plans bought per seat whose limits scale with seats (boat.dev organisations): one seat per team member, up to W.seats
+    const SCALE_KEYS = ['fee', 'included_usd', 'concurrency', 'max_starts_per_min', 'max_starts_per_hour', 'max_starts_per_day', 'max_total_vcpu', 'max_total_ram_gib', 'max_gpus'];
+    const plans = basePlans.flatMap(p => !p.seat_multiplied || !known(p.fee) ? [p] : [...Array(Math.max(1, Math.min(32, Math.round(num(W.seats, 1))))).keys()].map(i => i + 1).map(k => {
+      if (k === 1) return p;
+      const q = Object.assign({}, p, { name: `${p.name} × ${k} seats`, base_name: p.name, seats_bought: k });
+      for (const key of SCALE_KEYS) if (known(p[key])) q[key] = p[key] * k;
+      return q;
+    }));
+    const peak = W.concurrency + W.alwaysOn;
+    const sessH = W.alwaysOn > 0 ? HOURS_MONTH : W.sessionMin / 60;
+    // sandbox starts the workload needs: per day on average, and per minute at steady state (C boxes turning over every D min)
+    const reusedN = best.modes.map(r => r.reused).find(Boolean);
+    const startsDay = reusedN ? 0 : W.sessions / 30;
+    const startsMin = reusedN || !(W.sessionMin > 0) ? 0 : Math.max(W.concurrency, 1) / W.sessionMin;
+    let bestPlan = null; const planErrs = [];
+    // a regime may only be sold on certain plans (mode.plans = [plan names])
+    const allowedPlans = best.modes.map(r => r.mode.plans || (r.mode.requires_plan ? [].concat(r.mode.requires_plan) : null)).filter(Array.isArray);
+    for (const p of plans) {
+      if (allowedPlans.some(list => !list.includes(p.base_name || p.name))) { planErrs.push(`${p.name}: regime not sold on this plan`); continue; }
+      if (ov.plan && ov.plan !== 'auto' && (p.base_name || p.name) !== ov.plan) continue;
+      if (p.trial_only) continue;
+      if ((!ov.plan || ov.plan === 'auto') && !allowed(p, opts)) { if (!flagsOf(p).includes('addon')) planErrs.push(`${p.name}: negotiated plan`); continue; }
+      if (p.fee === null) { planErrs.push(`${p.name}: price not published`); continue; }
+      const exempt = best.modes.every(r => r.mode.plan_limits_exempt);
+      const lim = [];
+      if (known(p.concurrency) && peak > p.concurrency) lim.push(`${p.name}: max ${p.concurrency} concurrent`);
+      if (known(p.max_session_h) && sessH > p.max_session_h + 1e-9) lim.push(`${p.name}: sessions capped at ${p.max_session_h} h`);
+      if (!exempt && best.shape && known(p.max_vcpu) && best.shape.vcpu > p.max_vcpu) lim.push(`${p.name}: max ${p.max_vcpu} vCPU`);
+      if (!exempt && best.shape && known(p.max_ram_gib) && best.shape.ram > p.max_ram_gib) lim.push(`${p.name}: max ${p.max_ram_gib} GiB RAM`);
+      if (best.shape && Array.isArray(p.sizes_allowed) && best.shape.name && !p.sizes_allowed.includes(best.shape.name)) lim.push(`${p.name}: ${best.shape.name} size not allowed`);
+      // account-wide caps on what runs at once (Daytona tiers, shellbox slots, GPU quotas per plan)
+      const nRun = reusedN || peak;
+      const totV = best.shape && known(best.shape.vcpu) ? nRun * best.shape.vcpu : null, totR = best.shape && known(best.shape.ram) ? nRun * best.shape.ram : null;
+      const totG = W.gpu && W.gpu !== 'none' ? nRun * Math.max(1, W.gpuCount) : 0;
+      const capHit = [];
+      if (known(p.max_total_vcpu) && totV != null && totV > p.max_total_vcpu) capHit.push([`${p.name}: max ${p.max_total_vcpu} vCPU running at once (needs ${Math.round(totV)})`, totV / Math.max(1, p.max_total_vcpu)]);
+      if (known(p.max_total_ram_gib) && totR != null && totR > p.max_total_ram_gib) capHit.push([`${p.name}: max ${p.max_total_ram_gib} GiB running at once (needs ${Math.round(totR)})`, totR / Math.max(1, p.max_total_ram_gib)]);
+      if (known(p.max_gpus) && totG > p.max_gpus) capHit.push([`${p.name}: max ${p.max_gpus} GPUs at once (needs ${totG})`, totG / Math.max(1, p.max_gpus)]);
+      const startsHour = startsMin * 60;
+      if (known(p.max_starts_per_hour) && startsHour > p.max_starts_per_hour) capHit.push([`${p.name}: max ${p.max_starts_per_hour} starts/hour (needs ~${Math.round(startsHour)})`, startsHour / Math.max(1, p.max_starts_per_hour)]);
+      // how far over each limit the workload is (1 = at the limit); used to pick the least-bad plan when all violate
+      let severity = 0;
+      if (known(p.concurrency) && peak > p.concurrency) severity = Math.max(severity, peak / Math.max(1, p.concurrency));
+      if (known(p.max_session_h) && sessH > p.max_session_h) severity = Math.max(severity, sessH / Math.max(0.01, p.max_session_h));
+      if (known(p.max_starts_per_day) && startsDay > p.max_starts_per_day) { lim.push(`${p.name}: max ${p.max_starts_per_day} starts/day (needs ~${Math.round(startsDay)})`); severity = Math.max(severity, startsDay / Math.max(1, p.max_starts_per_day)); }
+      if (known(p.max_starts_per_min) && startsMin > p.max_starts_per_min) { lim.push(`${p.name}: max ${p.max_starts_per_min} starts/min (needs ~${startsMin.toFixed(1)})`); severity = Math.max(severity, startsMin / Math.max(0.01, p.max_starts_per_min)); }
+      for (const [t, sv] of capHit) { lim.push(t); severity = Math.max(severity, sv); }
+      if (lim.length && !opts.ignorePlanLimits) { planErrs.push(...lim); continue; }
+      const incScope = Array.isArray(p.included_applies_to_modes) ? p.included_applies_to_modes : null;
+      const incOk = !incScope || best.modes.some(r => incScope.includes(r.mode.key));
+      const fee = num(p.fee), inc = incOk ? num(p.included_usd) : 0, seats = num(p.per_seat) * Math.max(0, W.seats - 1);
+      // plan-level included egress replaces the account default
+      let pUsage = known(p.egress_free_gib) && W.egress > 0 && known(egRate) ? usage - num(b.egress) + egressFor(p.egress_free_gib) : usage;
+      if (p.waives_start_fee) pUsage -= num(b.fees);
+      const net = Math.max(0, pUsage - inc);
+      const total = (p.fee_is_credit ? Math.max(fee, net) : fee + net) + seats;
+      // prefer plans that fit; among plans that don't, the one that comes closest (not merely the cheapest)
+      const better = !bestPlan
+        || (!lim.length && bestPlan.lim.length)
+        || (!lim.length && !bestPlan.lim.length && total < bestPlan.total)
+        || (lim.length && bestPlan.lim.length && (severity < bestPlan.severity - 1e-9 || (Math.abs(severity - bestPlan.severity) < 1e-9 && total < bestPlan.total)));
+      if (better) bestPlan = { plan: p, total, planCost: total - net, credit: Math.min(usage, inc), lim, severity };
+    }
+    if (!bestPlan) return fail(planErrs);
+
+    let total = bestPlan.total;
+    const breakdown = Object.assign({}, b);
+    if (bestPlan.plan.waives_start_fee) breakdown.fees = 0;
+    // plan-level included egress was used for the total: show the same number in the breakdown
+    if (known(bestPlan.plan.egress_free_gib) && W.egress > 0 && known(egRate)) breakdown.egress = egressFor(bestPlan.plan.egress_free_gib);
+    breakdown.plan = bestPlan.planCost;
+    if (bestPlan.credit) breakdown.included = -bestPlan.credit;
+    const fr = card.free || {};
+    if (opts.credits && known(fr.monthly_credit) && fr.monthly_credit > 0 && !num(bestPlan.plan.included_usd)) {
+      const c = Math.min(fr.monthly_credit, total); total -= c; breakdown.credits = -c;
+    }
+    if (opts.amortize && known(fr.one_time_credit) && fr.one_time_credit > 0) {
+      const c = Math.min(fr.one_time_credit / 12, total); total -= c; breakdown.credits = (breakdown.credits || 0) - c;
+    }
+    if (bestPlan.lim.length) caveats.push(...bestPlan.lim);
+    return {
+      card, eligible: true, reasons: [], unknowns: best.unknowns, caveats, planLimits: bestPlan.lim,
+      total, breakdown, hours: best.hours, modeLabel: [...new Set(best.modes.map(r => r.mode.label || r.mode.key))].join(' + '),
+      // $ per hour of work actually done (not per billed hour, which rounding and reuse inflate)
+      shape: best.shape, plan: bestPlan.plan.name, planObj: bestPlan.plan, perHour: (W.sessions * W.sessionMin / 60 + W.alwaysOn * HOURS_MONTH) > 0 ? total / (W.sessions * W.sessionMin / 60 + W.alwaysOn * HOURS_MONTH) : null,
+      reused: reusedN || null, idleSaved: best.modes.some(x => x.idleOk),
+      perfFactor: best.modes[0] && best.modes[0].perfFactor, modeKeys: best.modes.map(r => r.mode.key),
+      pinned: !!((ov.mode && ov.mode !== 'auto') || (ov.plan && ov.plan !== 'auto') || (ov.knobs && Object.keys(ov.knobs).length)),
+    };
+  }
+
+  // ---- never exclude: if a provider can't meet the workload strictly, relax the fewest constraints needed
+  // and report each relaxation as a named compromise.
+  const OS_NAME = { windows: 'Windows', macos: 'macOS', linux: 'Linux' };
+  // ---- fleet feasibility --------------------------------------------------------------
+  // card.fleet = { default_max_instances, default_max_vcpu, default_max_gpus, raise: "automatic"|"self-serve"|"ticket"|"sales"|"none",
+  //                raise_time_days, verification, notes }. Compares the fleet this workload needs with a new account's defaults.
+  const RAISE = { automatic: ['grows automatically with spend/history', 1], 'self-serve': ['self-serve quota request', 1],
+    ticket: ['support ticket', 1], sales: ['only through sales', 2], none: ['hard limit, cannot be raised', 3] };
+  function fleetCheck(card, r, W) {
+    const f = card.fleet;
+    const n = r.reused || (Math.max(0, W.concurrency) + num(W.alwaysOn)) || 1;
+    const vcpu = r.shape && known(r.shape.vcpu) ? r.shape.vcpu * n : null;
+    const gpus = W.gpu && W.gpu !== 'none' ? n * Math.max(1, W.gpuCount) : 0;
+    if (!f) return { n, vcpu, gpus, known: false, over: false, text: n > 1 ? `fleet of ${n}: default account quota not researched` : '' };
+    const lim = [];
+    // a paid plan that publishes its own concurrency supersedes the new-account (often trial) default
+    const planConc = r.planObj && known(r.planObj.concurrency) ? r.planObj.concurrency : null;
+    if (known(f.default_max_instances) && n > f.default_max_instances && !(planConc != null && planConc >= n)) lim.push(`${f.default_max_instances} machines`);
+    if (known(f.default_max_vcpu) && vcpu != null && vcpu > f.default_max_vcpu) lim.push(`${f.default_max_vcpu} vCPU`);
+    if (known(f.default_max_gpus) && gpus > f.default_max_gpus) lim.push(`${f.default_max_gpus} GPUs`);
+    const how = RAISE[f.raise] || ['raise process not published', 1];
+    const days = known(f.raise_time_days) ? ` (~${f.raise_time_days < 1 ? 'same day' : f.raise_time_days + ' d'})` : '';
+    // the provider doesn't publish a starting quota but says raising it takes a human: a big fleet likely hits it
+    const noDefaults = [f.default_max_instances, f.default_max_vcpu, f.default_max_gpus].every(v => !known(v));
+    if (noDefaults && n >= 10 && ['ticket', 'sales', 'none'].includes(f.raise))
+      return { n, vcpu, gpus, known: true, over: true, likely: true, severity: how[1], raise: f.raise,
+        text: `fleet of ${n}: new accounts start with a limited quota (size not published); raising it: ${how[0]}${days}` };
+    const text = lim.length
+      ? `fleet of ${n} needs a quota increase: new accounts get ${lim.join(' / ')}; ${how[0]}${days}${f.verification ? `, ${f.verification}` : ''}`
+      : `fleet of ${n} fits a new account's default quota`;
+    return { n, vcpu, gpus, known: true, over: lim.length > 0, severity: lim.length ? how[1] : 0, text, raise: f.raise };
+  }
+
+  // ---- access path: what a customer must do to actually get this ----------------------------------------------------
+  // 0 self-serve · 1 verification (ID/KYC/business docs) · 2 money upfront (big plan, prepaid tier, commitment)
+  // 3 support ticket / email (quota raise) · 4 sales
+  const ACCESS_LABEL = ['self-serve', 'identity / business verification', 'a paid plan or money upfront', 'email support', 'talk to sales'];
+  function accessPath(card, r, W) {
+    const steps = [];
+    const p = r.planObj || {};
+    const pf = flagsOf(p);
+    if (pf.includes('sales')) steps.push([4, `plan "${p.name}" is negotiated with sales`]);
+    const prepay = known(p.prepay_usd) ? p.prepay_usd : (/top-?up|prepaid|deposit|prepay/i.test(p.name || '') ? (known(p.fee) ? p.fee : null) : null);
+    if (prepay != null && prepay > 0) steps.push([2, `prepay $${Math.round(prepay).toLocaleString('en-US')} to unlock plan "${p.name}"`]);
+    else if (known(p.fee) && p.fee >= 100) steps.push([2, `subscribe to the $${Math.round(p.fee).toLocaleString('en-US')}/month "${p.name}" plan first`]);
+    const ms = (card.modes || []).filter(m => (r.modeKeys || []).includes(m.key));
+    for (const m of ms) {
+      const fl = flagsOf(m);
+      const term = /(\d+)[- ]?(month|mo|year|yr)s?\b|annual|yearly|reserved|savings[- ]plan|committed use/i.test(`${m.key} ${m.label || ''}`);
+      if (fl.includes('commit') || (fl.includes('sales') && term)) steps.push([2, `${m.commit_term || 'term'} commitment, paid upfront or billed for the whole term`]);
+      else if (fl.includes('sales')) steps.push([4, 'regime sold through sales']);
+    }
+    const f = card.fleet, fc = r.fleet;
+    // ID / KYC / business documents, unless the text says they're NOT required
+    const ver = f && f.verification ? f.verification.split(/(?<=[.;])\s+/).find(s => /\b(id|kyc|passport|business docs?|company docs?|documents?|identity)\b/i.test(s) && !/\b(no|not|without|never)\b[^.;]*\b(id|kyc|identity)\b/i.test(s)) : null;
+    if (ver) steps.push([1, `may ask for verification: ${ver.replace(/[.;]\s*$/, '')}`]);
+    if (fc && fc.over) {
+      // a quota we only suspect (limit not published) is worth mentioning, not a gate on who can buy it
+      const lvl = fc.likely ? 0 : ({ automatic: 2, 'self-serve': 1, ticket: 3, sales: 4, none: 4 }[f && f.raise] ?? 3);
+      steps.push([lvl, fc.text]);
+    }
+    if (known(p.concurrency) && (r.planLimits || []).some(x => /concurrent/.test(x))) steps.push(pf.includes('sales') || /contact|sales|enterprise/i.test(p.note || '')
+      ? [4, `above plan "${p.name}" limits: contact sales for more`] : [3, `above plan "${p.name}" limits: ask the provider (no published way to raise them)`]);
+    const level = steps.length ? Math.max(...steps.map(s => s[0])) : 0;
+    return { level, label: ACCESS_LABEL[level], steps: steps.sort((a, b) => b[0] - a[0]).map(s => s[1]) };
+  }
+
+  // Compromise severity: 1 = minor (you'd still shortlist it), 2 = material (works, but differently), 3 = serious.
+  const SEVERITY = { plan: 1, unverified: 1, optin_sales: 1, optin_spot: 2, optin_promo: 1, optin_alt: 2, region: 1, ipv4: 1,
+    always: 1, arch: 2, gpu: 2, shape: 2, unsized: 2, browser: 2, feat: 3, state: 2 };
+  const usefulHours = W => W.sessions * W.sessionMin / 60 + num(W.alwaysOn) * HOURS_MONTH;
+  function priceSoft(card, W, opts) {
+    const r0 = priceSoftInner(card, W, opts);
+    // $/h is per hour of the workload the user described, even when a relaxation priced it as always-on machines
+    if (r0 && r0.eligible && known(r0.total)) r0.perHour = usefulHours(W) > 0 ? r0.total / usefulHours(W) : null;
+    return r0;
+  }
+  function priceSoftInner(card, W, opts) {
+    const strict = priceCard(card, W, opts);
+    const wantsBrowser = (opts.required || []).some(k => ['browser', 'desktop', 'computer_use'].includes(k));
+    // things that make a strictly-priced row a compromise anyway
+    const softOnly = r => {
+      const c = [];
+      if (r.unknowns && r.unknowns.length) c.push({ t: `unverified: ${r.unknowns.map(x => x.replace(/ unverified$/, '')).join(', ')}`, s: SEVERITY.unverified });
+      if (r.shape && r.shape.unsized) c.push({ t: 'machine size not published', s: SEVERITY.unsized });
+      if (card.category === 'browser' && !wantsBrowser) c.push({ t: 'browser-session product, not a general sandbox', s: SEVERITY.browser });
+      // a product class this workload's question isn't about (e.g. a browser session for CI builds)
+      if (Array.isArray(W.classes)) {
+        const cls = [...new Set((card.modes || []).filter(m => (r.modeKeys || []).includes(m.key)).map(m => productClass(card, m)))];
+        const off = cls.filter(x => !W.classes.includes(x));
+        // an app platform can run the same containers, you just orchestrate them yourself: minor. A browser session or CI job can't: material.
+        if (off.length && off.length === cls.length) c.push({ t: `different kind of product: ${off.map(x => CLASS_LABEL[x] || x).join(', ')}`, s: off.every(x => ['paas', 'paas-job', 'vm', 'dedicated'].includes(x)) ? 1 : 2 });
+      }
+      // Fleet feasibility: can a normal account actually get this many machines?
+      const fl = fleetCheck(card, r, W);
+      r.fleet = fl;
+      r.access = accessPath(card, r, W);
+      const maxA = known(opts.maxAccess) ? opts.maxAccess : 3;
+      if (r.access.level > maxA) c.push({ t: `needs ${r.access.label}: ${r.access.steps[0]}`, s: r.access.level - maxA >= 2 ? 3 : 2 });
+      // a quota you can raise within what you're willing to do is a step to take (shown on the row), not a compromise;
+      // only a hard cap that cannot be raised is one
+      else if (fl && fl.over && fl.raise === 'none') c.push({ t: fl.text, s: 2 });
+      if (r.shape && known(r.shape.vcpu) && r.shape.vcpu > 2 * W.vcpu && !r.shape.clamped)
+        c.push({ t: `smallest size offered is ${r.shape.vcpu} vCPU / ${+(+r.shape.ram).toFixed(1)} GiB`, s: 1 });
+      const ms = (card.modes || []).filter(m => (r.modeKeys || []).includes(m.key));
+      // product-level session cap: a 1-hour interpreter can't be a 24/7 dev box without constant restarts
+      const needH = num(W.alwaysOn) > 0 ? HOURS_MONTH : W.sessionMin / 60;
+      const capH = Math.min(...ms.map(m => { const v = modeFeatures(card, m).max_session_h; return known(v) && v > 0 ? v : Infinity; }));
+      if (isFinite(capH) && needH > capH + 1e-9 && !(r.planLimits || []).some(x => /sessions capped/.test(x)))
+        c.push({ t: `sessions end after ${capH < 1 ? Math.round(capH * 60) + ' min' : capH + ' h'}: needs restarts${needH >= HOURS_MONTH ? ' to run 24/7' : ''}`, s: capH < 24 ? 3 : 1 });
+      const mf = ms.length ? modeFeatures(card, ms[0]) : (card.features || {});
+      if (W.persistentDisk && mf.persistent_disk === false && (!mf.snapshot || mf.snapshot === 'none') && mf.pause_resume !== true) c.push({ t: 'no persistent disk: files lost when it stops or sleeps', s: 2 });
+      // a concurrency cap that exists but isn't published (Codespaces)
+      if ((r.planObj || {}).concurrency_unpublished && W.concurrency + num(W.alwaysOn) > 5) c.push({ t: 'has a concurrency cap, value not published', s: 1 });
+      for (const m of ms) {
+        const fm = flagsOf(m);
+        if (fm.includes('beta')) c.push({ t: /estimate/i.test(`${m.label} ${m.note || ''}`) ? 'preview pricing published as estimates: final price may differ' : 'beta / preview pricing: may change', s: 1 });
+        if (fm.includes('peer')) c.push({ t: `peer-hosted capacity: variable reliability, no SLA${m.peer_note ? ' (' + m.peer_note + ')' : ''}`, s: 1 });
+        if (m.ratio_inferred) c.push({ t: 'vCPU per GiB not published (inferred)', s: 1 });
+        if (m.cpu_class === 'shared' && !fm.includes('burstable') && W.cpuUtil > 0.5) c.push({ t: 'shared vCPU: may be throttled under sustained load', s: 1 });
+        if (/(^|[^a-z])(cn|mainland|china)([^a-z]|$)/i.test(`${m.key} ${m.label}`) && !/intl|international|overseas/i.test(`${m.key} ${m.label}`))
+          c.push({ t: 'mainland-China region (local account / ICP rules)', s: 1 });
+        const fl = flagsOf(m);
+        if (fl.includes('stock')) c.push({ t: `stock-limited${m.stock_note ? ': ' + m.stock_note : ' (often sold out)'}`, s: 1 });
+        if (fl.includes('commit')) c.push({ t: `${m.commit_term || 'term'} commitment`, s: 1 });
+        if (fl.includes('burstable')) c.push({ t: m.baseline_pct ? `burstable CPU (${m.baseline_pct}% baseline): throttled under sustained load` : 'shared CPU, no baseline published: may slow down under sustained load', s: W.cpuUtil > num(m.baseline_pct, 100) / 100 ? 2 : 1 });
+        if (m.gpu_min_count > 1 && W.gpu && W.gpu !== 'none' && W.gpuCount < m.gpu_min_count) c.push({ t: `${m.gpu_min_count}-GPU nodes only`, s: 2 });
+      }
+      // personas who call a sandbox API (interpreters, platforms, RL, CUA) can't just use a raw VM: boot time, quotas, no API
+      if (W.sandboxApi && !Array.isArray(W.classes) && ms.length && ms.every(m => ['machine', 'paas', 'paas-job', 'gpu', 'byoc', 'ci'].includes(productClass(card, m))))
+        c.push({ t: 'plain VM / platform, no sandbox API (slower boot, account quotas)', s: 1 });
+      return c;
+    };
+    if (strict.eligible) {
+      const c = softOnly(strict);
+      if (!c.length) return strict;
+      return Object.assign(strict, { soft: true, compromises: c.map(x => x.t), severity: Math.max(...c.map(x => x.s)) });
+    }
+    // A different OS or no GPU at all is not a compromise, it's a different product: mark it off-topic.
+    const osMismatch = (card.modes || []).length && (card.modes || []).every(m => !modeOS(card, m).includes(W.os));
+    const wantGpu = W.gpu && W.gpu !== 'none';
+    const noGpuAtAll = wantGpu && !(card.modes || []).some(m => m.gpu && Object.values(m.gpu).some(known));
+    const gpuOnly = !wantGpu && (card.modes || []).length && (card.modes || []).every(m => m.gpu_only || (card.category === 'gpu-cloud' && m.gpu && Object.values(m.gpu).some(known)));
+    if (osMismatch || noGpuAtAll || gpuOnly) return Object.assign(strict, { unpriceable: true, offTopic: osMismatch ? 'os' : noGpuAtAll ? 'gpu' : 'gpu-only',
+      reasons: [osMismatch ? `doesn't offer ${OS_NAME[W.os]}` : noGpuAtAll ? `no GPUs` : 'GPU machines only'] });
+    const steps = [
+      { id: 'plan', o: { ignorePlanLimits: true } },
+      { id: 'optin', o: { allowSpot: true, allowSales: true, allowAlt: true, allowPromo: true } },
+      { id: 'shape', w: { clampShape: true } },
+      { id: 'always', w: W.sessions > 0 ? { alwaysOn: num(W.alwaysOn) + Math.max(1, W.concurrency), sessions: 0, concurrency: 0 } : {} },
+      { id: 'gpu', w: { gpuFallback: true } },
+      { id: 'arch', w: { arch: 'any' } },
+      { id: 'region', o: { region: 'any' } },
+      { id: 'state', w: { snapshotGiB: 0 } },
+      { id: 'ipv4', w: { ipv4: 0 } },
+      { id: 'feat', o: { required: [] } },
+    ].filter(s => !(s.id === 'gpu' && !wantGpu));
+    const build = ids => {
+      let w = W, o = opts;
+      for (const s of steps) if (ids.includes(s.id)) { if (s.w) w = Object.assign({}, w, s.w); if (s.o) o = Object.assign({}, o, s.o); }
+      return priceCard(card, w, o);
+    };
+    let applied = [], r = null;
+    for (const s of steps) { applied.push(s.id); r = build(applied); if (r.eligible) break; }
+    // report why it still failed from the MOST relaxed attempt (not the strict one, which just says "needs opt-in")
+    if (!r || !r.eligible) return Object.assign(strict, { unpriceable: true, reasons: (r && r.reasons && r.reasons.length ? r.reasons : strict.reasons) || ['no priceable regime'] });
+    for (const id of applied.slice().reverse()) { // drop relaxations that turned out unnecessary
+      const t = applied.filter(x => x !== id), rr = build(t);
+      if (rr.eligible) { applied = t; r = rr; }
+    }
+    const f = card.features || {}, comp = [];
+    const add = (t, s) => comp.push({ t, s });
+    const has = id => applied.includes(id);
+    if (has('plan')) for (const x of (r.planLimits || []).slice(0, 2)) add(x, SEVERITY.plan);
+    if (has('optin')) { const om = (card.modes || []).filter(m => (r.modeKeys || []).includes(m.key));
+      const fl = [...new Set(om.flatMap(m => m.flags || []))];
+      // term prices (12/24-month, annual, reserved) are commitments anyone can buy, not sales deals
+      const term = om.map(m => `${m.key} ${m.label || ''}`.match(/(\d+)[- ]?(month|mo|year|yr)s?\b|annual(ly)?|yearly|reserved|savings[- ]plan|committed use/i)).find(Boolean);
+      if (fl.includes('commit') || (fl.includes('sales') && term)) { if (!fl.includes('commit')) add(`${term[1] ? `${term[1]}-${/^y/i.test(term[2]) ? 'year' : 'month'}` : term[0].toLowerCase()} commitment`, SEVERITY.optin_promo); }
+      else if (fl.includes('sales')) add('negotiated / enterprise price', SEVERITY.optin_sales);
+      else if (fl.includes('spot')) add('interruptible (spot)', SEVERITY.optin_spot);
+      else if (fl.includes('promo')) add('promotional price', SEVERITY.optin_promo);
+      else if (fl.includes('alt')) add('adjacent product, not a like-for-like sandbox', SEVERITY.optin_alt);
+      else add('opt-in regime', 1); }
+    // keeping the peak number of machines on all month is a legitimate way to run a bursty workload when the sessions fit
+    const nAlways = num(W.alwaysOn) + Math.max(1, W.concurrency);
+    if (has('always')) {
+      const fits = nAlways * HOURS_MONTH >= W.sessions * W.sessionMin / 60;
+      if (fits) { r.caveats = (r.caveats || []).concat(`monthly / always-on product: priced as ${nAlways} machines kept on and reused`); r.reused = nAlways; }
+      else add(`monthly / always-on only: priced as ${nAlways} machines kept on 24/7`, SEVERITY.always);
+    }
+    if (has('shape')) add(`capped at ${r.shape && r.shape.label ? r.shape.label : 'its largest size'}`, SEVERITY.shape);
+    if (has('gpu')) { const n = (r.caveats || []).find(x => /priced with|sold as/.test(x)); add(n || 'different GPU', SEVERITY.gpu); }
+    if (has('arch')) add('no arm64', SEVERITY.arch);
+    if (has('region')) add(`no ${String(opts.region).toUpperCase()} region`, SEVERITY.region);
+    if (has('state')) add("can't keep state between sessions", SEVERITY.state);
+    if (has('ipv4')) add('no dedicated IPv4', SEVERITY.ipv4);
+    if (has('feat')) { const miss = (opts.required || []).filter(k => testFeature(f, k) === false).map(k => FEATURE_LABELS[k] || k);
+      add(miss.length ? `missing ${miss.join(', ')}` : 'required features unverified', miss.length ? SEVERITY.feat : SEVERITY.unverified); }
+    for (const x of softOnly(r)) comp.push(x);
+    r.caveats = (r.caveats || []).filter(x => !comp.some(c => c.t === x));
+    if (!comp.length) return r; // the only relaxation was a legitimate way to run it (e.g. monthly machines reused)
+    return Object.assign(r, { soft: true, compromises: comp.map(c => c.t), severity: Math.max(1, ...comp.map(c => c.s)) });
+  }
+
+  // ---- one ranking: meets first (by price), then compromises by severity then price; per provider keep at most
+  // `maxPerProvider` distinct regimes, drop near-duplicates (same total ±2%) and sizes > 2× the request when the
+  // provider already has a row that fits. Off-topic rows (wrong OS / no GPU) are returned separately.
+  function rankRows(rows, W, maxPerProvider = 3) {
+    // a bill with no compute price for real running hours is a data gap, not a free provider
+    for (const r of rows) if (r.eligible && r.hours > 0 && !W.showZero) { const b = r.breakdown || {};
+      if ((b.compute || 0) + (b.memory || 0) + (b.gpu || 0) + (b.fees || 0) <= 0.01) { r.eligible = false; r.reasons = ['no usable compute price for this workload']; } }
+    const priced = rows.filter(r => r.eligible), offTopic = rows.filter(r => !r.eligible && r.offTopic), noPrice = rows.filter(r => !r.eligible && !r.offTopic);
+    const byProv = new Map();
+    for (const r of priced) { const k = r.card.id; if (!byProv.has(k)) byProv.set(k, []); byProv.get(k).push(r); }
+    const kept = [];
+    for (const list of byProv.values()) {
+      list.sort((a, b) => (a.soft ? 1 : 0) - (b.soft ? 1 : 0) || (a.severity || 0) - (b.severity || 0) || a.total - b.total);
+      const fits = list.some(r => r.shape && r.shape.vcpu && r.shape.vcpu <= 2 * W.vcpu);
+      // a bigger machine than needed is noise when the same provider sells a smaller one that fits for about the same price
+      const fitsReq = r => r.shape && known(r.shape.vcpu) && known(r.shape.ram) && r.shape.vcpu >= W.vcpu && r.shape.ram >= W.ram - 1e-9;
+      const dominated = r => fitsReq(r) && list.some(o => o !== r && fitsReq(o) && !!o.soft === !!r.soft
+        && o.shape.vcpu <= r.shape.vcpu && o.shape.ram <= r.shape.ram && (o.shape.vcpu < r.shape.vcpu || o.shape.ram < r.shape.ram)
+        && o.total <= r.total * 1.05);
+      const out = [];
+      for (const r of list) {
+        if (fits && r.shape && r.shape.vcpu > 2 * W.vcpu) continue;                    // oversized sibling
+        if (dominated(r)) continue;                                                    // bigger sibling of a fitting size
+        if (out.some(o => Math.abs(o.total - r.total) <= 0.02 * Math.max(1, o.total) && !!o.soft === !!r.soft)) continue; // duplicate
+        out.push(r); if (out.length >= maxPerProvider) break;
+      }
+      kept.push(...out);
+      // unpriced siblings of a provider that does have a price aren't "no public price"
+    }
+    const pricedIds = new Set(priced.map(r => r.card.id));
+    const meets = kept.filter(r => !r.soft).sort((a, b) => a.total - b.total);
+    const soft = kept.filter(r => r.soft).sort((a, b) => (a.severity || 1) - (b.severity || 1) || a.total - b.total);
+    const dedupe = list => [...new Map(list.filter(r => !pricedIds.has(r.card.id)).map(r => [r.card.id, r])).values()];
+    return { meets, soft, noPrice: dedupe(noPrice), offTopic: dedupe(offTopic) };
+  }
+
+  root.PM = { priceCard, priceSoft, rankRows, testFeature, flagsOf, productClass, altIgnored, modeFeatures, CLASS_LABEL, FEATURE_LABELS, HOURS_MONTH, sumB };
+})(typeof window !== 'undefined' ? window : globalThis);

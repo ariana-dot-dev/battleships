@@ -1,0 +1,18 @@
+# Amp (requested as Sourcegraph Amp) hosted orbs: separable compute
+As of 2026-09-28. Category: `agent-platform`. USD list prices unless explicitly labelled otherwise.
+| Regime | When / billing unit | List price | Source |
+|---|---|---|---|
+| Orb PAYG | Running orb, metered per minute | CPU/RAM: 1/2 $0.08/h; 2/4 $0.17; 4/8 $0.33; 8/16 $0.66; 16/32 $1.32; 16/44 $2.13; each has 60 GB disk | [Sizes](https://ampcode.com/docs/orbs/sizes-and-costs) |
+| Megawatt | $20/month | 750 small (2/4) orb-hours, plus at least $20 agent usage; 1 GB repository storage, 10 GB monthly transfer | [Pricing](https://ampcode.com/docs/pricing) |
+| Gigawatt | $200/month | 1000 xxlarge (16/32) orb-hours, plus at least $200 agent usage; 10 GB repository storage, 100 GB transfer | [Pricing](https://ampcode.com/docs/pricing) |
+| Unconstrained / Enterprise | Credits without subscription / contract | PAYG models at API prices for non-enterprise, separate orb usage; Enterprise custom | [Pricing](https://ampcode.com/docs/pricing) |
+## Caps and gotchas
+`a1.3xlarge` needs Gigawatt or Enterprise. Paused orbs cost nothing; files/services persist. Pause requires both 5 minutes without agent work and 20 minutes without user/portal interaction. Opening a portal wakes the orb; background dev server alone doesn't prevent pause. Minute billing includes startup. [Sizes/lifecycle](https://ampcode.com/docs/orbs/sizes-and-costs)
+Twenty starts may burst per user, then one per five minutes; additional starts queue. That's not a 20-running-orb limit. [Orbs](https://ampcode.com/docs/orbs)
+Separate **orb allowance** and **agent/model allowance**: never subtract $200 model usage from compute. Expanded pricing-page tables specify exact minutes by size: **medium gets 22,500 minutes (375h) on Megawatt or 240,000 minutes (4000h) on Gigawatt**. Allowances are per person, not pooled across team members. Included usage does not roll over; purchased credits expire after 12 months. Retained external snapshot/export and disk/egress overage rates unknown. [Usage](https://ampcode.com/docs/pricing)
+## Worked examples
+PAYG 4/8 for 8,800 running hours: **$2,904**, plus models/tools, startup/idle rounding and unknown extras. CPU 30% doesn't change this allocation price. Fifty simultaneous new starts exceed the default burst; negotiate/queue rather than assume immediate capacity. Single developer 176 hours on medium: **$58.08 PAYG compute** plus models.
+Subscriptions can be cheaper. The expanded official pricing table gives Gigawatt **4000 medium-hours**: $200 + (8800−4000)×$0.33 = **$1,784 compute plus subscription**, for one subscriber owning this entire homogeneous workload, before models/extras and quota confirmation. Megawatt gives 375 medium-hours: $20+(8800−375)×$0.33 = $2,800.25. For 176 medium-hours, Megawatt's $20 covers compute within allowance, plus any model spend beyond its separate allowance.
+These are alternate representations of one tier, not stackable plans. Multi-person workloads need per-user accounting because minutes are not pooled. Model dollars must never offset compute a second time.
+Default hosted orbs are documented as E2B microVMs in GCP us-west1; setup documentation uses Debian 12 and sudo. Exact CPU sharing/hypervisor details are not inferred. [Customization](https://ampcode.com/docs/orbs/customizing)
+For **three real Gigawatt members**, each owning a balanced 2,933.33-hour medium workload, all 8,800 hours can fit their separate 4,000-hour allowances for $600/month base. This is a changed multi-user workload, not pooled credit or permission to share a personal subscription; per-user pacing still applies. Model credits remain separate.

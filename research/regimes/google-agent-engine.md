@@ -1,0 +1,15 @@
+# Google Agent Runtime and Code Execution Sandbox
+As of 2026-09-28. Category: `agent-platform`. USD list prices unless explicitly labelled otherwise.
+| Regime | When / billing | Numbers | Source |
+|---|---|---|---|
+| Runtime and Sandbox PAYG | Allocated vCPU-h + GiB-h, nearest second | $0.085/vCPU-h + $0.009/GiB-h | [Unified pricing](https://cloud.google.com/products/gemini-enterprise-agent-platform/pricing) |
+| Flexible Savings Plan | Eligible 1-year / 3-year commitment | 1y $0.0765 + $0.0081; 3y $0.068 + $0.0072 per CPU/RAM-hour | [Pricing](https://cloud.google.com/products/gemini-enterprise-agent-platform/pricing) |
+| Free resources | Account/month, not fungible credit | 50 vCPU-h, 100 GiB-h, 1 GiB-month Agent Storage | [Pricing](https://cloud.google.com/products/gemini-enterprise-agent-platform/pricing) |
+| Sessions and Memory Bank | Since September 1, 2026 | Storage $0.30/GiB-month; $0.085/3M reads; $0.085/1M writes; generation/embedding tokens separate | [Pricing](https://cloud.google.com/products/gemini-enterprise-agent-platform/pricing) |
+Runtime default is 4 CPU/4 GiB. Configurable CPU choices: 1,2,4,6,8; memory 1..32 GiB subject to compatibility. `max_instances` defaults to 100, supports up to 1000, or 100 with VPC-SC/PSC-I. This is instance scaling, not isolated sandbox concurrency. Request concurrency is separately configured. [Deployment](https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent)
+Code Execution is a separate sandbox: default 2 CPU/1.5 GB; documented alternative 4 CPU/4 GB. These cost $0.1835/h and $0.376/h at list allocation rates. State TTL up to 14 days; 100 MB request/response file payload; no outbound network. TTL is not continuous CPU time. [Quickstart](https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/code-execution-quickstart), [overview](https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/code-execution-overview)
+## Gotchas
+Runtime idle between turns is unbilled, but 30% OS CPU utilization does not justify reducing allocation by 70%. Sandbox idle exemption is not established. Runtime and sandbox may both be used and both billed; they are not mutually substitutable discount modes. Agent Storage for conversation/memory data isn't a confirmed disk/snapshot tariff. Quotas, network charges and model tokens are additional/unknown. Historical $0.0864 CPU and event-count memory pricing are superseded by the current official page.
+## Worked examples
+Runtime 4/8: $0.412/h; 8,800 billable instance-hours = **$3,625.60 gross**. If resource grants remain wholly unused elsewhere: subtract $4.25 CPU and $0.90 memory = **$3,620.45**, plus models, other services, storage and network. CPU 30% changes neither allocation rate. Single worker 176 processing hours: $72.512 gross, $67.362 after these grants. Instance sharing can change runtime-hour demand.
+Code Execution's documented presets cannot satisfy one 4/8 worker; do not replace it with two smaller sessions. Snapshot 50 GiB and egress 100 GiB remain unpriced.

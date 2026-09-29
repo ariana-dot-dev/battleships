@@ -1,0 +1,11 @@
+# Microsoft Foundry hosted agent compute
+As of 2026-09-28; category `agent-platform`. USD list PAYG, East US.
+| Regime | When / unit | Price / size | Source |
+|---|---|---|---|
+| Hosted agent | Allocated vCPU-hour + GiB-hour | $0.0994 + $0.0118; 0.5/1 = $0.0615/h, 1/2 = $0.123/h, 2/4 = $0.246/h | [Retail Prices API](https://prices.azure.com/api/retail/prices?$filter=productName%20eq%20%27Foundry%20Agents%27%20and%20armRegionName%20eq%20%27eastus%27) |
+| Prompt agents/workflows | Model/tool consumption, no separate agent platform charge | Model and selected tools additional | [Pricing](https://azure.microsoft.com/en-us/pricing/details/foundry-agent-service/) |
+| Built-in code interpreter | Separate per-conversation tool session | See [Microsoft interpreter regime](microsoft-foundry.md); not included in hosted VM price | [FAQ](https://learn.microsoft.com/en-us/azure/foundry/agents/faq) |
+Hosted sessions use VM isolation and customer containers. Largest shape is **2 vCPU/4 GiB**, not 4/8. Disk budget is 10 GiB on 0.5 CPU or up to 20 GiB at 1 CPU and above, with ~20% reserved for system, remainder shared by image and writable data. $HOME and uploaded files persist across idle deprovisioning; inactivity deletes session after 30 days. Idle timeout defaults 15 minutes, configurable 2–60. Each concurrent session multiplies provisioned resources; quotas vary by region. [Hosted agents](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents), [quotas](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/limits-quotas-regions)
+## Gotchas and worked examples
+Exact billing increment and billed idle-tail semantics aren't established by price units alone. Conservatively supply provisioned active-session time, not 30% CPU utilization. Inference, Code Interpreter, browser tools, logs, egress and storage may add cost.
+For 8,800 billed hours on supported **2/4** sessions: $2,164.80 plus extras. One developer 176 hours: $43.296. The requested 4/8 workload is **infeasible as one hosted session**; two 2/4 sessions are not equivalent. Snapshot 50 GiB and egress 100 GiB rates null. Card does not offer unsupported unknown-sized per-session tools.

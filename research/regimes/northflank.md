@@ -1,0 +1,49 @@
+# Northflank: pricing regimes (as of 2026-09-28)
+Northflank Sandboxes are ordinary Northflank deployment services run in microVMs (Kata) for CPU and gVisor for GPU. They cost the same as any other Northflank workload. There is **no plan fee and no seat fee**. What changes the bill is:
+- **where** it runs: Northflank managed cloud, or BYOC (your cloud plus a Northflank management fee),
+- the compute plan (predefined sizes, or custom on request),
+- whether it is running, paused or holding volumes.
+Managed-cloud rates: $0.01667/vCPU-h and $0.00833/GB-h, per second, on the **allocated** plan. The predefined plans are exactly these unit rates. Monthly figures on the page use 720 h.
+## Regime table
+| # | Regime | When it applies | How billed | Numbers | Source |
+|---|---|---|---|---|---|
+| 1 | Managed cloud, dedicated compute plans | Default for sandboxes (`nf-compute-100-*` and up, 1+ dedicated vCPU) | Per second on the allocated plan while running. Utilisation is ignored | 4 vCPU/8 GB = nf-compute-400 = **$0.1333/h** ($96/720 h). Largest listed plan: nf-compute-2000-40 (20 vCPU/40 GB) $0.6667/h | https://northflank.com/pricing |
+| 2 | Managed cloud, shared sub-1-vCPU plans | nf-compute-10/20/50 (0.1/0.2/0.5 **shared** vCPU) | Same unit rates, shared CPU | $0.0038 / $0.0075 / $0.0167 per h | https://northflank.com/pricing |
+| 3 | Custom compute plans | "Request custom vCPU + memory combinations" | Presumably the same unit rates. Availability/tier not clear from the page | $0.01667/vCPU-h + $0.00833/GB-h (assumed) | https://northflank.com/pricing |
+| 4 | **BYOC (self-serve)** | Sandboxes in your own AWS/GCP/Azure/OCI/Civo/CoreWeave/Nebius or imported K8s cluster | Your cloud bills the VMs, disks and egress. **Northflank adds a management fee** per deployed vCPU and GB | **$0.01389/vCPU-h + $0.00139/GB-h**, BYO GPU **$0.00278/GB vRAM-h**. 4 vCPU/8 GB = **$0.06668/h fee** on top of the cloud VM. The pricing text says "No added cost for running in your VPC", but the BYOC tab and docs ("flat fee for each cluster, vCPU, and GB of memory") contradict it. The per-cluster fee is not shown | https://northflank.com/pricing (BYOC tab, rendered), https://northflank.com/docs/v1/application/billing/pricing-on-northflank, https://northflank.com/blog/ai-sandbox-pricing |
+| 5 | BYOC + your cloud's spot / savings plans / credits | BYOC node pools on spot or committed instances | Cloud discount applies to the VM bill only. The Northflank fee is unchanged | Cloud-specific (not modelled) | https://northflank.com/pricing |
+| 6 | GPU sandbox, managed cloud | `nf-gpu-<model>-<mem>-<n>g` plans, gVisor runtime, up to 8 GPUs | Per GPU-hour. Northflank's own blog says the rate is "a combined rate per hour" covering GPU, CPU and RAM. The docs instead say to configure a compute plan alongside (ambiguous) | L4 0.80, A100-40GB 1.42, A100-80GB 1.76, H100 2.74, RTX PRO 6000 3.00, H200 3.14, B200 5.87 ($/h). **$50 account credit minimum** to deploy GPUs. No time-slicing on managed cloud | https://northflank.com/pricing (GPU tab), /docs/v1/application/gpu-workloads/deploy-gpus-on-northflank-cloud, /blog/ai-sandbox-pricing |
+| 7 | Paused (scaled to zero) | `pause` = scale to 0 instances. Manual only: no idle auto-pause is documented | **Compute stops.** Ephemeral disk and processes are **wiped**. Attached volumes keep billing | $0 compute, $0.15/GB-month volumes | /docs/v1/application/sandboxes/sandboxes-on-northflank-cloud |
+| 8 | Running but idle | Any sandbox not explicitly paused | Full plan rate. There is no idle timer, so it bills 24/7 until paused or deleted | Plan rate × 730 h | same; /blog/aws-lambda-microvms-vs-northflank-pricing |
+| 9 | Ephemeral disk | Per container | 1 GB included. 5/10/20 GB options, with the part above 1 GB billed at the volume rate, **per second of container runtime only** | $0.15/GB-month prorated while running | https://northflank.com/changelog/configurable-ephemeral-storage-post-gis-public-my-sql-and-postgres |
+| 10 | Volumes (persistent, RWX multi-attach available) | Persistent sandboxes | Billed for the lifetime of the disk, running or paused | $0.15/GB-month | https://northflank.com/pricing |
+| 11 | Snapshots / container snapshots / volume backups | Kata container snapshot API, volume backups/clones | Northflank marketing says "No snapshot fees". Container snapshots go to a configured backup destination (likely your own bucket, billed by its provider) | $0 per Northflank (vendor claim); backup-destination storage not modelled | /blog/aws-lambda-microvms-vs-northflank-pricing, /docs/v1/api/project/services/create-container-snapshot |
+| 12 | Egress | Data leaving Northflank infrastructure | Flat per GB. No free allowance is published. Traffic inside the platform is free | $0.06/GB | https://northflank.com/pricing |
+| 13 | Static egress IP / gateway | "Egress IP & Gateway" feature | Price not published | null | https://northflank.com/pricing |
+| 14 | Start / stop / resume | Every lifecycle op | "No additional charges for start, suspend, or resume operations". No minimum billed period | $0 | /blog/aws-lambda-microvms-vs-northflank-pricing |
+| 15 | Developer "Sandbox" free tier | Free account tier: 2 services, 2 jobs, 1 addon, 1 BYOC cluster | Free small plans, always on ("no sleeping"). "Compute: Limited". A payment method is required to create resources | $0. Too small for a 4 vCPU sandbox fleet | https://northflank.com/pricing, /docs/v1/application/billing/pricing-on-northflank |
+| 16 | Pay-as-you-go | Default self-serve | No fee, no seats, unlimited services | $0 fee | https://northflank.com/pricing |
+| 17 | Enterprise | Contact sales | Invoice billing, **volume discounts, annual commitment**, BYOC commits, SSO/audit, SLA, run the control plane in your VPC | Unpublished | https://northflank.com/pricing |
+| 18 | Regions | Managed: US West/Central/East, EU West, Asia East (plus others in the docs list). BYOC: "600 regions" | **No regional multipliers published** | multiplier 1 | https://northflank.com/pricing, /docs/v1/application/run/deploy-to-a-region |
+## Gotchas
+1. **BYOC is not free.** The pay-as-you-go blurb says "No added cost for running in your VPC", but the BYOC tab charges $0.01389/vCPU-h + $0.00139/GB-h. For a 4/8 sandbox that fee is **exactly half** the managed-cloud price, *before* you pay AWS/GCP for the VM. BYOC only wins if the cloud VM costs less than about $0.067/h per 4/8 slot, e.g. with spot, savings plans or credits. The fee is on *deployed* plan resources, not on node size. MicroVM (Kata) isolation on AWS needs bare-metal or nested-virt instances, which cost more.
+2. **No idle auto-pause.** A sandbox bills its full plan until you pause it explicitly. A forgotten fleet runs 730 h/month.
+3. **Pause wipes state.** Pausing scales to zero and erases ephemeral disk and processes. Keeping state means volumes ($0.15/GB-month, billed while paused). There is no memory snapshot.
+4. **Utilisation is irrelevant.** Billing is on the allocated plan. You can't pick arbitrary vCPU:RAM ratios self-serve, only predefined plans (custom on request).
+5. **Egress is $0.06/GB from the first byte.** That is 3x Koyeb's overage rate, with no allowance.
+6. **GPU pricing ambiguity.** The official blog calls GPU rates "combined" (GPU+CPU+RAM). The docs say to configure a compute plan too. GPUs need $50 of prepaid credit on the account. H200 ($3.14) and B200 ($5.87) appear only in the pricing page's GPU plan tab.
+7. Benchmarks: cold start is fast (median 83 ms), but the 100-way burst test succeeded only 21% of the time (median 24.1 s), and the DAX run never succeeded.
+## Worked example
+Workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days = **8,800 sandbox-hours**, 30% CPU util, 50 GiB snapshots retained, 100 GiB egress.
+Plan nf-compute-400 = $0.1333/h. 1 GB ephemeral disk is included (no extra disk assumed). Snapshots are counted two ways: as the vendor's "no snapshot fee" ($0), or held as volumes at $0.15/GB-month ($7.50).
+| Regime | Compute | Snapshots 50 GiB | Egress 100 GiB | Plan fee | **Monthly total** |
+|---|---|---|---|---|---|
+| Managed cloud, paused outside hours (explicit pause) | 8,800 × 0.1333 = $1,173.04 | $0 (vendor claim), or $7.50 if kept as volumes | $6.00 | $0 | **$1,179.04** (or $1,186.54) |
+| Managed cloud, never paused (no idle timer) | 50 × 730 × 0.1333 = $4,865.45 | $0 / $7.50 | $6.00 | $0 | **$4,871.45** |
+| BYOC, Northflank fee only | 8,800 × 0.06668 = $586.78 | billed by your cloud | billed by your cloud | $0 | **$586.78 + your cloud VMs, disks and egress** (not modelled) |
+| Custom plan (sales) | same unit rates, $1,173.04 | | $6.00 | $0 | ≈ **$1,179.04** before any negotiated discount |
+| Enterprise volume discount / annual commit | unpublished | | | | null |
+| GPU | n/a (no GPU). Adding 1 H100 each: 8,800 × 2.74 = $24,112 (combined-rate reading) | | | | |
+- The **30% utilisation** changes nothing, because billing is on allocation.
+- There are no free credits.
+Sources: https://northflank.com/pricing (Northflank compute, BYOC and GPU tabs rendered on the boat VM 2026-09-28) · https://northflank.com/docs/v1/application/sandboxes/sandboxes-on-northflank-cloud · https://northflank.com/docs/v1/application/sandboxes/sandboxes-in-your-own-cloud · https://northflank.com/docs/v1/application/billing/pricing-on-northflank · https://northflank.com/docs/v1/application/gpu-workloads/deploy-gpus-on-northflank-cloud · https://northflank.com/docs/v1/application/scale/increase-storage · https://northflank.com/changelog/configurable-ephemeral-storage-post-gis-public-my-sql-and-postgres · https://northflank.com/blog/ai-sandbox-pricing · https://northflank.com/blog/aws-lambda-microvms-vs-northflank-pricing

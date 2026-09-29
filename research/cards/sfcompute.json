@@ -1,0 +1,623 @@
+{
+  "id": "sfcompute",
+  "name": "SF Compute (GPU market + Autoresearch sandboxes)",
+  "url": "https://autoresearch.sfcompute.com/",
+  "category": "gpu-cloud",
+  "isolation": "vm",
+  "modes": [
+    {
+      "key": "sandbox",
+      "label": "Autoresearch RL sandbox (billed per GiB of RAM, auto-park)",
+      "flags": [],
+      "os": [
+        "linux"
+      ],
+      "regions": null,
+      "gpu_only": false,
+      "features": {
+        "snapshot": "mem",
+        "fork": true,
+        "pause_resume": true
+      },
+      "pricing": "sizes",
+      "vcpu_h": null,
+      "ram_gib_h": null,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes": [
+        {
+          "name": "sandbox-sm",
+          "vcpu": 1,
+          "ram_gib": 2,
+          "disk_gib": null,
+          "hour": 0.09144,
+          "month_cap": null
+        },
+        {
+          "name": "sandbox-md",
+          "vcpu": 4,
+          "ram_gib": 8,
+          "disk_gib": null,
+          "hour": 0.73152,
+          "month_cap": null
+        },
+        {
+          "name": "sandbox-lg",
+          "vcpu": 8,
+          "ram_gib": 32,
+          "disk_gib": null,
+          "hour": 1.46304,
+          "month_cap": null
+        },
+        {
+          "name": "sandbox-xl",
+          "vcpu": 16,
+          "ram_gib": 64,
+          "disk_gib": null,
+          "hour": 2.92608,
+          "month_cap": null
+        }
+      ],
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": 0,
+      "granularity_s": 60,
+      "start_fee": 0,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": null,
+      "note": "$0.04572 per GiB-hour of billed RAM, per minute, while RUNNING; each core comes with 4 GiB so sandbox-md (4 vCPU/8 GiB) bills as 16 GiB = $0.73152/h. Cores are shared. Sandbox parks after ~1.5 s idle, handing back spare memory, which then bills only at the parked ~$0.000139/GiB-h disk rate (use the running-share knob). Forks free (CoW); baking bills as sandbox time. sandbox_vcpus limit starts at 4 (lg/xl need a raise); workspace RAM ceiling 8 GiB by default (64 GiB platform cap). Calendar discounts do NOT apply (pricing table shows none for sandboxes). [basis verified 2026-09-28] Docs: \"a sandbox bills per GiB of its RAM per minute while it is RUNNING\"; \"A core comes with 4 GiB\"; \"A sandbox with no command in flight PARKS itself after ~1.5s idle: it hands back the memory its guest can spare, so you stop paying the RAM rate on what was handed back\" (autoresearch.sfcompute.com/llms.txt). Billed RAM = configured size (>= 4 GiB/core) while running; kept sizes + sandbox_running_share knob for parking."
+    },
+    {
+      "key": "cpu-node",
+      "label": "Autoresearch CPU node (cpu-2 / cpu-8 container, persistent disk)",
+      "flags": [
+        "alt"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": null,
+      "gpu_only": false,
+      "features": {
+        "snapshot": "fs",
+        "fork": false,
+        "pause_resume": true,
+        "persistent_disk": true,
+        "gpu": false,
+        "fork_running": false,
+        "memory_snapshot_fork": false
+      },
+      "pricing": "sizes",
+      "vcpu_h": null,
+      "ram_gib_h": null,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes": [
+        {
+          "name": "cpu-2",
+          "vcpu": 4,
+          "ram_gib": 8,
+          "disk_gib": null,
+          "hour": 0.18,
+          "month_cap": null
+        },
+        {
+          "name": "cpu-8",
+          "vcpu": 16,
+          "ram_gib": 32,
+          "disk_gib": null,
+          "hour": 0.4824,
+          "month_cap": null
+        }
+      ],
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": 0,
+      "granularity_s": 60,
+      "start_fee": 0,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": null,
+      "note": "cpu-2 = 2 reserved PHYSICAL cores + 8 GiB ($0.003/min = $0.18/h); cpu-8 = 8 physical cores on one NUMA node + 32 GiB ($0.00804/min = $0.4824/h, shown with \"33% off (CPU node launch pricing)\" - unclear if already discounted). vcpu encoded as 2 x physical cores (assumption). A node keeps billing through a 15-min idle window after its last command unless stopped; stopped nodes park their disk and cost nothing. Friday 32% (cpu-2) / weekend 20% off per calendar knob. Container nodes for batch/ingest work, not a sandbox API."
+    },
+    {
+      "key": "h100-node",
+      "label": "Autoresearch interactive H100 node, on demand (h100-1 = 1 GPU $3.96/h; h100-8 = 8 GPUs)",
+      "flags": [
+        "stock"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": null,
+      "gpu_only": true,
+      "features": {
+        "gpu": true,
+        "persistent_disk": true,
+        "pause_resume": true,
+        "snapshot": "fs",
+        "fork": false,
+        "fork_running": false,
+        "memory_snapshot_fork": false
+      },
+      "pricing": "resource",
+      "vcpu_h": 0,
+      "ram_gib_h": 0,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes": null,
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": 0,
+      "granularity_s": 60,
+      "start_fee": 0,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": {
+        "H100": 3.96
+      },
+      "note": "Per GPU: h100-1 $0.066/min = $3.96/h; h100-8 $0.528/min = $31.68/h (= $3.96/GPU-h). CPU/RAM included. Idle window keeps billing 15 min (1x, $0.99 max) / 20 min (8x, $10.56 max) after the last command unless stopped; no minimum charge. Stopped node parks its encrypted disk at $0. Friday 33% / weekend 20% off (calendar knob), applied to minutes run on those days (US Pacific).",
+      "stock_note": "queued provisioning: create_node joins a queue and quotes an ETA; not an instant-capacity guarantee"
+    },
+    {
+      "key": "batch-h100",
+      "label": "Autoresearch batch jobs on H100 (queued, preemptible)",
+      "flags": [
+        "alt",
+        "spot"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": null,
+      "gpu_only": true,
+      "features": {
+        "gpu": true
+      },
+      "pricing": "resource",
+      "vcpu_h": 0,
+      "ram_gib_h": 0,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes": null,
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": 0,
+      "granularity_s": 60,
+      "start_fee": 0,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": {
+        "H100": 2.97
+      },
+      "note": "$0.0495/min per GPU = $2.97/GPU-h, 25% below interactive. Queued time free; checkpoints survive preemption. Calendar discount reaches jobs only when cheaper still (Friday interactive $2.65 < $2.97; weekends $3.17 do not move jobs). Batch jobs capped at 85% of fleet."
+    },
+    {
+      "key": "reserved",
+      "label": "SF Compute market: reserved 8-GPU node time (orderbook buy)",
+      "flags": [],
+      "os": [
+        "linux"
+      ],
+      "regions": [
+        "us",
+        "eu"
+      ],
+      "gpu_only": true,
+      "features": {
+        "snapshot": "none",
+        "pause_resume": false,
+        "fork": false,
+        "persistent_disk": false,
+        "ssh": true,
+        "public_ipv4": true,
+        "raw_tcp_inbound": true,
+        "inbound_https": false,
+        "private_network": true,
+        "docker_inside": true,
+        "root": true,
+        "systemd": true,
+        "gpu": true,
+        "fork_running": false,
+        "memory_snapshot_fork": false
+      },
+      "pricing": "resource",
+      "vcpu_h": 0,
+      "ram_gib_h": 0,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes": null,
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": "You buy a node x time window up front on the orderbook (whole minutes, min 1 node x 1 minute, 8 GPUs per node); prepaid credit must cover the full contract. Unused time can be resold (seller pays a fixed per-node-hour + percentage platform fee; buyers pay no fees). SFC reports a 25% average realized discount via resale (2026-09-09).",
+      "min_billed_seconds": 60,
+      "granularity_s": 60,
+      "start_fee": 0,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": {
+        "H100": null,
+        "H200": null,
+        "B200": null
+      },
+      "note": "No fixed list price: price per node-hour is set by the orderbook per SKU and delivery window, so GPU rates are null. Illustrative official figures only: homepage resale widget \"Reserved price $3.00/gpu/hr\" (3-month example); docs orderbook example ~$17.42/node-h (~$2.18/GPU-h); old.sfcompute.com/prices \"H100 nodes from $1.50/gpu/hr\". Billed per node-minute including boot/idle. VMs (bare metal / managed Slurm via sales). No ingress/egress fees. Instances have no persistent storage."
+    },
+    {
+      "key": "spot",
+      "label": "SF Compute market: spot deployment (auto-buys at or below max rate)",
+      "flags": [
+        "spot",
+        "beta"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": [
+        "us",
+        "eu"
+      ],
+      "gpu_only": true,
+      "features": {
+        "snapshot": "none",
+        "pause_resume": false,
+        "fork": false,
+        "persistent_disk": false,
+        "ssh": true,
+        "public_ipv4": true,
+        "raw_tcp_inbound": true,
+        "inbound_https": false,
+        "private_network": true,
+        "docker_inside": true,
+        "root": true,
+        "systemd": true,
+        "gpu": true,
+        "fork_running": false,
+        "memory_snapshot_fork": false
+      },
+      "pricing": "resource",
+      "vcpu_h": 0,
+      "ram_gib_h": 0,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes": null,
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": 60,
+      "granularity_s": 60,
+      "start_fee": 0,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": {
+        "H100": null,
+        "H200": null,
+        "B200": null
+      },
+      "note": "Spot is a buying strategy on the same orderbook (immediate-or-cancel buys at or below --max-rate $/node-hour); you pay the matched seller price per node-minute for the whole contract block (min runtime 1 min-24 h), including boot/idle minutes. 2-minute preemption notice via metadata endpoint (none if min runtime <= 2 min); preemption adds no charge. Requires preview access. Prices market-set, so null."
+    }
+  ],
+  "storage": {
+    "included_disk_gib": null,
+    "disk_gib_month": null,
+    "disk_billed_when_stopped": true,
+    "snapshot_gib_month": 0.1,
+    "paused_ram_billed": false
+  },
+  "network": {
+    "egress_free_gib": null,
+    "egress_gib": 0,
+    "ipv4_month": null,
+    "ipv4_available": true
+  },
+  "plans": [
+    {
+      "name": "Prepaid credit (pay as you go)",
+      "fee": 0,
+      "flags": [],
+      "fee_is_credit": false,
+      "included_usd": 0,
+      "per_seat": 0,
+      "concurrency": null,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "No plan fee. Credit bought $10-$10,000 (whole cents), valid 12 months; promotional credit expires after 3 weeks; auto top-up default \"below $20 add $100\". Card never charged for usage after the fact; work parks/stops at $0. Monthly-invoice accounts move to prepaid credit on 2026-10-01. Spend caps count credit-paid usage."
+    },
+    {
+      "name": "Enterprise / bare metal / managed Slurm",
+      "fee": null,
+      "flags": [
+        "sales"
+      ],
+      "fee_is_credit": null,
+      "included_usd": null,
+      "per_seat": null,
+      "concurrency": null,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "Contact sales: bare metal, managed Slurm with InfiniBand, dedicated solutions engineer."
+    }
+  ],
+  "extras": [
+    {
+      "item": "Job builds",
+      "price": "$0.01/min, 300 min/month free"
+    },
+    {
+      "item": "Logs / traces",
+      "price": "$0.50/GB ingested, 5 GB/month free each"
+    },
+    {
+      "item": "Metrics",
+      "price": "$8 per 1,000 active series/month, first 10,000 free"
+    },
+    {
+      "item": "Node snapshot storage",
+      "price": "$0.10/GiB-month, 250 GiB free"
+    },
+    {
+      "item": "Object storage",
+      "price": "first 100 GB free, $0.10/GB-month to 10 TB, $0.07 to 100 TB, $0.05 to 1 PB, $0.035 beyond (prorated daily)"
+    },
+    {
+      "item": "Market resale platform fee",
+      "price": "fixed $/node-hour + % of sale value, set per org, unpublished"
+    }
+  ],
+  "free": {
+    "monthly_credit": 0,
+    "one_time_credit": 0
+  },
+  "features": {
+    "linux": true,
+    "windows": false,
+    "macos": false,
+    "arm64": false,
+    "gpu": true,
+    "gpu_types": [
+      "H100",
+      "H200",
+      "B200"
+    ],
+    "snapshot": "mem",
+    "pause_resume": true,
+    "fork": true,
+    "persistent_disk": true,
+    "volumes": false,
+    "auto_stop_idle": true,
+    "max_session_h": null,
+    "custom_image": true,
+    "docker_inside": null,
+    "nested_virt": null,
+    "root": true,
+    "systemd": null,
+    "browser": false,
+    "desktop": false,
+    "computer_use": false,
+    "code_interpreter": false,
+    "agent_harnesses": false,
+    "ssh": false,
+    "public_ipv4": false,
+    "inbound_https": null,
+    "custom_domain": false,
+    "raw_tcp_inbound": false,
+    "egress_allowlist": true,
+    "static_egress_ip": null,
+    "private_network": true,
+    "self_host": false,
+    "byoc": false,
+    "open_source": null,
+    "regions": [
+      "us",
+      "eu"
+    ],
+    "soc2": true,
+    "hipaa": null,
+    "sso": null,
+    "lang_python": null,
+    "lang_node": null,
+    "lang_go": null,
+    "lang_rust": null,
+    "lang_java": null,
+    "gpu_desktop": false,
+    "credential_injection": null,
+    "egress_http_rules": null,
+    "wake_on_request": null,
+    "live_resize": null,
+    "fork_running": null,
+    "memory_snapshot_fork": null,
+    "webhooks": null,
+    "scheduled_wakeups": null,
+    "audit_logs": true,
+    "eu_data_residency": null,
+    "zero_data_retention": null,
+    "scoped_api_keys": true,
+    "spend_limits": true,
+    "mcp_server": true
+  },
+  "perf": {
+    "cpu_runs_s": null,
+    "cold_start_ms": null,
+    "burst_tti_ms": 362.87,
+    "dax_s": 44.36
+  },
+  "perf_source": "computesdk (repo key \"givemeanode\" = Autoresearch sandboxes): burst_tti median 362.87 ms at 100 concurrent (2026-09-25), DAX total 44.36 s (2026-09-25, 8 vCPU / 31.4 GiB x86_64 env). No cold_start_tti row, no hpc CPU run. GPU VM boot (up to ~10 min) not benchmarked.",
+  "knobs": [
+    {
+      "id": "sandbox_running_share",
+      "label": "Share of sandbox time not parked (holding RAM)",
+      "kind": "slider",
+      "min": 0.05,
+      "max": 1,
+      "step": 0.05,
+      "default": 1,
+      "unit": "%",
+      "options": null,
+      "effect": "hours_factor",
+      "modes": [
+        "sandbox"
+      ],
+      "why": "Autoresearch sandboxes park after ~1.5 s idle and stop paying the $0.04572/GiB-h RAM rate on handed-back memory (parked disk ~$0.000139/GiB-h, ~330x cheaper). Vendor example: 13% tool use / 87% thinking. Only memory actually handed back is discounted."
+    },
+    {
+      "id": "calendar_discount",
+      "label": "Which days the work runs (US Pacific calendar discount)",
+      "kind": "select",
+      "min": null,
+      "max": null,
+      "step": null,
+      "default": 1,
+      "unit": null,
+      "options": [
+        {
+          "value": 1,
+          "label": "Mon-Thu only (no calendar discount)"
+        },
+        {
+          "value": 0.934,
+          "label": "22 weekdays incl. ~4.4 Fridays at 33% off (x0.934)"
+        },
+        {
+          "value": 0.895714,
+          "label": "Spread evenly over 7 days (Fri 33%, Sat/Sun 20% off, x0.896)"
+        },
+        {
+          "value": 0.8,
+          "label": "Weekends only (x0.80)"
+        },
+        {
+          "value": 0.67,
+          "label": "Fridays only (x0.67)"
+        }
+      ],
+      "effect": "rate_factor",
+      "modes": [
+        "cpu-node",
+        "h100-node"
+      ],
+      "why": "Autoresearch nodes: Fridays 33% off (cpu-2: 32%), Sat/Sun 20% off, applied to the minutes that run on those days. Not applied to sandboxes."
+    }
+  ],
+  "caveats": [
+    "Two products under one card: (1) the SF Compute GPU market (8-GPU node-hours bought/resold on an orderbook; reserved or spot; no list price, so GPU rates are null), and (2) Autoresearch/givemeanode (fixed per-minute list prices for sandboxes, CPU and H100 nodes, batch jobs). Benchmarks measured the Autoresearch sandboxes.",
+    "Sandbox rate is per GiB of RAM; vCPU is priced implicitly via a 4 GiB/core floor, so CPU-heavy/low-RAM shapes are expensive (4 vCPU/8 GiB bills as 16 GiB = $0.73/h flat-out). Parking can cut this by up to ~99% for idle-heavy agent loops (knob).",
+    "Autoresearch H100 list rate is $3.96/GPU-h ($0.066/min) on the live pricing table; llms.txt still implies $3.60 (\"$0.90 at the H100 list rate\" for a 15-min window) and the CLI example shows $0.0666/min - stale docs.",
+    "cpu-node vcpu = 2 x physical cores (assumption). cpu-8 \"33% off (CPU node launch pricing)\" - unclear whether $0.4824/h is pre- or post-discount.",
+    "Sandbox egress price unpublished; SF Compute specs page says \"No ingress/egress fees\" for GPU clusters, applied card-wide (egress_gib 0). Public IPv4 on market VMs is optional at create; price unpublished.",
+    "Sandbox snapshots: $0.10/GiB-month resident (deduplicated), $0.05/GiB-month cold in object store (first fork after cold pays a one-time rehydrate delay); live until deleted unless an expiry is set. Encoded at $0.10.",
+    "Market VMs: no persistent storage (terminate deletes data), boot up to ~10 min, billed per node-minute including boot; compute limits in node-hours per account. Market prices vary by SKU, zone and window; third-party reports ~$1.49-1.68/GPU-h H100 averages in Feb-Mar 2026 (spheron.network) - not official.",
+    "No free credit found (promotional credit exists but amount unpublished).",
+    "Billing migration is date-gated: the prepaid-credit model was announced 2026-09-22 for new accounts; existing monthly-invoice accounts move on 2026-10-01, and pre-October usage stays invoiced under the old rules. The July 29 $10-$10,000 prepayment option was optional. Cold $0.05 snapshot tier introduced 2026-08-22; node snapshot cut $0.11 -> $0.10 on 2026-07-29. (patch v8-history, 2026-09-28)",
+    "SSH: Autoresearch docs say \"There is no SSH. Commands run in the node's container\" and \"Nodes have no public address and no open ports\"; sandboxes are exec-over-API only, so features.ssh=false. The SF Compute market VMs (reserved/spot modes) keep their ssh:true override. (verified 2026-09-28, autoresearch.sfcompute.com/docs)",
+    "Sandbox disk: no included sandbox disk size and no running-disk rate are published (only the parked rate ~$0.000139/GiB-h on what a parked sandbox holds). included_disk_gib / disk_gib_month stay null. Nodes (cpu/h100) have a 250 GiB persistent volume (node_volume_gib default), parked at $0 when stopped. (2026-09-28)"
+  ],
+  "sources": [
+    "https://autoresearch.sfcompute.com/",
+    "https://autoresearch.sfcompute.com/llms.txt",
+    "https://autoresearch.sfcompute.com/docs",
+    "https://sfcompute.com/",
+    "https://sfcompute.com/specs",
+    "https://sfcompute.com/news/realized-discount",
+    "https://old.sfcompute.com/prices",
+    "https://docs.sfcompute.com/llms-full.txt",
+    "https://docs.sfcompute.com/preview/spot-deployments",
+    "https://docs.sfcompute.com/preview/orders",
+    "https://docs.sfcompute.com/preview/guides/reselling",
+    "https://www.computesdk.com/benchmarks/sandboxes/",
+    "https://www.spheron.network/blog/spheron-vs-sf-compute/"
+  ],
+  "fleet": {
+    "default_max_instances": null,
+    "default_max_vcpu": null,
+    "default_max_gpus": null,
+    "raise": "self-serve",
+    "raise_time_days": 1,
+    "verification": "Billing by saved card or prepaid credits; org admin must submit limit increase with reason.",
+    "tiers": "Autoresearch live limits are readable through list_limits/autor limits. Docs illustrate default 64 GPU nodes and 256 CPU nodes per member, not aggregate organization entitlement.",
+    "notes": "Requests up to raisable_to apply immediately; larger requests require explicit escalation and operator review, usually within one business day, no SLA. Scalar time describes human review, not self-serve. Organization spending cap and hard_max also apply; GPU node count is not GPU count.",
+    "sources": [
+      "https://autoresearch.sfcompute.com/docs"
+    ],
+    "researched": "2026-09-28"
+  }
+}

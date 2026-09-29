@@ -1,0 +1,14 @@
+# Devin: current self-serve usage versus enterprise ACUs
+As of 2026-09-28. Category: `agent-platform`. USD list prices unless explicitly labelled otherwise.
+| Regime | When / unit | Price | Caps / overage | Source |
+|---|---|---|---|---|
+| Free / Pro / Max | Quota then on-demand credits | $0 / $20 / $200 per month | Pro daily+weekly limits; Max larger weekly quota, no daily cap; quota amounts unpublished | [Self-serve](https://docs.devin.ai/admin/billing/self-serve), [pricing](https://devin.ai/pricing) |
+| Teams | Seats + prepaid credit minimum | $80/month minimum; full seat $40, flex seat $0 | Up to 200 members; shared on-demand credits | [Self-serve mechanics](https://docs.devin.ai/admin/billing/self-serve) |
+| Enterprise | Agent Compute Units (ACUs) | $/ACU **null**, contract-defined | Organization and per-user ACU caps block new work when exhausted | [Enterprise billing](https://docs.devin.ai/admin/billing/enterprise) |
+## Compute and accounting
+Usage includes agent actions/inference plus VM time and networking. Waiting for user/tests/setup has only small VM-related usage; sleeping costs nothing. Default idle-to-sleep is 30 minutes; Enterprise can request 5–120 minutes. Windows is approximately 9% more usage than equivalent Ubuntu work. macOS parity is explicitly promotional. Exact CPU/RAM/disk per session, ACUs/hour and marginal VM-only price are null. [Usage](https://docs.devin.ai/admin/billing/usage)
+## Conflicts and historical ACUs
+Current marketing headline says "$80/month ... + $40/mo per full dev seat", whereas detailed billing says a **minimum**: zero full seats includes $80 credits; one includes $40 credits; two full seats cost $80; three cost $120. Use the billing table for modeling and flag checkout verification. Marketing suggests individual concurrent limit 10, teams unlimited, while usage page broadly says no concurrent limits: don't treat unlimited as a guaranteed individual entitlement.
+Older public Core/Team ACU prices and claims that one ACU equals roughly 15 minutes are **not validated current list rates**. Archive attempts in raw returned unusable captures; no historical number is installed as current pricing.
+## Worked examples
+Two full Teams seats cost $80/month before usage beyond quotas under the documented minimum; not $160. Fifty full seats cost $2,000/month before overage. Fifty concurrent agents are not necessarily fifty seats. 8,800 worker-hours cannot be converted into ACUs or credits without observed workload consumption. Single Pro developer pays $20 plus optional overage, not a guaranteed 176 hours. Storage/egress obligations are bundled or unspecified, not independently priced snapshots.

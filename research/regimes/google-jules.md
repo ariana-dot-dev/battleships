@@ -1,0 +1,12 @@
+# Google Jules
+As of 2026-09-28. Category: `agent-platform`. USD list prices unless explicitly labelled otherwise.
+| Regime | When / unit | Price / allowance | Caps | Source |
+|---|---|---|---|---|
+| Free | Individual account, tasks | $0; 15 starts per rolling 24h | 3 concurrent | [Limits](https://jules.google/docs/usage-limits) |
+| Google AI Pro entitlement | Subscription, not standalone VM | US plan calculator lists $19.99/month or $199.99/year; confirm regional checkout | 100 tasks/24h, 15 concurrent | [Plans](https://one.google.com/about/google-ai-plans/), [limits](https://jules.google/docs/usage-limits) |
+| Google AI Ultra entitlement | Subscription | US plan calculator now lists $99.99/month for 20 TB Ultra; confirm that selected Ultra variant carries Jules entitlement | 300 tasks/24h, 60 concurrent | [Plans](https://one.google.com/about/google-ai-plans/), [limits](https://jules.google/docs/usage-limits) |
+## Compute, caps and overage
+Hosted coding-task environment and Gemini inference bundled; CPU/RAM/disk, reserved VM duration, egress and snapshot tariff null. Paid access requires eligible individual Google account; task quotas are individual, not pooled across family members. Once daily starts are exhausted, new tasks stop until rolling-window reset; existing tasks remain accessible. No per-task overage tariff was established. [Usage limits](https://jules.google/docs/usage-limits)
+## Worked examples / gotchas
+One developer's ten task starts/day fits the free daily allowance but only three can run concurrently; this is not ten hours. Fifty concurrent tasks require Ultra's documented concurrency (subject to actual availability), and 50 starts/day would be below its 300 limit. Neither entitlement guarantees eight-hour task lifetime or a 4/8 machine, so 8,800 VM-hours and monthly compute dollars are **not derivable**. Storage 50 GiB and 100 GiB egress cannot be priced. Do not divide subscription price by task quota and label the result a published marginal task price.
+Price-source caveat: direct Chrome localized to France. Official web retrieval of the same Google One page showed United States and the explicit $19.99/$99.99 calculator values. The older $249.99 Ultra launch price is not reused as current. Jules' limits page does not price distinct newer Ultra variants, so entitlement should be checked before assuming every Ultra entry tier has 60 concurrent tasks.
