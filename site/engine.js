@@ -248,15 +248,28 @@
       else {
         const minMin = num(m.min_billed_seconds) / 60;
         const gran = Math.max(1, num(m.granularity_s, 1)) / 60;
-        let minutes = Math.max(W.sessionMin * (opts.perf ? perfFactor : 1), minMin);
-        minutes = Math.ceil(minutes / gran - 1e-9) * gran + num(m.boot_overhead_s) / 60;
-        const hours = W.sessions * minutes / 60;
+        const workMin = W.sessionMin * (opts.perf ? perfFactor : 1);
+        let hours, starts;
+        if (W.pooled && W.concurrency > 0) {
+          // worker pool: the machines running at once stay up and take task after task, restarted once a day.
+          // Per-start minimums, rounding and boot time apply to those worker starts, not to every task.
+          starts = Math.max(1, W.concurrency) * 30;
+          const workH = W.sessions * workMin / 60, perStartH = workH / starts;
+          const billedPerStart = Math.ceil(Math.max(perStartH * 60, minMin) / gran - 1e-9) * gran + num(m.boot_overhead_s) / 60;
+          hours = starts * billedPerStart / 60;
+          out.notes.push(`priced as a pool of ${Math.max(1, W.concurrency)} machine${W.concurrency > 1 ? 's' : ''} reused across tasks`);
+          out.reused = Math.max(1, W.concurrency);
+        } else {
+          let minutes = Math.max(workMin, minMin);
+          minutes = Math.ceil(minutes / gran - 1e-9) * gran + num(m.boot_overhead_s) / 60;
+          hours = W.sessions * minutes / 60; starts = W.sessions;
+        }
         const b = addInto({}, h.parts, hours);
         if (h.monthCap != null) {
           const capTotal = Math.max(1, W.concurrency) * h.monthCap, raw = h.total * hours;
           if (raw > capTotal) { const s = capTotal / raw; for (const k in b) b[k] *= s; out.notes.push('monthly cap reached'); }
         }
-        b.fees = W.sessions * num(m.start_fee);
+        b.fees = starts * num(m.start_fee);
         // Reuse: if minimums / rounding make one-machine-per-session dearer than keeping the peak number of
         // machines on all month and running sessions back-to-back on them, a real user would do the latter.
         const warmN = Math.max(1, W.concurrency);
