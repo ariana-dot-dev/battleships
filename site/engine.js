@@ -55,11 +55,17 @@
   // A full virtual machine (plain VM / dedicated server, or a microVM with its own kernel and root) runs Docker and has
   // root + SSH-able userland by construction: don't call those "unverified" just because a docs page never says so.
   const VM_ISOLATION = /firecracker|cloud-hypervisor|qemu|bare-metal|kvm|microvm|\bvm\b/i;
+  // merged card + mode features; depends only on card data, so it is cached per (card, mode) object and returned frozen
+  const featCache = new WeakMap();
   const modeFeatures = (card, m) => {
+    const key = m || card, hit = featCache.get(key);
+    if (hit && hit.card === card && hit.cf === card.features && hit.mf === (m && m.features)) return hit.f;
     const f = Object.assign({}, card.features || {}, (m && m.features) || {});
     const cls = productClass(card, m);
     const isVM = ['vm', 'dedicated'].includes(cls) || (f.root === true && VM_ISOLATION.test(String(f.isolation || card.isolation || '')));
     if (isVM) for (const k of ['docker_inside', 'root']) if (f[k] === null || f[k] === undefined) f[k] = true;
+    Object.freeze(f);
+    featCache.set(key, { card, cf: card.features, mf: m && m.features, f });
     return f;
   };
 
@@ -654,6 +660,14 @@
     if (r0 && r0.eligible && known(r0.total)) r0.perHour = usefulHours(W) > 0 ? r0.total / usefulHours(W) : null;
     return r0;
   }
+  // A relaxation that changes nothing for this workload can't make a card fit: skip it (same results, far fewer re-pricings)
+  function noopStep(s, W, opts) {
+    if (s.id === 'arch') return W.arch !== 'arm64';
+    const sameW = !s.w || Object.entries(s.w).every(([k, v]) => W[k] === v);
+    const sameO = !s.o || Object.entries(s.o).every(([k, v]) => Array.isArray(v) ? (opts[k] || []).length === v.length
+      : v === 'any' ? (opts[k] == null || opts[k] === 'any') : opts[k] === v);
+    return sameW && sameO;
+  }
   function priceSoftInner(card, W, opts) {
     const strict = priceCard(card, W, opts);
     const wantsBrowser = (opts.required || []).some(k => ['browser', 'desktop', 'computer_use'].includes(k));
@@ -738,7 +752,7 @@
       { id: 'state', w: { snapshotGiB: 0 } },
       { id: 'ipv4', w: { ipv4: 0 } },
       { id: 'feat', o: { required: [] } },
-    ].filter(s => !(s.id === 'gpu' && !wantGpu));
+    ].filter(s => !(s.id === 'gpu' && !wantGpu)).filter(s => !noopStep(s, W, opts));
     const build = ids => {
       let w = W, o = opts;
       for (const s of steps) if (ids.includes(s.id)) { if (s.w) w = Object.assign({}, w, s.w); if (s.o) o = Object.assign({}, o, s.o); }

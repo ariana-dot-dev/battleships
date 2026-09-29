@@ -1,6 +1,8 @@
-# PRICEMOGGED
+# PriceMogged
 
 The most comprehensive comparison of platforms offering cloud runtime / sandbox / VM compute for agents.
+
+**Live at [pricemogged.com](https://pricemogged.com).**
 
 Describe your workload (how many machines, how big, how long, how busy, what they must support) and every provider is priced for it, from its public pricing pages. Providers that can't run the workload are listed with the reasons, and one click drops the requirement that excluded them.
 

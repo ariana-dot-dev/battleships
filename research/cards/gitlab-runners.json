@@ -53,8 +53,8 @@
       "requires_always_on": false,
       "always_on_month_per_instance": null,
       "commit_note": null,
-      "min_billed_seconds": 60,
-      "granularity_s": 60,
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
       "start_fee": 0,
       "boot_overhead_s": null,
       "multiplier": 1,
@@ -65,7 +65,10 @@
       "plans": [
         "Premium",
         "Ultimate"
-      ]
+      ],
+      "features": {
+        "custom_image": false
+      }
     },
     {
       "key": "windows",
@@ -106,15 +109,18 @@
       "requires_always_on": false,
       "always_on_month_per_instance": null,
       "commit_note": null,
-      "min_billed_seconds": 60,
-      "granularity_s": 60,
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
       "start_fee": 0,
       "boot_overhead_s": null,
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
       "note": "Windows 2022; cost factor 1; all tiers. docs.gitlab.com/ci/runners/hosted_runners/windows (2026-09-28): \"Hosted runners on Windows are in beta\"; Free/Premium/Ultimate; provisioning averages ~5 minutes during beta.",
-      "product_class": "ci-runner"
+      "product_class": "ci-runner",
+      "features": {
+        "custom_image": false
+      }
     },
     {
       "key": "linux",
@@ -311,6 +317,69 @@
         "us"
       ],
       "product_class": "ci-runner"
+    },
+    {
+      "key": "linux-gpu",
+      "label": "GitLab.com hosted Linux GPU (T4) (Premium/Ultimate)",
+      "flags": [],
+      "os": [
+        "linux"
+      ],
+      "gpu_only": true,
+      "pricing": "sizes",
+      "vcpu_h": null,
+      "ram_gib_h": null,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes": [
+        {
+          "name": "saas-linux-medium-amd64-gpu-standard",
+          "vcpu": 4,
+          "ram_gib": 15,
+          "disk_gib": 50,
+          "hour": 0,
+          "month_cap": null
+        }
+      ],
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
+      "start_fee": 0,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": {
+        "T4": 4.2
+      },
+      "gpu_min_count": null,
+      "features": {
+        "gpu": true,
+        "gpu_types": [
+          "T4"
+        ]
+      },
+      "note": "CI runner. 4 vCPU / 15 GB / 50 GB + 1 NVIDIA Tesla T4 (or similar, 16 GB), cost factor 7 x $0.01/compute-minute = $0.07/min = $4.20/h all-in (bundled price put on the GPU line, size hour 0). Premium/Ultimate only. Runs in Google Cloud us-central1. Bring your own CUDA image.",
+      "regions": [
+        "us"
+      ],
+      "plans": [
+        "Premium",
+        "Ultimate"
+      ],
+      "product_class": "ci-runner"
     }
   ],
   "storage": {
@@ -335,11 +404,16 @@
       "included_usd": 4,
       "per_seat": 0,
       "concurrency": null,
-      "max_session_h": null,
+      "max_session_h": 3,
       "max_vcpu": null,
       "max_ram_gib": null,
-      "sizes_allowed": null,
-      "note": "400 compute minutes/month (= $4 at $10/1,000). No macOS runners.",
+      "sizes_allowed": [
+        "saas-linux-small-amd64",
+        "saas-linux-medium-amd64",
+        "saas-linux-small-arm64",
+        "saas-windows-medium-amd64 (2 vCPU / 7.5 GB, factor 1)"
+      ],
+      "note": "400 compute minutes/month (= $4 at $10/1,000) per namespace. 5 users per top-level group. Linux small/medium x86, Linux small arm64 and Windows only (no macOS, no Linux large+/arm64 medium+/GPU). Identity verification (email/phone/card by risk score) required to run CI jobs. Quota exhausted => instance runners stop processing new jobs (no automatic overage).",
       "included_applies_to_modes": null
     },
     {
@@ -350,11 +424,11 @@
       "included_usd": 100,
       "per_seat": 29,
       "concurrency": null,
-      "max_session_h": null,
+      "max_session_h": 3,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "$29/user/month billed annually; 10,000 compute minutes/month (= $100). Encoded as 1 user.",
+      "note": "$29/user/month billed annually (annual prepay only: $348/user/year minimum; seats can only be reduced at renewal); 10,000 compute minutes/month per top-level namespace (= $100), not per seat. Encoded as 1 user. Also includes promo $12/user/month GitLab Credits (AI features only, not runners).",
       "included_applies_to_modes": null
     },
     {
@@ -367,7 +441,7 @@
       "included_usd": 500,
       "per_seat": 0,
       "concurrency": null,
-      "max_session_h": null,
+      "max_session_h": 3,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
@@ -384,19 +458,21 @@
     "windows": true,
     "macos": true,
     "arm64": true,
-    "gpu": false,
-    "gpu_types": [],
+    "gpu": true,
+    "gpu_types": [
+      "T4"
+    ],
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
     "persistent_disk": false,
     "volumes": false,
     "auto_stop_idle": true,
-    "max_session_h": null,
-    "custom_image": false,
+    "max_session_h": 3,
+    "custom_image": true,
     "docker_inside": true,
     "nested_virt": null,
-    "root": null,
+    "root": true,
     "systemd": false,
     "browser": true,
     "desktop": false,
@@ -409,7 +485,7 @@
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": null,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": false,
     "self_host": true,
     "byoc": false,
@@ -433,7 +509,7 @@
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
-    "scheduled_wakeups": null,
+    "scheduled_wakeups": true,
     "audit_logs": true,
     "eu_data_residency": false,
     "zero_data_retention": null,
@@ -450,11 +526,14 @@
   "knobs": [],
   "caveats": [
     "$ per compute minute = extra-minute pack price ($10 per 1,000, one-time); included plan minutes are consumed x cost factor.",
-    "macOS and Windows runners are beta; macOS needs Premium/Ultimate. Linux runners (factor 1/2/3 for small/medium/large) not encoded.",
-    "Rounding/minimum per job not stated; per-minute assumed.",
+    "macOS and Windows runners are beta; macOS needs Premium/Ultimate (or the OSS program). Linux x86 (factors 1/2/3/6/12), Linux arm64 (1/2/3) and GPU T4 (factor 7) are encoded as separate modes.",
+    "Usage = job duration in seconds / 60 x cost factor (created/pending time excluded); no per-job minimum documented, so per-second metering is encoded for all modes.",
     "Open-source program projects get reduced cost factors (not encoded).",
     "Linux runner hourly = cost factor x $0.01/compute-minute (extra-minute pack price); included minutes are cost-factor minutes, so included_usd = minutes x $0.01 applies to every Linux size.",
-    "Arm64 medium/large are Premium/Ultimate-only; the engine may pick them on Free."
+    "Arm64 medium/large are Premium/Ultimate-only; the engine may pick them on Free.",
+    "Included plan minutes are a hard quota: when used up, instance runners stop processing new jobs and running jobs are dropped after 1,000 minutes over quota. Overage only via prepaid $10/1,000-minute packs (valid 12 months, roll over). Engine treating overage as automatic pay-as-you-go is optimistic.",
+    "Hosted runner jobs time out after 3 hours; VMs are single-job and deleted afterwards; no inbound connections.",
+    "Open-source program public projects: cost factor 0.5 (forks 0.008); OSS/Education/Startups programs get free Ultimate with 50K minutes/month."
   ],
   "sources": [
     "https://docs.gitlab.com/ci/pipelines/compute_minutes/",
@@ -471,11 +550,16 @@
     "raise_time_days": null,
     "verification": "GitLab.com Free may require identity verification before CI jobs can run.",
     "tiers": null,
-    "notes": "Hosted jobs each use a fresh VM. Monthly compute-minute quotas and supported runner sizes are documented, but no universal fresh-account simultaneous VM count established. Do not use self-managed runner concurrent setting or Dedicated stack 1,000-job limit for GitLab.com Free.",
+    "notes": "Hosted jobs each use a fresh VM. No documented simultaneous-VM cap for GitLab.com hosted runners. Documented GitLab.com limits: max jobs in active (created/pending/running) pipelines per project 500 Free / 1,000 trial / 20,000 Premium / 60,000 Ultimate; max jobs per pipeline 500/1,000/1,500/2,000; pipeline creation 25 per minute per project+commit+user; job timeout 3 h. macOS runs on limited AWS bare-metal capacity (extended queueing possible); Windows VMs take ~5 min to provision (pending time is not billed). When the monthly quota is used up, new jobs stop and running jobs are dropped after a 1,000-minute grace.",
     "sources": [
       "https://docs.gitlab.com/ci/runners/hosted_runners/",
       "https://docs.gitlab.com/ci/debugging/"
     ],
     "researched": "2026-09-28"
+  },
+  "audit_2026_09_29": {
+    "applied": 18,
+    "source": "checked against the provider's live pricing and docs pages",
+    "reviewed": 8
   }
 }

@@ -26,8 +26,23 @@ module.exports = function genBench(B, nameOf) {
     out.push(`| ${name(id)} | ${ms(c.median_ms)} | ${ms(u.median_ms)} | ${ms(u.wall_clock_ms)} | ${pct(u.success_rate ?? c.success_rate)} |`); }
   out.push('', 'Source: [ComputeSDK benchmarks](https://github.com/computesdk/computesdk), latest runs to 2026-09-25. boat.dev is not in ComputeSDK yet, so it has no row here.', '');
 
+  // ---- real repositories end to end (StarSling run, all providers on the same 4 vCPU / 8 GB target)
+  const S = Object.entries(P).filter(([, p]) => p.starsling).map(([id, p]) => ({ id, s: p.starsling }));
+  if (S.length) {
+    const sv = (s, k) => (s[k] || {}).value;
+    S.sort((a, b) => (sv(a.s, 'realworld.better_auth_total') ?? 1e9) - (sv(b.s, 'realworld.better_auth_total') ?? 1e9));
+    const best = k => Math.min(...S.map(x => sv(x.s, k)).filter(x => x != null));
+    const rel = (x, k, lower) => x == null ? '–' : (lower ? x / best(k) : Math.max(...S.map(y => sv(y.s, k)).filter(v => v != null)) / x);
+    const cell = (x, k, lower, d) => x == null ? '–' : `${num(x, d)}${lower ? ' s' : ''}${(lower ? x === best(k) : x === Math.max(...S.map(y => sv(y.s, k)).filter(v => v != null))) ? ' (fastest)' : ` (×${rel(x, k, lower).toFixed(2)})`}`;
+    out.push('## Real repositories, end to end', '',
+      'Three real open-source repos run through their own CI (clone, install, lint, typecheck, build, test) on 12 fresh sandboxes per provider, all at 4 vCPU / 8 GB. Lower is better; ×N is how many times slower than the fastest.', '',
+      '| Provider | Better Auth | Mastra | OpenClaw | CPU (Node.js, runs/s) |', '|---|---:|---:|---:|---:|');
+    for (const { id, s } of S) out.push(`| ${s.label === 'boat' ? 'boat.dev' : s.label} | ${cell(sv(s, 'realworld.better_auth_total'), 'realworld.better_auth_total', true, 1)} | ${cell(sv(s, 'realworld.mastra_total'), 'realworld.mastra_total', true, 0)} | ${cell(sv(s, 'realworld.openclaw_total'), 'realworld.openclaw_total', true, 0)} | ${cell(sv(s, 'cpu.node_js_web_tooling'), 'cpu.node_js_web_tooling', false, 2)} |`);
+    out.push('', 'Source: [StarSling hpc-sandbox-benchmarks](https://starsling.dev/hpc-sandbox-benchmarks), run of 2026-09-29 ([raw data](https://github.com/starslingdev/hpc-sandbox-benchmarks)). tama had provisioning failures and did not finish OpenClaw.', '');
+  }
+
   // ---- real work on the same machine
-  const H = ['boat-bare-metal', 'blaxel', 'daytona', 'novita', 'e2b', 'modal-vm', 'modal'].filter(id => P[id] && P[id].hpc);
+  const H =['boat-bare-metal', 'blaxel', 'daytona', 'novita', 'e2b', 'modal-vm', 'modal'].filter(id => P[id] && P[id].hpc);
   const v = (id, k) => (P[id].hpc[k] || {}).value;
   const cols = [
     ['realworld.better_auth_git_clone', 'Clone a repo', x => `${num(x, 1)} s`],

@@ -106,7 +106,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Same $/h ladder as standard but double RAM per vCPU. Eco = AMD EPYC Milan (\"half the cores\" of the same-priced standard type), max 20 GB disk, no volumes, only in Washington D.C./Frankfurt/Singapore. Offered on Starter/Pro/Scale (instance catalog require_plan). Whether sandboxes may use eco types is not documented (assumed yes). Per second while running; deep sleep = $0. Eco does NOT support Light Sleep (catalog light_sleep_enabled=false): scale-to-zero on eco is deep sleep only (VM discarded, 1-5 s cold start)."
+      "note": "Same $/h ladder as standard but double RAM per vCPU. Eco = AMD EPYC Milan (\"half the cores\" of the same-priced standard type), max 20 GB disk, no volumes, only in Washington D.C./Frankfurt/Singapore. Offered on Starter/Pro/Scale (instance catalog require_plan). Whether sandboxes may use eco types is not documented. Per second while running. Eco does NOT support Scale-to-Zero at all (docs: Scale-to-Zero needs a Standard CPU or GPU Instance; catalog light_sleep_enabled=false): an eco sandbox never sleeps, so it bills at the full rate until it is deleted (delete_after_delay min 60 s; delete_after_inactivity_delay depends on scale-to-zero and so does not apply). The SDK default sandbox (idle_timeout=300 -> min scale 0) assumes scale-to-zero, so eco sandboxes may be rejected or need idle_timeout=0 (always on)."
     },
     {
       "key": "standard",
@@ -263,7 +263,7 @@
       "vcpu_options": null,
       "min_vcpu": null,
       "max_vcpu": 15,
-      "max_ram_gib": 180,
+      "max_ram_gib": 240,
       "sizes": null,
       "pool_tiers": null,
       "requires_always_on": false,
@@ -499,15 +499,15 @@
       "H200",
       "B200"
     ],
-    "snapshot": "none",
+    "snapshot": "mem",
     "pause_resume": true,
-    "fork": false,
+    "fork": true,
     "persistent_disk": false,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
+    "docker_inside": true,
     "nested_virt": null,
     "root": null,
     "systemd": null,
@@ -521,20 +521,20 @@
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": true,
-    "egress_allowlist": false,
+    "egress_allowlist": true,
     "static_egress_ip": false,
     "private_network": true,
     "self_host": false,
-    "byoc": null,
+    "byoc": true,
     "open_source": null,
     "regions": [
       "us",
       "eu",
       "asia"
     ],
-    "soc2": null,
+    "soc2": true,
     "hipaa": null,
-    "sso": null,
+    "sso": true,
     "lang_python": true,
     "lang_node": true,
     "lang_go": true,
@@ -546,14 +546,14 @@
     "wake_on_request": true,
     "live_resize": null,
     "fork_running": false,
-    "memory_snapshot_fork": false,
+    "memory_snapshot_fork": true,
     "webhooks": false,
     "scheduled_wakeups": null,
-    "audit_logs": null,
+    "audit_logs": true,
     "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
-    "spend_limits": null,
+    "spend_limits": false,
     "mcp_server": true,
     "isolation": "cloud-hypervisor",
     "image_oci": true
@@ -591,7 +591,7 @@
     "Eco eligibility for sandboxes is undocumented. Eco-xlarge fits 4/8 exactly at $0.0576/h; standard needs xlarge 8/8 at $0.1152/h. Eco = older Milan CPUs, 20 GB disk max, no volumes, was/fra/sin only.",
     "Light Sleep (~200 ms wake) is free only during public preview; a GA price is announced but unpublished. Deep sleep and paused services are $0. The idle period before sleeping (min 5 min) is billed at the full rate.",
     "'CPU concurrency' 100 (Pro) / 1,000 (Scale) may count vCPUs rather than instances; if vCPUs, 50 x 4-vCPU sandboxes require Scale.",
-    "No sandbox snapshot/fork API. Volumes (preview, 1-10 GB, was/fra, not eco) and volume snapshots are free during preview; an unverified search snippet cites 10 GB free then $0.08/GB-month. snapshot_gib_month null.",
+    "Sandbox snapshots (FILESYSTEM, or FULL with running processes) and spawn-from-snapshot exist only in the official SDK (koyeb-sdk >= 1.5.2, 2026-08-27, labelled experimental); not documented on koyeb.com and no snapshot price published (snapshot_gib_month null). Volumes (preview, 1-10 GB, was/fra, standard/GPU only, not eco) and volume snapshots were 'free during the public preview' (blog); an unverified search snippet cites 10 GB free then $0.08/GB-month.",
     "Bandwidth: pricing page = 1 TB/mo included on Pro/Scale then $0.02/GB US/EU, $0.04/GB Asia; the older FAQ says 100 GB free then $0.04/GB. Engine uses the pricing page.",
     "features.max_session_h set null (the features file's 24 h is the optional auto-delete maximum, not a forced session limit). delete_after_inactivity_delay max 12 h after scale-to-zero.",
     "Savings-plan mode uses the published best case (50% off); actual discounts are negotiated.",
@@ -600,7 +600,11 @@
     "No benchmark data for Koyeb in benchmarks.json.",
     "Verifier 2026-09-28 (pricing page embedded instance catalog): GPU regions corrected from us/eu/asia to us (na) + eu (RTX-4000-SFF-ADA only); L4 and B200 removed from the priced GPU map because their catalog status is RESTRICTED (no regions); eco instances have light_sleep_enabled=false (deep sleep only). Standard, eco and GPU hourly prices, plan fees/included usage, concurrency and bandwidth re-confirmed.",
     "Data residency (DPA): Customer Data stays in the selected region but may move between datacenters within it; global edge routing is not extra compute regions. Core regions FRA, PAR, SIN, TYO, WAS, aws-us-east-1; SFO preview on paid plans. Eco only FRA/WAS/SIN. Egress: $0.02/GB US/EU, $0.04/GB Asia after 1 TB/month (card egress_gib is the US/EU rate). eco-nano hour = per-second $0.0000006 x 3600 = $0.00216 (display rounds to $0.0022). (patches v10-regional, v5-calculators, 2026-09-28)",
-    "Official pages conflict: the live pricing page omits Starter and says Enterprise starts at $1,000/month, while the organization reference (updated May 27, 2026) says Starter is available to all users with a valid payment method and Enterprise has a $700/month committed cost. Keep pricing-page values for ranking, but do not present Starter closure or $1,000 as undisputed."
+    "Official pages conflict: the live pricing page omits Starter and says Enterprise starts at $1,000/month, while the organization reference (updated May 27, 2026) says Starter is available to all users with a valid payment method and Enterprise has a $700/month committed cost. Keep pricing-page values for ranking, but do not present Starter closure or $1,000 as undisputed.",
+    "Aggregate cap: the General FAQ says 'With the Scale plan, you can use up to 1TB of memory and up to 1000 services.' So Scale is also capped at ~1 TB of concurrently running RAM (e.g. 125 x 8 GiB sandboxes), and 'CPU concurrency' 100/1,000 most likely counts vCPUs, not instances (unconfirmed). Large fleets need Enterprise.",
+    "Sandbox SDK defaults: instance_type 'micro' (0.5 vCPU/512 MB, $0.0072/h), region 'na', idle_timeout 300 s -> deep sleep after 5 min (min scale 0); Light Sleep for sandboxes is only an '_experimental_enable_light_sleep' flag. idle_timeout=0 means always-on (min scale 1).",
+    "Billing clock: 'Paid usage begins when an Instance has been created and the Deployment has a Starting status', so image pull/boot time is billed (boot_overhead_s unknown). Usage 'accounted per second and billing is rounded up to the nearest unit'; no minimum billed duration is documented.",
+    "Terms: Fees depend on Authorized Users and Services; exceeding the plan's included users/services is 'charged based on usage' but no per-user/per-service price is published. Starter orgs are limited to 1 member (org doc)."
   ],
   "sources": [
     "https://www.koyeb.com/pricing",
@@ -633,7 +637,8 @@
     "researched": "2026-09-28"
   },
   "audit_2026_09_29": {
-    "applied": 1,
-    "source": "checked against the provider's live pricing and docs pages"
+    "applied": 8,
+    "source": "checked against the provider's live pricing and docs pages",
+    "reviewed": 9
   }
 }

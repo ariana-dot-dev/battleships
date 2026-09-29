@@ -44,19 +44,19 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": ""
+      "note": "Billed per second on CPU and memory a sandbox holds while live (pricing page example: 1 vCPU/2 GB = ~$0.064/h). Sandbox size is fixed by the template: the create API (CreateSandboxRequest) has no vCPU/RAM parameter and per-template sizes/max sizes are not published. Docs meter 'CPU-core-hours' while the site prices per vCPU-hour. Running disk is metered (Disk-GB-hours) at an unpublished rate. Forks share parent RAM copy-on-write; whether RAM billing is nominal or resident pages is not stated. Spawn and fork are free; no minimum billed time stated."
     }
   ],
   "storage": {
     "included_disk_gib": null,
     "disk_gib_month": null,
-    "disk_billed_when_stopped": true,
+    "disk_billed_when_stopped": false,
     "snapshot_gib_month": 0.1,
     "paused_ram_billed": false
   },
   "network": {
     "egress_free_gib": null,
-    "egress_gib": null,
+    "egress_gib": 0,
     "ipv4_month": null,
     "ipv4_available": null
   },
@@ -74,7 +74,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Free, no card: 2 concurrent sandboxes, 1 hour each. Trial only."
+      "note": "Free, no card, no dollar credits: 2 concurrent sandboxes, 1-hour max session, shared capacity and shared request-rate cap; no outbound network (in-guest only), no inbound connect-url, catalog templates only (no BYO image). Fork group up to 1,000. Usage metered but priced $0."
     },
     {
       "name": "Pro",
@@ -104,17 +104,17 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Unknown limits are not promises of unlimited capacity."
+      "note": "Custom, invoiced (sales). Pricing page and limits docs state unlimited concurrency and session length (API applies no cap); dedicated nodes, SSO, BYOC, SLA. Live-fork per-call count 64."
     }
   ],
   "free": {
-    "monthly_credit": null,
-    "one_time_credit": null
+    "monthly_credit": 0,
+    "one_time_credit": 0
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
+    "windows": false,
+    "macos": false,
     "arm64": null,
     "gpu": null,
     "snapshot": "mem",
@@ -129,14 +129,14 @@
     "nested_virt": null,
     "root": null,
     "systemd": null,
-    "browser": null,
+    "browser": true,
     "desktop": null,
     "computer_use": null,
     "code_interpreter": true,
     "agent_harnesses": null,
     "ssh": null,
     "public_ipv4": null,
-    "inbound_https": null,
+    "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
@@ -150,8 +150,8 @@
     "sso": true,
     "gpu_types": [],
     "regions": [],
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -169,9 +169,9 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": null
+    "image_oci": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -184,14 +184,25 @@
     "Public list pricing. Demo is free; Pro pays allocated live resources per second. Live fork and spawn are free. Suspend retains full memory and filesystem state.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
-    "Re-checked 2026-09-28 (collimate.ai/pricing, docs llms.txt): only vCPU $0.040/h, RAM $0.012/GB-h and suspended storage $0.10/GB-month are published. Running-disk size/price, egress price, SSH and desktop/browser support are not documented (left null)."
+    "Re-checked 2026-09-28 (collimate.ai/pricing, docs llms.txt): only vCPU $0.040/h, RAM $0.012/GB-h and suspended storage $0.10/GB-month are published. Running-disk size/price, egress price, SSH and desktop/browser support are not documented (left null).",
+    "Running disk is metered (Disk-GB-hours while running) but no rate or per-sandbox disk size is published; estimate omits it.",
+    "Request rate is 'per-tenant, high' on Pro (no number published); exceeding it returns 429 rate_limited. Live-fork per call capped at 32 children on Pro, 64 on Enterprise (chunk with fork_group). Exec timeout_seconds <= 3600.",
+    "Sessions over the tier max (Demo 1 h, Pro 24 h) are reaped (deleted), not paused; suspend before the cap.",
+    "Operator/billing: Collimate is operated by Gero Consulting (Israeli sole proprietorship); Paddle is Merchant of Record; prices may exclude tax; usage non-refundable; metered rates may change prospectively without the 30-day notice that applies to recurring fees.",
+    "Docs pricing page, auth tiers table and Refund Policy mention a monthly Pro base fee (amount unpublished); the marketing pricing page says 'no platform fee'. Treat Pro fee as uncertain (possible hidden floor)."
   ],
   "sources": [
     "https://collimate.ai/pricing",
     "https://docs.collimate.ai/llms.txt",
     "https://docs.collimate.ai/core/lifecycle/",
     "https://docs.collimate.ai/core/egress/",
-    "https://docs.collimate.ai/self-hosting/helm/"
+    "https://docs.collimate.ai/pricing/",
+    "https://docs.collimate.ai/reference/limits/",
+    "https://docs.collimate.ai/start/authentication/",
+    "https://docs.collimate.ai/core/templates/",
+    "https://docs.collimate.ai/cookbook/access-models/",
+    "https://collimate.ai/refunds",
+    "https://collimate.ai/terms"
   ],
   "fleet": {
     "default_max_instances": 2,
@@ -209,7 +220,8 @@
     "researched": "2026-09-28"
   },
   "audit_2026_09_29": {
-    "applied": 2,
-    "source": "checked against the provider's live pricing and docs pages"
+    "applied": 13,
+    "source": "checked against the provider's live pricing and docs pages",
+    "reviewed": 8
   }
 }

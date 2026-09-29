@@ -30,8 +30,8 @@
       "ram_fixed_per_vcpu": null,
       "vcpu_options": null,
       "min_vcpu": 1,
-      "max_vcpu": 4,
-      "max_ram_gib": 4,
+      "max_vcpu": 10,
+      "max_ram_gib": 20,
       "sizes": null,
       "pool_tiers": null,
       "requires_always_on": false,
@@ -68,10 +68,10 @@
       "fee_is_credit": false,
       "included_usd": 0,
       "per_seat": 0,
-      "concurrency": null,
+      "concurrency": 20,
       "max_session_h": null,
-      "max_vcpu": 4,
-      "max_ram_gib": 4,
+      "max_vcpu": 10,
+      "max_ram_gib": 20,
       "sizes_allowed": null,
       "note": "No fee, no card to start. Per-team active-sandbox limit exists (429 too_many_sandboxes) but its value is unpublished; raise via support. New teams capped at 2 vCPU / 2 GiB per sandbox."
     },
@@ -111,14 +111,14 @@
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
+    "docker_inside": true,
     "nested_virt": null,
     "root": true,
     "systemd": null,
     "browser": null,
     "desktop": false,
     "computer_use": false,
-    "code_interpreter": null,
+    "code_interpreter": true,
     "agent_harnesses": true,
     "ssh": null,
     "public_ipv4": false,
@@ -128,12 +128,14 @@
     "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": false,
-    "self_host": null,
-    "byoc": null,
-    "open_source": null,
-    "regions": null,
-    "soc2": null,
-    "hipaa": null,
+    "self_host": true,
+    "byoc": true,
+    "open_source": false,
+    "regions": [
+      "us"
+    ],
+    "soc2": true,
+    "hipaa": true,
     "sso": null,
     "lang_python": true,
     "lang_node": true,
@@ -167,7 +169,7 @@
   "perf_source": "benchmarks.json computesdk: cold_start_tti median 316.3 ms (2026-08-07), burst_tti median 516.33 ms at 100 concurrency (2026-09-25), DAX total 94.14 s (2026-09-25; env 8 logical CPUs / 15.7 GiB / x86_64 - larger than the documented 4 vCPU ceiling, so the benchmark account likely had raised limits). No hpc CPU run.",
   "knobs": [],
   "caveats": [
-    "Hard per-sandbox ceiling 4 vCPU / 4 GiB RAM / 8 GiB disk (docs build-spec); new teams 2 vCPU / 2 GiB. The OpenAPI schema accepts up to 10 vCPU / 20 GiB / 64 GiB disk, so larger shapes may be enabled per team by support (unverified). A 4 vCPU / 8 GiB workload is not self-serve.",
+    "Per-sandbox shape is fixed per template. Platform ceiling is 10 vCPU / 20 GiB RAM / 64 GiB disk (OpenAPI schema + controlplane absoluteMax* constants; the docs build-spec table still shows the older 4 vCPU / 4096 MiB / 8192 MiB). New teams are capped at 2 vCPU / 2 GiB / 8 GiB disk and 10 templates; larger shapes need an email to support. A 4 vCPU / 8 GiB workload is feasible only after support raises the cap.",
     "Storage $0.000108/GiB-h (= $0.07884/GiB-month at 730 h) is on the pricing page ('Paused sandboxes are billed only for storage'), but the public billing API (effective 2026-06-17) marks storage billable:false and the usage-series docs say storage 'remains tracked-only and is excluded' from billed totals. Card uses the published list price; today's invoices appear to charge $0 for storage/snapshots. Whether running-sandbox disk is also metered as storage is not stated.",
     "Paused sandboxes are kept forever by default (autoDeleteSeconds optional, max 30 days); with storage unbilled they currently cost nothing.",
     "Auto-pause is opt-in and based on active time, not idleness: an idle but running sandbox bills full allocated vCPU+RAM.",
@@ -175,7 +177,9 @@
     "Startup program: up to $50k credits (application).",
     "Egress/ingress not metered in the public rate card (only vcpu, memory_gib, storage_gib meters exist); not stated as free, so null.",
     "Billing granularity per second; minimum billed time not published. Regions not documented (API is cell-based).",
-    "Rates are identical to E2B's list rates."
+    "Rates are identical to E2B's list rates.",
+    "Other per-team limits: 100 snapshots per team, 20 per sandbox, 4 in flight (docs, raisable via support); API request rate 50 req/s with burst 150 per team (vendor source ratelimit.go, not documented).",
+    "Vendor source (migration 20260929000001_prospective_storage_billing) adds a per-team storage-billing activation cutoff; the public billing API still marks storage billable:false, so the listed $0.000108/GiB-h storage may start being invoiced team by team."
   ],
   "sources": [
     "https://superserve.ai/pricing",
@@ -190,7 +194,7 @@
     "https://www.computesdk.com/benchmarks/sandboxes/"
   ],
   "fleet": {
-    "default_max_instances": null,
+    "default_max_instances": 20,
     "default_max_vcpu": null,
     "default_max_gpus": null,
     "raise": "ticket",
@@ -203,5 +207,10 @@
       "https://docs.superserve.ai/errors"
     ],
     "researched": "2026-09-28"
+  },
+  "audit_2026_09_29": {
+    "applied": 2,
+    "source": "checked against the provider's live pricing and docs pages",
+    "reviewed": 15
   }
 }

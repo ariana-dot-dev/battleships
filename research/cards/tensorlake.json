@@ -89,7 +89,8 @@
       "multiplier": 1.3,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Price = your own cloud bill + Tensorlake fee, NOT the fee alone. vcpu_h is an AWS reference rate standing in for the bill you pay AWS directly: the blog example i7i.metal-24xl at $9.06/h in US East / 96 vCPU (768 GiB RAM bundled, 8 GiB/vCPU), no overcommit. The 1.3 multiplier adds the 30% entry fee (as low as 10% at scale; blog example at 20% = $10.87/h total). Real cost depends on host billing (hosts bill whether full or not), packing/overcommit and AWS prices. Excludes EBS and AWS egress. Re-verified 2026-09-28 at https://www.tensorlake.ai/blog/introducing-tensorlake-byoc."
+      "note": "Price = your own cloud bill + Tensorlake fee, NOT the fee alone. vcpu_h is an AWS reference rate standing in for the bill you pay AWS directly: the blog example i7i.metal-24xl at $9.06/h in US East / 96 vCPU (768 GiB RAM bundled, 8 GiB/vCPU), no overcommit. The 1.3 multiplier adds the 30% entry fee (as low as 10% at scale; blog example at 20% = $10.87/h total). Real cost depends on host billing (hosts bill whether full or not), packing/overcommit and AWS prices. Excludes EBS and AWS egress. Re-verified 2026-09-28 at https://www.tensorlake.ai/blog/introducing-tensorlake-byoc.",
+      "note (append)": "The blog says BYOC runs on AWS, GCP, Azure, CoreWeave, Nebius and bare metal (e.g. Latitude). The AWS setup docs require i7i.metal-24xl or i7i.metal-48xl executors. Sandboxes use Firecracker 'wherever KVM is available and in gVisor containers where it is not'."
     },
     {
       "key": "usage-credits",
@@ -109,14 +110,16 @@
       "min_billed_seconds": 0,
       "granularity_s": 1,
       "start_fee": 0,
-      "note": "Disk $0.0002/GB-hour; snapshots $0.07/GB-month; $5 minimum initial pack; no postpaid overage."
+      "note": "Disk $0.0002/GB-hour; snapshots $0.07/GB-month; $5 minimum initial pack; no postpaid overage.",
+      "ram_per_vcpu": [
+        1,
+        8
+      ]
     },
     {
       "key": "free-tier",
       "label": "Free unmetered sandbox",
-      "flags": [
-        "beta"
-      ],
+      "flags": [],
       "plans": [
         "Free"
       ],
@@ -228,7 +231,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": true,
     "browser": true,
@@ -239,7 +242,7 @@
     "ssh": true,
     "public_ipv4": false,
     "inbound_https": true,
-    "custom_domain": true,
+    "custom_domain": null,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
     "static_egress_ip": null,
@@ -261,9 +264,9 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": true,
+    "live_resize": false,
     "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": true,
@@ -324,7 +327,13 @@
     "Billed in whole CUs pooled per org (rounding at most $0.01). Pro CU rollover not stated.",
     "perf from benchmarks.json computesdk (cold start 706 ms, burst 1,127 ms, dax 97.2 s). No hpc CPU benchmark.",
     "Verified 2026-09-28 against https://www.tensorlake.ai/pricing (\"UPDATED Q3 2026\"): all rates, limits, packs, Pro $250 = 25,000 CU included, $0.01/CU overage, egress free, active-CPU fallback clause confirmed.",
-    "Features check 2026-09-28: nested_virt left null. Docs say sandboxes are \"MicroVMs backed by Firecracker and CloudHypervisor\" (docs.tensorlake.ai/sandboxes/introduction.md); Cloud Hypervisor can expose KVM, so the Firecracker no-nested-virt rule cannot be applied, and /dev/kvm is not documented either way."
+    "Features check 2026-09-28: nested_virt left null. Docs say sandboxes are \"MicroVMs backed by Firecracker and CloudHypervisor\" (docs.tensorlake.ai/sandboxes/introduction.md); Cloud Hypervisor can expose KVM, so the Firecracker no-nested-virt rule cannot be applied, and /dev/kvm is not documented either way.",
+    "Free tier session cap depends on verification: the API reference gives 'Free unverified 3600 (1h), Free verified 7200 (2h)' as timeout_secs maximums. The pricing page shows only 'Up to 2 hours'.",
+    "No create/start rate limit is published. Creates beyond host, pool or namespace capacity are queued in Pending (pending_reason no_resources_available / pool_at_capacity / max_capacity_reached) and wait indefinitely unless max_pending_secs is set. The docs don't say whether Pending time is billed. 'When the fleet has to add a host first, that can take minutes.'",
+    "The minimum root disk is 10 GiB (disk_mb 10240-102400), so every running sandbox bills at least 10 GB of disk ($0.001/h on Pro, $0.002/h on Credits) even if the workload asks for less.",
+    "Cloud Volumes permanent snapshots are 'billed storage', but no rate is published on the pricing page or in the docs.",
+    "Docs describe Pro as '$250 / month + usage' (billing table) and 'Pro is $250 per month plus metered usage' (pricing FAQ). The pricing page says the $250 'INCLUDES 25,000 CU ($250 OF USAGE)'. The card follows the pricing page (fee_is_credit true), and the docs FAQ defers to it ('For current commercial terms, see tensorlake.ai/pricing').",
+    "GitHub Actions runners (separate product, not modelled) come as presets tensorlake-small 2 vCPU/4 GiB/10 GiB, medium 4/8/50, large 8/16/100 and xlarge 16/32/100, or custom sizes. Each runner has a 2 h maximum lifetime and draws on the project's sandbox quotas. No separate runner price is published (presumably the sandbox rate set)."
   ],
   "sources": [
     "https://www.tensorlake.ai/pricing",
@@ -352,7 +361,8 @@
     "researched": "2026-09-28"
   },
   "audit_2026_09_29": {
-    "applied": 2,
-    "source": "checked against the provider's live pricing and docs pages"
+    "applied": 9,
+    "source": "checked against the provider's live pricing and docs pages",
+    "reviewed": 5
   }
 }
