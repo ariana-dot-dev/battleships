@@ -25,7 +25,7 @@ through us, hence `cloudrouter login` is required for now. Plan on adding bring-
 | Deleted | `cloudrouter delete` | n/a | State destroyed | SKILL.md |
 | Egress / storage / IPv4 | All | Not documented | null | none |
 ## Gotchas
-1. **You cannot budget it.** No price exists anywhere, and the tiers in the code carry no fee. The Pricemogged card is null-priced and every mode is
+1. **You cannot budget it.** No price exists anywhere, and the tiers in the code carry no fee. The Battleships card is null-priced and every mode is
 2. **It is probably dead.** The domain redirects to the Manaflow homepage and releases stopped in February 2026.
 3. **The default size is 8 vCPU / 32 GB.** The skill tells agents never to pass `--size`, so each agent-started sandbox is 2 to 4 times bigger than a
    typical 4/8 sandbox. If it were ever billed on allocation, that multiplies the cost.

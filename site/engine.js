@@ -1,4 +1,4 @@
-﻿// Pricemogged estimator engine. Pure functions; consumes engine cards (research/ENGINE_CARD.md).
+﻿// Battleships estimator engine. Pure functions; consumes engine cards (research/ENGINE_CARD.md).
 (function (root) {
   const HOURS_MONTH = 730;
   const num = (x, d = 0) => (typeof x === 'number' && isFinite(x) ? x : d);
