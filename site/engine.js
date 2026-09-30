@@ -697,6 +697,7 @@
   //             (its largest if yours is bigger) and unpublished / bigger / capped sizes are not mismatches.
   //  'min'      at least what you set (default).
   //  'reserved' at least what you set AND guaranteed cores: burstable / no-reserved-core tiers are mismatches at any load.
+  const CPU_UNPUBLISHED = 'reserved cores not published either way (most providers reserve vCPUs)';
   function priceSoftInner(card, W, opts) {
     if (opts.sizing === 'any' && !W.clampShape) W = Object.assign({}, W, { clampShape: true });
     const strict = priceCard(card, W, opts);
@@ -769,8 +770,9 @@
           if (m.baseline_pct) { if (W.cpuUtil > m.baseline_pct / 100 || reserved) c.push({ t: `burstable CPU: ${m.baseline_pct}% of each vCPU guaranteed, throttled above that`, s: 2 }); }
           else if (W.cpuUtil > 0.5 || reserved) c.push({ t: noGuarantee(), s: reserved ? 2 : 1 });
         }
-        // reserved cores asked, and the tier doesn't say whether its cores are dedicated: a detail to confirm
-        else if (reserved && m.cpu_class !== 'dedicated' && m.cpu_class !== 'shared') c.push({ t: 'unverified: reserved (dedicated) cores', s: 1 });
+        // reserved cores asked: only a tier KNOWN to share its vCPUs (shared / burstable) is a mismatch. Most providers reserve
+        // vCPUs; an unpublished CPU class is a data gap, noted on the row (caveat) rather than held against the provider.
+        else if (reserved && m.cpu_class !== 'dedicated' && m.cpu_class !== 'shared' && !(r.notes || []).includes(CPU_UNPUBLISHED)) (r.notes = r.notes || []).push(CPU_UNPUBLISHED);
         if (m.gpu_min_count > 1 && W.gpu && W.gpu !== 'none' && W.gpuCount < m.gpu_min_count) c.push({ t: `${m.gpu_min_count}-GPU nodes only`, s: 2 });
       }
       // personas who call a sandbox API (interpreters, platforms, RL, CUA) can't just use a raw VM: boot time, quotas, no API
