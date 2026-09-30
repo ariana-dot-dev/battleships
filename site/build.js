@@ -24,6 +24,14 @@ for (const f of readDir(path.join(R, 'cards'), '.json')) {
 const speeds = cards.flatMap(c => [c.perf && c.perf.cpu_runs_s].concat((c.modes || []).map(m => m.perf && m.perf.cpu_runs_s)))
   .filter(x => typeof x === 'number').sort((a, b) => a - b);
 const perfRef = speeds.length ? speeds[Math.floor(speeds.length / 2)] : null;
+// reference fleet size = median of the most machines each provider lets you run at once self-serve, among those that
+// publish a limit. Up to this many at once, an unpublished limit is "probably fine", not a mismatch.
+const caps = cards.map(c => {
+  const plans = (c.plans || []).filter(p => !(p.flags || []).includes('sales') && !/sales|enterprise|contact/i.test(`${p.name} ${p.note || ''}`));
+  const all = plans.map(p => p.concurrency).concat([(c.fleet || {}).default_max_instances]).filter(x => typeof x === 'number' && x > 0);
+  return all.length ? Math.max(...all) : null;
+}).filter(x => x != null).sort((a, b) => a - b);
+const concRef = caps.length ? caps[Math.floor(caps.length / 2)] : null;
 
 // Research notes are written for us; the page is written for readers. Drop sentences that point at our files,
 // scripts, engine fields or internal process, and inline file references in tables.
@@ -44,7 +52,7 @@ function clean(md) {
 const cleanDir = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, clean(v)]));
 const cardIds = new Set(cards.map(c => c.id));
 const data = {
-  asOf: '2026-09-28', cards, perfRef,
+  asOf: '2026-09-28', cards, perfRef, concRef,
   stats: { providers: stats.providers, tiers: stats.tiers, quoted: stats.quoted, pages: stats.sources.size },
   regimes: cleanDir(readMdDir('regimes')),
   // only the per-provider verification write-ups (not our fix logs or engine notes)
@@ -74,5 +82,5 @@ fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
 // favicon inlined, so the page shows it wherever it's opened (site, embeds, a saved file)
 html = html.replace('%FAVICON%', () => 'data:image/svg+xml,' + encodeURIComponent(fs.readFileSync(path.join(__dirname, 'assets', 'favicon.svg'), 'utf8').trim()));
 fs.writeFileSync(path.join(__dirname, 'dist', 'index.html'), html);
-console.log(`cards=${cards.length} regimes=${Object.keys(data.regimes).length} verify=${Object.keys(data.verify).length} perfRef=${perfRef} usage=${!!data.usage} bytes=${html.length}`);
+console.log(`cards=${cards.length} regimes=${Object.keys(data.regimes).length} verify=${Object.keys(data.verify).length} perfRef=${perfRef} concRef=${concRef} usage=${!!data.usage} bytes=${html.length}`);
 if (problems.length) console.log('PROBLEMS:\n' + problems.join('\n'));

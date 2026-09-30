@@ -801,11 +801,19 @@
       if (W.persistentDisk && mf.persistent_disk === false && (!mf.snapshot || mf.snapshot === 'none') && mf.pause_resume !== true) c.push({ t: 'no persistent disk: files lost when it stops or sleeps', s: 2 });
       // a concurrency cap that exists but isn't published (Codespaces)
       if ((r.planObj || {}).concurrency_unpublished && W.concurrency + num(W.alwaysOn) > 5) c.push({ t: 'has a concurrency cap, value not published', s: 1 });
-      // no published limit on machines at once is unknown, not unlimited: for a fleet (20+ at once) it is a detail to confirm,
-      // exactly like an unconfirmed feature, for every provider (publishing a limit must not rank worse than hiding one)
-      else if (W.concurrency + num(W.alwaysOn) >= 20 && !known((r.planObj || {}).concurrency) && !(fl && fl.likely)
-        && ![(card.fleet || {}).default_max_instances, (card.fleet || {}).default_max_vcpu].some(known))
-        c.push({ t: 'unverified: how many machines can run at once', s: SEVERITY.unverified });
+      // no published limit on machines at once is unknown, not unlimited. Above the typical published limit (concRef: the
+      // median of what providers that publish one allow self-serve) it is a detail to confirm, like an unconfirmed feature,
+      // for every provider (publishing a limit must not rank worse than hiding one). At or below it, most providers would
+      // allow it: a note on the row, not a mismatch.
+      else if (!known((r.planObj || {}).concurrency) && !(fl && fl.likely)
+        && ![(card.fleet || {}).default_max_instances, (card.fleet || {}).default_max_vcpu].some(known)) {
+        const peak = W.concurrency + num(W.alwaysOn), ref = known(opts.concRef) ? opts.concRef : 50;
+        if (peak > ref) c.push({ t: `unverified: how many machines can run at once (you need ${peak}; the typical published limit is ${ref})`, s: SEVERITY.unverified });
+        else if (peak > 5) {
+          const note = `how many machines can run at once: limit not published, probably fine at ${peak} (the typical published limit is ${ref})`;
+          r.caveats = r.caveats || []; if (!r.caveats.includes(note)) r.caveats.push(note);
+        }
+      }
       for (const m of ms) {
         const fm = flagsOf(m);
         if (fm.includes('beta')) c.push({ t: /estimate/i.test(`${m.label} ${m.note || ''}`) ? 'preview pricing published as estimates: final price may differ' : 'beta / preview pricing: may change', s: 1 });
