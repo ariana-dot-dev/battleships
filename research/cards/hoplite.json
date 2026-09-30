@@ -44,7 +44,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Hardware and complete resource tariff unverified."
+      "note": "Hardware and complete resource tariff unverified.",
+      "cpu_class": "dedicated"
     }
   ],
   "storage": {
@@ -114,7 +115,7 @@
     "linux": null,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "snapshot": "fs",
     "pause_resume": true,
@@ -138,15 +139,15 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": false,
     "byoc": false,
     "open_source": false,
     "soc2": false,
-    "hipaa": null,
-    "sso": null,
+    "hipaa": false,
+    "sso": false,
     "gpu_types": [],
     "regions": null,
     "lang_python": true,
@@ -164,7 +165,7 @@
     "webhooks": null,
     "scheduled_wakeups": true,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
@@ -181,7 +182,8 @@
     "captcha_solving": false,
     "volume_attach": false,
     "volume_shared": false,
-    "own_agent_api": true
+    "own_agent_api": true,
+    "egress_ip_type": "datacenter"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -480,6 +482,64 @@
       "source": "https://trust.hoplite.sh",
       "quote": "SOC 2 Type 2 In progress",
       "note": "Hoplite's own Vanta-style trust center (trust.hoplite.sh) lists compliance status as 'SOC 2 Type 2 / In progress', i.e. not yet certified. Confirms the card's false value; no report is currently issuable. Provider docs security page (/docs/workspace/security) does not mention SOC2 at all.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://hoplite.sh/docs/sandboxes",
+      "quote": "Cloud threads execute repository code in separate sandbox workspaces.",
+      "note": "derived: sandboxes run on Hoplite-operated Modal/Daytona cloud infrastructure shared across customers; no static, residential, or mobile egress IP feature is documented anywhere in docs/pricing, so outbound traffic uses ordinary shared datacenter IPs.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://hoplite.sh/docs/workspace/security",
+      "quote": "Remote URLs cannot target loopback, private, link-local, or internal hosts.",
+      "note": "not offered: outside the product's scope. The only outbound restriction documented is a fixed SSRF guard on MCP remote-server URLs; there is no customer-configurable outbound allow/deny list, no-internet mode, or security-group egress rule feature anywhere in the docs, pricing, or OpenAPI spec (inbound access has documented controls via preview auth, but egress does not).",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://hoplite.sh/docs/sandboxes/resources",
+      "quote": "Sandboxes scale compute elastically.",
+      "note": "not offered: outside the product's scope. No fixed/dedicated outbound IP is documented for sandbox workspaces; Enterprise pricing only advertises 'Networking & retention: PRIVATE' as a custom, unspecified arrangement, not a published static egress IP feature.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://hoplite.sh/docs/sandboxes/resources",
+      "quote": "Preset\tCPU\tMemory X Small\t1 vCPU\t2 GiB Small\t2 vCPU\t4 GiB Medium\t4 vCPU\t8 GiB Large\t8 vCPU\t16 GiB X Large\t16 vCPU\t32 GiB 2X Large\t16 vCPU\t64 GiB",
+      "note": "not offered: outside the product's scope. Hoplite exposes only fixed vCPU/memory box-size presets with no CPU-architecture selection anywhere in docs, pricing, or the OpenAPI spec; the product is a coding-agent sandbox, not an infrastructure/VM provider where architecture choice is a customer-facing option.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://trust.hoplite.sh",
+      "quote": "SOC 2 Type 2 In progress",
+      "note": "Hoplite's own trust center lists only SOC 2 Type 2 (in progress) under 'Compliance overview'; no HIPAA / BAA program is listed there or anywhere in docs/pricing, so HIPAA eligibility is not offered.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://hoplite.sh/docs/workspace",
+      "quote": "Invite teammates by email under Settings → Workspace → Members. Invitations grant membership on acceptance.",
+      "note": "Team access documentation covers email invitations and a company-domain auto-join feature, but nowhere mentions SAML/OIDC single sign-on; Enterprise pricing only lists 'Security & governance: ADVANCED' without naming SSO. No SSO/SAML/OIDC feature is documented anywhere on the site.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://hoplite.sh/pricing",
+      "quote": "Networking & retention PRIVATE",
+      "note": "No region selection or EU-residency option is documented for thread workspaces anywhere in docs/pricing; Enterprise only advertises an unspecified 'private' networking/retention arrangement negotiated per deployment, not a published EU data-residency feature.",
+      "checked": "2026-09-30"
+    },
+    "cpu_class": {
+      "value": {
+        "native": "dedicated"
+      },
+      "source": "https://hoplite.sh/docs/sandboxes/resources",
+      "quote": "the CPU and memory a sandbox is created with are a reservation — a guaranteed paid floor — while the workload can use spare host capacity up to a separate conditional burst limit",
+      "note": "The reservation is explicitly described as a guaranteed floor (not shared/oversubscribed with no guarantee), so it fits 'dedicated' best among the allowed values; extra opportunistic bursting above the reservation is additional headroom, not a published per-vCPU baseline percentage, so it does not cleanly fit the 'burstable:NN' format either.",
       "checked": "2026-09-30"
     }
   }

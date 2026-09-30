@@ -123,7 +123,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": true,
     "browser": true,
@@ -132,7 +132,7 @@
     "code_interpreter": false,
     "agent_harnesses": true,
     "ssh": true,
-    "public_ipv4": null,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": true,
@@ -426,9 +426,10 @@
       "checked": "2026-09-30"
     },
     "public_ipv4": {
-      "value": null,
-      "was": false,
-      "note": "doubtful \"no\" could not be confirmed: Contradiction inside boxd's own site: boxd.sh/faq's 'What is boxd?' answer says machines have 'a public IPv4', but the docs resource table and the proxy proto ('Primary public IPv4' belongs to the proxy node, not the VM) describe one shared proxy IP with a per-machine SSH port and 3 raw TCP/UDP forwards. The more technical/authoritative docs page is followed, keeping public_ipv4=false; the FAQ wording looks like marketing shorthand for 'reachable over IPv4', not a dedicated address per machine.",
+      "value": false,
+      "source": "https://docs.boxd.sh/reference/grpc-proto",
+      "quote": "message ProxyNodeInfo {\n  string id   = 1;\n  // Primary public IPv4. The daemon dials this directly and overrides the TLS\n  // server name, since proxy nodes have no per-node DNS name of their own.\n  string ipv4 = 2;\n}",
+      "note": "The only 'public IPv4' modeled in boxd's own protocol is a field on ProxyNodeInfo (cluster proxy infrastructure), not on the VM/machine resource. Docs elsewhere confirm: every machine's domain points at 'the proxy's shared public IP' and each machine gets 'a dedicated SSH port ... on boxd's shared proxy IP' plus up to 3 raw TCP/UDP forwards — i.e. one shared proxy IPv4 fronting many machines via SNI/port, not a dedicated public IPv4 per machine. boxd.sh/faq's marketing copy ('a public IPv4') is inconsistent with this technical description; the docs/proto description is treated as authoritative.",
       "checked": "2026-09-30"
     },
     "gpu": {
@@ -464,6 +465,13 @@
       "source": "https://boxd.sh/faq/",
       "quote": "Can boxd run inside my own cloud account (BYOC)? Yes — self-host the binary in your VPC, datacenter, or region. The open-source microVM engine underneath (Ignition) lives at github.com/lttle-cloud/ignition.",
       "note": "Only the underlying microVM engine (Ignition, AGPL-3.0 on GitHub) is open source; boxd itself (the API/control-plane/CLI/console product being priced) is a closed, signed binary distributed under a paid self-host/BYOC annual licence, not released under an OSI license.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://github.com/lttle-cloud/ignition",
+      "quote": "built on KVM, and a lightweight orchestration layer",
+      "note": "derived: boxd machines are KVM microVMs (the open-source Ignition engine underneath). Neither boxd's docs, FAQ, nor the Ignition project page mention /dev/kvm passthrough or nested virtualization anywhere; the sandboxes guide describes root, Docker, kernel modules and systemd inside the guest but never hardware-virtualization extensions. Consistent with how this class of microVM sandbox (Firecracker/cloud-hypervisor-style) is documented by comparable providers, which do not expose nested KVM to guests.",
       "checked": "2026-09-30"
     }
   }

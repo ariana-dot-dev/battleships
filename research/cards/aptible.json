@@ -9,7 +9,8 @@
       "key": "native",
       "label": "Native product; see regime notes",
       "flags": [
-        "alt"
+        "alt",
+        "burstable"
       ],
       "os": [
         "linux"
@@ -44,13 +45,16 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "General Purpose (M) container profile: $0.08/GB RAM-hour, CPU bundled at 1/4 vCPU per GB (4 GB/vCPU), sizes 512MB-240GB, available on Shared & Dedicated stacks, all plans. CPU can burst above allocation when host has spare capacity (not guaranteed). Billed from provisioning; idle containers billed. Per service max 32 containers (dashboard) / 128 (CLI/Terraform)."
+      "note": "General Purpose (M) container profile: $0.08/GB RAM-hour, CPU bundled at 1/4 vCPU per GB (4 GB/vCPU), sizes 512MB-240GB, available on Shared & Dedicated stacks, all plans. CPU can burst above allocation when host has spare capacity (not guaranteed). Billed from provisioning; idle containers billed. Per service max 32 containers (dashboard) / 128 (CLI/Terraform).",
+      "cpu_class": "shared",
+      "baseline_pct": 100
     },
     {
       "key": "cpu-optimized",
       "label": "CPU-Optimized (C) container profile",
       "flags": [
-        "alt"
+        "alt",
+        "burstable"
       ],
       "os": [
         "linux"
@@ -68,13 +72,16 @@
         "Enterprise"
       ],
       "granularity_s": 3600,
-      "note": "Dedicated stacks only; 2GB-368GB; not in every AZ."
+      "note": "Dedicated stacks only; 2GB-368GB; not in every AZ.",
+      "cpu_class": "shared",
+      "baseline_pct": 100
     },
     {
       "key": "memory-optimized",
       "label": "Memory Optimized (R) container profile",
       "flags": [
-        "alt"
+        "alt",
+        "burstable"
       ],
       "os": [
         "linux"
@@ -92,7 +99,9 @@
         "Enterprise"
       ],
       "granularity_s": 3600,
-      "note": "Dedicated stacks only; 4GB-752GB."
+      "note": "Dedicated stacks only; 4GB-752GB.",
+      "cpu_class": "shared",
+      "baseline_pct": 100
     }
   ],
   "storage": {
@@ -163,7 +172,7 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "snapshot": "none",
     "pause_resume": false,
@@ -563,6 +572,24 @@
       "source": "https://www.aptible.com/docs/core-concepts/apps/deploying-apps/image/overview",
       "quote": "On Aptible, a Docker image is used to deploy app containers.",
       "note": "Same Linux-Docker-container PaaS model; no macOS runtime is offered or mentioned anywhere in the docs/pricing. Outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://www.aptible.com/docs/core-concepts/architecture/stacks.md",
+      "quote": "Aptible stacks contain several AWS EC2 instances (virtual machines) on which Aptible users deploy their apps and databases in Docker containers.",
+      "note": "not offered: outside the product's scope. Aptible's docs (architecture, container profiles, image/Dockerfile deploy guides) describe only its three x86-oriented Container Profiles on AWS EC2 hosts; no ARM/Graviton/aarch64 instance option, image architecture choice, or multi-arch build guidance is documented anywhere in the docs, pricing, or container-profile pages.",
+      "checked": "2026-09-30"
+    },
+    "cpu_class": {
+      "value": {
+        "native": "burstable:100",
+        "cpu-optimized": "burstable:100",
+        "memory-optimized": "burstable:100"
+      },
+      "source": "https://www.aptible.com/docs/core-concepts/scaling/cpu-isolation.md",
+      "quote": "Scaling up resources in Aptible directly increases the guaranteed CPU Allocation for a container. However, containers can sometimes burst above their CPU allocation if the underlying infrastructure host has available capacity. ... if a container is scaled to a 4GB general-purpose container, it would have a 1 vCPU allocation or 100% CPU utilization in our metrics.",
+      "note": "Applies uniformly to all Container Profiles (General Purpose/M, CPU-Optimized/C, Memory Optimized/R): each container gets a guaranteed CPU allocation proportional to its size (100% of its allocated vCPU is the guaranteed baseline), and can opportunistically burst above that (observed >100%, e.g. 150%+) only when the shared host has spare capacity, which is not guaranteed -- the classic burstable pattern with a 100% published baseline per allocated vCPU, not dedicated/reserved cores and not plain oversubscribed sharing with no guarantee.",
       "checked": "2026-09-30"
     }
   }

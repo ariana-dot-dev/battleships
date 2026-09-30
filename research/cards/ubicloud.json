@@ -95,7 +95,8 @@
       "windows_vcpu_h": null,
       "gpu": null,
       "note": "",
-      "product_class": "vm"
+      "product_class": "vm",
+      "cpu_class": "dedicated"
     },
     {
       "key": "burstable",
@@ -157,7 +158,8 @@
       "windows_vcpu_h": null,
       "gpu": null,
       "note": "Shared CPU: \"Each VM can utilize host cpu capacity up to 50% of the allocated vCPU and additionally burst up to 100% of the allocated vCPU at micro-intervals\" (ubicloud.com/docs/about/pricing, checked 2026-09-28).",
-      "baseline_pct": 50
+      "baseline_pct": 50,
+      "cpu_class": "shared"
     },
     {
       "key": "ci-standard",
@@ -243,7 +245,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "CI runner. Added 2026-09-28 (missing-providers audit). Re-verified on https://www.ubicloud.com/docs/about/pricing: standard x64 2 vCPU $0.00125/min; per-minute billing. "
+      "note": "CI runner. Added 2026-09-28 (missing-providers audit). Re-verified on https://www.ubicloud.com/docs/about/pricing: standard x64 2 vCPU $0.00125/min; per-minute billing. ",
+      "cpu_class": "dedicated"
     },
     {
       "key": "ci-premium",
@@ -329,7 +332,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "CI runner. Added 2026-09-28 (missing-providers audit). Re-verified on https://www.ubicloud.com/docs/about/pricing: standard x64 2 vCPU $0.00125/min; per-minute billing. "
+      "note": "CI runner. Added 2026-09-28 (missing-providers audit). Re-verified on https://www.ubicloud.com/docs/about/pricing: standard x64 2 vCPU $0.00125/min; per-minute billing. ",
+      "cpu_class": "dedicated"
     },
     {
       "key": "ci-arm",
@@ -416,7 +420,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "CI runner. Added 2026-09-28 (missing-providers audit). Re-verified on https://www.ubicloud.com/docs/about/pricing: standard x64 2 vCPU $0.00125/min; per-minute billing. "
+      "note": "CI runner. Added 2026-09-28 (missing-providers audit). Re-verified on https://www.ubicloud.com/docs/about/pricing: standard x64 2 vCPU $0.00125/min; per-minute billing. ",
+      "cpu_class": "dedicated"
     },
     {
       "key": "gpu-vm",
@@ -443,7 +448,8 @@
         "A100-80GB": 1.2261,
         "B200": 3
       },
-      "note": "Per-minute rates from config/billing_rates/vm_metal.yml: Gpu 20b5 (NVIDIA A100 80GB PCIe) hetzner-fsn1 $0.020435/min = $1.226/GPU-h; Gpu 2901 (NVIDIA B200) tr-ist-u1 (Istanbul) $0.05/min = $3.00/GPU-h; host vCPU standard-gpu family $0.0003480863/vCPU-min ($0.0209/vCPU-h) in Germany, standard $0.0003050596/vCPU-min in Istanbul. GPU counts 1/2/4/8. vCPU/RAM per GPU not published. B300 exists only in a private location (price $0 = contract). Access: 'Projects without GPU access enabled will see a helpful message explaining how to request access to NVIDIA B200 and RTX PRO 6000 GPUs by contacting support.'"
+      "note": "Per-minute rates from config/billing_rates/vm_metal.yml: Gpu 20b5 (NVIDIA A100 80GB PCIe) hetzner-fsn1 $0.020435/min = $1.226/GPU-h; Gpu 2901 (NVIDIA B200) tr-ist-u1 (Istanbul) $0.05/min = $3.00/GPU-h; host vCPU standard-gpu family $0.0003480863/vCPU-min ($0.0209/vCPU-h) in Germany, standard $0.0003050596/vCPU-min in Istanbul. GPU counts 1/2/4/8. vCPU/RAM per GPU not published. B300 exists only in a private location (price $0 = contract). Access: 'Projects without GPU access enabled will see a helpful message explaining how to request access to NVIDIA B200 and RTX PRO 6000 GPUs by contacting support.'",
+      "cpu_class": "dedicated"
     }
   ],
   "storage": {
@@ -885,6 +891,20 @@
       "source": "https://www.ubicloud.com/docs/llms-full.txt",
       "quote": "Ubicloud provides IaaS cloud features on bare metal providers, such as Hetzner, Leaseweb, or AWS Bare Metal. ... Ubicloud is an open, free, and portable cloud. Think of it as an alternative to public cloud providers.",
       "note": "No screenshot/click driving API of any kind; plain IaaS VM/Postgres/K8s/CI/inference product. Outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "cpu_class": {
+      "value": {
+        "dedicated-vm": "dedicated",
+        "burstable": "burstable:50",
+        "ci-standard": "dedicated",
+        "ci-premium": "dedicated",
+        "ci-arm": "dedicated",
+        "gpu-vm": "dedicated"
+      },
+      "source": "https://www.ubicloud.com/docs/llms-full.txt",
+      "quote": "We offer two server families - Standard and Burstable. Standard provides a dedicated CPU and 4GB of memory per vCPU. ... Burstable provides a shared CPU with 2GB of memory per vCPU. ... Each VM can utilize host cpu capacity up to 50% of the allocated vCPU and additionally burst up to 100% of the allocated vCPU at micro-intervals.",
+      "note": "dedicated-vm (Standard family) = dedicated CPU per official pricing page. burstable = shared/burstable, baseline 50% of allocated vCPU with bursts to 100% at micro-intervals (matches card's existing baseline_pct:50). CI runners: x64 standard runners are 'every two x64 vCPUs corresponding to one physical core' (dedicated core allocation, not oversubscribed/shared) and arm64 runners have 'each arm64 vCPU backed by a dedicated physical core' (docs.ubicloud.com GitHub Actions integration pages); premium runners (AMD Ryzen 9 7950X3D) are marketed for 'fast CI execution'/'high CPU clock speeds' with no shared-CPU language, so treated as dedicated like standard runners. gpu-vm: GPU VM host vCPU is billed from the 'standard-gpu' family (same VM sizing/CPU model family as dedicated Standard VMs, config/billing_rates/vm_metal.yml), no shared/burstable language found for GPU VMs, so treated as dedicated.",
       "checked": "2026-09-30"
     }
   }

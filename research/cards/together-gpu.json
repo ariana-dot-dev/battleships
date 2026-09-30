@@ -931,7 +931,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": true,
     "root": null,
     "systemd": null,
     "browser": false,
@@ -940,12 +940,12 @@
     "code_interpreter": null,
     "agent_harnesses": false,
     "ssh": true,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "public_ipv4": true,
+    "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": true,
     "private_network": null,
     "self_host": false,
     "byoc": false,
@@ -990,7 +990,8 @@
     "own_agent_api": false,
     "guest_firewall": true,
     "secret_proxy": false,
-    "max_session_unlimited": true
+    "max_session_unlimited": true,
+    "ingress_rules": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1320,6 +1321,48 @@
       "source": "https://docs.together.ai/docs/gpu-clusters-billing.md",
       "quote": "On-demand clusters: Run until manually terminated. Can be stopped/started anytime. No automatic decommissioning.",
       "note": "Reserved clusters instead have a fixed prepaid term (1-90+ days) after which they are auto-decommissioned, but on-demand clusters (the base mode) have no session time limit.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": true,
+      "source": "https://www.together.ai/gpu-clusters",
+      "quote": "Bare-metal performance, InfiniBand networking, and managed orchestration — with flexible pricing for both on-demand and reserved capacity.",
+      "note": "derived: nodes are dedicated bare-metal HGX servers, and docs give sudo-level SSH access to Kubernetes worker nodes and Slurm compute nodes ('sudo scontrol update NodeName=...'), so /dev/kvm should be usable inside; not explicitly documented as a feature.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": true,
+      "source": "https://docs.together.ai/reference/clusters-get.md",
+      "quote": "public_ipv4: type: string description: Public IPv4 address of the GPU worker node.",
+      "note": "The cluster API schema returns a public_ipv4 field for both the control-plane node and each GPU worker node (GPUClusterGPUWorkerNode / GPUClusterControlPlaneNode objects).",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": true,
+      "source": "https://docs.together.ai/reference/clusters-create.md",
+      "quote": "install_traefik: type: boolean default: false description: Whether to install Traefik ingress controller in the cluster. This field is only applicable for Kubernetes clusters and is false by default.",
+      "note": "Kubernetes clusters can be created with load_balancer set to TRAEFIK, NGINX, or ISTIO (InstanceClusterConfig.load_balancer enum), which are HTTP(S) ingress controllers for routing external traffic to pods/services; disabled (NONE) by default so it is opt-in, not automatic.",
+      "checked": "2026-09-30"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.together.ai/docs/gpu-clusters-management.md",
+      "quote": "Key-based commands use a proxy jump host: ssh -J <LOGIN>@ssh.<CLUSTER_ID>.<REGION>.cloud.together.ai <LOGIN>@<NODE_HOSTNAME>",
+      "note": "Node access is mediated through a per-cluster SSH jump host requiring OIDC sign-in or an uploaded SSH key (jumphost_enabled/ssh_ca_enabled in clusters-create.md), plus project-based admin/editor roles gating who can reach cluster resources at all; Kubernetes clusters can also add Traefik/Nginx/Istio as an ingress layer in front of exposed HTTP(S) ports.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.together.ai/docs/gpu-clusters-billing.md",
+      "quote": "Together AI does not charge for data transfer into or out of your cluster, so you can move datasets, checkpoints, and results freely.",
+      "note": "No provider-side outbound allow/deny-list, no-internet mode, or security-group egress rule feature is documented anywhere in the cluster management, API, or billing docs; free unrestricted data transfer is described instead.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://docs.together.ai/reference/clusters-get.md",
+      "quote": "public_ipv4: type: string description: Public IPv4 address of the GPU worker node.",
+      "note": "derived: each bare-metal node holds its own dedicated public_ipv4 (not a shared NAT gateway pool), so outbound traffic from that node uses the same stable address for the node's lifetime; not explicitly documented as a persistent/guaranteed egress IP feature, and node recreation could change it.",
       "checked": "2026-09-30"
     }
   }

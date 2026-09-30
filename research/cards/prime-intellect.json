@@ -165,7 +165,7 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": true,
     "gpu_types": [],
     "snapshot": "none",
@@ -177,7 +177,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": null,
     "systemd": true,
     "browser": false,
@@ -191,15 +191,15 @@
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": false,
     "byoc": false,
     "open_source": false,
     "regions": null,
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": true,
+    "hipaa": false,
+    "sso": false,
     "lang_python": false,
     "lang_node": false,
     "lang_go": null,
@@ -215,7 +215,7 @@
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
@@ -553,9 +553,10 @@
       "checked": "2026-09-30"
     },
     "arm64": {
-      "value": null,
-      "was": false,
-      "note": "doubtful \"no\" could not be confirmed: No ARM/arm64 architecture option is mentioned anywhere in the sandboxes, images, or GPU docs (only x86 GPU hosts like H100/H200 are referenced); could not find an explicit statement either way, so kept as the recorded false but flagged unclear rather than confirmed.",
+      "value": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/overview.md",
+      "quote": "VM sandboxes boot an OCI/Docker image as the root filesystem of a hardware-isolated microVM.",
+      "note": "No ARM/arm64/aarch64 instance type, image architecture flag, or GPU host is mentioned anywhere across sandboxes overview/cli/sdk/images docs, the API reference, or the prime-sandboxes SDK source (only x86_64 GPU hosts like H100/H200 appear, and default images like python:3.11-slim/ubuntu:22.04 are used without any arch selector). No architecture choice is exposed at all, implying a single (x86_64) architecture; reasoned false rather than null.",
       "checked": "2026-09-30"
     },
     "self_host": {
@@ -577,6 +578,48 @@
       "source": "https://docs.primeintellect.ai/sandboxes/overview.md",
       "quote": "Track usage limits and billing inside the [Prime Billing dashboard](https://app.primeintellect.ai/dashboard/billing).",
       "note": "The Sandboxes/GPU Pods runtime and dashboard are closed, billed SaaS. (Prime does open-source separate tooling like the `verifiers` library and `prime-rl`, but that is not the sandbox/compute product itself.)",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/overview.md",
+      "quote": "VM sandboxes boot an OCI/Docker image as the root filesystem of a hardware-isolated microVM.",
+      "note": "Not documented either way. No mention of /dev/kvm, nested virtualization, or running VMs/emulators inside a sandbox anywhere in the docs, CLI/SDK reference, or GitHub source; hardware-isolated microVMs (the described architecture) typically do not expose nested KVM to the guest unless explicitly advertised, which it is not here. Reasoned false rather than null.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/cli.md",
+      "quote": "Both flags are repeatable and accept domains (`example.com`, `*.example.com`) or IPv4 addresses/CIDRs; IPv6 is not supported.",
+      "note": "Egress is controlled via allow/deny lists of destination domains/IPs, not by giving the sandbox a fixed outbound IP address. No 'static IP', 'egress IP', or 'outbound IP' feature is mentioned anywhere in the docs; card already records network.ipv4_available=false and public_ipv4=false, consistent with no dedicated/static IP being assigned to a sandbox at all (inbound or outbound).",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": true,
+      "source": "https://trust.primeintellect.ai",
+      "quote": "PrimeIntellect holds a SOC 2 Type 1 attestation report for its AI Compute Platform System as of August 15, 2026, issued by an independent service auditor, which evaluates the suitability of the design of controls based on the Security trust services criteria.",
+      "note": "Prime Intellect's SafeBase-hosted Trust Center lists SOC 2 Type 1 as attained ('maturity: full', auditor Insight Assurance); SOC 2 Type 2 is separately listed as 'in_progress' (not yet attained).",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://trust.primeintellect.ai",
+      "quote": "PrimeIntellect holds a SOC 2 Type 1 attestation report for its AI Compute Platform System as of August 15, 2026",
+      "note": "not offered: the Trust Center's certifications section shows only SOC 2 Type 1 (attained) and SOC 2 Type 2 (in progress) as actually-held items; no HIPAA/BAA attestation is listed anywhere on the Trust Center, security page, or docs.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.primeintellect.ai/llms-full.txt",
+      "quote": "We've introduced a \"Teams\" feature where you can invite multiple users and set a dedicated billing email.",
+      "note": "not offered: Teams support is limited to inviting members and setting a billing email; no SAML/OIDC/SSO, identity-provider integration, or enterprise directory sync is documented anywhere in the docs. The Trust Center's 'single sign on' line is generic hidden-section placeholder copy, not a confirmed feature.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://docs.primeintellect.ai/api-reference/provision-gpu.md",
+      "quote": "Regions: - eu_east - eu_north - eu_west",
+      "note": "Prime's GPU Pods marketplace (modelled in this same card as the 'gpu-pod-h100' mode) exposes eu_east/eu_north/eu_west as filterable/provisionable regions via the availability and provisioning API, so GPU machines can be kept in the EU. The VM-sandbox product (the 'on-demand' mode) does not document any region selector at all in overview/cli/sdk, so it is unclear whether Sandboxes themselves can be pinned to an EU region; this answer is driven by the GPU Pods side of the card.",
       "checked": "2026-09-30"
     }
   }

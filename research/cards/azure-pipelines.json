@@ -174,7 +174,8 @@
       "multiplier": 1,
       "gpu": null,
       "features": {},
-      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://azure.microsoft.com/en-us/pricing/details/devops/azure-devops-services/: additional Microsoft-hosted parallel job $40/month, unlimited minutes (job max 6 h on paid). Each agent = Standard_DS2_v2, 2 cores / 7 GB RAM / 14 GB SSD (https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted); no bigger machines. Priced as a flat pool of N parallel jobs = peak concurrency."
+      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://azure.microsoft.com/en-us/pricing/details/devops/azure-devops-services/: additional Microsoft-hosted parallel job $40/month, unlimited minutes (job max 6 h on paid). Each agent = Standard_DS2_v2, 2 cores / 7 GB RAM / 14 GB SSD (https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted); no bigger machines. Priced as a flat pool of N parallel jobs = peak concurrency.",
+      "cpu_class": "dedicated"
     },
     {
       "key": "hosted-macos-parallel-jobs",
@@ -221,7 +222,8 @@
           "max_vms": 25
         }
       ],
-      "note": "Same $40 parallel job as Linux/Windows (the job pool is shared across OSes). macOS agents are Intel Mac 3-core / 14 GB / 14 GB SSD and always run in the US. 6 h job cap."
+      "note": "Same $40 parallel job as Linux/Windows (the job pool is shared across OSes). macOS agents are Intel Mac 3-core / 14 GB / 14 GB SSD and always run in the US. 6 h job cap.",
+      "cpu_class": "dedicated"
     },
     {
       "key": "github-hosted-payg",
@@ -723,6 +725,16 @@
       "source": "https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops",
       "quote": "Microsoft-hosted agents are run in individual VMs, which are reimaged after each run.",
       "note": "not offered: outside the product's scope. Hosted agent sizes are fixed per image/pool (2 vCPU/7 GB, etc.); there is no documented API to change CPU/RAM of a running agent without recreating it.",
+      "checked": "2026-09-30"
+    },
+    "cpu_class": {
+      "value": {
+        "hosted-parallel-jobs": "dedicated",
+        "hosted-macos-parallel-jobs": "dedicated"
+      },
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-b-series-burstable",
+      "quote": "B-series VMs are ideal for workloads that don't need the full performance of the CPU continuously ... These workloads typically have burstable performance requirements.",
+      "note": "Derived: Azure explicitly separates the burstable, CPU-credit-based B-series from all other VM series (general purpose Dv2/DSv2 etc., which is what Microsoft-hosted Linux/Windows agents run on per https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted: 'Azure general purpose virtual machines with a 2 core CPU'). Non-B-series VMs get their full, constant vCPU allocation with no credit/burst throttling, i.e. dedicated cores for the VM's lifetime (not oversubscribed/shared with other tenants' workloads on a best-effort basis, and not a published burstable baseline %). macOS hosted parallel-job agents run on dedicated Intel Mac hardware (3-core/14GB) with no burst/credit model documented either, so classed the same way. managed-devops-pools is omitted: docs explicitly allow choosing VM sizes from the A, B, D, E, or F Azure families (https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-scaling?view=azure-devops: 'Use only VM sizes from the A, B, D, E, or F families'), and B-series there IS burstable, so cpu_class for that mode depends on the customer's own VM choice and has no single answer. github-hosted-payg (macOS PAYG preview) is omitted: no page found stating whether those Apple-silicon runners are dedicated or shared hardware.",
       "checked": "2026-09-30"
     }
   }

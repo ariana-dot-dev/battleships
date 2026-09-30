@@ -149,7 +149,8 @@
       "granularity_s": 1,
       "start_fee": 0,
       "multiplier": 1,
-      "note": "Linux list prices, USD/hour, from the international calculator API for ap-southeast-3, cross-checked with the rating inquiry API (s6.xlarge.2.linux = $0.132/h). Other Singapore 4 vCPU / 8 GiB flavors: c9 $0.1768, c7n $0.186, x1 $0.1396, Kunpeng kc1 $0.11. EVS system disk and EIP are billed separately."
+      "note": "Linux list prices, USD/hour, from the international calculator API for ap-southeast-3, cross-checked with the rating inquiry API (s6.xlarge.2.linux = $0.132/h). Other Singapore 4 vCPU / 8 GiB flavors: c9 $0.1768, c7n $0.186, x1 $0.1396, Kunpeng kc1 $0.11. EVS system disk and EIP are billed separately.",
+      "cpu_class": "shared"
     },
     {
       "key": "ecs-payg-latam",
@@ -242,7 +243,8 @@
       "granularity_s": 1,
       "start_fee": 0,
       "multiplier": 1,
-      "note": "USD/hour for la-north-2. Region spread for s6.xlarge.2 (4 vCPU / 8 GiB): LatAm $0.108, Bangkok $0.12, Dublin $0.13, Singapore/HK $0.132, Johannesburg $0.148, Sao Paulo $0.168, Paris $0.213. There is no US region."
+      "note": "USD/hour for la-north-2. Region spread for s6.xlarge.2 (4 vCPU / 8 GiB): LatAm $0.108, Bangkok $0.12, Dublin $0.13, Singapore/HK $0.132, Johannesburg $0.148, Sao Paulo $0.168, Paris $0.213. There is no US region.",
+      "cpu_class": "shared"
     },
     {
       "key": "ecs-monthly-sg",
@@ -296,7 +298,8 @@
       "requires_always_on": true,
       "min_billed_seconds": null,
       "granularity_s": null,
-      "note": "Monthly prepaid is about 74.5% of 730 h pay-per-use ($71.83 vs $96.36 for s6.xlarge.2). 1-year prepaid for s6.xlarge.2 is $718.32 ($59.86/month). Stopping the instance gives no refund."
+      "note": "Monthly prepaid is about 74.5% of 730 h pay-per-use ($71.83 vs $96.36 for s6.xlarge.2). 1-year prepaid for s6.xlarge.2 is $718.32 ($59.86/month). Stopping the instance gives no refund.",
+      "cpu_class": "shared"
     },
     {
       "key": "ecs-burstable-t6-sg",
@@ -350,7 +353,8 @@
       "min_billed_seconds": 0,
       "granularity_s": 1,
       "start_fee": 0,
-      "note": "Burstable with CPU credits. The calculator also lists t7/at7 at $0.0274/$0.0233 per hour for 4 vCPU / 8 GiB, but their baseline is not documented on the intl T6 page."
+      "note": "Burstable with CPU credits. The calculator also lists t7/at7 at $0.0274/$0.0233 per hour for 4 vCPU / 8 GiB, but their baseline is not documented on the intl T6 page.",
+      "cpu_class": "shared"
     }
   ],
   "storage": {
@@ -524,7 +528,8 @@
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
     "own_agent_api": true,
-    "secret_proxy": "ai-only"
+    "secret_proxy": "ai-only",
+    "guest_firewall": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -830,6 +835,25 @@
       "source": "https://support.huaweicloud.com/intl/en-us/usermanual-iam/iam_08_0002.html",
       "quote": "Huawei Cloud supports identity federation with Security Assertion Markup Language (SAML)...Huawei Cloud functions as a service provider (SP) and enterprises function as identity providers (IdPs).",
       "note": "Account-wide IAM supports SAML 2.0 identity federation (virtual user SSO) for console/API login, which covers access to the AgentArts console/APIs.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_008.html",
+      "quote": "代码解释器是AgentArts的核心组件之一，为Agent提供安全隔离的代码执行环境。Agent可以在代码解释器中执行代码、处理文件、运行命令，所有操作在受控环境中完成，不影响宿主系统。",
+      "note": "derived: the card classifies AgentArts sandbox isolation as container-level (shared kernel), not a full VM/microVM, and no AgentArts doc (runtime, code interpreter, browser, sessions, gateway APIs) documents root/sudo or CAP_NET_ADMIN access, or any iptables/nftables capability inside the sandbox; access is via a restricted runtime/code-interpreter/browser API (commands, file I/O), not an unrestricted root shell. Session API only, no SSH (ssh=false per card). Absent an established full-VM + root combination, guest-side nftables/iptables control is not established, so this is derived as false rather than an unconfirmed true.",
+      "checked": "2026-09-30"
+    },
+    "cpu_class": {
+      "value": {
+        "ecs-payg-sg": "shared",
+        "ecs-payg-latam": "shared",
+        "ecs-monthly-sg": "shared",
+        "ecs-burstable-t6-sg": "burstable:20"
+      },
+      "source": "https://support.huaweicloud.com/intl/en-us/productdesc-ecs/ecs_01_0020.html",
+      "quote": "General computing ECSs provide a balance of compute, memory, and networking resources and a baseline level of vCPU performance with the ability to burst above the baseline. ... Notes: S6 ECS burstable performance is neither restricted by CPU credits nor billed for additional credits.",
+      "note": "The ecs-payg-sg / ecs-payg-latam / ecs-monthly-sg modes use S6 (general computing), X1 (FlexusX general computing) and C9 (general computing-plus/compute) flavors. Huawei's own ECS Types doc (en-us_topic_0035470096.html, Table 6 'Differences between dedicated and shared ECSs') states standard pay-per-use ECS instances (as opposed to a purchased Dedicated Host) are 'Shared ECS': 'CPUs are shared and CPU contention may occur.' The General Computing family page (ecs_01_0020.html) explicitly describes S6/X1 as baseline+burst instances, and S6 specifically runs on the CPU-credit mechanism (like T6) though its burst is not throttled by credits -- consistent with shared/oversubscribed vCPUs rather than a dedicated-core guarantee; no Huawei doc states S6/X1/C9 have dedicated/reserved cores. classified as 'shared', medium confidence since no page uses the word 'shared' specifically for C9. For ecs-burstable-t6-sg: the ECS General Computing-Basic T6 spec page (ecs_01_0024.html, Table 2) publishes an explicit 'Average CPU Baseline (%)' column per flavor -- e.g. t6.large.2 / t6.xlarge.2 / t6.2xlarge.2 = 20% (matching the card's baseline_pct:20; t6.4xlarge.2 is separately documented at 15%) -- and CPU Credits doc (ecs_01_0061.html) states 'General computing-basic T6 ECSs are shared ECSs restricted by CPU credits,' confirming burstable:20 for the sizes the card models.",
       "checked": "2026-09-30"
     }
   }

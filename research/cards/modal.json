@@ -60,7 +60,8 @@
       "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
       "features": {
         "isolation": "gvisor"
-      }
+      },
+      "cpu_class": "dedicated"
     },
     {
       "key": "low-request-burst",
@@ -117,7 +118,8 @@
       "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
       "features": {
         "isolation": "gvisor"
-      }
+      },
+      "cpu_class": "shared"
     },
     {
       "key": "region-broad",
@@ -178,7 +180,8 @@
       "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
       "features": {
         "isolation": "gvisor"
-      }
+      },
+      "cpu_class": "dedicated"
     },
     {
       "key": "region-narrow",
@@ -240,7 +243,8 @@
       "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
       "features": {
         "isolation": "gvisor"
-      }
+      },
+      "cpu_class": "dedicated"
     },
     {
       "key": "vm-sandbox",
@@ -289,7 +293,8 @@
         "burst_tti_ms": null,
         "dax_s": null
       },
-      "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target"
+      "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
+      "cpu_class": "dedicated"
     }
   ],
   "storage": {
@@ -361,7 +366,7 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": true,
     "gpu_types": [
       "T4",
@@ -810,9 +815,10 @@
       "checked": "2026-09-30"
     },
     "arm64": {
-      "value": null,
-      "was": false,
-      "note": "doubtful \"no\" could not be confirmed: Docs describe images/base OS but never state CPU architecture options; no mention of arm64/Graviton/Apple-silicon guest CPUs anywhere in the docs, gpu guide, or pricing page. Absence of any ARM mention across the full docs corpus is consistent with x86_64-only, but no page explicitly says 'x86_64 only', so kept as unclear rather than a confirmed 'right'.",
+      "value": false,
+      "source": "https://modal.com/docs/reference/modal.Image#from_registry",
+      "quote": "The image must be built for the `linux/amd64` platform.",
+      "note": "Docs require linux/amd64 for custom images and never mention arm64/aarch64/Graviton/Apple-silicon guest CPUs anywhere in the docs, GPU guide, or pricing page; the only architecture named across the full llms-full.txt corpus is x86_64/amd64 (e.g. flash-attn wheels are linux_x86_64, binaries are linux-amd64). Treated as x86_64-only.",
       "checked": "2026-09-30"
     },
     "self_host": {
@@ -827,6 +833,19 @@
       "source": "https://modal.com/llms-full.txt",
       "quote": "occur through modal, our open-source command-line tool and Python client library.",
       "note": "Only the `modal` CLI/Python client is open-source; the core product -- the compute platform itself (scheduler, workers, storage, billing) -- is closed-source and only usable as Modal's hosted service. No OSI license covers the core product.",
+      "checked": "2026-09-30"
+    },
+    "cpu_class": {
+      "value": {
+        "on-demand": "dedicated",
+        "region-broad": "dedicated",
+        "region-narrow": "dedicated",
+        "vm-sandbox": "dedicated",
+        "low-request-burst": "shared"
+      },
+      "source": "https://modal.com/docs/guide/sandbox-resources",
+      "quote": "Sandboxes can burst beyond their CPU and memory requests when additional resources are available on the underlying host. Your request guarantees a minimum level of resources, but when spare capacity exists, your Sandbox can use more. You pay for `max(request, actual)`.",
+      "note": "Modal guarantees the requested number of physical cores ('access to at least N cores', modal.com/docs/guide/resources) -- i.e. reserved/dedicated capacity up to the request, with additional cores above that available only opportunistically (soft limit request+16 cores, throttled beyond it) and billed via max(request,actual). For on-demand/region-*/vm-sandbox modes the request is set to the workload size, so the guaranteed (dedicated) portion covers the whole workload. For low-request-burst the request is deliberately set to the minimum (0.125 core) and the card's own note says burst capacity is NOT guaranteed ('it needs spare host capacity ... the workload may be throttled'), so most of that mode's effective vCPUs are best-effort/shared rather than reserved.",
       "checked": "2026-09-30"
     }
   }

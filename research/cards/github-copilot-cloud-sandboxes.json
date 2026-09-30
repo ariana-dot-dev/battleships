@@ -131,7 +131,7 @@
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": false,
     "byoc": false,
@@ -142,8 +142,8 @@
     "soc2": true,
     "hipaa": null,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -151,13 +151,13 @@
     "credential_injection": null,
     "egress_http_rules": true,
     "wake_on_request": false,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
@@ -175,7 +175,8 @@
     "volume_attach": false,
     "volume_shared": false,
     "own_agent_api": false,
-    "ingress_rules": false
+    "ingress_rules": false,
+    "egress_ip_type": "datacenter"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -483,9 +484,45 @@
       "checked": "2026-09-30"
     },
     "eu_data_residency": {
-      "value": null,
-      "was": false,
-      "note": "doubtful \"no\" could not be confirmed: No region selection, data-residency, or EU-specific hosting option is documented for cloud sandboxes on the sandboxing, billing, or SDK pages checked; GitHub Enterprise Cloud has separate EU data residency features but none found tied to cloud sandboxes specifically.",
+      "value": false,
+      "source": "https://docs.github.com/en/enterprise-cloud@latest/admin/data-residency/github-copilot-with-data-residency",
+      "quote": "If your enterprise uses GitHub Enterprise Cloud with data residency, you can enable a policy to ensure that all inference processing and associated data for GitHub Copilot remain within your designated geographic region. Copilot with data residency is currently available in the following regions: United States, European Union.",
+      "note": "derived: GitHub's only documented EU-region control for Copilot is 'Copilot with data residency', which keeps AI *model inference* traffic/logs in-region (US or EU) for GHEC customers; it does not mention the cloud sandbox execution environment at all. The Copilot cloud-sandbox docs/billing docs list only a 'us' region for sandboxes and do not offer any EU/region selection for where the sandbox VM itself runs.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses",
+      "quote": "GitHub-hosted runners use dynamically assigned IP addresses from shared infrastructure. These IP addresses are published via the Meta API (for example, the actions and actions_macos keys).",
+      "note": "The Meta API (api.github.com/meta) publishes a 'copilot' key with a shared, published list of Azure/GitHub datacenter CIDR ranges (e.g. 20.85.130.105/32, 4.237.22.41/32, 192.30.252.0/22) analogous to the actions/actions_macos runner-IP keys described on this page; this is a shared pool of dynamically assigned datacenter IPs, not residential/mobile and not a single dedicated IP, so classified as datacenter (medium confidence: the copilot key isn't narrated in prose as covering cloud-sandbox egress specifically).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/sandboxes-overview",
+      "quote": "Resource tiers: Each sandbox is assigned a resource tier that checks its CPU, memory, and disk allocation. Tier CPU Memory Disk XS 0.25 cores 0.5 GB 20 GB S 0.5 cores 1 GB 20 GB M (default) 1 core 2 GB 20 GB L 2 cores 4 GB 40 GB XL 4 cores 8 GB 80 GB",
+      "note": "derived: the underlying Azure Container Apps Sandboxes platform assigns a fixed resource tier at creation; its documented lifecycle operations are create/suspend(stop)/resume/delete only, with no resize/scale operation on a running sandbox. GitHub's own Copilot cloud-sandbox docs likewise describe only Active/Stopped/Deleted states with no resize control exposed.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall",
+      "quote": "By default, allows access to: ... Packages registries used by popular programming languages (C#, Dart, Go, Haskell, Java, JavaScript, Perl, PHP, Python, Ruby, Rust, Swift).",
+      "note": "This firewall default allowlist (which the docs say 'Cloud sandbox policies share the same configuration as Copilot cloud agent policies') explicitly includes Python package registries, implying Python tooling is an expected, supported workload in the sandboxed Linux environment. No explicit 'Python is preinstalled' statement was found, so medium confidence.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall",
+      "quote": "By default, allows access to: ... Packages registries used by popular programming languages (C#, Dart, Go, Haskell, Java, JavaScript, Perl, PHP, Python, Ruby, Rust, Swift).",
+      "note": "Same shared firewall allowlist includes JavaScript/npm registries. Additionally, GitHub Copilot CLI itself (the interface used to drive `copilot --cloud` sessions) is an npm-distributed Node.js CLI, so a Node.js runtime is present in the sandbox that runs it; medium confidence since GitHub does not explicitly document 'Node.js is available to your code' as a sandbox feature.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses",
+      "quote": "We make changes to our IP addresses from time to time. We do not recommend allowing by IP address, but if you use these IP ranges we strongly encourage regular monitoring of our API.",
+      "note": "Outbound traffic uses GitHub's shared, published, and changeable IP ranges (the 'copilot' key in api.github.com/meta lists ~17 CIDR/host ranges shared across all customers), not a single fixed IP dedicated to one account or session; no static/dedicated egress IP feature is documented for Copilot cloud sandboxes.",
       "checked": "2026-09-30"
     }
   }

@@ -214,7 +214,9 @@
     "snapshot_on_demand": false,
     "volume_shared": false,
     "own_agent_api": false,
-    "max_session_unlimited": true
+    "max_session_unlimited": true,
+    "volume_attach": false,
+    "guest_firewall": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -528,6 +530,20 @@
       "source": "https://apoxy.dev/clrk",
       "quote": "Run any agent — CrewAI, LangGraph, ADK, OpenAI Agents — in a gVisor sandbox with every byte of egress routed through Envoy. ... Isolation gVisor userspace Each execution gets its own network namespace. Compromised agent code can't reach the host or the cluster.",
       "note": "CLRK sandboxes run under gVisor (a userspace-kernel sandbox, not KVM/hardware virtualization), which does not expose /dev/kvm to the guest, so nested VMs/emulators cannot run inside. The official product page confirms gVisor isolation for every agent execution; no first-party option to run KVM-based nested virtualization is documented anywhere on apoxy.dev.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://apoxy.dev/docs/clrk/guides/persist-state-across-runs.md",
+      "quote": "CLRK sandboxes have no durable cross-worker persistent storage by default. Each invocation starts from a fresh rootfs; `/tmp` and any image-baked filesystem state reset on every run.",
+      "note": "not offered: no per-sandbox attach-volume API is documented. WorkerPool.template.extraVolumes/extraVolumeMounts (workerpools.md) are BYOC-operator-level k8s pod volumes for the worker node, not a customer-facing volume attachable to an individual agent execution/sandbox; the only per-execution persistence is the worker-local sqlite TaskAgent.spec.state mount, not an attachable volume.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://apoxy.dev/docs/clrk/reference/clrk/workerpools.md",
+      "quote": "the gVisor/runsc-load-bearing fields (privileged + seccomp Unconfined + the AppArmor annotation, the run/state/varlog scratch volumes, the dispatch port, and the downward-API env) are owned by the controller's pod builder and are not expressible here, so a user edit cannot break the sandbox runtime.",
+      "note": "derived: sandboxes are gVisor/runsc (userspace-kernel), not a full VM/microVM, and run without privileged access; there is no ssh/exec/root access documented (root is unestablished, ssh=false) so there is no way to configure guest-side iptables/nftables inside the sandbox. Network policy (egress allow/deny) is enforced entirely outside the sandbox at the Envoy EgressGateway.",
       "checked": "2026-09-30"
     }
   }

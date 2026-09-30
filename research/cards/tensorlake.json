@@ -43,7 +43,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Rate set pro_gb_v1. CPU metered on active execution (idle/I-O wait free); falls back to allocated vCPU when active metering is unavailable. RAM and root disk ($0.0001/GB-h) are allocation-based while running. Usage pooled per org, billed in whole CUs. Idle timeout default 600 s; unlimited max on Pro. Quotes 2026-09-28: 'CPU tracks active runtime execution, not allocated vCPU time'; 'RAM and root disk are allocation-based while the sandbox is running.' (https://docs.tensorlake.ai/platform/billing). Idle: suspend (named) / terminate (ephemeral) after timeout_secs, default 600 s with no proxied traffic (SSH, PTY, exposed-port request, SDK/CLI call) (https://docs.tensorlake.ai/sandboxes/lifecycle)."
+      "note": "Rate set pro_gb_v1. CPU metered on active execution (idle/I-O wait free); falls back to allocated vCPU when active metering is unavailable. RAM and root disk ($0.0001/GB-h) are allocation-based while running. Usage pooled per org, billed in whole CUs. Idle timeout default 600 s; unlimited max on Pro. Quotes 2026-09-28: 'CPU tracks active runtime execution, not allocated vCPU time'; 'RAM and root disk are allocation-based while the sandbox is running.' (https://docs.tensorlake.ai/platform/billing). Idle: suspend (named) / terminate (ephemeral) after timeout_secs, default 600 s with no proxied traffic (SSH, PTY, exposed-port request, SDK/CLI call) (https://docs.tensorlake.ai/sandboxes/lifecycle).",
+      "cpu_class": "shared"
     },
     {
       "key": "byoc",
@@ -90,7 +91,8 @@
       "windows_vcpu_h": null,
       "gpu": null,
       "note": "Price = your own cloud bill + Tensorlake fee, NOT the fee alone. vcpu_h is an AWS reference rate standing in for the bill you pay AWS directly: the blog example i7i.metal-24xl at $9.06/h in US East / 96 vCPU (768 GiB RAM bundled, 8 GiB/vCPU), no overcommit. The 1.3 multiplier adds the 30% entry fee (as low as 10% at scale; blog example at 20% = $10.87/h total). Real cost depends on host billing (hosts bill whether full or not), packing/overcommit and AWS prices. Excludes EBS and AWS egress. Re-verified 2026-09-28 at https://www.tensorlake.ai/blog/introducing-tensorlake-byoc.",
-      "note (append)": "The blog says BYOC runs on AWS, GCP, Azure, CoreWeave, Nebius and bare metal (e.g. Latitude). The AWS setup docs require i7i.metal-24xl or i7i.metal-48xl executors. Sandboxes use Firecracker 'wherever KVM is available and in gVisor containers where it is not'."
+      "note (append)": "The blog says BYOC runs on AWS, GCP, Azure, CoreWeave, Nebius and bare metal (e.g. Latitude). The AWS setup docs require i7i.metal-24xl or i7i.metal-48xl executors. Sandboxes use Firecracker 'wherever KVM is available and in gVisor containers where it is not'.",
+      "cpu_class": "shared"
     },
     {
       "key": "usage-credits",
@@ -114,7 +116,8 @@
       "ram_per_vcpu": [
         1,
         8
-      ]
+      ],
+      "cpu_class": "shared"
     },
     {
       "key": "free-tier",
@@ -574,6 +577,17 @@
       "source": "https://docs.tensorlake.ai/sandboxes/lifecycle.md",
       "quote": "Configure CPU, memory, and disk size per sandbox. These are fixed when the sandbox is created and cannot be changed afterwards. Create a new sandbox if you need different resources.",
       "note": "Explicitly documented: resources are fixed at create time; even restoring from a memory snapshot keeps the original CPU/memory ('Image, resources (CPUs, memory), and entrypoint come from the snapshot and cannot be changed at restore time').",
+      "checked": "2026-09-30"
+    },
+    "cpu_class": {
+      "value": {
+        "pro": "shared",
+        "usage-credits": "shared",
+        "byoc": "shared"
+      },
+      "source": "https://www.tensorlake.ai/blog/introducing-tensorlake-byoc",
+      "quote": "Serverless platforms oversubscribe compute to pack workloads more densely and reduce costs. Most sandboxes do not use all their allocated CPUs at the same time, so oversubscription improves resource utilization. Tensorlake gives operators control over how much each machine is oversubscribed.",
+      "note": "Tensorlake's own blog states its sandbox hosts (managed cloud and BYOC alike) are run oversubscribed by design, with the operator (Tensorlake for pro/usage-credits, the customer for BYOC) merely controlling the oversubscription ratio -- there is no dedicated/pinned-core tier documented. This matches the billing page's active-CPU metering for pro/usage-credits ('CPU tracks active runtime execution, not allocated vCPU time is used' -- https://docs.tensorlake.ai/platform/billing), which only makes economic sense if idle allocated vCPUs can be reused by other sandboxes on the same shared host. No published rate set or doc names a dedicated-core or published-baseline-burstable tier, so 'shared' (oversubscribed, no guaranteed per-vCPU share) is the best-supported value for all three metered modes; free-tier omitted for lack of direct evidence.",
       "checked": "2026-09-30"
     }
   }

@@ -71,7 +71,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "Rates = Retail API 'Hosted vCPU Usage' $0.0994/h + 'Hosted Memory Usage' $0.0118/GiB-h (eastus, eastus2, westus, westus3, northcentralus, southcentralus, australiaeast identical). Billing on allocated cpu+memory of every ACTIVE session; compute stays active until the idle timeout (2-60 min, default 15) after the last request, so each burst bills >= the idle timeout. $HOME persisted free of any published storage meter; sessions deleted after 30 days inactivity. Disk 10 GiB (0.5 vCPU) / 20 GiB (>=1 vCPU), ~20% reserved. No 4/8 size."
+      "note": "Rates = Retail API 'Hosted vCPU Usage' $0.0994/h + 'Hosted Memory Usage' $0.0118/GiB-h (eastus, eastus2, westus, westus3, northcentralus, southcentralus, australiaeast identical). Billing on allocated cpu+memory of every ACTIVE session; compute stays active until the idle timeout (2-60 min, default 15) after the last request, so each burst bills >= the idle timeout. $HOME persisted free of any published storage meter; sessions deleted after 30 days inactivity. Disk 10 GiB (0.5 vCPU) / 20 GiB (>=1 vCPU), ~20% reserved. No 4/8 size.",
+      "cpu_class": "shared"
     },
     {
       "key": "hosted-eu",
@@ -139,7 +140,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "Retail API swedencentral: $0.10934/vCPU-h + $0.01298/GiB-h (+10% vs US). West/North Europe rows not in the API for this meter; eastasia and brazilsouth +20% ($0.11928 + $0.01416). Same idle-tail rule as hosted-eastus: compute bills until the idle timeout (default 15 min)."
+      "note": "Retail API swedencentral: $0.10934/vCPU-h + $0.01298/GiB-h (+10% vs US). West/North Europe rows not in the API for this meter; eastasia and brazilsouth +20% ($0.11928 + $0.01416). Same idle-tail rule as hosted-eastus: compute bills until the idle timeout (default 15 min).",
+      "cpu_class": "shared"
     }
   ],
   "storage": {
@@ -179,7 +181,7 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "pause_resume": true,
     "fork": false,
@@ -591,6 +593,23 @@
       "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents",
       "quote": "Compute follows the session, not the individual request. The platform provisions a sandbox when a session starts and releases it when the configured idle timeout elapses after the most recent request.",
       "note": "No documented maximum session/session-length cap; a session's compute stays active indefinitely as long as requests keep arriving before the idle timeout (2-60 min) elapses, and is only deleted after 30 days of total inactivity.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
+      "quote": "Azure Container Apps supports: Any Linux-based x86-64 (linux/amd64) container image ... Operating system: Linux-based (linux/amd64) container images are required.",
+      "note": "Hosted agents deploy a container image to Foundry Agent Service, which runs on Azure Container Apps compute; ACA only accepts linux/amd64 (x86-64) images, so no ARM64 option exists.",
+      "checked": "2026-09-30"
+    },
+    "cpu_class": {
+      "value": {
+        "hosted-eastus": "shared",
+        "hosted-eu": "shared"
+      },
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/plans",
+      "quote": "Consumption: Serverless environment with support for scale-to-zero and paying only for resources that your apps use. ... Dedicated: ... Compute isolation: Dedicated workload profiles provide access to dedicated hardware with a single tenant guarantee.",
+      "note": "Foundry hosted agents bill per allocated vCPU-hour/GiB-hour on Azure Container Apps compute (per the FAQ: 'Agent Service networking uses Azure Container Apps') with small fractional sizes (0.5/1/2 vCPU) and no workload-profile/Dedicated-plan selection documented for hosted agents; ACA's Dedicated plan (with its 'single tenant guarantee' on dedicated hardware) is a separate, differently priced offering not referenced anywhere in the hosted-agents docs, implying hosted-agent sessions run on the default multi-tenant Consumption-style compute, i.e. shared/oversubscribed vCPUs rather than dedicated cores. No explicit 'shared vCPU' statement was found for hosted agents specifically, so this is derived rather than a direct quote about hosted agents.",
       "checked": "2026-09-30"
     }
   }

@@ -170,7 +170,7 @@
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
@@ -189,7 +189,7 @@
     "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
-    "fork_running": null,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": false,
     "scheduled_wakeups": null,
@@ -528,6 +528,20 @@
       "source": "https://raw.githubusercontent.com/openai/tart/main/README.md",
       "quote": "Tart is a virtualization toolset to build, run and manage macOS and Linux virtual machines (VMs) on Apple Silicon.",
       "note": "Product is explicitly macOS + Linux guests on Apple Silicon via Virtualization.Framework, which does not support Windows guests on ARM Macs; no Windows image or flag anywhere in the CLI/docs.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://github.com/openai/tart/blob/main/Sources/tart/VMDirectory.swift",
+      "quote": "func clone(to: VMDirectory, generateMAC: Bool) throws { try FileManager.default.copyItem(at: configURL, to: to.configURL) ... try FileManager.default.copyItem(at: diskURL, to: to.diskURL) }",
+      "note": "For a default (non-stacked) VM, `tart clone` copies config/nvram/disk files via APFS copy-on-write with no check on the source VM's state. Clone.swift only enforces `guard sourceState == .Stopped` for the `--stacked` disk-stacking path ('VM must be stopped before cloning'); the plain clone path has no such guard, so cloning a currently-Running VM is not blocked by the code. Not documented/advertised as a supported workflow, and memory state is not carried over (that requires a separate 'tart suspend' first, which does stop execution) - hence medium confidence rather than high.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://tart.run/licensing/",
+      "quote": "Software licence only: Tart (Apple Virtualization.framework VM manager) + Orchard orchestrator. You bring and pay for the Macs (e.g. Scaleway / MacStadium / AWS EC2 Mac).",
+      "note": "not offered: outside the product's scope. Tart/Orchard is self-hosted VM tooling with only NAT or host-bridged VM networking (Run.swift --net-bridged / default NAT); it does not allocate or manage any outbound IP itself - egress IP is whatever the operator's own Mac hosting provider assigns, so Tart has no static-egress-IP feature to offer.",
       "checked": "2026-09-30"
     }
   }

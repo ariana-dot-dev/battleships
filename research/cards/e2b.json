@@ -39,7 +39,8 @@
       "features": {
         "isolation": "firecracker"
       },
-      "flags": []
+      "flags": [],
+      "cpu_class": "shared"
     }
   ],
   "storage": {
@@ -155,7 +156,7 @@
     "max_session_h": 24,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": true,
     "browser": true,
@@ -447,9 +448,10 @@
       "checked": "2026-09-30"
     },
     "nested_virt": {
-      "value": null,
-      "was": false,
-      "note": "doubtful \"no\" could not be confirmed: Checked the full docs index, template/base-image, template/defining-template, k3s and Docker template pages, and security docs for any mention of /dev/kvm, nested virtualization, or running VMs inside a sandbox: none found. E2B sandboxes are themselves Firecracker microVMs; whether the guest kernel exposes KVM for nested virtualization is not documented either way, so this stays unclear rather than a confirmed 'no'.",
+      "value": false,
+      "source": "https://docs.e2b.dev/k3s",
+      "quote": "IPVS kube-proxy mode and nested-virtualization runtimes such as Kata Containers or KubeVirt are not supported.",
+      "note": "E2B's own k3s-in-a-sandbox docs list 'nested-virtualization runtimes such as Kata Containers or KubeVirt' among things that explicitly do not work inside an E2B sandbox, alongside other kernel-capability gaps (no BPF JIT, missing netfilter extensions). No page documents /dev/kvm being exposed to the guest; sandboxes are themselves Firecracker microVMs and nothing in the docs, changelog, or template/base-image pages offers or claims nested KVM/virtualization support. Kept at medium confidence because this is inferred from a limitations list on one use-case page rather than a direct 'no nested virtualization' statement.",
       "checked": "2026-09-30"
     },
     "public_ipv4": {
@@ -498,6 +500,15 @@
       "value": null,
       "was": false,
       "note": "doubtful \"no\" could not be confirmed: Checked network docs (internet-access, public-url, restrict-public-access, ip-tunneling, byop, custom-domain) and byoc.md: no standard first-party VPC-peering/private-link feature for reaching a customer's private network from a sandbox. BYOC deploys the whole cluster inside the customer's own VPC (Enterprise-only, different from per-sandbox private networking), so it's ambiguous whether this counts; left unclear rather than a confirmed 'no'.",
+      "checked": "2026-09-30"
+    },
+    "cpu_class": {
+      "value": {
+        "on-demand": "shared"
+      },
+      "source": "https://github.com/e2b-dev/infra/blob/main/packages/api/internal/orchestrator/placement/placement_best_of_K.go",
+      "quote": "// R is the cluster-wide max CPU over-commit ratio ... R: 4,",
+      "note": "E2B's own open-source orchestrator (e2b-dev/infra) places sandboxes on nodes using a placement score keyed on a configurable 'cluster-wide max CPU over-commit ratio' (default R=4), i.e. up to 4x as many allocated vCPUs as physical host cores can be scheduled on a node. This is direct evidence vCPUs are shared/oversubscribed, not dedicated/reserved cores, and no published baseline % is given so 'burstable:NN' does not apply. Billing docs (docs.e2b.dev/faq/calculate-sandbox-price) charge per allocated vCPU-second regardless of usage, but that is a billing basis, not a CPU-dedication guarantee.",
       "checked": "2026-09-30"
     }
   }

@@ -96,7 +96,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "NY2 Linux calculator component sum CPU+RAM+50GB disk, divided by730. TypeB 4/8/50 rendered $88/month equivalent, $0.121/hour rounded. Hourly traffic differs from monthly bundle."
+      "note": "NY2 Linux calculator component sum CPU+RAM+50GB disk, divided by730. TypeB 4/8/50 rendered $88/month equivalent, $0.121/hour rounded. Hourly traffic differs from monthly bundle.",
+      "cpu_class": "shared"
     },
     {
       "key": "monthly-A",
@@ -197,7 +198,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "Estimator-only encoding: sizes.hour and month_cap both equal full monthly rent, with a one-hour synthetic minimum. This is NOT a vendor hourly tariff. For valid workloads with sessions >= peak concurrency it charges one monthly rental per concurrent machine, including off-hours. Setup/term cash outlays are caveated separately."
+      "note": "Estimator-only encoding: sizes.hour and month_cap both equal full monthly rent, with a one-hour synthetic minimum. This is NOT a vendor hourly tariff. For valid workloads with sessions >= peak concurrency it charges one monthly rental per concurrent machine, including off-hours. Setup/term cash outlays are caveated separately.",
+      "cpu_class": "shared"
     },
     {
       "key": "hourly-B",
@@ -290,7 +292,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "NY2 Linux calculator component sum CPU+RAM+50GB disk, divided by730. TypeB 4/8/50 rendered $88/month equivalent, $0.121/hour rounded. Hourly traffic differs from monthly bundle."
+      "note": "NY2 Linux calculator component sum CPU+RAM+50GB disk, divided by730. TypeB 4/8/50 rendered $88/month equivalent, $0.121/hour rounded. Hourly traffic differs from monthly bundle.",
+      "cpu_class": "dedicated"
     },
     {
       "key": "monthly-B",
@@ -391,7 +394,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "Estimator-only encoding: sizes.hour and month_cap both equal full monthly rent, with a one-hour synthetic minimum. This is NOT a vendor hourly tariff. For valid workloads with sessions >= peak concurrency it charges one monthly rental per concurrent machine, including off-hours. Setup/term cash outlays are caveated separately."
+      "note": "Estimator-only encoding: sizes.hour and month_cap both equal full monthly rent, with a one-hour synthetic minimum. This is NOT a vendor hourly tariff. For valid workloads with sessions >= peak concurrency it charges one monthly rental per concurrent machine, including off-hours. Setup/term cash outlays are caveated separately.",
+      "cpu_class": "dedicated"
     },
     {
       "key": "hourly-D",
@@ -484,7 +488,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "NY2 Linux calculator component sum CPU+RAM+50GB disk, divided by730. TypeB 4/8/50 rendered $88/month equivalent, $0.121/hour rounded. Hourly traffic differs from monthly bundle."
+      "note": "NY2 Linux calculator component sum CPU+RAM+50GB disk, divided by730. TypeB 4/8/50 rendered $88/month equivalent, $0.121/hour rounded. Hourly traffic differs from monthly bundle.",
+      "cpu_class": "dedicated"
     },
     {
       "key": "monthly-D",
@@ -577,13 +582,15 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "Estimator-only encoding: sizes.hour and month_cap both equal full monthly rent, with a one-hour synthetic minimum. This is NOT a vendor hourly tariff. For valid workloads with sessions >= peak concurrency it charges one monthly rental per concurrent machine, including off-hours. Setup/term cash outlays are caveated separately."
+      "note": "Estimator-only encoding: sizes.hour and month_cap both equal full monthly rent, with a one-hour synthetic minimum. This is NOT a vendor hourly tariff. For valid workloads with sessions >= peak concurrency it charges one monthly rental per concurrent machine, including off-hours. Setup/term cash outlays are caveated separately.",
+      "cpu_class": "dedicated"
     },
     {
       "key": "burstable-T",
       "label": "Type T burstable",
       "flags": [
-        "alt"
+        "alt",
+        "burstable"
       ],
       "os": [
         "linux"
@@ -623,7 +630,9 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "Hourly-only CPU bursting; quote and CPU usage economics not captured."
+      "note": "Hourly-only CPU bursting; quote and CPU usage economics not captured.",
+      "cpu_class": "shared",
+      "baseline_pct": 10
     }
   ],
   "storage": {
@@ -712,7 +721,7 @@
     "credential_injection": null,
     "egress_http_rules": false,
     "wake_on_request": false,
-    "live_resize": null,
+    "live_resize": true,
     "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": null,
@@ -1064,6 +1073,28 @@
       "source": "https://www.kamatera.com/company/about/",
       "quote": "Learn about the world’s most flexible cloud provider. We are a global cloud services platform provider... Our parent company, The OMC Group has been providing cloud solutions since 1995.",
       "note": "Kamatera is a proprietary commercial cloud platform (owned by The OMC Group); only client tooling (cloudcli, Terraform provider) is open source on GitHub, not the core sandbox/VM platform itself, so open_source=false for the product is correct.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/Kamatera/terraform-provider-kamatera/master/kamatera/resource_server.go",
+      "quote": "if d.HasChange(\"image_id\") && !d.Get(\"allow_recreate\").(bool) { return diag.Errorf(\"changing server image requires recreation...\") } ... if d.HasChanges(\"cpu_type\", \"cpu_cores\") { newCPU = fmt.Sprintf(\"%v%v\", newCPUCores, newCPUType) } ... if newCpu != \"\" { postServerConfigure(... CPU: newCpu) } if newRam != 0 { postServerConfigure(... RAM: newRam) }",
+      "note": "Kamatera's own Terraform provider (and cloudcli's `server configure --cpu --ram`) changes cpu_cores/cpu_type/ram_mb on an existing server via a dedicated 'configure' API call, with no allow_recreate gate — unlike image/network/ssh_pubkey/startup_script/datacenter changes, which explicitly error out unless allow_recreate=true. This shows CPU/RAM resize is a first-party in-place operation that keeps the same server (disk/IP/ID), not a destroy+recreate; the exact reboot/downtime behavior during the resize itself is not documented, hence medium confidence.",
+      "checked": "2026-09-30"
+    },
+    "cpu_class": {
+      "value": {
+        "hourly-A": "shared",
+        "monthly-A": "shared",
+        "hourly-B": "dedicated",
+        "monthly-B": "dedicated",
+        "hourly-D": "dedicated",
+        "monthly-D": "dedicated",
+        "burstable-T": "burstable:10"
+      },
+      "source": "https://www.kamatera.com/faq/answer/which-cpu-types-are-offered-by-kamatera/",
+      "quote": "Type A - Availability: Server CPUs are assigned to a non-dedicated physical CPU thread with no resources guaranteed. ... Type B - General Purpose: Server CPUs are assigned to a dedicated physical CPU Thread with reserved resources guaranteed. ... Type D – Dedicated: Server CPUs are assigned to a dedicated physical CPU Core (2 threads) with reserved resources guaranteed. ... Type T – Burstable: Server CPUs are assigned to a dedicated physical CPU thread with reserved resources guaranteed. Exceeding an average CPU usage of 10% will be extra charged for CPU usage consumption.",
+      "note": "Card modes hourly-A/monthly-A use CPU Type A (shared, no guarantee); hourly-B/monthly-B and hourly-D/monthly-D use Types B and D respectively (both described as 'reserved resources guaranteed', B at thread level, D at full-core level) -> dedicated; burstable-T uses Type T, which reserves a thread but explicitly bills extra above a 10% average-CPU baseline, i.e. burstable with a published 10% baseline.",
       "checked": "2026-09-30"
     }
   }
