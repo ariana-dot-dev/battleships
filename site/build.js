@@ -68,7 +68,8 @@ html = html.replace('<div class="bfoot-sea" id="footSea"></div>', () => `<div cl
 html = html.replace('<div id="heroSea">', () => `${globalThis.BoatTheme.sprites()}<div id="heroSea">`);
 html = html.replace('/*__ASSETS__*/', () => 'window.BOAT_ASSETS=' + JSON.stringify({ ships: { 'rowboat-l': ASSETS.ships['rowboat-l'] } }) + ';');
 html = html.replace('/*__THEME__*/', () => '');
-html = html.replace('/*__DATA__*/', () => JSON.stringify(data).replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\u0021--'));
+// the data ships gzipped + base64 (5.6 MB of JSON -> ~1 MB): link-preview and OG crawlers refuse pages over 5 MB
+html = html.replace('/*__DATA__*/', () => require('zlib').gzipSync(JSON.stringify(data), { level: 9 }).toString('base64'));
 fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
 // favicon inlined, so the page shows it wherever it's opened (site, embeds, a saved file)
 html = html.replace('%FAVICON%', () => 'data:image/svg+xml,' + encodeURIComponent(fs.readFileSync(path.join(__dirname, 'assets', 'favicon.svg'), 'utf8').trim()));
