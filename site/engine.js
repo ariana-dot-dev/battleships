@@ -527,7 +527,9 @@
     const reusedN = best.modes.map(r => r.reused).find(Boolean);
     const startsDay = reusedN ? 0 : W.sessions / 30;
     const steadyMin = reusedN || !(W.sessionMin > 0) ? 0 : Math.max(W.concurrency, 1) / W.sessionMin;
-    const startsHourCap = Math.min(steadyMin * 60, startsDay);
+    // starts in the busiest hour: about 3x an average hour of the day, and at least one full burst at your "at once" level;
+    // never more than the fleet can turn over in an hour or than a day holds (was: the whole day in one hour)
+    const startsHourCap = Math.min(steadyMin * 60, startsDay, Math.max(startsDay / 24 * 3, Math.max(W.concurrency, 1)));
     // a per-minute start limit is a burst throttle: a short burst above it queues for seconds. What needs a bigger plan is
     // the SUSTAINED rate, i.e. the busiest hour's starts spread over its minutes (the old min(steady, day) assumed a whole
     // day's sessions all start in the same minute, which pushed 33 runs a day onto boat.dev's $500 plan).
