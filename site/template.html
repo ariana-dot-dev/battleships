@@ -109,6 +109,8 @@ input[type=range]:focus,input[type=range]:focus-visible{box-shadow:none;outline:
 input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--fill-2)}
 input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px var(--fill-2)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* two segmented controls side by side are cramped in the 320px panel: stack them */
+.row:has(.segc){grid-template-columns:1fr}
 .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .row+.row,.row3+.row,.seg+.row,.row+.f,.chips+.row,.grp>.f+.f,details.grp>.f+.f,.f+.seg,.f+.row,.seg+.f,.tog+.f,.f+.tog{margin-top:8px}
 .row>.f,.row3>.f{justify-content:flex-end}
@@ -165,7 +167,27 @@ details.grp[open] .sumval{visibility:hidden}
 .wlpick{position:relative;display:inline-flex;align-items:center;gap:8px;align-self:flex-start;max-width:100%;cursor:pointer}
 .wlpick span{font:400 var(--t1)/1.15 var(--display)}
 .wlpick svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5}
-.wlpick select{position:absolute;inset:0;opacity:0;cursor:pointer;padding:0}
+.wlpick select{position:absolute;inset:0;opacity:0;padding:0;pointer-events:none}
+/* usecase preset picker: a grid of cards in a popover (one column on phones) */
+.ppop{position:absolute;z-index:60;background:var(--bg);box-shadow:0 0 0 1px var(--line),0 16px 40px rgba(0,0,0,.16);padding:8px;max-height:min(70vh,560px);overflow:auto;overscroll-behavior:contain}
+.ppgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px}
+.ppcard{display:flex;gap:10px;align-items:flex-start;text-align:left;border:0;background:transparent;padding:10px;cursor:pointer;font:inherit;color:var(--ink)}
+.ppcard:hover,.ppcard:focus-visible{background:var(--fill);outline:0}
+.ppcard[aria-selected="true"]{background:var(--fill);box-shadow:inset 2px 0 0 var(--royal)}
+.ppi{flex:none;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;background:var(--fill);color:var(--ink)}
+.ppcard[aria-selected="true"] .ppi,.ppcard:hover .ppi,.ppcard:focus-visible .ppi{background:var(--bg)}
+.ppi svg{width:18px;height:18px}
+.ppt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ppt b{font-weight:600;font-size:var(--t4)}
+.ppt small{font-size:var(--t4);color:var(--ink-2);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media (max-width:720px){.ppop{left:12px!important;width:calc(100vw - 24px)!important}.ppgrid{grid-template-columns:1fr}.ppt small{-webkit-line-clamp:1}}
+/* short choices: segmented buttons over a hidden select */
+.segsrc{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none;min-height:0!important;padding:0!important}
+.segc{display:flex;flex-wrap:wrap;gap:2px;background:var(--fill);padding:2px}
+.segc button{flex:1 1 auto;min-height:36px;padding:6px 10px;border:0;background:transparent;font:inherit;font-size:var(--t4);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.segc button[aria-checked="true"]{background:var(--bg);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.segc button:hover{color:var(--ink)}
+.segc button:focus-visible{outline:2px solid var(--royal);outline-offset:-2px}
 .wlpick:focus-within{box-shadow:inset 0 -2px 0 var(--ink)}
 .mh{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:var(--t4);color:var(--ink-2)}
 .mhk{color:var(--ink-2);background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
@@ -928,6 +950,49 @@ $('#presetSel').innerHTML='<option value="" disabled>Custom workload</option>'+P
 $('#presetSel').onchange=()=>{ if($('#presetSel').value) applyPreset($('#presetSel').value); };
 // the headline picker hugs its current text so the chevron sits right after the name
 function fitSel(){ const el=$('#presetSel'); if(!el) return; $('#presetName').textContent=(el.options[el.selectedIndex]||{}).text||'Custom workload'; }
+// ---- nicer pickers. The real <select>s stay (all logic reads them); these are views on top that keep them in sync.
+// Usecase preset: a grid of cards (icon, name, one line) in a popover; a single column on phones.
+const PICON=(()=>{ const s=d=>'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+'</svg>';
+  return { fullstack:s('<path d="M3 17V9l4 3V9l4 3V5h6v12z"/><path d="M13 9h2M13 12h2"/>'), employees:s('<circle cx="10" cy="6.5" r="3"/><path d="M4 17c.8-3.3 3.1-5 6-5s5.2 1.7 6 5"/><path d="M15.5 3.5l1 1 2-2"/>'),
+    interp:s('<rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M6 8l2.5 2L6 12M10.5 12.5H14"/>'), platform:s('<rect x="2.5" y="4" width="6" height="5" rx="1"/><rect x="11.5" y="4" width="6" height="5" rx="1"/><rect x="2.5" y="11" width="6" height="5" rx="1"/><rect x="11.5" y="11" width="6" height="5" rx="1"/>'),
+    rl:s('<path d="M15.5 7A6 6 0 1 0 16 12"/><path d="M16 3v4h-4"/>'), ci:s('<circle cx="10" cy="10" r="7"/><path d="M6.8 10.2l2.2 2.2 4.3-4.6"/>'),
+    devbox:s('<rect x="2.5" y="3.5" width="15" height="10" rx="1.5"/><path d="M7 17h6M10 13.5V17"/>'), cua:s('<rect x="2.5" y="3.5" width="15" height="10" rx="1.5"/><path d="M9 8l5 2-2 .8L11 13z"/>'),
+    browseruse:s('<circle cx="10" cy="10" r="7"/><path d="M3 10h14M10 3c2 2 3 4.3 3 7s-1 5-3 7c-2-2-3-4.3-3-7s1-5 3-7z"/>'), scrape:s('<path d="M4 5h12M4 10h8M4 15h5"/><circle cx="14.5" cy="14" r="2.5"/><path d="M16.3 15.8L18 17.5"/>'),
+    scrapemass:s('<path d="M10 3l7 3.5-7 3.5-7-3.5z"/><path d="M3 10l7 3.5 7-3.5M3 13.5L10 17l7-3.5"/>'), redteam:s('<path d="M10 2.5l6 2.5v4.5c0 4-2.6 6.8-6 8-3.4-1.2-6-4-6-8V5z"/><path d="M7.5 10h5"/>'),
+    gpu:s('<rect x="5" y="5" width="10" height="10" rx="1"/><path d="M8 2.5V5M12 2.5V5M8 15v2.5M12 15v2.5M2.5 8H5M2.5 12H5M15 8h2.5M15 12h2.5"/><rect x="8" y="8" width="4" height="4"/>'),
+    mac:s('<rect x="3.5" y="3.5" width="13" height="9" rx="1.5"/><path d="M2 16.5h16"/>'), custom:s('<path d="M4 5h8M15 5h1M4 10h2M9 10h7M4 15h6M13 15h3"/><circle cx="13.5" cy="5" r="1.5"/><circle cx="7.5" cy="10" r="1.5"/><circle cx="11.5" cy="15" r="1.5"/>') }; })();
+let ppop=null;
+function closePresetPop(){ if(ppop){ ppop.remove(); ppop=null; document.removeEventListener('pointerdown',presetAway,true); $('.wlpick').setAttribute('aria-expanded','false'); } }
+function presetAway(e){ if(ppop&&!ppop.contains(e.target)&&!e.target.closest('.wlpick')) closePresetPop(); }
+function openPresetPop(){
+  closePresetPop(); const lab=$('.wlpick'); ppop=document.createElement('div'); ppop.className='ppop'; ppop.setAttribute('role','listbox'); ppop.setAttribute('aria-label','Usecase preset');
+  const first=s=>{ const m=String(s||'').match(/^.*?[.:](\s|$)/); return (m?m[0]:String(s||'')).replace(/[.:]\s*$/,''); };
+  ppop.innerHTML='<div class="ppgrid">'+PRESETS.map(p=>`<button type="button" role="option" class="ppcard" data-k="${p.k}" aria-selected="${p.k===curPreset}"><span class="ppi">${PICON[p.k]||PICON.custom}</span><span class="ppt"><b>${esc(p.n)}</b><small>${esc(first(p.why))}</small></span></button>`).join('')+'</div>';
+  document.body.appendChild(ppop);
+  const r=lab.getBoundingClientRect(), w=Math.min(760,innerWidth-24);
+  ppop.style.width=w+'px'; ppop.style.left=Math.max(12,Math.min(r.left,innerWidth-w-12))+'px'; ppop.style.top=(r.bottom+8+scrollY)+'px';
+  lab.setAttribute('aria-expanded','true');
+  const cards=[...ppop.querySelectorAll('.ppcard')];
+  cards.forEach((b,i)=>{ b.onclick=()=>{ closePresetPop(); applyPreset(b.dataset.k); };
+    b.onkeydown=e=>{ const cols=getComputedStyle(ppop.querySelector('.ppgrid')).gridTemplateColumns.split(' ').length;
+      const to=e.key==='ArrowRight'?i+1:e.key==='ArrowLeft'?i-1:e.key==='ArrowDown'?i+cols:e.key==='ArrowUp'?i-cols:null;
+      if(to!=null){ e.preventDefault(); (cards[Math.max(0,Math.min(cards.length-1,to))]).focus(); } if(e.key==='Escape'){ closePresetPop(); lab.focus(); } }; });
+  (cards.find(b=>b.getAttribute('aria-selected')==='true')||cards[0]).focus({preventScroll:true});
+  document.addEventListener('pointerdown',presetAway,true);
+}
+{ const lab=$('.wlpick'), sel=$('#presetSel'); sel.tabIndex=-1; sel.setAttribute('aria-hidden','true'); lab.tabIndex=0; lab.setAttribute('role','button'); lab.setAttribute('aria-haspopup','listbox'); lab.setAttribute('aria-expanded','false');
+  lab.addEventListener('click',e=>{ e.preventDefault(); ppop?closePresetPop():openPresetPop(); });
+  lab.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '||e.key==='ArrowDown'){ e.preventDefault(); openPresetPop(); } }); }
+// Short choices: segmented buttons (every option visible, one tap); the select underneath stays the source of truth.
+const SEG_LABELS={ scale:{'0.1':'0.1×','0.3':'0.3×','1':'1×','3':'3×','10':'10×'}, sizing:{any:'Don’t care',min:'At least this',reserved:'Reserved cores'} };
+function segify(id){ const sel=$('#'+id); if(!sel||sel.dataset.seg) return; sel.dataset.seg='1';
+  const wrap=document.createElement('div'); wrap.className='segc'; wrap.setAttribute('role','radiogroup'); wrap.setAttribute('aria-label',sel.getAttribute('aria-label')||(sel.closest('label')||{}).textContent||id);
+  wrap.innerHTML=[...sel.options].map(o=>`<button type="button" role="radio" data-v="${esc(o.value)}" data-tip="${esc(o.text)}">${esc((SEG_LABELS[id]||{})[o.value]||o.text)}</button>`).join('');
+  sel.classList.add('segsrc'); sel.after(wrap);
+  wrap.querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(sel.value===b.dataset.v) return; sel.value=b.dataset.v; sel.dispatchEvent(new Event('input',{bubbles:true})); sel.dispatchEvent(new Event('change',{bubbles:true})); syncSegs(); });
+  syncSegs(); }
+function syncSegs(){ $$('.segc').forEach(w=>{ const sel=w.previousElementSibling; w.querySelectorAll('button').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.v===sel.value))); }); }
+['scale','sizing','os','arch'].forEach(segify);
 addEventListener('resize',fitSel); document.fonts&&document.fonts.ready.then(fitSel);
 $('#presets').innerHTML=PRESETS.map(p=>`<button class="chip" data-k="${p.k}" aria-pressed="false" data-tip="${esc(presetTip(p))}">${esc(p.n)}</button>`).join('');
 if(S) $('#sessChips').innerHTML=[['p25',S.p25],['median',S.p50],['mean',S.mean],['p90',S.p90]].map(([l,v])=>`<button class="chip" data-v="${v}" title="boat.dev fleet session length, ${l}">${l} ${v<60?v.toFixed(0)+' min':(v/60).toFixed(1)+' h'}</button>`).join('');
@@ -1095,6 +1160,7 @@ window.__pm={ run:()=>run(), readW:()=>readW(), readOpts:()=>readOpts() }; // te
 let holdRun=false;
 function run(){
   if(holdRun) return;
+  syncSegs(); // segmented controls follow their selects (presets set values directly)
   window.__ran=true;
   queueMicrotask(()=>document.querySelectorAll('input[type=range]').forEach(setRangeFill)); // sliders rendered by this run
   $('#capVal').textContent=$('#idleCapture').value+'%';
