@@ -2,7 +2,7 @@
 // presets, the pricing engine. All static (no query endpoint to abuse); rankings per preset are added by rankings.mjs.
 // usage: node build-agent.js   ->   dist/agent/**
 const fs = require('fs'), path = require('path');
-const R = path.join(__dirname, '..', 'research'), OUT = path.join(__dirname, 'dist', 'agent'), SITE = 'https://pricemogged.com';
+const R = path.join(__dirname, '..', 'research'), OUT = path.join(__dirname, 'dist', 'agent'), SITE = 'https://battleships.dev';
 fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(path.join(OUT, 'data', 'providers'), { recursive: true });
 require('./engine.js'); const PM = globalThis.PM;
 const tpl = fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8');
@@ -71,7 +71,7 @@ internet: what sandboxes must reach: 'open' (any site or API), 'pkg' (package re
 
 ## Notes
 - Prices are list prices from public pages, re-checked 2026-09-28..30; unknown = not published (never assumed free or unlimited).
-- Source code and data: https://github.com/ariana-dot-dev/pricemogged
+- Source code and data: https://github.com/ariana-dot-dev/battleships
 `;
 fs.writeFileSync(path.join(OUT, 'llms.txt'), llms);
 const full = [llms, '', '# All providers', '', ...cards.map(c => { const f = feats(c); const yes = FKEYS.filter(k => f[k] === true).map(k => PM.FEATURE_LABELS[k]);

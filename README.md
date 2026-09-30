@@ -1,22 +1,22 @@
 # Battleships
 
-[![361 providers' pricing pages, each read by an agent in a real browser](media/wall.webp)](https://pricemogged.com/wall.mp4)
+[![361 providers' pricing pages, each read by an agent in a real browser](media/wall.webp)](https://battleships.dev/wall.mp4)
 
 <sub>Every pricing page, read by an agent in a real browser inside boat.dev VMs, using the pi harness and Claude Haiku 4.5.</sub>
 
 What would your agents cost to run on each of 366 cloud sandbox, VM and runtime providers? Battleships prices your workload the way each provider bills it, from their public pages, with a quote behind every answer.
 
-**[pricemogged.com](https://pricemogged.com)**: describe your workload or pick a use case, and see who fits, what it costs, and what you'd give up.
+**[battleships.dev](https://battleships.dev)**: describe your workload or pick a use case, and see who fits, what it costs, and what you'd give up.
 
 ## For agents
 
 Don't scrape the page. Everything is published as static files:
 
-- [`/llms.txt`](https://pricemogged.com/llms.txt): the map, start here
-- [`/data/index.json`](https://pricemogged.com/data/index.json): every provider, with links to its files
+- [`/llms.txt`](https://battleships.dev/llms.txt): the map, start here
+- [`/data/index.json`](https://battleships.dev/data/index.json): every provider, with links to its files
 - `/data/providers/<id>.json` and `.md`: full pricing, features, and the quoted evidence behind each one
 - `/data/rankings/<preset>.json`: the ranking for each use case, as the page computes it
-- [`/engine.js`](https://pricemogged.com/engine.js): the pricing engine, to price your own workload in Node
+- [`/engine.js`](https://battleships.dev/engine.js): the pricing engine, to price your own workload in Node
 
 ## How it's made
 
@@ -29,7 +29,7 @@ Unknown stays unknown: a price or limit a provider doesn't publish is never trea
 
 ## Corrections and contributions
 
-Found a wrong price, a missing feature or an outdated limit? **[Open an issue](https://github.com/ariana-dot-dev/pricemogged/issues/new)** with:
+Found a wrong price, a missing feature or an outdated limit? **[Open an issue](https://github.com/ariana-dot-dev/battleships/issues/new)** with:
 
 - the provider,
 - what's wrong,
@@ -40,7 +40,7 @@ That quote is what we need. We don't change data on word of mouth, private deals
 Pull requests are welcome. Each provider is one file, `research/cards/<id>.json`. Put the source URL and the exact quote in the PR description, then check the result:
 
 ```sh
-cd site && node build.js   # builds site/dist/pricemogged.html
+cd site && node build.js   # builds site/dist/index.html
 node check.js              # prices every provider under the use cases
 ```
 
