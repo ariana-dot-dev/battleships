@@ -502,28 +502,23 @@ header.top{display:none}
 .sea-svg g[stroke],.foot-sea g[stroke]{stroke:var(--royal)}
 /* boats: html boxes over the static sea; transform-only animations stay on the compositor (smooth even while the page works) */
 .fleet{position:absolute;inset:0;pointer-events:none;container-type:inline-size}
-/* cannon fire: flash + smoke at the muzzle, ball on a parabola (x linear, y eased up then down), splash or burst on landing.
-   Each shot's cycle is --dur; it fires --del into it. Only transform/opacity animate, so it stays on the compositor. */
-.shot{position:absolute;left:var(--x0);top:var(--y0);width:0;height:0}
-.shot>*{position:absolute;left:0;top:0;display:block;will-change:transform,opacity}
-.shot .bx{animation:shot-x var(--dur) linear infinite;animation-delay:var(--del)}
-.shot .by{animation:shot-y var(--dur) infinite;animation-delay:var(--del);opacity:0}
-.shot b{display:block;width:.85cqw;height:.85cqw;margin:-.425cqw 0 0 -.425cqw;border-radius:50%;background:var(--ink);box-shadow:0 0 0 .08cqw var(--bg)}
-@keyframes shot-x{0%{transform:translateX(0)}20%,100%{transform:translateX(var(--dx))}}
-@keyframes shot-y{0%{transform:translateY(0);opacity:1;animation-timing-function:cubic-bezier(.33,.66,.66,1)}
-  10%{transform:translateY(calc(var(--h) * -1));opacity:1;animation-timing-function:cubic-bezier(.34,0,.66,.34)}
-  20%{transform:translateY(var(--dy));opacity:1}20.1%,100%{transform:translateY(var(--dy));opacity:0}}
-.shot .flash{width:3.8cqw;height:3.8cqw;margin:-1.9cqw 0 0 -1.9cqw;border-radius:50%;background:radial-gradient(circle,#fff6c4 0,#ffb020 35%,rgba(255,90,0,.55) 60%,transparent 72%);opacity:0;animation:shot-flash var(--dur) infinite;animation-delay:var(--del)}
-@keyframes shot-flash{0%{opacity:1;transform:scale(.3)}3%{opacity:.9;transform:scale(1.15)}7%,100%{opacity:0;transform:scale(1.4)}}
-.shot .smoke{width:4.6cqw;height:4.6cqw;margin:-2.3cqw 0 0 -2.3cqw;border-radius:50%;background:radial-gradient(circle,rgba(140,140,150,.55) 0,rgba(160,160,170,.25) 45%,transparent 70%);opacity:0;animation:shot-smoke var(--dur) infinite;animation-delay:var(--del)}
-@keyframes shot-smoke{0%{opacity:0;transform:scale(.4)}3%{opacity:.9;transform:scale(.8)}22%{opacity:0;transform:translate(.6cqw,-2.4cqw) scale(2.2)}100%{opacity:0}}
-/* landing: a water column + ring (miss) or an orange burst + smoke (hit), at (dx, dy) */
-.shot .land{left:var(--dx);top:var(--dy);width:4.2cqw;height:5.6cqw;margin:-4.6cqw 0 0 -2.1cqw;opacity:0;border-radius:50% 50% 40% 40%;
-  background:radial-gradient(ellipse 45% 80% at 50% 100%,rgba(255,255,255,.95) 0,color-mix(in srgb,var(--royal) 55%,#fff) 40%,transparent 72%);transform-origin:50% 100%;animation:shot-splash var(--dur) infinite;animation-delay:var(--del)}
-@keyframes shot-splash{0%,19.9%{opacity:0;transform:scaleY(.1)}21%{opacity:1;transform:scaleY(1.25)}27%{opacity:.8;transform:scaleY(.9) scaleX(1.25)}33%,100%{opacity:0;transform:scaleY(.2) scaleX(1.6)}}
-.shot.hit .land{border-radius:50%;width:5.4cqw;height:5.4cqw;margin:-2.7cqw 0 0 -2.7cqw;background:radial-gradient(circle,#fff4b0 0,#ff9a1f 30%,rgba(230,70,20,.7) 52%,rgba(90,90,100,.35) 66%,transparent 74%);transform-origin:50% 50%;animation-name:shot-burst}
-@keyframes shot-burst{0%,19.9%{opacity:0;transform:scale(.2)}21.5%{opacity:1;transform:scale(1.2)}26%{opacity:.75;transform:scale(1.5)}34%,100%{opacity:0;transform:scale(2.2) translateY(-.8cqw)}}
-@media (prefers-reduced-motion:reduce){.shot{display:none}}
+/* cannon fire (paths are baked per shot in theme.js, projected onto the sea's perspective plane): a ball and its
+   shadow on the water follow generated keyframes; ligne claire effects (flat fills, one ink line) pop where things
+   happen. Every gun fires once per 12 s cycle. Only transform/opacity animate, so it all stays on the compositor. */
+.ball,.shade,.fx{position:absolute;left:0;top:0;display:block;opacity:0;will-change:transform,opacity;animation:12s linear infinite}
+.ball{width:.84cqw;height:.84cqw;margin:-.42cqw 0 0 -.42cqw;border-radius:50%;background:#111;box-shadow:0 0 0 .12cqw #fff}
+.shade{width:1.6cqw;height:.46cqw;margin:-.23cqw 0 0 -.8cqw;border-radius:50%;background:#0b1f5c}
+.fx{--w:5cqw;width:calc(var(--s) * var(--w));height:calc(var(--s) * var(--w));margin:calc(var(--s) * var(--w) / -2) 0 0 calc(var(--s) * var(--w) / -2)}
+.fx svg{display:block;width:100%;height:100%;overflow:visible}
+.fx-defs{position:absolute;width:0;height:0;overflow:hidden}
+.fx.flash{--w:4.6cqw;animation-name:fx-flash}.fx.puff{--w:5cqw;animation-name:fx-puff}.fx.puff.late{--w:6.4cqw}
+.fx.boom{--w:8cqw;animation-name:fx-boom}.fx.crown{--w:5.6cqw;animation-name:fx-crown}.fx.ring{--w:7.6cqw;animation-name:fx-ring}
+@keyframes fx-flash{0%{opacity:1;transform:scale(.35)}1.2%{opacity:1;transform:scale(1.1) rotate(8deg)}3%{opacity:0;transform:scale(1.25) rotate(14deg)}100%{opacity:0}}
+@keyframes fx-puff{0%{opacity:0;transform:scale(.3)}1.5%{opacity:1;transform:scale(.7)}13%{opacity:1;transform:translate(calc(var(--s) * .8cqw),calc(var(--s) * -2.2cqw)) scale(1.2)}19%{opacity:0;transform:translate(calc(var(--s) * 1.2cqw),calc(var(--s) * -3.4cqw)) scale(1.45)}100%{opacity:0}}
+@keyframes fx-boom{0%{opacity:1;transform:scale(.3)}1.4%{opacity:1;transform:scale(1.15) rotate(6deg)}4%{opacity:1;transform:scale(1) rotate(10deg)}6%{opacity:0;transform:scale(.7) rotate(14deg)}100%{opacity:0}}
+@keyframes fx-crown{0%{opacity:1;transform:scale(.5,.1)}2%{opacity:1;transform:scale(1,1.15)}5.5%{opacity:1;transform:scale(1.12,.75)}8.5%{opacity:0;transform:scale(1.2,.15)}100%{opacity:0}}
+@keyframes fx-ring{0%{opacity:1;transform:scale(.25)}6%{opacity:.9;transform:scale(1.1)}13%{opacity:0;transform:scale(1.7)}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.ball,.shade,.fx{display:none}}
 .fleet.fade{-webkit-mask-image:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent);mask-image:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent)}
 .ship{position:absolute;display:block;background:center bottom/100% 100% no-repeat;will-change:transform}
 .ride{transform-origin:50% 88%;animation:ride 3.6s ease-in-out infinite}
