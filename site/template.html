@@ -505,7 +505,10 @@ header.top{display:none}
 .mode svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
 .star.big{padding:12px 20px;font-size:var(--t3)}
 .star.big svg{width:16px;height:16px}
-.hero-scene{position:relative;margin:0 calc(50% - 50vw);overflow:hidden}
+/* backstop: nothing may scroll the page sideways (clip, unlike hidden, keeps position:sticky working) */
+html{overflow-x:clip}
+/* full-bleed: 100vw counts the vertical scrollbar, so bleed by the page's real width (--sbw = scrollbar width, from script) */
+.hero-scene{position:relative;margin:0 calc(50% - 50vw + var(--sbw,0px) / 2);overflow:hidden}
 .sea-svg,.foot-sea{display:block;width:100%;height:auto}
 .sea-wrap{position:relative;width:min(1600px,100%);margin:0 auto}
 .foot-wrap{overflow:hidden}
@@ -538,7 +541,7 @@ header.top{display:none}
 .ride{transform-origin:50% 88%;animation:ride 3.6s ease-in-out infinite}
 /* a real swell: roll one way, rise, roll the other way, dip */
 @keyframes ride{0%,100%{transform:translateY(0) rotate(-4deg)}25%{transform:translateY(-5px) rotate(0deg)}50%{transform:translateY(0) rotate(4deg)}75%{transform:translateY(3px) rotate(0deg)}}
-.bfoot{position:relative;margin:96px calc(50% - 50vw) -48px;padding:0}
+.bfoot{position:relative;margin:96px calc(50% - 50vw + var(--sbw,0px) / 2) -48px;padding:0}
 .bfoot-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:40px;max-width:1320px;margin:0 auto;padding:0 16px 32px}
 .bfoot-made{display:flex;flex-direction:column;gap:8px}
 .bfoot-made span{font-size:var(--t4);color:var(--ink-2)}
@@ -1098,6 +1101,8 @@ function syncSegs(){ $$('.segc').forEach(w=>{ const sel=w.previousElementSibling
 addEventListener('resize',fitSel); document.fonts&&document.fonts.ready.then(fitSel);
 // sticky panels sit exactly on the tab bar's bottom border, whatever its height (fonts, zoom)
 { const nav=$('nav.tabs'); if(nav&&window.ResizeObserver) new ResizeObserver(()=>document.documentElement.style.setProperty('--navh',nav.offsetHeight+'px')).observe(nav); }
+// the vertical scrollbar's width, for the full-bleed hero and footer (0 with overlay scrollbars and on phones)
+{ const de=document.documentElement, sb=()=>de.style.setProperty('--sbw',Math.max(0,innerWidth-de.clientWidth)+'px'); sb(); addEventListener('resize',sb); if(window.ResizeObserver) new ResizeObserver(sb).observe(document.body); }
 $('#presets').innerHTML=PRESETS.map(p=>`<button class="chip" data-k="${p.k}" aria-pressed="false" data-tip="${esc(presetTip(p))}">${esc(p.n)}</button>`).join('');
 if(S) $('#sessChips').innerHTML=[['p25',S.p25],['median',S.p50],['mean',S.mean],['p90',S.p90]].map(([l,v])=>`<button class="chip" data-v="${v}" title="boat.dev fleet session length, ${l}">${l} ${v<60?v.toFixed(0)+' min':(v/60).toFixed(1)+' h'}</button>`).join('');
 $$('#sessChips .chip').forEach(b=>b.onclick=()=>{$('#sessionMin').value=(+b.dataset.v).toFixed(1); dirty(); run();});
@@ -1236,6 +1241,7 @@ const CMP_GROUPS=[
   {k:'missing',t:'Missing features',d:'The provider says it doesn’t offer a feature you require',icon:'x',re:/^missing /,strip:/^missing /},
   {k:'unverified',t:'Not confirmed',d:'Features or limits the provider doesn’t publish either way',icon:'q',re:/^unverified|unverified$|required features unverified/,strip:/^unverified:\s*/},
   {k:'kind',t:'Other product type',d:'A different kind of product than you asked for (CI runner, app platform, browser session…)',icon:'shapes',re:/different kind of product|adjacent product|browser-session product|not a like-for-like/,strip:/^different kind of product:\s*/},
+  {k:'net',t:'Network / egress limits',d:'Sandboxes can’t reach what you need (no internet, an allowlist only, open internet only on a bigger tier or through sales), or egress stops at a monthly cap',icon:'net',re:/internet|allowlist|egress stops|bandwidth capped|network access/i},
   {k:'size',t:'Machine size',d:'No size that matches yours: capped below it, only bigger ones, or sizes not published',icon:'chip',re:/^capped at|smallest size|size not allowed|size not published|GPU nodes|no H\d|max [\d.,]+ (GiB RAM|vCPU)$/},
   {k:'limits',t:'Plan limits',d:'Caps on session length, machines at once or starts per day/minute',icon:'clock',re:/max [\d.,]+ concurrent|sessions capped|sessions end after|starts\/(day|min)|running at once|concurrency cap/},
   {k:'money',t:'Upfront steps',d:'A paid plan, commitment, sales deal, quota request or verification before you can run this',icon:'card',re:/paid plan|commitment|talk to sales|email support|negotiated|enterprise price|promotional|quota|verification/},
@@ -1247,7 +1253,7 @@ const CMP_GROUPS=[
 ];
 const cmpGroup=t=>CMP_GROUPS.find(g=>g.re.test(t));
 const CMP_ICON=(()=>{ const s=d=>'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';
-  return { x:s('<rect x="2" y="2" width="12" height="12" rx="2"/><path d="m5.5 5.5 5 5m0-5-5 5"/>'), q:s('<circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.3"/><path d="M8 11.6v.1"/>'),
+  return { net:s('<path d="M1.8 6.2a9 9 0 0 1 12.4 0M4.2 8.8a5.5 5.5 0 0 1 7.6 0"/><circle cx="8" cy="11.8" r="1.1"/>'), x:s('<rect x="2" y="2" width="12" height="12" rx="2"/><path d="m5.5 5.5 5 5m0-5-5 5"/>'), q:s('<circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.3"/><path d="M8 11.6v.1"/>'),
     shapes:s('<rect x="2" y="2" width="5" height="5"/><circle cx="11.5" cy="4.5" r="2.5"/><path d="m4.5 9.5 3 5h-6z"/><rect x="9" y="9.5" width="5" height="5" rx="1"/>'),
     chip:s('<rect x="4" y="4" width="8" height="8" rx="1"/><path d="M6 1.5V4m4-2.5V4M6 12v2.5m4-2.5v2.5M1.5 6H4m-2.5 4H4M12 6h2.5M12 10h2.5"/>'),
     clock:s('<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>'), card:s('<rect x="1.5" y="3.5" width="13" height="9" rx="1.5"/><path d="M1.5 6.5h13M4 10h3"/>'),

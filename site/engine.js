@@ -712,10 +712,12 @@
   function netCompromise(card, W) {
     const ni = (card.network || {}).internet || {}, g = ni.gate;
     if (g && g.kind === 'addon') return `no internet unless you add a paid add-on${g.plan ? ` (${g.plan})` : ''}`;
-    if (g && g.plan) return `open internet only on ${g.plan}${g.kind === 'sales' ? ' (through sales)' : ''}`;
+    if (g && g.plan) return `open internet only on ${g.plan}${g.kind === 'sales' ? ' (through sales)' : known(g.usd) ? ` ($${g.usd.toLocaleString('en-US')}${g.recurring ? '/month' : ' prepaid'})` : ''}`;
     if (ni.default === 'none') return netNeed(W) === 2 ? 'no internet access from the sandbox' : 'no network access from the sandbox';
-    const list = ni.allowlist ? ni.allowlist.replace(/^essential services:\s*/i, '').replace(/\s*\(.*?\)/g, '').slice(0, 90).replace(/[,;\s]+\S*$/, '') : 'package registries, git, AI APIs';
-    return `no open internet: sandboxes reach only an allowlist (${list}${ni.allowlist && ni.allowlist.length > 90 ? '…' : ''})`;
+    // the provider's own list, cut at a word boundary only when it is actually too long
+    const full = ni.allowlist ? ni.allowlist.replace(/^essential services:\s*/i, '').replace(/\s*\(.*?\)/g, '') : 'package registries, git, AI APIs';
+    const list = full.length > 90 ? full.slice(0, 90).replace(/[,;\s]+\S*$/, '') + '…' : full;
+    return `no open internet: sandboxes reach only an allowlist (${list})`;
   }
 
   // Compromise severity: 1 = minor (you'd still shortlist it), 2 = material (works, but differently), 3 = serious.
