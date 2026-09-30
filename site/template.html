@@ -105,6 +105,22 @@ nav.tabs .tmenu{display:none}
   nav.tabs .tlist button[aria-selected="true"]{box-shadow:inset 3px 0 0 var(--ink);background:var(--wash)}
 }
 section.panel{padding-top:16px}
+
+/* agent-readable strip above the tabs: describe the workload, get a prompt for a coding agent */
+.agentask{display:flex;flex-direction:column;gap:8px;padding:20px 24px;margin:16px 0 24px}
+.aahead{color:var(--ink-2);max-width:80ch}
+.aahead b{color:var(--ink);font-weight:600}
+.aalab{margin-top:8px;font-size:var(--t4);font-weight:600}
+.agentask textarea{font:inherit;color:inherit;width:100%;box-sizing:border-box;resize:none;overflow:hidden;min-height:calc(3lh + 20px);padding:10px 12px;border:1px solid var(--line);background:var(--bg);line-height:1.5}
+.agentask textarea:focus{outline:none;border-color:var(--ink-2)}
+.aaacts{display:flex;justify-content:flex-end}
+.aabtn{border:0;background:var(--ink);color:var(--bg);padding:10px 16px;cursor:pointer;font-weight:500}
+.aabtn:disabled{opacity:.35;cursor:default}
+.aaout{position:relative;margin-top:4px}
+.aaout pre{margin:0;padding:14px 16px;padding-right:88px;background:var(--wash);border:1px solid var(--line);white-space:pre-wrap;overflow-wrap:anywhere;font:var(--t4)/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;max-height:320px;overflow:auto}
+.aacopy{position:absolute;top:8px;right:8px;border:0;background:var(--fill);color:var(--ink);padding:6px 12px;cursor:pointer;font-size:var(--t4)}
+.aacopy:hover{background:var(--fill-2)}
+@media (max-width:720px){.agentask{padding:16px}.aaacts{justify-content:stretch}.aabtn{width:100%}.aaout pre{padding-right:16px;padding-top:44px}}
 .tile{border:1px solid var(--line);margin-top:-1px;background:var(--bg)}
 .pad{padding:24px}
 
@@ -794,6 +810,13 @@ details.more-in[open]>summary{display:none}
     <p class="hero-sub">The most comprehensive comparison of platforms offering <mark>cloud runtime / sandbox / VM compute</mark> for agents</p></div>
   <div hidden><div id="kicker"></div><h1 id="wordmark">Battleships</h1><p id="tagline"></p><pre id="sea"></pre><div id="meta"></div></div>
 </header>
+<section class="agentask tile" aria-labelledby="aaT">
+  <p class="aahead"><b id="aaT">Agent-readable.</b> Every provider, price and ranking is also published as plain files for AI agents, starting at <a href="https://battleships.dev/llms.txt">llms.txt</a>.</p>
+  <label class="aalab" for="aaIn">Your use case and limits</label>
+  <textarea id="aaIn" rows="3" placeholder="e.g. 200 browser agents at once, 10-minute sessions, EU only, needs SSH, under $2,000 a month"></textarea>
+  <div class="aaacts"><button type="button" class="aabtn" id="aaGo" disabled>Generate a prompt for your coding agent</button></div>
+  <div class="aaout" id="aaOut" hidden><pre id="aaPrompt"></pre><button type="button" class="aacopy" id="aaCopy">Copy</button></div>
+</section>
 <nav class="tabs" id="tabs">
   <button class="tmenu" id="tabMenu" type="button" aria-haspopup="true" aria-expanded="false"><span id="tabMenuLabel">Estimator</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
   <div class="tlist" role="tablist">
@@ -994,6 +1017,28 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 // ---- boat.dev scenery (theme.js): the boat.dev landing page's sea with the docs videos' 3D boats
 const REPO_URL='https://github.com/ariana-dot-dev/battleships';
 document.querySelectorAll('[data-repo]').forEach(a=>{ a.href=REPO_URL+(a.dataset.repo||''); });
+// agent prompt: the textarea grows with its text (3 lines minimum); the draft is kept in this browser when storage allows
+{ const inp=document.getElementById('aaIn'), go=document.getElementById('aaGo'), out=document.getElementById('aaOut'), pre=document.getElementById('aaPrompt'), cp=document.getElementById('aaCopy');
+  const grow=()=>{ inp.style.height='auto'; inp.style.height=inp.scrollHeight+2+'px'; go.disabled=!inp.value.trim(); };
+  try{ const d=localStorage.getItem('pm-agentask'); if(d) inp.value=d; }catch(e){}
+  inp.addEventListener('input',()=>{ grow(); try{ localStorage.setItem('pm-agentask',inp.value); }catch(e){} }); grow();
+  const copy=()=>{ const t=pre.textContent, done=()=>{ cp.textContent='Copied'; setTimeout(()=>{ cp.textContent='Copy'; },1500); };
+    if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(t).then(done,()=>{});
+    else { const r=document.createRange(); r.selectNodeContents(pre); const s=getSelection(); s.removeAllRanges(); s.addRange(r); try{ if(document.execCommand('copy')) done(); }catch(e){} } };
+  go.onclick=()=>{ const n=(window.PMDATA&&PMDATA.cards.length)||'every';
+    pre.textContent=`Find the best cloud sandbox / VM / runtime provider for the workload below, using Battleships (https://battleships.dev): public pricing and features of ${n} providers, with a quoted source behind every answer.
+
+My use case and limits:
+${inp.value.trim()}
+
+How to work:
+1. Read https://battleships.dev/llms.txt first. Use its static JSON and Markdown files; don't scrape the web page.
+2. Pick the closest use case in https://battleships.dev/data/presets.json and read its ranking (/data/rankings/<preset>.json) as a starting point.
+3. Price my exact workload with https://battleships.dev/engine.js in Node, as llms.txt shows, changing the preset's numbers to mine. If I left something out, assume a sensible value and say which.
+4. For the top candidates, read /data/providers/<id>.md and check each of my limits against the quoted evidence. A price or limit that isn't published is unknown, not free or unlimited.
+5. Answer with the 3 to 5 best options: monthly cost, what each one doesn't meet or couldn't be confirmed, and the source link behind each claim.`;
+    out.hidden=false; copy(); };
+  cp.onclick=copy; }
 // settings panel: always open beside the results, one closed section when it stacks above them (phones, narrow windows)
 { const mq=matchMedia('(max-width:980px)'), f=document.getElementById('ctlFold'); f.open=!mq.matches; mq.addEventListener('change',()=>{ f.open=!mq.matches; }); }
 // slider handle = the rowboat render; every slider's blue fill follows its value
