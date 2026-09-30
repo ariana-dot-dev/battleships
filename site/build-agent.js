@@ -62,11 +62,12 @@ Download [engine.js](${SITE}/engine.js) and a provider card, then in Node:
 \`\`\`js
 require('./engine.js'); const card = require('./e2b.json');
 const W = { vcpu: 2, ram: 4, disk: 10, os: 'linux', arch: 'any', gpu: 'none', gpuCount: 1, sessions: 1000, sessionMin: 10, concurrency: 20, alwaysOn: 0,
-  cpuUtil: 0.3, ramUtil: 0.5, idleShare: 0.2, cpuPeakUtil: 0.6, ramPeakUtil: 0.7, snapshotGiB: 0, egress: 10, ipv4: 0, seats: 1, persistentDisk: false, pooled: false, classes: null, showZero: false };
+  cpuUtil: 0.3, ramUtil: 0.5, idleShare: 0.2, cpuPeakUtil: 0.6, ramPeakUtil: 0.7, snapshotGiB: 0, egress: 10, ipv4: 0, seats: 1, persistentDisk: false, pooled: false, classes: null, showZero: false, internet: 'open' };
 const r = PM.priceSoft(card, W, { required: ['docker_inside'], maxAccess: 3, region: 'any', idleSuspend: true, idleCapture: 1, overrides: {}, sizing: 'min' });
 console.log(r.total, r.breakdown, r.compromises);
 \`\`\`
 Fields: sessions a month, minutes per session, machines at once, machines on 24/7, CPU/RAM busy share (0-1), GiB kept, GiB egress.
+internet: what sandboxes must reach: 'open' (any site or API), 'pkg' (package registries, git hosting, LLM APIs) or 'none'. Some providers only reach an allowlist on cheap tiers (card.network.internet, plan.internet); the engine then prices the tier that opens the network and reports the prepay or plan it takes (r.access).
 
 ## Notes
 - Prices are list prices from public pages, re-checked 2026-09-28..30; unknown = not published (never assumed free or unlimited).

@@ -13,7 +13,7 @@
     browser_control: 'browser automation API', desktop_control: 'desktop control API', browser_and_desktop: 'browser + desktop control',
     anti_bot: 'anti-bot stealth', captcha_solving: 'CAPTCHA solving', residential_ip: 'residential IPs',
     agent_harnesses: 'preinstalled agents', ssh: 'SSH', public_ipv4: 'public IPv4', inbound_https: 'HTTPS preview URLs',
-    custom_domain: 'custom domains', raw_tcp_inbound: 'raw TCP inbound', egress_allowlist: 'egress allowlist',
+    custom_domain: 'custom domains', raw_tcp_inbound: 'raw TCP inbound', egress_allowlist: 'egress allowlist', open_internet: 'open internet',
     static_egress_ip: 'static egress IP', private_network: 'private networking', self_host: 'self-hosting', byoc: 'BYOC',
     open_source: 'open source', soc2: 'SOC 2', hipaa: 'HIPAA', sso: 'SSO', gpu: 'GPU', arm64: 'arm64',
     windows: 'Windows', macos: 'macOS',
@@ -503,6 +503,9 @@
       if (known(nw.ipv4_month)) b.ipv4 = W.ipv4 * nw.ipv4_month;
       else caveats.push('IPv4 price unknown');
     }
+    // a slow pipe matters when the agent works on the open internet (browsing, scraping, big downloads)
+    const bw = (nw.internet || {}).bandwidth_mbps;
+    if (netNeed(W) === 2 && known(bw) && bw <= 100) caveats.push(`outbound bandwidth capped at ${bw} Mbps`);
     if (reasons.length) return fail(reasons);
 
     // plans
@@ -540,8 +543,12 @@
     const siblingConc = knownConcs.length ? Math.max(...knownConcs) : null;
     // a regime may only be sold on certain plans (mode.plans = [plan names])
     const allowedPlans = best.modes.map(r => r.mode.plans || (r.mode.requires_plan ? [].concat(r.mode.requires_plan) : null)).filter(Array.isArray);
+    const netSkipped = [];
     for (const p of plans) {
       if (allowedPlans.some(list => !list.includes(p.base_name || p.name))) { planErrs.push(`${p.name}: regime not sold on this plan`); continue; }
+      // a plan whose sandboxes can't reach what the workload needs is not a cheaper way to run it (Daytona Tiers 1-2)
+      const pn = planNet(card, p);
+      if (!opts.ignoreNet && pn && NET_LEVEL[pn] < netNeed(W)) { planErrs.push(`${p.name}: ${NET_SAYS[pn]}`); netSkipped.push(p.name); continue; }
       if (ov.plan && ov.plan !== 'auto' && (p.base_name || p.name) !== ov.plan) continue;
       if (p.trial_only) continue;
       if ((!ov.plan || ov.plan === 'auto') && !allowed(p, opts)) { if (!flagsOf(p).includes('addon')) planErrs.push(`${p.name}: negotiated plan`); continue; }
@@ -573,6 +580,8 @@
       if (known(p.max_starts_per_day) && startsDay > p.max_starts_per_day) { lim.push(`${p.name}: max ${p.max_starts_per_day} starts/day (needs ~${Math.round(startsDay)})`); severity = Math.max(severity, startsDay / Math.max(1, p.max_starts_per_day)); }
       if (known(p.max_starts_per_min) && startsMin > p.max_starts_per_min) { lim.push(`${p.name}: max ${p.max_starts_per_min} starts/min (needs ~${startsMin.toFixed(1)})`); severity = Math.max(severity, startsMin / Math.max(0.01, p.max_starts_per_min)); }
       for (const [t, sv] of capHit) { lim.push(t); severity = Math.max(severity, sv); }
+      // a monthly egress cap with no overage (the plan stops or pauses the sandbox at the cap)
+      if (known(p.egress_cap_gib) && W.egress > p.egress_cap_gib) { lim.push(`${p.name}: egress stops at ${p.egress_cap_gib} GiB/month`); severity = Math.max(severity, W.egress / Math.max(1, p.egress_cap_gib)); }
       if (lim.length && !opts.ignorePlanLimits) { planErrs.push(...lim); continue; }
       const burstNote = known(p.max_starts_per_min) && burstMin > p.max_starts_per_min
         ? `bursts above ${p.max_starts_per_min} starts/min are queued (a burst of ${Math.round(burstMin)} takes ~${Math.ceil(burstMin / p.max_starts_per_min)} min to start)` : null;
@@ -609,6 +618,8 @@
     }
     if (bestPlan.lim.length) caveats.push(...bestPlan.lim);
     if (bestPlan.burstNote) caveats.push(bestPlan.burstNote);
+    // the plan was picked for its internet access: say what the cheaper ones lack
+    if (netSkipped.length && !opts.ignoreNet) caveats.push(`plan "${bestPlan.plan.name}" needed for ${netNeed(W) === 2 ? 'open internet' : 'package and AI API access'}: ${netSkipped.join(', ')} ${NET_SAYS[planNet(card, plans.find(p => p.name === netSkipped[0]))] || 'restrict the network'}`);
     return {
       card, eligible: true, reasons: [], unknowns: best.unknowns, caveats, planLimits: bestPlan.lim,
       total, breakdown, hours: best.hours, modeLabel: [...new Set(best.modes.map(r => r.mode.label || r.mode.key))].join(' + '),
@@ -687,9 +698,29 @@
     return { level, label: ACCESS_LABEL[level], steps: steps.sort((a, b) => b[0] - a[0]).map(s => s[1]) };
   }
 
+  // ---- internet access ------------------------------------------------------------------------------------------------
+  // What the workload's sandboxes must reach (W.internet): 'open' = any site or API (browsing, scraping, a user's own
+  // services, arbitrary downloads); 'pkg' = package registries, git hosting and LLM APIs (what a coding agent installs
+  // and calls); 'none' = nothing (offline evals, untrusted code on private data). Unset = 'open', the common case.
+  // card.network.internet.default: full | configurable (open, you can lock it down) | allowlist (a fixed list of package
+  // registries / AI APIs) | none. A plan can differ (plan.internet): Daytona Tiers 1-2 = allowlist, Tier 3+ = full.
+  // Unknown stays unknown: a provider that says nothing about network limits is not held to any.
+  const NET_LEVEL = { none: 0, allowlist: 1, full: 2, configurable: 2 };
+  const NET_SAYS = { none: 'no internet access', allowlist: 'reach only an allowlist (package registries, git, AI APIs)' };
+  const netNeed = W => ({ none: 0, pkg: 1, open: 2 })[W.internet || 'open'] ?? 2;
+  const planNet = (card, p) => { const v = (p && p.internet) || ((card.network || {}).internet || {}).default; return v in NET_LEVEL ? v : null; };
+  function netCompromise(card, W) {
+    const ni = (card.network || {}).internet || {}, g = ni.gate;
+    if (g && g.kind === 'addon') return `no internet unless you add a paid add-on${g.plan ? ` (${g.plan})` : ''}`;
+    if (g && g.plan) return `open internet only on ${g.plan}${g.kind === 'sales' ? ' (through sales)' : ''}`;
+    if (ni.default === 'none') return netNeed(W) === 2 ? 'no internet access from the sandbox' : 'no network access from the sandbox';
+    const list = ni.allowlist ? ni.allowlist.replace(/^essential services:\s*/i, '').replace(/\s*\(.*?\)/g, '').slice(0, 90).replace(/[,;\s]+\S*$/, '') : 'package registries, git, AI APIs';
+    return `no open internet: sandboxes reach only an allowlist (${list}${ni.allowlist && ni.allowlist.length > 90 ? '…' : ''})`;
+  }
+
   // Compromise severity: 1 = minor (you'd still shortlist it), 2 = material (works, but differently), 3 = serious.
   const SEVERITY = { plan: 1, unverified: 1, optin_sales: 1, optin_spot: 2, optin_promo: 1, optin_alt: 2, region: 1, ipv4: 1,
-    always: 1, arch: 2, gpu: 2, shape: 2, unsized: 2, browser: 2, feat: 3, state: 2 };
+    always: 1, arch: 2, gpu: 2, shape: 2, unsized: 2, browser: 2, feat: 3, state: 2, net: 3 };
   const usefulHours = W => W.sessions * W.sessionMin / 60 + num(W.alwaysOn) * HOURS_MONTH;
   // A month with N sessions can never have more than N machines running at once. Without this, "150 at once, 36 sessions"
   // is priced as 150 machines turning over all month (starts per hour, seats, quotas) for a workload that is 36 sessions.
@@ -824,6 +855,7 @@
     const steps = [
       { id: 'plan', o: { ignorePlanLimits: true } },
       { id: 'optin', o: { allowSpot: true, allowSales: true, allowAlt: true, allowPromo: true } },
+      { id: 'net', o: { ignoreNet: true } },
       { id: 'shape', w: { clampShape: true } },
       { id: 'always', w: W.sessions > 0 ? { alwaysOn: num(W.alwaysOn) + Math.max(1, W.concurrency), sessions: 0, concurrency: 0 } : {} },
       { id: 'gpu', w: { gpuFallback: true } },
@@ -873,6 +905,7 @@
     if (has('region')) add(`no ${String(opts.region).toUpperCase()} region`, SEVERITY.region);
     if (has('state')) add("can't keep state between sessions", SEVERITY.state);
     if (has('ipv4')) add('no dedicated IPv4', SEVERITY.ipv4);
+    if (has('net')) add(netCompromise(card, W), SEVERITY.net);
     if (has('feat')) { const miss = (opts.required || []).filter(k => testFeature(f, k) === false).map(k => FEATURE_LABELS[k] || k);
       add(miss.length ? `missing ${miss.join(', ')}` : 'required features unverified', miss.length ? SEVERITY.feat : SEVERITY.unverified); }
     for (const x of softOnly(r)) comp.push(x);
