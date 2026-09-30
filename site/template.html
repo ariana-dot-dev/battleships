@@ -225,6 +225,8 @@ details.grp[open] .sumval{visibility:hidden}
 .mrules i{flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-weight:600;color:var(--royal);background:var(--bg);box-shadow:inset 0 0 0 1px var(--line)}
 .mrules li a{color:var(--ink)}
 .mvid{margin:40px auto 0;max-width:640px}
+/* a fleet out of view is paused (set from script) */
+.sea-wrap.idle *{animation-play-state:paused!important}
 .mvid video{display:block;width:100%;aspect-ratio:16/9;background:var(--wash)}
 .mvid figcaption{margin-top:10px;text-align:center;font-size:var(--t4);color:var(--ink-2)}
 /* the limits: same grid as the rules, an open dashed box instead of a filled one */
@@ -1116,8 +1118,13 @@ addEventListener('resize',fitSel); document.fonts&&document.fonts.ready.then(fit
   v.dataset.src=base+v.dataset.src; v.poster=base+v.dataset.poster;
   const load=()=>{ if(!v.src){ v.src=v.dataset.src; v.preload='auto'; } };
   if(still){ v.preload='none'; v.src=v.dataset.src; v.controls=true; }
-  else if(window.IntersectionObserver) new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ load(); v.play().catch(()=>{}); } else v.pause(); }),{rootMargin:'200px 0px'}).observe(v);
+  // fetch a little before it arrives; play only while a quarter of it is on screen
+  else if(window.IntersectionObserver){ new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) load(); }),{rootMargin:'300px 0px'}).observe(v);
+    new IntersectionObserver(es=>es.forEach(e=>{ if(e.intersectionRatio>=.25){ load(); v.play().catch(()=>{}); } else v.pause(); }),{threshold:[0,.25]}).observe(v); }
   else { load(); v.autoplay=true; } } }
+// the hero's and the footer's fleets (200+ animations) stop while scrolled out of view, so they don't compete with the page
+if(window.IntersectionObserver){ const io=new IntersectionObserver(es=>es.forEach(e=>e.target.classList.toggle('idle',!e.isIntersecting)));
+  $$('.sea-wrap').forEach(w=>io.observe(w)); }
 // the vertical scrollbar's width, for the full-bleed hero and footer (0 with overlay scrollbars and on phones)
 { const de=document.documentElement, sb=()=>de.style.setProperty('--sbw',Math.max(0,innerWidth-de.clientWidth)+'px'); sb(); addEventListener('resize',sb); if(window.ResizeObserver) new ResizeObserver(sb).observe(document.body); }
 $('#presets').innerHTML=PRESETS.map(p=>`<button class="chip" data-k="${p.k}" aria-pressed="false" data-tip="${esc(presetTip(p))}">${esc(p.n)}</button>`).join('');
