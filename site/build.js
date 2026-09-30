@@ -17,6 +17,18 @@ for (const f of readDir(path.join(R, 'cards'), '.json')) {
     for (const e of Object.values(c.feature_evidence || {})) if (e && e.quote && e.source) { stats.quoted++; try { stats.sources.add(new URL(e.source).href.split('#')[0]); } catch {} }
     // quoted evidence per feature stays in the cards (and the public repo); the page doesn't show it, so it doesn't ship
     delete c.feature_evidence;
+    // who is behind it: ownership, stage, accelerators, money raised, revenue (research/funding/<id>.json), compacted
+    const fu = readIf(path.join(R, 'funding', c.id + '.json'));
+    if (fu) { const f = JSON.parse(fu), num = x => typeof x === 'number' && isFinite(x) ? x : null;
+      const amt = o => o && num(o.value ?? o.value_usd) != null && o.status !== 'unknown' ? { v: num(o.value ?? o.value_usd), s: o.status, src: o.source || null, basis: o.basis || null } : null;
+      const st = (f.stage || {}).value || 'unknown';
+      c.co = { own: st === 'acquired' ? 'acquired' : (f.ownership || {}).value || null, parent: (f.ownership || {}).parent || null, stage: st === 'acquired' ? 'unknown' : st, stageSrc: (f.stage || {}).source || null,
+        acc: (f.accelerators || []).filter(a => a.confidence !== 'low').map(a => ({ n: a.name, b: a.batch || null, src: a.source || null })),
+        raised: amt(f.total_funding_usd),
+        last: f.last_round && f.last_round.type ? { t: f.last_round.type, a: num(f.last_round.amount_usd), d: f.last_round.date || null, leads: (f.last_round.leads || []).slice(0, 3), s: f.last_round.status, src: f.last_round.source || null } : null,
+        inv: (f.investors || []).slice(0, 6),
+        rev: amt(f.revenue) && Object.assign(amt(f.revenue), { k: f.revenue.kind || null, at: f.revenue.as_of || null }) };
+    }
     cards.push(c);
   } catch (e) { problems.push(`${f}: ${e.message}`); }
 }

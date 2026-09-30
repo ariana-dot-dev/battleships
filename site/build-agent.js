@@ -20,19 +20,34 @@ const priceHint = c => { const ms = c.modes.filter(m => m && !(m.flags || []).in
     sizes: Array.isArray(m.sizes) ? m.sizes.slice(0, 6).map(s => ({ name: s.name, vcpu: s.vcpu, ram_gib: s.ram_gib, hour: s.hour })) : undefined,
     cpu_basis: m.cpu_basis, ram_basis: m.ram_basis, flags: m.flags && m.flags.length ? m.flags : undefined })); return out; };
 const legacy = c => c.modes.length && c.modes.every(m => m && (m.flags || []).includes('legacy'));
+// who is behind it (research/funding/<id>.json): ownership, stage, accelerators, money raised, revenue, with sources
+const funding = id => { const f = path.join(R, 'funding', id + '.json'); if (!fs.existsSync(f)) return null; const o = JSON.parse(fs.readFileSync(f, 'utf8')); delete o.pages; return o; };
+const usd = v => v == null ? null : v >= 1e9 ? `$${+(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `$${+(v / 1e6).toFixed(1)}M` : `$${Math.round(v).toLocaleString('en-US')}`;
+const amtMd = o => !o || o.status === 'unknown' || (o.value ?? o.value_usd) == null ? 'unknown' : `${usd(o.value ?? o.value_usd)} (${o.status}${o.basis ? ': ' + o.basis : ''})${o.source ? ` [source](${o.source})` : ''}`;
+const companyMd = f => !f ? [] : ['## Company', '',
+  `- Ownership: ${f.ownership && f.ownership.value || 'unknown'}${f.ownership && f.ownership.parent ? ` (${f.ownership.parent})` : ''}`,
+  `- Stage: ${f.stage && f.stage.value || 'unknown'}${f.stage && f.stage.source ? ` [source](${f.stage.source})` : ''}`,
+  `- Accelerators: ${(f.accelerators || []).map(a => `${a.name}${a.batch ? ' ' + a.batch : ''}${a.source ? ` [source](${a.source})` : ''}`).join(', ') || 'none found'}`,
+  `- Total raised: ${amtMd(f.total_funding_usd)}`,
+  ...(f.last_round && f.last_round.type ? [`- Last round: ${f.last_round.type}${f.last_round.amount_usd ? ', ' + usd(f.last_round.amount_usd) : ''}${f.last_round.date ? ', ' + f.last_round.date : ''}${(f.last_round.leads || []).length ? ', led by ' + f.last_round.leads.join(', ') : ''} (${f.last_round.status})${f.last_round.source ? ` [source](${f.last_round.source})` : ''}`] : []),
+  ...((f.investors || []).length ? [`- Investors: ${f.investors.join(', ')}`] : []),
+  `- Revenue: ${amtMd(f.revenue)}${f.revenue && f.revenue.kind && f.revenue.status !== 'unknown' ? ` ${f.revenue.kind}${f.revenue.as_of ? ', ' + f.revenue.as_of : ''}` : ''}`,
+  ...(f.note ? ['', f.note] : []), ''];
 
 // ---- per provider: full card JSON (+ evidence) and a readable Markdown page
 const index = [];
 for (const c of cards) {
-  const f = feats(c), yes = FKEYS.filter(k => f[k] === true), no = FKEYS.filter(k => f[k] === false);
+  const f = feats(c), yes = FKEYS.filter(k => f[k] === true), no = FKEYS.filter(k => f[k] === false), fu = funding(c.id);
   const entry = { id: c.id, name: c.name, url: c.url, category: c.category, isolation: c.isolation || (c.features || {}).isolation || null, discontinued: legacy(c) || undefined,
+    stage: fu && fu.stage ? fu.stage.value : undefined, accelerators: fu && fu.accelerators && fu.accelerators.length ? fu.accelerators.map(a => a.name + (a.batch ? ' ' + a.batch : '')) : undefined,
     json: `${SITE}/data/providers/${c.id}.json`, markdown: `${SITE}/data/providers/${c.id}.md`, features_yes: yes };
   index.push(entry);
-  fs.writeFileSync(path.join(OUT, 'data', 'providers', c.id + '.json'), JSON.stringify(Object.assign({ features_resolved: f }, c), null, 1));
+  fs.writeFileSync(path.join(OUT, 'data', 'providers', c.id + '.json'), JSON.stringify(Object.assign({ features_resolved: f, company: fu || undefined }, c), null, 1));
   const md = [`# ${c.name}`, '', `Official pricing: ${c.url}  `, `Category: ${c.category || 'n/a'} · Isolation: ${entry.isolation || 'not published'}${entry.discontinued ? ' · DISCONTINUED' : ''}`, '',
     '## Pricing regimes (raw)', '', ...priceHint(c).map(m => `- **${m.label || m.key}** (${m.pricing})${m.vcpu_h != null ? `: $${m.vcpu_h}/vCPU-h` : ''}${m.ram_gib_h != null ? `, $${m.ram_gib_h}/GiB-h` : ''}${m.sizes ? ': ' + m.sizes.map(s => `${s.name} ${s.vcpu ?? '?'} vCPU/${s.ram_gib ?? '?'} GiB $${s.hour}/h`).join('; ') : ''}${m.flags ? ` [${m.flags.join(', ')}]` : ''}`),
     '', '## Features', '', `Yes: ${yes.map(k => PM.FEATURE_LABELS[k]).join(', ') || 'none recorded'}`, '', `No: ${no.map(k => PM.FEATURE_LABELS[k]).join(', ') || 'none recorded'}`, '',
     `Unknown: everything else. Evidence (source + quote) per feature: ${SITE}/data/providers/${c.id}.json → feature_evidence`, '',
+    ...companyMd(fu),
     ...(c.caveats && c.caveats.length ? ['## Caveats', '', ...c.caveats.map(x => '- ' + x), ''] : []),
     ...(regime(c.id) ? ['## How this provider charges', '', regime(c.id).replace(/^# .*\n/, '')] : [])].join('\n');
   fs.writeFileSync(path.join(OUT, 'data', 'providers', c.id + '.md'), md);
@@ -51,7 +66,7 @@ The human page (${SITE}/) is an interactive estimator. Agents: use these static 
 
 ## Data
 - [Provider index](${SITE}/data/index.json): every provider with category, isolation, features it has, links to its files
-- Per provider: \`${SITE}/data/providers/<id>.json\` (full pricing card, features, quoted evidence) and \`${SITE}/data/providers/<id>.md\` (readable summary + how it charges)
+- Per provider: \`${SITE}/data/providers/<id>.json\` (full pricing card, features, quoted evidence, and \`company\`: ownership, funding stage, accelerators, money raised and revenue, each confirmed / estimated / unknown with sources) and \`${SITE}/data/providers/<id>.md\` (readable summary + how it charges)
 - [Feature definitions](${SITE}/data/features.json): what each feature means and why it matters
 - [Use-case presets](${SITE}/data/presets.json): the workloads behind each ranking
 - Rankings per preset, as the page computes them: \`${SITE}/data/rankings/<preset>.json\` and [all rankings in one page](${SITE}/data/rankings.md)
