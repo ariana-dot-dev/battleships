@@ -30,15 +30,17 @@
     }
     return rows;
   }
-  // flat water for the footer: uniform rows edge to edge
-  function buildFlat(height, seed) {
+  // the footer's water: rows edge to edge, closer together and finer towards the back (the same perspective as the
+  // footer's ships, f = row scale relative to the front)
+  function buildFlat(height, seed, vy) {
     const rnd = rng(seed), rows = [];
-    for (let y = 8, i = 0; y < height; y += 8, i++) {
-      const segs = []; let x = rnd() * 20;
-      while (x < W) { const p = 0.5 + 0.5 * Math.sin((x / 300) * Math.PI * 2 + i * 0.85), c = 0.5 + 0.5 * Math.sin((x / 93) * Math.PI * 2 + i * 1.45);
-        const crest = Math.pow(p * 0.72 + c * 0.28, 1.35), len = 10 + crest * 70 * (0.7 + rnd() * 0.6), x2 = Math.min(W, x + len);
-        segs.push([x, x2]); x = x2 + 9 * (1.45 - crest * 1.1) * (0.6 + rnd() * 0.9) + 2.5; }
-      rows.push({ y, segs, opacity: 0.44, width: 1 });
+    for (let y = 8, i = 0; y < height; i++) {
+      const f = (y - vy) / (height - 8 - vy), segs = []; let x = rnd() * 20;
+      while (x < W) { const p = 0.5 + 0.5 * Math.sin((x / (300 * f)) * Math.PI * 2 + i * 0.85), c = 0.5 + 0.5 * Math.sin((x / (93 * f)) * Math.PI * 2 + i * 1.45);
+        const crest = Math.pow(p * 0.72 + c * 0.28, 1.35), len = (10 + crest * 70 * (0.7 + rnd() * 0.6)) * f, x2 = Math.min(W, x + len);
+        segs.push([x, x2]); x = x2 + (9 * (1.45 - crest * 1.1) * (0.6 + rnd() * 0.9) + 2.5) * f; }
+      rows.push({ y, segs, opacity: 0.26 + 0.2 * f, width: 0.6 + 0.4 * f });
+      y += 9 * f;
     }
     return rows;
   }
@@ -56,9 +58,14 @@
   // so the hero and the footer share the same bytes.
   const used = new Set();
   const pct = (v, of) => r2((v / of) * 100) + '%';
-  function vessel(name, x, y, i, H, sailing) {
-    const w = SPRITE[name][0] * K, h = SPRITE[name][1] * K; used.add(name);
-    return `<i class="ship ride spr-${name}" style="left:${sailing ? 0 : pct(x, W)};top:${pct(y - h, H)};width:${pct(w, W)};height:${pct(h, H)};animation-delay:${r2(-i * 1.3)}s"></i>`;
+  // Each render is ~100 kB inlined, so the page ships one facing per boat; the other facing is the same image mirrored.
+  const OWN = new Set(['ship-small-r', 'ship-medium-l', 'ship-large-r', 'rowboat-l', 'barrel']);
+  function vessel(name, x, y, i, H, sailing, sc = 1) {
+    const w = SPRITE[name][0] * K * sc, h = SPRITE[name][1] * K * sc, other = name.replace(/-([lr])$/, (_, s) => s === 'l' ? '-r' : '-l');
+    const flip = !OWN.has(name) && OWN.has(other), img = flip ? other : name; used.add(img);
+    const box = `left:${sailing ? 0 : pct(x, W)};top:${pct(y - h, H)};width:${pct(w, W)};height:${pct(h, H)}`, delay = `animation-delay:${r2(-i * 1.3)}s`;
+    return flip ? `<i class="flip" style="${box}"><i class="ship ride spr-${img}" style="inset:0;${delay}"></i></i>`
+      : `<i class="ship ride spr-${img}" style="${box};${delay}"></i>`;
   }
   // Cannon fire, done in the space of the sea. The hero's water is a perspective trapezoid: row y = 100 + 414t spans
   // x in [inset, W - inset] with inset = (1 - t)·190 - 36, so a row's width (and the scale of anything on it) grows
@@ -66,22 +73,23 @@
   // and 1/Z is linear in y, i.e. d = y - VY = 1/q with q linear in world depth. A ball flies straight in (X, q-depth)
   // world space with a real parabola for height, and is projected back each keyframe: screen scale s = d / D1, ground
   // y = VY + d, x = 600 + X·s, ball y = ground y - height·s. Its shadow sits on the ground point, shrinking and fading
-  // the higher the ball is. The footer's water is seen from the side (flat): s = 1 and the ground y is linear.
+  // the higher the ball is. The footer uses the same model with a flatter, lower view (its own VY and scale).
   const cq = v => r2(v / W * 100) + 'cqw';
-  const VY = 100 - 414 * 892 / 380, D1 = 514 - VY;
-  const PERSP = { s: y => (y - VY) / D1, toW: (x, y) => ({ X: (x - 600) / ((y - VY) / D1), q: 1 / (y - VY) }),
-    at: (P0, P1, p) => { const d = 1 / lerp(P0.q, P1.q, p), s = d / D1; return { s, gy: VY + d, gx: 600 + lerp(P0.X, P1.X, p) * s }; } };
-  const FLAT = { s: () => 1, toW: (x, y) => ({ X: x, q: y }), at: (P0, P1, p) => ({ s: 1, gy: lerp(P0.q, P1.q, p), gx: lerp(P0.X, P1.X, p) }) };
+  const persp = (VY, D1) => ({ s: y => (y - VY) / D1, toW: (x, y) => ({ X: (x - 600) / ((y - VY) / D1), q: 1 / (y - VY) }),
+    at: (P0, P1, p) => { const d = 1 / lerp(P0.q, P1.q, p), s = d / D1; return { s, gy: VY + d, gx: 600 + lerp(P0.X, P1.X, p) * s }; } });
+  const VY = 100 - 414 * 892 / 380, PERSP = persp(VY, 514 - VY);
+  // footer: ships at 0.36 of the hero's scale on the back row (y 80) to 0.6 on the front row (y 232)
+  const FVY = -148, FOOT = persp(FVY, (80 - FVY) / 0.36);
   const CYCLE = 12, N = 28;   // every gun fires once per 12 s cycle; its delay places it in the cycle
   let kf = '', nShot = 0;
   // a gun at screen point m (on ship's waterline y m.gy, h px above it) fires at t (a hull: t.h > 0 = hit, or water);
-  // apex = extra height at mid-flight in front-row px; F = flight seconds
-  function shot(P, m, t, apex, F, del) {
+  // apex = extra height at mid-flight in world px (front-row scale); F = flight seconds; n = keyframe samples
+  function shot(P, m, t, apex, F, del, n = N) {
     const id = 'k' + (nShot++), A0 = P.toW(m.x, m.gy), A1 = P.toW(t.x, t.gy), h0 = m.h / P.s(m.gy), h1 = t.h / P.s(t.gy);
     const f = F / CYCLE * 100, pc = v => r2(v) + '%';
     let ball = '', shade = '';
-    for (let k = 0; k <= N; k++) {
-      const p = k / N, g = P.at(A0, A1, p), hw = lerp(h0, h1, p) + 4 * apex * p * (1 - p);
+    for (let k = 0; k <= n; k++) {
+      const p = k / n, g = P.at(A0, A1, p), hw = lerp(h0, h1, p) + 4 * apex * p * (1 - p);
       const lift = Math.min(1, hw / 260), at = pc(f * p);
       ball += `${at}{opacity:1;transform:translate(${cq(g.gx)},${cq(g.gy - hw * g.s)}) scale(${r2(g.s)})}`;
       shade += `${at}{opacity:${r2(0.34 - 0.24 * lift)};transform:translate(${cq(g.gx)},${cq(g.gy)}) scale(${r2(g.s * (1 - 0.45 * lift))})}`;
@@ -122,7 +130,7 @@
     return `<style>${[...used].map(n => `.spr-${n}{background-image:url(${(A().ships || {})[n]})}`).join('')}${kf}</style>${FX_DEFS}`;
   }
   // where on a ship things happen: gun ports sit ~22% of the hull height above the waterline, towards the target side
-  const box = (name, x, y) => { const w = SPRITE[name][0] * K, h = SPRITE[name][1] * K; return { x, y, w, h, cx: x + w / 2 }; };
+  const box = (name, x, y, sc = 1) => { const w = SPRITE[name][0] * K * sc, h = SPRITE[name][1] * K * sc; return { x, y, w, h, cx: x + w / 2 }; };
   const gun = (b, side, off = 0.3) => ({ x: b.cx + side * off * b.w, gy: b.y, h: 0.22 * b.h });
   const hull = (b, off = 0) => ({ x: b.cx + off * b.w, gy: b.y, h: 0.2 * b.h });
   const water = (x, y) => ({ x, gy: y, h: 0 });
@@ -156,22 +164,41 @@
       + `${war.over}</div></div>`;
   }
 
-  // the footer: flat water with a fleet sailing across at different speeds and a barrel, drawn back to front
+  // the footer: two armadas broadside to broadside, five rows deep, trading fire across open water with some
+  // flotsam in between. Ships are smaller and shrink towards the back row (FOOT perspective); ~2 shots a second.
   function footer() {
-    const H = 210, rows = buildFlat(H, 19);
-    const f1 = battle([shot(FLAT, gun(box('ship-medium-l', 0, 150), -1), water(-240, 162), 90, 2.6, 2.2)]);
-    const f2 = battle([shot(FLAT, gun(box('ship-large-r', 0, 190), 1), water(560, 176), 100, 2.8, 7.4)]);
+    const H = 240, rows = buildFlat(H, 19, FVY), rnd = rng(1789), pick = a => a[Math.floor(rnd() * a.length)];
+    const ROWS = [[84, 4], [112, 4], [144, 4], [182, 4], [226, 3]], KINDS = ['ship-small', 'ship-small', 'ship-medium', 'ship-medium', 'ship-large'];
+    const fleets = { L: [], R: [] }, items = [];
+    let i = 0;
+    ROWS.forEach(([y, n], r) => {
+      const s = FOOT.s(y), step = 470 / n;
+      for (let k = 0; k < n; k++) for (const side of ['L', 'R']) {
+        const name = pick(KINDS) + (side === 'L' ? '-r' : '-l'), w = SPRITE[name][0] * K * s;
+        const cx = -10 + step * (k + 0.5 + (r % 2) * 0.35 + (rnd() - 0.5) * 0.3), x = side === 'L' ? cx - w / 2 : W - cx - w / 2;
+        const b = box(name, x, y + (rnd() - 0.5) * 6, s);
+        fleets[side].push(b); items.push([b.y, vessel(name, b.x, b.y, i++, H, false, s)]);
+      }
+    });
+    // flotsam in no man's water
+    [[540, 100, 'barrel'], [650, 150, 'barrel'], [600, 214, 'rowboat-l'], [700, 196, 'barrel'], [520, 176, 'barrel']].forEach(([x, y, name]) => {
+      const s = FOOT.s(y); items.push([y, vessel(name, x - SPRITE[name][0] * K * s / 2, y, i++, H, false, s)]); });
+    const shots = [];
+    for (let j = 0; j < 24; j++) {
+      const from = j % 2 ? 'R' : 'L', dir = from === 'L' ? 1 : -1, a = pick(fleets[from]), b = pick(fleets[from === 'L' ? 'R' : 'L']);
+      const m = gun(a, dir, 0.25), s1 = FOOT.s(b.y), hitIt = rnd() < 0.55;
+      const t = hitIt ? hull(b, (rnd() - 0.5) * 0.4)
+        : water(b.cx - dir * (15 + rnd() * 70) * s1, Math.min(236, Math.max(76, b.y + (rnd() - 0.5) * 18)));
+      // an arc as high as the strip allows: the peak (mid ground y minus height at mid-flight) stays 12 px below the top
+      const dx = Math.abs(t.x - m.x), gy = (m.gy + t.gy) / 2, sm = FOOT.s(gy), hm = (m.h / FOOT.s(m.gy) + t.h / FOOT.s(t.gy)) / 2;
+      shots.push(shot(FOOT, m, t, Math.min(60 + dx * 0.16, (gy - 12) / sm - hm), 1.7 + dx / 650, r2(j * CYCLE / 24 + rnd() * 0.3), 18));
+    }
+    const war = battle(shots);
     return `<div class="sea-wrap foot-wrap"><svg class="foot-sea" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" aria-hidden="true">`
-      + `<defs><linearGradient id="fsf" x1="0" x2="1"><stop offset="0" stop-color="#000"/><stop offset=".2" stop-color="#fff"/><stop offset=".8" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>`
+      + `<defs><linearGradient id="fsf" x1="0" x2="1"><stop offset="0" stop-color="#000"/><stop offset=".09" stop-color="#fff"/><stop offset=".91" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>`
       + `<mask id="fsm" maskUnits="userSpaceOnUse" x="-400" y="-400" width="${W + 800}" height="${H + 800}"><rect x="0" y="-400" width="${W}" height="${H + 800}" fill="url(#fsf)"/></mask></defs>`
       + `<g mask="url(#fsm)"><g fill="none" stroke="${ROYAL}">${layer(rows)}</g></g></svg>`
-      + `<div class="fleet fade" aria-hidden="true">`
-      // guns ride with the sailing ships (side view: flat water); warning shots splash ahead of them
-      + `<div class="sail l s2">${f1.under}${vessel('ship-medium-l', 0, 150, 1, H, true)}${f1.over}${depthSort(f1.lands)}</div>`
-      + vessel('barrel', 340, 165, 4, H)
-      + `<div class="sail r s1">${f2.under}${vessel('ship-large-r', 0, 190, 0, H, true)}${f2.over}${depthSort(f2.lands)}</div>`
-      + `<div class="sail l s4">${vessel('rowboat-l', 0, 198, 3, H, true)}</div>`
-      + `<div class="sail r s3">${vessel('ship-small-r', 0, 205, 2, H, true)}</div></div></div>`;
+      + `<div class="fleet fade" aria-hidden="true">${war.under}${depthSort([...items, ...war.lands])}${war.over}</div></div>`;
   }
 
   root.BoatTheme = { hero, footer, sprites };
