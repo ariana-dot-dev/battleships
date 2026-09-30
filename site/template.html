@@ -393,7 +393,15 @@ details.chartbox>summary h3{font-weight:400}
 .rqdd button[aria-selected="true"],.rqdd button:hover{background:var(--fill)}
 .rqnone{padding:9px 10px;color:var(--ink-2);font-size:var(--t4)}
 @media (max-width:720px){.rsearch{padding:8px 16px}.rqdd button{flex-direction:column;gap:2px}.rqdd button span{text-align:left;white-space:normal}}
-.cmpwrap{padding:4px 24px 20px}
+/* "Accept mismatches": one row styled like a ranking row, opening onto a nested panel (wash) that holds the grid */
+.cmpbar{display:flex;align-items:center;gap:12px;width:100%;min-width:0;text-align:left;font:inherit;background:none;border:0;border-top:1px solid var(--line);padding:10px 24px;cursor:pointer;color:var(--ink)}
+.cmpbar:hover{background:var(--wash)}
+.cmpbt{font-weight:600;flex:none}
+.cmpbs{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t4);color:var(--ink-2)}
+.cmpbar svg{width:12px;height:12px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;transition:transform .15s}
+.cmpbar[aria-expanded="true"] svg{transform:rotate(180deg)}
+.cmpbar[aria-expanded="true"]{background:var(--wash)}
+.cmpwrap{padding:4px 24px 20px;background:var(--wash)}
 .cmpl{margin:0 0 12px;font-size:var(--t4);color:var(--ink-2);max-width:80ch}
 .cmpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;align-items:start}
 .cmpcell{background:var(--bg);box-shadow:inset 0 0 0 1px var(--line);padding:12px 12px 12px 14px;display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -1288,7 +1296,7 @@ function pool(){const cat=$('#category').value; return CARDS.filter(c=>cat==='al
 const SEG=[['compute','Compute',['compute','licence']],['memory','Memory',['memory']],['gpu','GPU',['gpu']],['storage','Storage & snapshots',['storage','snapshots']],['network','Network',['egress','ipv4']],['plan','Plan, seats & fees',['plan','fees']]];
 const SEGC=['var(--s1)','var(--s2)','var(--s3)','var(--s4)','var(--s5)','var(--s6)'];
 const showAll={meets:false,soft:false,cmp:false};
-let okComp=new Set(store.get('okComp',[])), cmpOpen=new Set(), cmpExp=new Set();
+let okComp=new Set(store.get('okComp',[])), cmpOpen=new Set(), cmpExp=new Set(), cmpPanel=!!store.get('cmpPanel',false);
 // types of mismatch for the "I'm fine with" grid: first match wins; strip = the words the cell title already says
 const CMP_GROUPS=[
   {k:'missing',t:'Missing features',d:'The provider says it doesn’t offer a feature you require',icon:'x',re:/^missing /,strip:/^missing /},
@@ -1480,17 +1488,25 @@ function RUN_REST(W,O,perRegime,res,hrs,nf){
     return `<section class="cmpcell${exp?' open':''}"><header><button type="button" class="cmphead" data-g="${g.k}" aria-expanded="${exp}" data-tip="${esc(g.d||g.t)}"><span class="cmpi" aria-hidden="true">${CMP_ICON[g.icon]}</span><span class="cmpt"><span class="cmph">${esc(g.t)}</span><span class="cmpn">${rows} row${rows===1?'':'s'} · ${items.length} kind${items.length===1?'':'s'}${acc?` · <b>${acc} accepted</b>`:''}</span></span><svg class="cmpchev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button></header>`
       +(!exp?'':`<div><button type="button" class="cmpall" data-g="${g.k}" aria-pressed="${all}" data-tip="${all?'Count this whole group as a mismatch again':'I’m fine with everything in this group'}">fine with all ${items.length}</button></div><div class="cmpchips">${shown.map(([t,n])=>`<button type="button" class="cmpk" aria-pressed="${okComp.has(t)}" data-t="${esc(t)}" ${chipTxt(g,t)!==t?` data-tip="${esc(t)}"`:''}>${esc(chipTxt(g,t))} <span>· ${n}</span></button>`).join('')}`
       +`${items.length>shown.length?`<button type="button" class="cmpmore" data-g="${g.k}">${items.length-shown.length} more</button>`:open&&items.length>KS?`<button type="button" class="cmpmore" data-g="${g.k}" data-less="1">fewer</button>`:''}</div>`)+`</section>`; };
-  const cmpBar=kinds.length?`<div class="cmpwrap"><p class="cmpl">Mismatches you accept stop counting: providers with nothing else missing move up to the full matches.</p><div class="cmpgrid">${[...cells.values()].filter(c=>c.items.length).sort((a,b)=>b.rows-a.rows).map(cellHtml).join('')}</div></div>`:'';
+  // one folded row under the heading: what they miss (or what you accepted), opening onto the grid of kinds
+  const liveCells=[...cells.values()].filter(c=>c.items.length).sort((a,b)=>b.rows-a.rows);
+  const nAcc=[...okComp].filter(t=>cmpCount.has(t)).length, nUp=strictOk.filter(r=>r.accepted).length;
+  const cmpSum=nAcc?`${nAcc} accepted${nUp?` · ${nUp} provider${nUp===1?'':'s'} moved up`:''}`:liveCells.map(c=>`${c.g.t} ${c.rows}`).join(' · ');
+  const cmpBar=kinds.length?`<button type="button" class="cmpbar" id="cmpBar" aria-expanded="${cmpPanel}"><span class="cmpbt">Accept mismatches</span><span class="cmpbs">${esc(cmpSum)}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>`
+    +(cmpPanel?`<div class="cmpwrap"><p class="cmpl">Mismatches you accept stop counting: providers with nothing else missing move up to the full matches.</p><div class="cmpgrid">${liveCells.map(cellHtml).join('')}</div></div>`:''):'';
   $('#rank').innerHTML=(strictOk.length?`<div class="gmark" id="g-meets"></div>`+strictOk.slice(0,NM).map(rowHtml).join('')+more('meets',strictOk.length,DM):'')
     +(!softOk.length&&cmpBar?`<div class="grouphead" id="g-soft"><b>With compromises</b> · 0</div>`+cmpBar:'')
-    +(softOk.length?(softOk.length>DS
-      ?`<button type="button" class="grouphead gtoggle${showAll.soft?' open':''}" id="g-soft" aria-expanded="${showAll.soft}" data-tip="Priced as close to this workload as each provider can get, minor mismatches first."><b>With compromises</b> · ${softOk.length}<span class="gact">${showAll.soft?'Show fewer':'Show all'}<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></span></button>`
+    // the heading only names the group; the list opens from its foot ("Show N more"). Once opened, the heading
+    // sticks while you scroll the long list and carries the way back ("Show fewer")
+    +(softOk.length?(softOk.length>DS&&showAll.soft
+      ?`<button type="button" class="grouphead gtoggle open" id="g-soft" aria-expanded="true" data-tip="Priced as close to this workload as each provider can get, minor mismatches first."><b>With compromises</b> · ${softOk.length}<span class="gact">Show fewer<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></span></button>`
       :`<div class="grouphead" id="g-soft" data-tip="Priced as close to this workload as each provider can get, minor mismatches first."><b>With compromises</b> · ${softOk.length}</div>`)+cmpBar+softOk.slice(0,NS).map((r,i)=>rowHtml(r,strictOk.length+i)).join('')+more('soft',softOk.length,DS):'')
   $$('#rank .more').forEach(b=>b.onclick=()=>{ const k=b.dataset.more, less=!!b.dataset.less; showAll[k]=!less; run();
     if(less){ const h=$('#g-'+k); if(h&&h.getBoundingClientRect().top<0) h.scrollIntoView({block:'start'}); } });
   // the "With compromises" heading opens / closes its group; closing brings you back to the heading
   $$('#rank .gtoggle').forEach(h=>h.onclick=()=>{ const k=h.id.replace('g-',''), closing=showAll[k]; tip(); showAll[k]=!closing; run();
     if(closing){ const nh=$('#g-'+k); if(nh&&nh.getBoundingClientRect().top<60) nh.scrollIntoView({block:'start'}); } });
+  if($('#cmpBar')) $('#cmpBar').onclick=()=>{ tip(); cmpPanel=!cmpPanel; store.set('cmpPanel',cmpPanel); run(); };
   $$('#rank .cmpk').forEach(b=>b.onclick=()=>{ tip(); const t=b.dataset.t; okComp.has(t)?okComp.delete(t):okComp.add(t); store.set('okComp',[...okComp]); run(); });
   $$('#rank .cmpmore').forEach(b=>b.onclick=()=>{ const g=b.dataset.g; b.dataset.less?cmpOpen.delete(g):cmpOpen.add(g); run(); });
   $$('#rank .cmphead').forEach(b=>b.onclick=()=>{ tip(); const g=b.dataset.g; cmpExp.has(g)?cmpExp.delete(g):cmpExp.add(g); run(); });
