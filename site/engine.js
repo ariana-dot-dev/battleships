@@ -779,7 +779,8 @@
         // next to (usually) its own dedicated-core tier, so the caveat names that tier instead of a vague "shared CPU"
         const noGuarantee = () => {
           const sib = (card.modes || []).find(x => x && x !== m && (x.cpu_class === 'dedicated' || /dedicated|performance|ccx/i.test(`${x.label || ''}`)) && !flagsOf(x).includes('legacy'));
-          return sib ? `no reserved cores on this tier: ${card.name} sells dedicated cores separately (“${sib.label}”)` : 'the provider sells this tier without a guaranteed CPU share';
+          return sib ? `shared vCPUs on this tier (${card.name} sells dedicated cores separately as “${sib.label}”): heavy, sustained CPU use can be slowed by other tenants`
+            : 'shared vCPUs (no guaranteed share of a core): heavy, sustained CPU use can be slowed by other tenants';
         };
         const reserved = opts.sizing === 'reserved';
         if (m.cpu_class === 'shared' && !fm.includes('burstable') && (W.cpuUtil > 0.5 || reserved)) c.push({ t: noGuarantee(), s: reserved ? 2 : 1 });
