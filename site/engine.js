@@ -421,7 +421,10 @@
       // the remaining (awake) hours are busier: condition utilisation on being awake so CPU is not discounted twice.
       // (RAM stays resident while idle, so ram utilisation is unchanged.)
       if (idleF < 1) Wm = Object.assign({}, Wm, { cpuUtil: Math.min(1, Wm.cpuUtil / idleF) });
-      const pf = perfOf(m);
+      // Only the time the CPU is actually working speeds up or slows down with CPU speed: a session that is busy 3% of the
+      // time barely changes on a faster CPU; one that is busy 90% scales almost fully. (Wm.cpuUtil is the awake-time share.)
+      const cpuShare = Math.min(1, Math.max(0, num(Wm.cpuUtil, 0)));
+      const pf = 1 - cpuShare + cpuShare * perfOf(m);
       const mm = kn.rate !== 1 ? Object.assign({}, m, { multiplier: num(m.multiplier, 1) * kn.rate }) : m;
       const r = m.pricing === 'pool' ? pricePool(card, m, Wm) : priceMode(card, mm, Wm, opts, pf);
       if (r.error) { skipped.push(r.error); continue; }

@@ -69,7 +69,7 @@ module.exports.atlas = [
     { p: 'Currency and tax', d: 'boxd prices natively in EUR; EU VAT applies to EU entities.', e: 'boxd' },
   ]},
   { title: 'Performance: price per unit of work', items: [
-    { p: 'CPU speed per vCPU', d: 'Same-size sandboxes differ about 3× in measured throughput (Node.js tooling runs/s), so $/hour is not $/job. Turn on "CPU-bound" to scale session time.', e: 'HPC sandbox benchmarks' },
+    { p: 'CPU speed per vCPU', d: 'Same-size sandboxes differ about 3× in measured throughput (Node.js tooling runs/s), so $/hour is not $/job. Turn on "Measured CPU speed" to scale the busy share of session time.', e: 'HPC sandbox benchmarks' },
     { p: 'Cold start', d: 'Paid boot time, and for bursts it can exceed the work itself (13 ms to 2+ s median cold start).', e: 'ComputeSDK' },
     { p: 'Noisy neighbours and throttling', d: 'Shared/burstable CPUs and gVisor syscall overhead stretch wall-clock time you pay for.', e: 'Fly shared, Modal gVisor' },
   ]},
