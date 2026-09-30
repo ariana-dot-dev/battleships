@@ -341,8 +341,10 @@ details.scfold{display:block}
 .r.me .pname{font-weight:600}
 .regime{color:var(--ink-2);font-size:var(--t4);cursor:help;overflow-wrap:anywhere}
 .iso{font:inherit;font-size:var(--t4);color:var(--ink-2);background:var(--fill);border:0;padding:1px 6px;cursor:pointer;white-space:nowrap}
-/* accelerator tag next to a provider's name (YC S23, EF, Antler…): who backed it early; the tooltip adds stage and money raised */
-.acc{font-size:var(--t4);font-weight:600;color:var(--acc);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 45%,transparent);padding:0 5px;white-space:nowrap;cursor:help}
+/* accelerator tag next to a provider's name (YC S23, EF, Antler…): who backed it early; the tooltip adds stage and money raised.
+   Same box as the isolation tag next to it (size, padding, line height), no border: a light tint of its text colour */
+.iso,.acc{display:inline-block;line-height:1.4;vertical-align:middle}
+.acc{font-size:var(--t4);font-weight:400;color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent);padding:1px 6px;white-space:nowrap;cursor:help}
 .co{margin:0 0 12px;line-height:1.7}
 .co .hint{display:inline}
 .est{color:var(--ink-2)}
@@ -923,7 +925,7 @@ details.more-in[open]>summary{display:none}
         <details class="scsec scfold" id="scDialSec"><summary><h4 class="sclab">Scale <span id="scDialN"></span></h4></summary><div class="scbody"><div id="dials" class="dials"></div></div></details></div></div>
       <div class="tile rsearch"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input id="rq" type="search" placeholder="Find a provider in the ranking" autocomplete="off" aria-label="Find a provider in the ranking" role="combobox" aria-expanded="false" aria-controls="rqdd"><div id="rqdd" class="rqdd" role="listbox" hidden></div></div>
       <div class="tile sumline"><div id="summary"></div>
-        <div class="viewctl"><label class="tog" data-tip="Show each billing regime of a provider as its own row (up to 3 per provider)."><input type="checkbox" id="perRegime" checked> per regime</label><label class="tog" data-tip="Show the accelerator each provider went through (Y Combinator batch, Antler, Techstars…) next to its name."><input type="checkbox" id="showAcc"> accelerators</label>
+        <div class="viewctl"><label class="tog" data-tip="Show each billing regime of a provider as its own row (up to 3 per provider)."><input type="checkbox" id="perRegime" checked> per regime</label><label class="tog" data-tip="Show who is behind each provider next to its name: accelerator, funding stage and money raised (~ = estimated)."><input type="checkbox" id="showAcc"> funding</label>
           <div class="seg" id="barmode"><button data-m="total" aria-pressed="true">Total</button><button data-m="split" aria-pressed="false">Split</button></div></div></div>
       <div class="tile"><div id="legend" hidden></div>
         <div id="rank"></div>
@@ -1427,7 +1429,7 @@ $$('#barmode button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.m===ba
 let open=null;
 $('#perRegime').checked=store.get('perRegime',true);
 $('#perRegime').onchange=()=>{store.set('perRegime',$('#perRegime').checked); run();};
-// accelerator tags next to names: off unless asked for (the Company section in a row's details always has them)
+// funding tags next to names: off unless asked for (the Company section in a row's details always has them)
 $('#showAcc').checked=store.get('showAcc',false);
 $('#showAcc').onchange=()=>{store.set('showAcc',$('#showAcc').checked); run();};
 let lastWO=null, focusProv=null, rankIdx=new Map();
@@ -1663,7 +1665,14 @@ const coTip=c=>{ const o=c.co; if(!o) return ''; const L=[];
   L.push(stageOf(c)+(o.raised?` · ${amtTxt(o.raised)} raised`:''));
   if(o.rev) L.push(`Revenue: ${amtTxt(o.rev)}${o.rev.k?' '+o.rev.k:''}${o.rev.at?' ('+o.rev.at+')':''}`);
   return L.join('\n'); };
-const accTag=c=>{ const a=$('#showAcc').checked&&c.co&&c.co.acc&&c.co.acc[0]; return a?`<span class="acc" data-tip="${esc(coTip(c))}">${esc(accLabel(a))}</span>`:''; };
+// the funding tag (when "funding" is on): accelerator · stage · money raised, whatever is known; nothing when nothing is
+const STAGE_SHORT={'series-d+':'Series D+',public:'Public',bootstrapped:'Bootstrapped'};
+const fundTxt=c=>{ const o=c.co; if(!o) return ''; const p=[];
+  if(o.acc&&o.acc[0]) p.push(accLabel(o.acc[0]));
+  const st=stageOf(c); if(st!=='Unknown') p.push(STAGE_SHORT[o.stage]&&!/^(Part of|Acquired)/.test(st)?STAGE_SHORT[o.stage]:st);
+  if(o.raised) p.push((o.raised.s==='estimated'?'~':'')+money(o.raised.v));
+  return p.join(' · '); };
+const accTag=c=>{ const t=$('#showAcc').checked&&fundTxt(c); return t?`<span class="acc" data-tip="${esc(coTip(c))}">${esc(t)}</span>`:''; };
 const srcA=(txt,u)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(txt)}</a>`:esc(txt);
 function coHtml(c){ const o=c.co; if(!o) return ''; const L=[];
   L.push(`<b>${esc(stageOf(c))}</b>${o.raised?` · ${srcA(amtTxt(o.raised)+' raised',o.raised.src)}`:''}`);
