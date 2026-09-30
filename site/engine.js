@@ -25,7 +25,7 @@
     scoped_api_keys: 'scoped API keys', spend_limits: 'spend limits', mcp_server: 'MCP server',
     // agent infrastructure (feature pass 2026-09-29): see FEAT_WHY in the page for what each one means
     snapshot_auto: 'automatic snapshots', snapshot_on_demand: 'snapshots on demand', harness_api: 'agent harness API',
-    own_agent_api: 'hosted agent API (their own agent)', strong_isolation: 'gVisor or VM (no shared kernel)',
+    own_agent_api: 'hosted agent API (their own agent)', fast_boot: 'fast boot (benchmarked)', strong_isolation: 'gVisor or VM (no shared kernel)',
     ingress_rules: 'inbound access rules', guest_firewall: 'firewall inside (nftables)', secret_proxy: 'secret proxy',
     secret_proxy_any: 'secret proxy for any API', volume_attach: 'extra volumes', volume_shared: 'shared volumes',
   };
