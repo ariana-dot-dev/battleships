@@ -507,7 +507,7 @@
     "gpu": false,
     "gpu_types": [],
     "snapshot": "none",
-    "pause_resume": null,
+    "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
     "volumes": false,
@@ -515,11 +515,11 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": false,
+    "nested_virt": true,
     "root": true,
     "systemd": true,
     "browser": true,
-    "desktop": null,
+    "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": true,
@@ -529,7 +529,7 @@
     "custom_domain": true,
     "raw_tcp_inbound": false,
     "egress_allowlist": false,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": true,
     "self_host": false,
     "byoc": true,
@@ -544,14 +544,14 @@
     "hipaa": null,
     "sso": true,
     "lang_python": true,
-    "lang_node": null,
+    "lang_node": false,
     "lang_go": true,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
     "egress_http_rules": false,
-    "wake_on_request": null,
+    "wake_on_request": false,
     "live_resize": true,
     "fork_running": null,
     "memory_snapshot_fork": false,
@@ -562,7 +562,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": true,
     "isolation": "cloud-hypervisor",
     "image_oci": true,
     "snapshot_auto": false,
@@ -572,7 +572,12 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -662,10 +667,10 @@
     },
     "egress_allowlist": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No provider-side egress controls documented anywhere in llms-full.txt (no firewall/allowlist/no-internet options on `new`, `share`, teams or pools). Treated as false (dev-env with full internet by design); could be null if strict. Secrets are protected via integrations rather than by blocking egress.",
-      "checked": "2026-09-29"
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "On the networking side, we don't give your VM its own public IP. Instead, we terminate HTTPS/TLS requests, and proxy them securely to your VM's web servers.",
+      "note": "No firewall/allowlist/egress-rule/no-internet option appears on `new`, `share`, `team`, or `pool` in the full CLI/docs reference (only two unrelated hits for 'allowlist', about API-key scoping and a third-party Slack bot's own allowlist). VMs get unrestricted outbound internet by default; secrets are protected via the integrations proxy rather than by blocking egress.",
+      "checked": "2026-09-30"
     },
     "egress_http_rules": {
       "value": false,
@@ -698,17 +703,186 @@
     },
     "volume_attach": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No volume/attach commands in the CLI reference; storage = the VM's own grow-only disk (`new --disk`, `resize`). Object storage reachable via the S3 integration (HTTP, not a mount).",
-      "checked": "2026-09-29"
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "cp <source-vm> [new-name] [--pool=<name>] [--memory=<size>] [--cpu=<count>] [--disk=<size>]",
+      "note": "No attach/detach-volume command exists in the full CLI reference (`new`, `resize`, `cp`, `pool`, `team`, `billing`, `share`, `integrations` — no `volume` subcommand). Disk is fixed to the VM it was created/resized on.",
+      "checked": "2026-09-30"
     },
     "volume_shared": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No shared filesystem/volume feature documented; cross-VM sharing via Tailscale/SSH/VM-to-VM integration or S3 integration.",
-      "checked": "2026-09-29"
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "exe.dev [...] gives you virtual machines [...] create a virtual private network to connect their VMs. Tailscale",
+      "note": "No shared-filesystem/shared-volume feature is documented anywhere; cross-VM data sharing is only via Tailscale private networking, SSH/scp/rsync, the VM-to-VM integration, or the S3 integration — none of which is a shared mounted volume.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "It should be some kind of stock linux ... Just a computer.",
+      "note": "not offered: outside the product's scope — exe.dev is an SSH/terminal-accessed Linux VM product (root, systemd, Docker); no VNC/RDP/streamed graphical desktop is documented anywhere in the docs or CLI reference.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://exe.dev/sandbox",
+      "quote": "create a VM a computer, in about a second",
+      "note": "not offered: outside the product's scope — exe.dev sells general-purpose Linux VMs for coding agents, not a browser-automation/scraping product; no stealth or anti-fingerprinting feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://exe.dev/sandbox",
+      "quote": "create a VM a computer, in about a second",
+      "note": "not offered: outside the product's scope — no CAPTCHA-solving feature is documented anywhere in the docs/CLI/API reference; exe.dev is a generic dev VM, not a scraping/automation service.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "No dedicated IPv4 (shared per-owner IPv4 pool; HTTPS proxy + SSH only).",
+      "note": "network.ipv4_available is false and no static/residential/mobile IP feature is documented; VMs egress through the provider's shared cloud-hosted datacenter IP space with no dedicated/static assignment.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": true,
+      "source": "https://exe.dev/docs/standalone-vms.md",
+      "quote": "A stopped standalone VM is not billed for its vCPU and memory. It keeps its disk, and it still counts toward your VM limits.",
+      "note": "Stopping a VM halts vCPU/memory billing (disk still billed) and it can be started again later; this is the product's pause/resume mechanism, with billing reduced while stopped.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "The VM must be running or stopped.",
+      "note": "No documentation of a stopped/sleeping VM automatically waking on an incoming SSH/HTTPS request; starting a stopped VM requires an explicit start action (CLI/API), not a passive wake-on-request trigger.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "Send a prompt to Shelley on a VM ... shelley prompt [--model=<model>] [--reasoning=<level>] <vm> <prompt>",
+      "note": "not offered: outside the product's scope — Shelley is exe.dev's own CODING agent/harness (already modeled as harness_api/agent_harnesses), not a browser/computer-use/research task agent; exe.dev has no desktop or browser-control product for such an agent to drive.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "exe.dev serves a Model Context Protocol server at https://exe.dev/mcp. Point your favorite MCP client at it",
+      "note": "First-party MCP server for controlling exe.dev VMs from Claude Code and other MCP clients.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/boldsoftware/exeuntu/main/Dockerfile",
+      "quote": "make python3-pip python-is-python3 ... docker.io docker-buildx docker-compose-v2 ...",
+      "note": "The default exeuntu image's package list installs Go, Python3/pip, and many tools but no Node.js/npm; docs note installing the Codex npm package 'works too if you prefer the Node-packaged build and already have a modern Node on the VM,' implying Node is not preinstalled out of the box (though it can be apt-installed manually).",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "No dedicated IPv4 (shared per-owner IPv4 pool; HTTPS proxy + SSH only).",
+      "note": "No static/dedicated outbound IP feature is documented; VMs share a per-owner IPv4 pool with no fixed per-VM address, consistent with network.ipv4_available=false in the card.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://exe.dev/docs/standalone-vms.md",
+      "quote": "A standalone VM ... does not share capacity with your other VMs. It is billed by the hour while it runs.",
+      "note": "VMs (pool or standalone) run until explicitly stopped or deleted by the user/API; no maximum session/lifetime duration is documented anywhere in the extensive CLI/API/billing docs.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "cp <source-vm> [new-name] [--pool=<name>] [--memory=<size>] [--cpu=<count>] [--disk=<size>] ... Copy an existing VM",
+      "note": "No contradiction: exe.dev has no snapshot/checkpoint/restore mechanism. `cp` is a disk+config copy-on-write clone into a NEW VM (not a snapshot of the source that can be restored in place), and `--memory` there just sets the new VM's RAM allocation, not a captured memory image. 'snapshot' and 'checkpoint' do not appear anywhere in llms-full.txt. Card's existing feature_evidence.snapshot_auto/snapshot_on_demand (false/false) already document this; 'none' plus fork=true (disk clone) is consistent, not contradictory.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "cp <source-vm> [new-name] [--pool=<name>] [--memory=<size>] [--cpu=<count>] [--disk=<size>]",
+      "note": "The only fork/clone primitive (`cp`) copies disk and config into a new VM; `--memory` sets the new VM's RAM size, it does not carry over live RAM contents. No memory-state snapshot/restore appears anywhere in llms-full.txt.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://exe.dev/pricing",
+      "quote": "Nested virtualization (KVM) | Not included | Not included | Included",
+      "note": "The live pricing comparison table lists 'Nested virtualization (KVM)' as a named feature: Not included on Personal and Work, but Included on Enterprise. This matches the card's own Enterprise plan note ('dedicated hardware, BYOC/AWS-GCP VPC, nested virtualization, Slack support, SLA'). So nested_virt is offered (Enterprise/custom tier), not a flat no — correct to true.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "On the networking side, we don't give your VM its own public IP. Instead, we terminate HTTPS/TLS requests, and proxy them securely to your VM's web servers. For SSH, we handle `ssh vmname.exe.xyz`.",
+      "note": "No mention of VNC, remote desktop, screen-share, browser-automation/computer-use API, or GUI streaming anywhere in llms-full.txt or the pricing/sandbox pages. Access is SSH + HTTPS proxy to a headless Linux VM; product is a coding-agent dev-env VM, not a computer-use/GUI-agent product.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "A stopped standalone VM is not billed for its vCPU and memory. It keeps its disk, and it still counts toward your VM limits.",
+      "note": "No occurrence of 'idle' anywhere in llms-full.txt for the self-serve Personal/Work/standalone-VM products; stopping is always a manual/CLI action, never an automatic idle-timeout. (The sales-only, non-self-serve 'Cloud Pool' usage mode is separately modeled with auto_stop_idle:true inside its own mode entry, which is correct and distinct from this top-level flag.)",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "cp <source-vm> [new-name] [--pool=<name>] [--memory=<size>] [--cpu=<count>] [--disk=<size>]",
+      "note": "The word 'volume' does not occur anywhere in llms-full.txt or the CLI reference. Storage is only each VM's own grow-only local disk (`new --disk`, `resize`); no separate attachable/mountable volume object exists.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "On the networking side, we don't give your VM its own public IP. Instead, we terminate HTTPS/TLS requests, and proxy them securely to your VM's web servers. For SSH, we handle `ssh vmname.exe.xyz`.",
+      "note": "Explicit statement that VMs never get their own public IP; reachability is only via the shared HTTPS proxy and brokered SSH hostname.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://exe.dev/pricing",
+      "quote": "Personal $15/month ... Work $0.21/hour ... Enterprise Custom resource limits Dedicated hardware and resources ...",
+      "note": "No 'GPU'/'nvidia'/'cuda' term appears anywhere in llms-full.txt, the pricing comparison table, or the sandbox usage page; all plan resources are described purely in vCPU/RAM/disk/bandwidth. Product is CPU-only cloud-hypervisor KVM VMs for coding agents.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "With most providers, your VM starts with a \"base image\" and is given a block device. Exe.dev instead starts with a container image (by default, \"exeuntu\"), and hooks it up with a block device with the image on it.",
+      "note": "No 'Windows' term appears anywhere in the docs; VMs boot a Linux container-derived image ('exeuntu') under Cloud Hypervisor. Windows guests are plainly outside what this Linux dev-env sandbox product offers.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "Exe.dev instead starts with a container image (by default, \"exeuntu\"), and hooks it up with a block device with the image on it.",
+      "note": "No 'macOS'/'Mac OS'/'Darwin' guest term appears anywhere in the docs; this is a Linux-VM-only sandbox provider (KVM/Cloud Hypervisor), and macOS guests are outside the product by construction (no bare-metal Mac hardware offering).",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "case \"$(uname -m)\" in x86_64) A=x86_64-unknown-linux-musl ;; aarch64|arm64) A=aarch64-unknown-linux-musl ;;",
+      "note": "The only aarch64/arm64 references in the docs are about which CLI-tool binary to download on the OPERATOR'S own machine (client side), not about the guest VM architecture; there is no mention anywhere of an arm64 guest VM option, and Cloud Hypervisor VM sizing/pricing is undifferentiated by CPU architecture, implying x86_64-only guests.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "These providers host the virtual machines and compute that our customers",
+      "note": "exe.dev is a hosted SaaS platform run by exe.dev on its own/partner infrastructure; there is no offering to run the exe.dev control plane on a customer's own infrastructure. The Enterprise 'Bring your own cloud' (BYOC, AWS/GCP VPC) option still means exe.dev's control plane placing VMs inside the customer's cloud account, not the customer self-hosting the exe.dev product itself.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://exe.dev/llms-full.txt",
+      "quote": "The [Dockerfile for exeuntu](https://github.com/boldsoftware/exeuntu/blob/main/Dockerfile) is open source, so you can use that as a base if you'd like.",
+      "note": "Only the default VM base-image Dockerfile ('exeuntu') is published as open source; the exe.dev platform itself (control plane, CLI backend, billing, proxy) is closed-source SaaS with no public repository referenced anywhere in the docs.",
+      "checked": "2026-09-30"
     }
   }
 }

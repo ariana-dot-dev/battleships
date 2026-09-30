@@ -855,10 +855,10 @@
     "arm64": true,
     "gpu": false,
     "gpu_types": [],
-    "snapshot": "none",
+    "snapshot": "fs",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": false,
     "max_session_h": null,
@@ -892,8 +892,8 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -901,7 +901,7 @@
     "credential_injection": null,
     "egress_http_rules": true,
     "wake_on_request": false,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
@@ -911,7 +911,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": true,
     "isolation": "firecracker",
     "image_oci": true,
     "snapshot_auto": false,
@@ -922,7 +922,12 @@
     "guest_firewall": false,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -995,10 +1000,10 @@
   "feature_evidence": {
     "snapshot_auto": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "Fargate tasks have no stop/pause-resume lifecycle: a stopped task is gone and its ephemeral storage with it; state survives only on attached EBS (if not deleted on termination) or EFS.",
-      "checked": "2026-09-29"
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_StopTask.html",
+      "quote": "Stops a running task. ... the equivalent of docker stop is issued to the containers running in the task. ... after which the SIGKILL value is sent and the containers are forcibly stopped.",
+      "note": "There is no automatic stop/sleep-and-restore lifecycle: StopTask simply terminates the task's containers (docker stop / SIGKILL); nothing is auto-saved or auto-restored on next start. Confirms the card's false.",
+      "checked": "2026-09-30"
     },
     "snapshot_on_demand": {
       "value": false,
@@ -1009,10 +1014,10 @@
     },
     "harness_api": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "Generic container service; only ECS Exec (interactive command execution) exists, no agent-harness API.",
-      "checked": "2026-09-29"
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-security-considerations.html",
+      "quote": "You can use ECS exec to run commands in or get a shell to a container running on Fargate. You can use ECS exec to help collect diagnostic information for debugging.",
+      "note": "Only a generic exec-into-container debugging channel exists (ECS Exec); no first-party API to prompt/stream/drive a coding agent harness.",
+      "checked": "2026-09-30"
     },
     "egress_allowlist": {
       "value": true,
@@ -1063,6 +1068,211 @@
       "quote": "That way, your tasks have access to the same persistent storage, no matter the instance on which they land.",
       "note": "Amazon EFS (NFS) mounted read-write by many tasks concurrently (readOnly option available); EBS task volumes are single-task.",
       "checked": "2026-09-29"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://aws.amazon.com/fargate/",
+      "quote": "AWS Fargate is a serverless, pay-as-you-go compute engine that lets you focus on building applications without managing servers.",
+      "note": "not offered: outside the product's scope — Fargate is a generic container-hosting engine (ECS/EKS), not a browser/scraping product; it has no stealth or fingerprinting features for bot detection.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://aws.amazon.com/fargate/",
+      "quote": "AWS Fargate is a serverless, pay-as-you-go compute engine that lets you focus on building applications without managing servers.",
+      "note": "not offered: outside the product's scope — a container orchestration compute engine, not a browser-automation or CAPTCHA-solving service.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/network-configuration.html",
+      "quote": "When using a public subnet, you can optionally assign a public IP address to the task's elastic network interface (ENI).",
+      "note": "All outbound IPs are AWS datacenter ranges. A task's ENI keeps the same public IPv4 (or the account can route via a fixed-IP NAT gateway / Elastic IP) for its lifetime, so the egress IP is a static AWS datacenter address, not residential/mobile.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html",
+      "quote": "Updating an Amazon ECS task definition using the console ... Deregistering an Amazon ECS task definition revision",
+      "note": "vCPU/memory are fixed in the task definition at launch (from the allowed vcpu_options/ram_per_vcpu pairs). Changing CPU/RAM requires registering a new task-definition revision and starting a new task; a running task cannot be resized in place.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://aws.amazon.com/fargate/",
+      "quote": "AWS Fargate is a serverless, pay-as-you-go compute engine that lets you focus on building applications without managing servers.",
+      "note": "not offered: outside the product's scope — Fargate runs whatever container you give it; AWS provides no first-party browser/computer-use/research task-agent API on top of Fargate itself.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://github.com/awslabs/mcp/tree/main/src/ecs-mcp-server",
+      "quote": "Amazon ECS MCP Server | Container orchestration and ECS application deployment",
+      "note": "AWS Labs ships an official open-source 'Amazon ECS MCP Server' (awslabs/mcp) that containerizes and deploys applications to ECS, including onto Fargate launch type; also an EKS MCP Server for EKS-on-Fargate clusters.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/what-is-fargate.html",
+      "quote": "AWS Fargate is a serverless compute engine built for containers ... Fargate runs each task or pod in its own kernel providing the tasks and pods with their own isolated compute environment.",
+      "note": "not offered out of the box: Fargate only runs container images you supply/build from an OCI/Docker image (task definition's 'image' field) — there is no managed Python runtime or first-party SDK code-exec; you must bring a Python-containing image yourself, unlike a managed FaaS runtime.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/what-is-fargate.html",
+      "quote": "AWS Fargate is a serverless compute engine built for containers ... Fargate runs each task or pod in its own kernel providing the tasks and pods with their own isolated compute environment.",
+      "note": "not offered out of the box: same as lang_python — Fargate has no built-in managed Node.js runtime; any language runs only inside the container image you provide.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://aws.amazon.com/fargate/pricing/",
+      "quote": "You are billed for the amount of vCPU, memory, and storage resources consumed by your containerized applications ... from the time you start to download your container image ... until the Amazon ECS task or Amazon EKS pod terminates",
+      "note": "No maximum task/pod duration is documented; ECS/EKS tasks run until the workload exits, is stopped, or is interrupted (Spot only, 2-minute notice). Card's plans[0].note already states 'No max task duration.'",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_TaskManagedEBSVolumeTerminationPolicy.html",
+      "quote": "Indicates whether the volume should be deleted on when the task stops. If a value of true is specified, Amazon ECS deletes the Amazon EBS volume on your behalf when the task goes into the STOPPED state. If no value is specified, the default value is true is used. When set to false, Amazon ECS leaves the volume in your account.",
+      "note": "Contradiction resolved in favor of true: the card already lists volume_attach/volume_shared true. Fargate tasks can attach a managed EBS volume whose terminationPolicy.deleteOnTermination can be set false so the volume (and its filesystem) survives task stop/restart; EFS mounts (volume_shared) are independently persistent by design. Default behaviour is still delete-on-stop (deleteOnTermination defaults to true) and the built-in 20GiB ephemeral task storage is always erased on stop (aws.amazon.com/fargate/faqs: 'Once the workload has stopped, any data stored in this 20 GiB volume is erased.') — so persistence is opt-in via EBS/EFS, not default.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "fs",
+      "corrected_from": "none",
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ebs-volumes.html",
+      "quote": "You can either configure new, empty volumes for attachment, or you can use snapshots to load data from existing volumes.",
+      "note": "Task-managed EBS volumes support standard EBS disk snapshots (create a snapshot of the attached volume via the EC2 EBS API, then launch new tasks from it). This is disk/filesystem-only — no memory/process-state snapshot exists (no task checkpoint API) — so 'fs' rather than 'mem', and not 'none'.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/scheduling_tasks.html",
+      "quote": "A standalone task is suitable for processes such as batch jobs that perform work and then stop.",
+      "note": "ECS/Fargate task lifecycle only has provisioning/running/stopping/stopped states (see StopTask semantics above); there is no pause state that suspends billing/execution and later resumes the same task. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html",
+      "quote": "When you run your tasks and services with Fargate, you package your application in containers, specify the CPU and memory requirements, define networking and IAM policies, and launch the application.",
+      "note": "Fargate/ECS launches new tasks from a task definition (+ optional EBS snapshot for data), but there is no API that clones an existing machine/task (running or stopped) into a new one preserving its live state; outside what this container-orchestration product offers. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html",
+      "quote": "Each Fargate task has its own isolation boundary and does not share the underlying kernel, CPU resources, memory resources, or elastic network interface with another task.",
+      "note": "No capability to clone a running task's live state into a new task; not offered.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_StopTask.html",
+      "quote": "Stops a running task. ... the equivalent of docker stop is issued to the containers running in the task.",
+      "note": "No memory/process-state checkpoint mechanism is exposed to customers (StopTask just does docker stop/SIGKILL); no clone-with-memory feature exists. Not offered.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-security-considerations.html",
+      "quote": "No privileged containers or access - Features such as privileged containers or access are currently unavailable on Fargate. This will affect uses cases such as running Docker in Docker.",
+      "note": "AWS explicitly documents that Docker-in-Docker is unavailable on Fargate because privileged mode is disabled.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-security-considerations.html",
+      "quote": "Limited access to Linux capabilities - The environment in which containers run on Fargate is locked down. Additional Linux capabilities, such as CAP_SYS_ADMIN and CAP_NET_ADMIN, are restricted to prevent a privilege escalation.",
+      "note": "No /dev/kvm or CAP_SYS_ADMIN access; nested virtualization (VMs/emulators requiring KVM) inside a Fargate task is not possible.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-security-considerations.html",
+      "quote": "No access to the underlying host - Neither customers nor AWS operators can connect to a host running customer workloads. You can use ECS exec to run commands in or get a shell to a container running on Fargate.",
+      "note": "No SSH daemon/access to the task's host or container; only ECS Exec (an SSM-based exec-into-container channel), which is not SSH.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html",
+      "quote": "AWS Fargate is a technology that you can use with Amazon ECS to run containers without having to manage servers or clusters of Amazon EC2 instances.",
+      "note": "not offered: outside the product's scope — Fargate runs headless application/server containers, no VNC/RDP desktop is offered.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html",
+      "quote": "AWS Fargate is a technology that you can use with Amazon ECS to run containers without having to manage servers or clusters of Amazon EC2 instances.",
+      "note": "not offered: outside the product's scope — generic container runtime, no managed/bundled browser.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html",
+      "quote": "AWS Fargate is a technology that you can use with Amazon ECS to run containers without having to manage servers or clusters of Amazon EC2 instances.",
+      "note": "not offered: outside the product's scope — no screenshot/click desktop-driving API exists for a headless container service.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/scheduling_tasks.html",
+      "quote": "A standalone task is suitable for processes such as batch jobs that perform work and then stop. For example, you can have a process call RunTask when work comes into a queue.",
+      "note": "Tasks must be explicitly (re)launched via RunTask/service scheduler/EventBridge; there is no built-in mechanism where a stopped task automatically wakes when a request arrives (that pattern requires you to build it yourself, e.g. with API Gateway + Lambda triggering RunTask). Not a first-party feature.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/scheduling_tasks.html",
+      "quote": "Amazon ECS provides a service scheduler for long-running tasks and applications. It also provides the ability to run standalone tasks or scheduled tasks for batch jobs or single run tasks.",
+      "note": "ECS/Fargate tasks run until explicitly stopped or until Application Auto Scaling is separately configured by the customer; there is no built-in idle-detection auto-stop for a task.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html",
+      "quote": "When you run your tasks and services with Fargate, you package your application in containers, specify the CPU and memory requirements, define networking and IAM policies, and launch the application.",
+      "note": "not offered: outside the product's scope — you bring your own container image; AWS does not ship Claude Code/Codex/OpenCode templates for Fargate.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://aws.amazon.com/fargate/faqs/",
+      "quote": "Use Amazon EC2 for GPU workloads, which are not supported on AWS Fargate today.",
+      "note": "AWS explicitly states GPU workloads require EC2 (with GPU instance types), not Fargate.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html",
+      "quote": "Fargate offers platform versions for Amazon Linux 2 (platform version 1.3.0), Bottlerocket operating system (platform version 1.4.0), and Microsoft Windows 2019 Server Full and Core editions.",
+      "note": "not offered: outside the product's scope — Fargate only runs Linux or Windows containers; no macOS platform exists.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html",
+      "quote": "AWS Fargate is a technology that you can use with Amazon ECS to run containers without having to manage servers or clusters of Amazon EC2 instances.",
+      "note": "Fargate is a fully managed AWS service that only runs inside AWS's own infrastructure; there is no distributable software to run on your own infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html",
+      "quote": "AWS Fargate is a technology that you can use with Amazon ECS to run containers without having to manage servers or clusters of Amazon EC2 instances.",
+      "note": "Fargate always runs within AWS's own account/infrastructure (billed and hosted by AWS); it is not deployed into a customer's own cloud account of another provider, nor is there a BYOC deployment mode within AWS itself.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html",
+      "quote": "AWS Fargate is a technology that you can use with Amazon ECS to run containers without having to manage servers or clusters of Amazon EC2 instances.",
+      "note": "Fargate is a proprietary managed AWS service (not published under an OSI license); the underlying Firecracker microVM technology is open source but the Fargate service/product itself is not.",
+      "checked": "2026-09-30"
     }
   }
 }

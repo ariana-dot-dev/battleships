@@ -238,28 +238,28 @@
     "gpu_types": [],
     "snapshot": "fs",
     "pause_resume": true,
-    "fork": false,
+    "fork": true,
     "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
     "browser": true,
     "desktop": true,
     "computer_use": false,
     "code_interpreter": false,
-    "agent_harnesses": false,
-    "ssh": null,
+    "agent_harnesses": true,
+    "ssh": true,
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": false,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
@@ -271,24 +271,24 @@
       "other"
     ],
     "soc2": true,
-    "hipaa": null,
+    "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": true,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
-    "fork_running": false,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -299,7 +299,15 @@
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "container",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "guest_firewall": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -364,10 +372,10 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No credential-injecting proxy documented. Secrets reach sessions as env vars (Docker Run Config / exec_command_kasm environment) or mounted storage; Egress Credentials are VPN credentials; S3 persistent profiles use presigned URLs so the container never holds the S3 key (profile sync only).",
-      "checked": "2026-09-29"
+      "source": "https://kasm.com/docs/latest/developers/developer_api.html",
+      "quote": "environment* dict: Optional environmental variables to inject into the created container.",
+      "note": "Secrets reach sessions only as plain environment variables (request_kasm 'environment') or files/mounted storage; no first-party HTTP proxy that injects credentials on the wire for outbound API calls was found in the developer API, egress/VPN, or storage-mapping docs. Matches the card's own prior feature_evidence entry for secret_proxy.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": true,
@@ -382,6 +390,191 @@
       "quote": "This effectively will act as a file share.",
       "note": "A host directory (NFS/SMB/etc. in multi-server deployments) mapped into all concurrent sessions of the workspace, mode rw or ro per mapping; {username}/{user_id}/{image_id} tokens give per-user paths.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://kasm.com/docs/latest/guide/sessions.html",
+      "quote": "This action is valid for container-based sessions only.",
+      "note": "Kasm Workspaces sessions are Docker containers (KasmVNC-streamed); Windows sessions are separate RDP-connected VMs/hosts, not the isolation unit of the product itself.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://kasm.com/community-edition",
+      "quote": "Custom Images",
+      "note": "Workspaces launch from Docker images (Kasm's own workspaces-core-images library or any custom Docker image built on top); admins add/build custom images via the Admin console, confirming the docs feature matrix and card's existing custom_image=true.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://hub.docker.com/v2/repositories/kasmweb/",
+      "quote": "ubuntu-focal-dind, ubuntu-jammy-dind, ubuntu-bionic-dind",
+      "note": "Kasm ships Docker-in-Docker (dind) workspace images for nested containers, but no documentation mentions /dev/kvm passthrough or nested hardware virtualization into a session; container-based sessions do not expose KVM by default. Marked false as 'derived' from the container isolation model.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://kasm.com/community-edition",
+      "quote": "Kasm Workspaces Community Edition (CE) is a free, full-featured version of our container streaming platform—built for individual users, non-profit organizations, non-commercial use.",
+      "note": "not offered: outside the product's scope. Kasm is a remote browser/desktop isolation and streaming platform for security/compliance use cases, not a scraping/automation stealth or anti-fingerprinting product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://kasm.com/community-edition",
+      "quote": "Kasm Workspaces Community Edition (CE) is a free, full-featured version of our container streaming platform.",
+      "note": "not offered: outside the product's scope. The only CAPTCHA usage found in docs is Kasm itself using reCAPTCHA to protect unauthenticated Casting URLs, not a service that solves CAPTCHAs for the user.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://kasm.com/cloud-vs-server",
+      "quote": "Host Kasm Workspaces on your own infrastructure in your on-premise data center or in your Cloud Service Provider VPC.",
+      "note": "Self-hosted product: default egress is whatever datacenter/cloud VPC the customer deploys on. An optional PureVPN Managed Egress add-on can route traffic through 80+ VPN gateway locations, but that is a shared VPN exit, not a distinct base egress IP type.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://kasm.com/docs/latest/FAQ.html",
+      "quote": "Kasm Workspaces supports session handling and rendering for arbitrary systems that support RDP, VNC, SSH, or KasmVNC.",
+      "note": "Kasm can stream/proxy an SSH terminal session (with tmux/screen recommended for resuming work) as a Workspace connection type, in addition to container/VNC/RDP sessions.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/developers/developer_api.html",
+      "quote": "The Kasm Workspaces Developer API can be leveraged to extend the systems functionality and/or integrate with an exiting platform. Integrators interface with the API to create and manage sessions, users and groups.",
+      "note": "The Developer API manages sessions/users/screenshots/exec-command; there is no first-party API that drives Kasm's own browser/computer-use/research task agent. A 'KasmGPT' doc page exists but is empty/unpublished with no discoverable API surface.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://hub.docker.com/v2/repositories/kasmweb/",
+      "quote": "core-ubuntu-focal, core-ubuntu-jammy, core-debian-bullseye, core-alpine-317 ...",
+      "note": "derived: Workspace images are standard Ubuntu/Debian/Alpine/Fedora bases where python3 is part of the default OS package set; no python-specific dev image is advertised but the interpreter is present out of the box on the mainstream base images and root access lets you install any version.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://hub.docker.com/v2/repositories/kasmweb/",
+      "quote": "desktop, vs-code, java-dev, core-ubuntu-jammy ...",
+      "note": "derived: no Node.js-specific runtime or dev image is listed among Kasm's published workspace images (only a java-dev coding image); Node is not part of the default Ubuntu/Debian base install, so it is not available out of the box (root access lets you add it yourself via a custom image).",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/guide/web_filtering.html",
+      "quote": "If checked, all requests will be denied unless the domain is added to the Domain Whitelist, or the category of the domain is set to allow.",
+      "note": "Web Filter Policies operate at the domain/category level (allow/deny lists) via an in-workspace Squid proxy; no HTTP method/path-level egress rule engine is documented.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/guide/sessions.html",
+      "quote": "This action is valid for container-based sessions only.",
+      "note": "derived: Kasm sessions are containers (not full VMs), and Docker containers do not get iptables/nftables-capable network namespaces (CAP_NET_ADMIN) by default; no documentation shows guest-side firewall rules being supported inside a Workspace container.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/guide/egress.html",
+      "quote": "Kasm Workspaces allows for the Kasm Administrator to define an Egress Provider, which contains a collection of Egress Gateways that can be selected upon Workspace launch to tunnel all of a Workspace's network traffic.",
+      "note": "Egress is via shared, admin-configured VPN gateways (OpenVPN/WireGuard, or the PureVPN-managed pool of 80+ locations) selected per session, not a dedicated fixed outbound IP assigned to one customer/session.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": true,
+      "source": "https://kasm.com/compliance",
+      "quote": "Kasm Workspaces provides a secure browser isolation & remote access platform designed to help healthcare organizations protect PHI & support HIPAA compliance initiatives. ... Kasm provides the platform that enables HIPAA compliance. Certification depends on how your IT and security teams implement and manage controls within your environment.",
+      "note": "Self-hosted architecture: Kasm itself does not process customer PHI (customer controls the deployment/infra), so there is no traditional BAA-with-Kasm cloud service; the vendor explicitly markets the platform as HIPAA-compliance-enabling when deployed and configured correctly by the customer.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://kasm.com/cloud-vs-server",
+      "quote": "Full control of the location, security and access to your data for regulatory compliance.",
+      "note": "Self-hosted/BYOC product: customer chooses the deployment region (on-prem or any cloud VPC, including EU regions), giving full control over data residency; matches the card's existing regions list including 'eu'.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://kasm.com/docs/latest/guide/groups.html",
+      "quote": "session_time_limit — The amount of time (in seconds) a session will automatically expire.",
+      "note": "There is no platform-enforced maximum session length; session_time_limit, keepalive_expiration and usage_limit are all optional, admin-configured group settings (unset by default except a 1h idle keepalive_expiration), so a session can run indefinitely until the admin configures a limit or stops it.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://kasm.com/docs/latest/guide/sessions.html",
+      "quote": "Administrators can create new docker images from active container-based Workspace sessions. ... A Workspace entry is automatically created and presented to the Administrator for additional configurations.",
+      "note": "'Create Image from Session' (docker commit of a session's disk state) produces a new Workspace/image that new sessions boot from - a disk-level clone/fork mechanism. Admin console only, container Workspaces only, disk state only (no memory).",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://kasm.com/docs/latest/guide/sessions.html",
+      "quote": "Administrators can create new docker images from active container-based Workspace sessions.",
+      "note": "The docs explicitly say the session being cloned is 'active' (running); the source session is not stopped to take the image. Only disk state is captured, so combined with memory_snapshot_fork=false this is a running-container-to-template fork, not a live memory-preserving clone.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/guide/sessions.html",
+      "quote": "A task will be sent to the Kasm Agent, to conduct a docker commit with the new image",
+      "note": "docker commit only captures filesystem/disk state, not the running process/memory state, so clones from a session never carry forward running processes. Consistent with the card's existing snapshot_auto note that pause 'preserving the disk, process and memory state' keeps it in RAM/swap rather than checkpointing into a portable fork.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/developers/developer_api.html",
+      "quote": "Gets a screenshot of the requested session.",
+      "note": "The public Developer API only exposes get_kasm_screenshot (image), exec_command_kasm (shell exec), stats, and session lifecycle calls; there is no endpoint to inject mouse/keyboard input (only human end-users interact live via the KasmVNC websocket in a real browser session). No screenshot+click driving API found.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/guide/sessions.html",
+      "quote": "Start - Re-start a stopped or paused session.",
+      "note": "Stopped/paused sessions require an explicit admin/API 'Start' action to resume; request_kasm (developer_api.html) always requests/creates a session rather than auto-waking an existing stopped one. No documented mechanism that wakes a stopped session automatically when a request/connection arrives.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://kasm.com/",
+      "quote": "Kasm Workspaces | The Container Streaming Platform ... delivers zero-trust remote browser isolation (RBI), desktop as a service (DaaS) and open-source intelligence (OSINT) workloads to the web browser.",
+      "note": "Kasm is a container streaming platform: sessions run as Docker containers reached only via the Kasm web/proxy tier (KasmVNC over the Kasm server's HTTPS endpoint), not given a routable public IPv4 of their own. No per-session public IPv4 feature is documented anywhere in the developer API or session docs.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://github.com/kasmtech/workspace-ai-images",
+      "quote": "dockerfile-kasm-claude-code",
+      "note": "Kasm's official workspace-ai-images repo ships ready-made Workspace images/Dockerfiles that install Claude Code, Codex CLI, Gemini CLI, and Cursor (dockerfile-kasm-claude-code, dockerfile-kasm-codex-cli, dockerfile-kasm-gemini-cli, dockerfile-kasm-cursor, dockerfile-kasm-ubuntu-agentic), each running an install_claude.sh-style script inside a Kasm base image so the coding agent is preinstalled/offered as a launchable Workspace template.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://api.github.com/orgs/kasmtech/repos",
+      "quote": "(no repository named mcp, mcp-server, or similar in the kasmtech GitHub org's ~40 public repos)",
+      "note": "Kasm ships a REST Developer API (developer_api.html) but no first-party MCP server for controlling Kasm Workspaces was found in the kasmtech GitHub org, the docs site, or Kasm's blog/product pages.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://github.com/kasmtech/workspaces-images",
+      "quote": "Kasm Workspaces | The Container Streaming Platform ... Library of open-source Workspace browser, desktop and application images. Hosted on dockerhub and github, including Ubuntu, CentOS, SUSE & Kali.",
+      "note": "Kasm's container/desktop image library (workspaces-images, workspaces-core-images) is Linux-only (Ubuntu/CentOS/SUSE/Kali base images) with Windows reachable only via RDP passthrough servers; there is no macOS guest/image offering (containers share a Linux kernel, so a macOS guest is not technically offered). Plainly outside the product's isolation model.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://kasm.com/docs/latest/guide/workspaces.html",
+      "quote": "Cores: Amount of CPU cores allocated per Workspace. Memory: Amount of Memory allocated per Workspace, in megabytes.",
+      "note": "CPU/RAM ('Cores'/'Memory') are configured on the Workspace (image/template) definition and applied when a session container is created; no documented API/UI action changes CPU or RAM of an already-running session container without creating a new session.",
+      "checked": "2026-09-30"
     }
   }
 }

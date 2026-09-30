@@ -753,8 +753,8 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
-    "root": false,
+    "nested_virt": false,
+    "root": true,
     "systemd": false,
     "browser": false,
     "desktop": false,
@@ -767,7 +767,7 @@
     "custom_domain": false,
     "raw_tcp_inbound": true,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": true,
     "private_network": null,
     "self_host": true,
     "byoc": true,
@@ -781,21 +781,21 @@
     "hipaa": true,
     "sso": false,
     "lang_python": true,
-    "lang_node": null,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": true,
     "scheduled_wakeups": true,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -809,7 +809,12 @@
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "guest_firewall": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -950,6 +955,168 @@
       "quote": "If several containers need to read and write the same files at the same time, use a [Volume](/v2/data/volume) instead. Volumes are shared, distributed storage.",
       "note": "Volumes are read-write shared across containers/sandboxes (writes visible to others within ~60 s); CloudBuckets also shared. DurableDisks: one writer at a time, any number of read-only mounts.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/security/security.md",
+      "quote": "Each workload runs in its own container as a non-root user, isolated from other customers' workloads.",
+      "note": "Sandboxes run as gVisor-isolated, non-root containers (card isolation: gvisor). No /dev/kvm or nested-virtualization capability is documented anywhere in the SDK/docs; a gVisor container sandbox does not expose hardware virtualization to the guest. not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/sandbox/overview.md",
+      "quote": "Sandboxes are ultra-fast, Python-native environments for running any workload - with GPUs, networking, and persistent storage - in seconds.",
+      "note": "Beam is a serverless compute/sandbox platform for running code, GPUs and containers; it has no browser (browser=false) or managed-browser product, so stealth/fingerprinting-evasion against bot detection is not offered. not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/sandbox/overview.md",
+      "quote": "Sandboxes are ultra-fast, Python-native environments for running any workload - with GPUs, networking, and persistent storage - in seconds.",
+      "note": "No browser/computer-use product exists on Beam (browser=false, desktop=false); built-in CAPTCHA solving is not part of a general-purpose compute/sandbox platform. not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://docs.beam.cloud/v2/pod/networking.md",
+      "quote": "Pods are served in a static IP range, making it possible to whitelist the Beam IP range from the client.",
+      "note": "Outbound traffic comes from AWS/GCP datacenter ranges (security page: infrastructure on AWS/GCP). Documented explicitly as a fixed/static IP range for Pods (contact Beam for the range); Sandbox docs don't repeat this, but sandboxes share the same network egress path, so a fixed datacenter range is the best-supported answer rather than plain rotating datacenter IPs.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://docs.beam.cloud/v2/sandbox/snapshots.md",
+      "quote": "You can also create a memory snapshot of a running Sandbox, which will capture the state of the sandbox's memory - including all running processes and exposed ports.",
+      "note": "The docs example calls sandbox.snapshot_memory() on a sandbox that is still running (a server process is executing and a port is exposed) and only calls terminate() afterward; the snapshot is not preceded by stopping the sandbox. The resulting snapshot can be used via create_from_memory_snapshot() to clone a new sandbox with processes/state intact, i.e. forking a running machine without stopping it.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/sandbox/configuration.md",
+      "quote": "Manual termination only\nsandbox = Sandbox(keep_warm_seconds=-1)",
+      "note": "For the Sandbox product (this card's primary mode), a sandbox that hits its keep_warm_seconds TTL (or is terminate()d) is gone; there is no documented mechanism for an external request to automatically wake/recreate a terminated sandbox with its prior state (memory snapshots must be explicitly restored via create_from_memory_snapshot()). This matches the card's own mode-level features (auto_stop_idle sandbox modes: wake_on_request=false). Beam's separate serverless containers (Endpoints/pods, an alt/paas mode) do scale from zero on an incoming request (wake_on_request=true there), but that is a different product surface than the Sandbox.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/reference/py-sdk.md",
+      "quote": "SandboxInstance.update_ttl()",
+      "note": "The SandboxInstance API only exposes expose_port(), list_urls(), update_network_permissions(), update_ttl(), terminate(), create_image_from_filesystem(), snapshot_memory() -- no update_cpu/update_memory/resize method. The configuration docs tell users to create a new, bigger sandbox instead of resizing ('If you need more power, create a new sandbox'), confirming CPU/RAM cannot be changed on a running sandbox.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/agents/introduction.md",
+      "quote": "Beam is launching a new type of agent framework that is stateful and has concurrency built-in.",
+      "note": "Beam's 'agents' feature is a petri-net orchestration framework (Bot/BotLocation/BotContext) for building YOUR OWN agents on top of Beam compute -- it is not a first-party API that drives a Beam-owned browser/computer-use/research agent. Beam has no browser or desktop product. not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.beam.cloud/v2/sandbox/overview.md",
+      "quote": "Running a Node.js server\nYou can run arbitrary code on Beam. It doesn't need to be Python!\n... sb = Sandbox(image=Image().from_registry(\"node:20\")).create()",
+      "note": "Node.js is a documented first-class quickstart runtime for Sandboxes (via image), and Beam additionally ships a first-party TypeScript SDK (@beamcloud/beam-js) to drive Sandboxes/Pods/etc. from Node.js code.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/security/security.md",
+      "quote": "Each workload runs in its own container as a non-root user, isolated from other customers' workloads.",
+      "note": "derived: this is a gVisor container sandbox, not a full VM/microVM, and root=false (non-root user), so nftables/iptables inside the guest are not expected to work reliably; outbound network policy is instead enforced provider-side via allow_list/block_network (egress_allowlist).",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://docs.beam.cloud/v2/pod/networking.md",
+      "quote": "Pods are served in a static IP range, making it possible to whitelist the Beam IP range from the client.",
+      "note": "Documented for Pods only ('For the static IP range, send us a message in Slack'): a fixed/static range rather than a dedicated single IP per machine, and Sandbox docs do not repeat this claim explicitly, but it indicates Beam's egress infrastructure uses a stable, whitelistable IP range rather than fully arbitrary rotating IPs.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://docs.beam.cloud/v2/security/security.md",
+      "quote": "Customer workloads run in the United States unless you choose a specific region or compute pool where the platform offers one.",
+      "note": "Confirms customers can opt into a specific region (the card's regions include 'eu') for workload placement, i.e. EU data residency is available on request, consistent with the card's note that EU/Asia placement is available by contacting Beam.",
+      "checked": "2026-09-30"
+    },
+    "root": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.beam.cloud/v2/reference/cli.md",
+      "quote": "$ beam shell app.py:handler ... Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 6.8.0-51-generic x86_64) root@runc:/mnt/code#",
+      "note": "Beam's own CLI reference shows `beam shell` dropping you into a root@ prompt inside the container. This contradicts the security page's marketing line ('runs in its own container as a non-root user') and the card's root:false; the CLI transcript is the concrete, user-facing behavior, so root should be true.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/reference/py-sdk.md",
+      "quote": "SandboxInstance.terminate() Terminate the container associated with this sandbox instance.",
+      "note": "The SDK exposes only create()/terminate() (plus a keep_warm_seconds TTL and update_ttl()); there is no stop/pause/suspend call that freezes a running sandbox and later resumes it at reduced/no cost. The configuration docs' phrase 'pause and resume work' is just marketing for setting keep_warm_seconds=-1 (manual termination), not a real pause API - confirms no.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/getting-started/introduction.md",
+      "quote": "Beam lets you run functions, REST APIs, task queues, and sandboxes on CPUs and GPUs, end to end.",
+      "note": "Not offered: outside the product's scope. Beam is a code-execution/serverless-compute sandbox (process exec, filesystem, ports, GPUs); no VNC/RDP/graphical desktop is mentioned anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/getting-started/introduction.md",
+      "quote": "Beam lets you run functions, REST APIs, task queues, and sandboxes on CPUs and GPUs, end to end.",
+      "note": "Not offered: outside the product's scope. No managed/real browser is bundled or offered; the docs' web-scraping example just installs whatever scraping library the user chooses inside a plain Linux container.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/getting-started/introduction.md",
+      "quote": "Beam lets you run functions, REST APIs, task queues, and sandboxes on CPUs and GPUs, end to end.",
+      "note": "Not offered: outside the product's scope. No screenshot+click desktop-driving API exists; Beam's 'agents' page is a petri-net task-orchestration framework, not a computer-use API.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/sandbox/networking.md",
+      "quote": "url = sb.expose_port(8000) ... The URL will be something like: https://384ced3c-f837-4429-bada-39e0b965c9f4-8000.app.beam.cloud",
+      "note": "Sandboxes are reached only via SSL-terminated *.app.beam.cloud hostnames, not an assigned public IPv4 address. (Pods separately sit behind a shared static outbound IP range on request, but that's egress, not a per-machine public IPv4 - docs.beam.cloud/v2/pod/networking.md: 'Pods are served in a static IP range'.) Confirms no.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/getting-started/add-to-cursor-claude.md",
+      "quote": "Claude Code",
+      "note": "The only Claude/Cursor integration is adding Beam's own documentation as an MCP tool inside a local Claude Code/Cursor session on the user's machine - not a preinstalled coding-agent template running inside a Beam sandbox. No page offers Claude Code/Codex/OpenCode as a sandbox template.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/getting-started/installation.md",
+      "quote": "You can install Beam on Windows using Windows Subsystem for Linux (WSL).",
+      "note": "The only 'Windows' mention is running the local Beam CLI on a developer's Windows machine via WSL; the remote sandbox/container itself is Linux only (Ubuntu 22.04, per the CLI shell transcript). Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/getting-started/introduction.md",
+      "quote": "Beam lets you run functions, REST APIs, task queues, and sandboxes on CPUs and GPUs, end to end.",
+      "note": "Not offered: outside the product's scope. Beam runs customer workloads on AWS/GCP Linux infrastructure (docs.beam.cloud/v2/security/security.md: 'Beam runs on infrastructure provided by Amazon Web Services and Google Cloud'); no macOS machine type exists.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/environment/custom-images.md",
+      "quote": "base_image=\"docker.io/pytorch/pytorch:2.2.1-cuda12.1-cudnn8-devel\"",
+      "note": "No architecture flag or ARM/aarch64/Graviton option appears anywhere in the docs (custom-images, custom-registries, resources, py-sdk); base images and GPU examples are all standard x86_64 (CUDA) images, and the CLI shell transcript shows 'x86_64'. Treated as not offered.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.beam.cloud/v2/security/security.md",
+      "quote": "All members of a workspace currently have the same permissions, and single sign-on is not yet available; remove members and rotate tokens when someone leaves your team.",
+      "note": "Explicit first-party statement that SSO is not yet available. Confirms no.",
+      "checked": "2026-09-30"
     }
   }
 }

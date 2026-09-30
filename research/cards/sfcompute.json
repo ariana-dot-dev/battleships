@@ -475,8 +475,8 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": false,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
     "browser": false,
@@ -486,15 +486,15 @@
     "agent_harnesses": false,
     "ssh": false,
     "public_ipv4": false,
-    "inbound_https": null,
+    "inbound_https": true,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": true,
     "self_host": false,
     "byoc": false,
-    "open_source": null,
+    "open_source": false,
     "regions": [
       "us",
       "eu"
@@ -502,22 +502,22 @@
     "soc2": true,
     "hipaa": null,
     "sso": null,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "wake_on_request": true,
+    "live_resize": false,
+    "fork_running": true,
+    "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": true,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": true,
@@ -530,7 +530,13 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "firecracker",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -725,6 +731,216 @@
       "quote": "hf_cache is a per-MACHINE shared cache at HF_HUB_CACHE (best-effort, LRU-evicted)",
       "note": "No shared filesystem between machines: files move between nodes via export_data/import_data or copy_file; 'there is no node-to-node path by default'. The only shared mount is the platform-managed Hugging Face cache per host for jobs.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "firecracker",
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "Boots a small isolated microVM from a curated image (\"sbx-base\"...)",
+      "note": "Autoresearch (the sandbox/node product this card centers on) explicitly calls its per-sample compute an isolated 'microVM' ('its own forked microVMs'), the industry term almost exclusively associated with Firecracker-class microVM hypervisors; the underlying hypervisor is never named explicitly, so this is inferred rather than confirmed. The separate SF Compute market product uses full bare-metal/VM instances instead (qemu-kvm-class), per sfcompute.com/specs: 'Bare metal and managed Slurm for the lowest-level access, and VMs for flexibility.'",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "from_image takes a container image of YOUR own instead of a curated name - an RL task image, a framework's official image, a SWE-bench instance - so an environment that already exists as a Docker image is imported rather than re-expressed as a warm script. Digest-pinned (\"ghcr.io/acme/task@sha256:<64 hex>\")",
+      "note": "Applies to sandboxes (from_image) and nodes (image takes 'YOUR OWN container image as a registry ref'). linux/amd64 only.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "A node is a container on an H100 with a persistent, encrypted disk... Commands run as the dev user with passwordless sudo",
+      "note": "not offered: nodes are themselves containers (shared kernel) and sandboxes are microVMs where commands run as root through your own shell; nowhere does the 3000+ line API/CLI reference mention a Docker/container runtime, privileged mode, or dockerd available inside a node or sandbox. Derived from the absence of any such capability in an otherwise exhaustive doc.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "A node is a container on an H100... Boots a small isolated microVM from a curated image",
+      "note": "not offered: nodes are containers and sandboxes are microVMs; no /dev/kvm, nested virtualization, or emulator capability is mentioned anywhere in the API/CLI docs. Derived from absence of any such capability.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "On-demand GPU nodes and asynchronous GPU jobs for AI agents... Use Autoresearch when a task needs a real GPU machine and there is no cluster to put it on.",
+      "note": "not offered: outside the product's scope. SF Compute/Autoresearch is a GPU-compute and RL-sandbox platform, not a browser-automation or scraping product; no stealth/fingerprinting feature exists.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "On-demand GPU nodes and asynchronous GPU jobs for AI agents... Use Autoresearch when a task needs a real GPU machine and there is no cluster to put it on.",
+      "note": "not offered: outside the product's scope. There is no browser or CAPTCHA-solving capability in this GPU-cloud/sandbox API.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.sfcompute.com/preview/networking/ip-addresses",
+      "quote": "SF Compute assigns the public IP automatically and releases it when you delete the instance. No two instances share an IP.",
+      "note": "Market VM instances get a dedicated (non-shared) but ephemeral datacenter IPv4, assigned at create and released on delete - not a fixed/reserved address you keep. Autoresearch sandboxes/nodes reach the internet outbound from shared host NAT (no per-machine public IP for outbound); no residential/mobile IP option exists anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "fork_sandbox(from, count?): clone 1..=256 running sandboxes from a snapshot, each resuming its exact state. Forks are FREE (copy-on-write)",
+      "note": "Applies to the Autoresearch sandbox product; the sandbox that is forked continues running unaffected while forks are created (snapshot_sandbox captures a RUNNING sandbox 'without stopping it'). Node and market-VM modes already carry fork_running:false in the card (no fork capability there).",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "snapshots the fully initialized machine - memory, processes, page cache, disk. Returns a snapshot id to fork forever... fork_sandbox(from, count?): clone 1..=256 running sandboxes from a snapshot, each resuming its exact state.",
+      "note": "Sandbox snapshots/forks include memory and running processes, resuming exact state - a true memory-snapshot fork. Node/market-VM modes are disk-only snapshots (already false in the card for those modes).",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "stop_node parks the disk with files intact and the next run_command wakes it.",
+      "note": "Also true for sandboxes: 'an inbound request wakes a parked sandbox, so traffic puts it back on the active RAM tier' (expose_sandbox_port section) - both a wake-on-command (node) and wake-on-inbound-HTTP-request (sandbox) path exist.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "The size is fixed AT THE BAKE and every fork inherits it, so bake the shape you mean to fork.",
+      "note": "Sandbox vCPU/RAM shape is fixed at bake time; nodes have a fixed chip/cgroup budget for their lifetime (create_node's resources), with no documented live-resize API for a running node or sandbox.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "Boots a small isolated microVM from a curated image (\"sbx-base\", the default: python3, node 24, git, curl, a compiler; ... \"sbx-task\": python3 + numpy)",
+      "note": "Python3 ships in the default sandbox image and node images ('image_nvcc', torch-enabled catalog images); PYTHON_CPU_COUNT/os.cpu_count() env handling throughout the docs also assumes Python is the primary language.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "Boots a small isolated microVM from a curated image (\"sbx-base\", the default: python3, node 24, git, curl, a compiler...)",
+      "note": "Node 24 ships in the default sandbox image (sbx-base); npm/bun package installs and an npm pull-through cache are documented for sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": true,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "expose_sandbox_port(sandbox, port, auth?)... a PUBLIC HTTPS URL for a server running inside a sandbox - the preview link for a dev server... auth: \"bearer\" for a token on top",
+      "note": "Sandboxes and nodes both support expose_port giving an unguessable HTTPS URL (optionally bearer-token protected) to reach a listening port; streaming/SSE/WebSocket pass through.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.sfcompute.com/preview/networking/ip-addresses",
+      "quote": "SF Compute assigns the public IP automatically and releases it when you delete the instance.",
+      "note": "not offered: public IPv4 (market VMs only) is allocated per instance and released on delete, not a reserved/static address you keep across instances; Autoresearch sandboxes/nodes have no public IP at all for outbound and no static-egress-IP feature is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://sfcompute.com/",
+      "quote": "GPU clusters you can sublease",
+      "note": "not offered: outside the product's scope. SF Compute/Autoresearch is a closed, proprietary commercial cloud platform (CLI/API + web console); no OSI-licensed core product, and no GitHub org shipping the platform itself was found.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://docs.sfcompute.com/llms-full.txt",
+      "quote": "sf infiniband-partitions create --name training --fabric europe-north1-a.fab1",
+      "note": "SF Compute market VMs/reserved capacity are offered in an EU region (europe-north1 / 'EU North'), matching the card's regions:[\"us\",\"eu\"] for the reserved/spot modes; a snapshot's region also identifies the datacenter it is stored in, so EU-region workloads can keep storage in-region too.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "stop_node parks the disk with files intact and the next run_command wakes it... A node that stays stopped with no activity for 60 days is deleted with its disk",
+      "note": "No maximum runtime is imposed on a running node, sandbox, or market VM - a session runs until stopped/deleted by the customer or a health/idle event, not a platform-enforced session ceiling. (Idle nodes auto-stop after a short grace window, and stopped-and-abandoned disks are deleted after 60 days, but neither caps how long an ACTIVE session may run.)",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/docs",
+      "quote": "No inbound by default. Nodes have no public address and no open ports. There is no SSH. The one way in is an exposed port: HTTPS at our edge, per port, with the URL or a bearer token as the credential.",
+      "note": "Confirmed for the Autoresearch nodes/sandboxes (the card's flagship 'stock' mode, h100-node): exec is run_command over the API only, no SSH. The separate SF Compute GPU-market VMs (reserved/spot modes) DO offer SSH (docs.sfcompute.com: 'sf instances ssh <instance-name>') and already carry ssh:true on those two modes; the top-level features.ssh models the primary Autoresearch product, so false stands.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "You want an interactive shell to sit in. Exec runs through run_command over the API and logs are the interface; if the work cannot be expressed as commands, this is the wrong platform.",
+      "note": "not offered: outside the product's scope. Autoresearch nodes/sandboxes and the SF Compute GPU-market VMs are headless API/CLI compute for training, RL sandboxes and batch jobs; no VNC/RDP/streamed desktop is documented anywhere on autoresearch.sfcompute.com, sfcompute.com or docs.sfcompute.com.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://sfcompute.com/",
+      "quote": "We build data centers, the GPU clusters inside them, & the cloud on top. Get VMs, Bare Metal, & managed Slurm from the only cloud designed to let you sublease your reserved capacity when plans change.",
+      "note": "not offered: outside the product's scope. The product is bare GPU VMs/bare-metal/nodes and coding-agent sandboxes for training/inference workloads; no managed/preinstalled browser is documented. The only 'browser' mentions in the docs are the human's own browser used for OAuth sign-in, not a machine feature.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "How to call it: an agent connects over MCP (below) and uses the tools; a script or CLI uses the HTTP API with a bearer token.",
+      "note": "not offered: outside the product's scope. Interaction is exclusively via MCP tools / HTTP API (run_command, create_node, create_sandbox_env, etc.); no screenshot+click driving API exists for any mode (sandbox, node, or market VM).",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/docs",
+      "quote": "Every node has one persistent volume, and its size is the node_volume_gib limit for your org (250 GiB by default). ... There is no per-node volume size to ask for",
+      "note": "Autoresearch nodes get exactly one fixed persistent volume per node (default 250 GiB, raisable org-wide, not per-node extra volumes). Market VMs have no persistent storage at all ('Instances have no persistent storage' - docs.sfcompute.com/preview/instances). No extra attachable/shared volume product exists anywhere; matches card's own volume_attach:false / volume_shared:false evidence.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/docs",
+      "quote": "No inbound by default. Nodes have no public address and no open ports. There is no SSH. The one way in is an exposed port: HTTPS at our edge, per port, with the URL or a bearer token as the credential.",
+      "note": "Confirmed for the Autoresearch nodes/sandboxes (flagship 'stock' mode): no public IP, access only via per-port HTTPS edge URL. The separate GPU-market VMs (reserved/spot modes) DO support an optional public IPv4 ('Public IPv4 is available only on SKUs that support it, and only when enabled at create time' - docs.sfcompute.com/llms-full.txt) and already carry public_ipv4:true on those two modes plus network.ipv4_available:true card-wide; top-level features.public_ipv4 models the primary Autoresearch product, so false stands for it.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/docs",
+      "quote": "Claude Code, Codex, Cursor, opencode, Amp, oh my pi, and Zed are supported. If the install cannot write a config file safely, it prints the block for you to paste.",
+      "note": "Claude Code/Codex/opencode/etc. are supported as MCP CLIENTS on the user's own machine that call INTO the Autoresearch platform (`autor mcp install` wires local agents to the platform's MCP server); no coding-agent harness is preinstalled inside a sandbox/node/VM itself, so agent_harnesses (baked-in inside the machine) is false.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "On-demand GPU nodes and asynchronous GPU jobs for AI agents ... A node is a container on an H100 with a persistent, encrypted disk",
+      "note": "not offered: outside the product's scope. Nodes are Linux containers on Linux hosts; market VMs boot from custom Linux images (docs.sfcompute.com). No Windows image/OS is documented anywhere on the card's sources.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://sfcompute.com/",
+      "quote": "We build data centers, the GPU clusters inside them, & the cloud on top. Get VMs, Bare Metal, & managed Slurm",
+      "note": "not offered: outside the product's scope. SF Compute is an NVIDIA GPU (H100/H200/B200/B300) cluster/cloud on Linux hosts; no Apple hardware or macOS VM/host is mentioned anywhere in the docs, specs or pricing pages.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "chip \"cpu-8\" (8 reserved physical cores on one NUMA node, 32 GiB RAM) for parallel CPU work",
+      "note": "not offered: outside the product's scope. All published node/instance images and GPU boxes (H100/H200/B200/B300 x86 hosts) are described only in x86/CUDA terms (e.g. image names like 'vllm-0.26-cuda12.9'); no ARM/aarch64 chip, image or SKU is documented anywhere on the card's sources.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://sfcompute.com/",
+      "quote": "We build data centers, the GPU clusters inside them, & the cloud on top. Get VMs, Bare Metal, & managed Slurm from the only cloud designed to let you sublease your reserved capacity when plans change.",
+      "note": "SF Compute sells access to compute on ITS OWN data centers/clusters (VMs, bare metal, managed Slurm, Autoresearch nodes/sandboxes) - there is no offering to run the SF Compute software/platform on a customer's own infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://sfcompute.com/",
+      "quote": "We build data centers, the GPU clusters inside them, & the cloud on top. Get VMs, Bare Metal, & managed Slurm from the only cloud designed to let you sublease your reserved capacity when plans change.",
+      "note": "Even the 'Enterprise / bare metal / managed Slurm' contact-sales plan (card's own plans[] entry: 'bare metal, managed Slurm with InfiniBand, dedicated solutions engineer') is delivered on SF Compute's own clusters, not deployed into a customer's own cloud account; no BYOC offering is documented anywhere on the card's sources.",
+      "checked": "2026-09-30"
     }
   }
 }

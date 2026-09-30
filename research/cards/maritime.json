@@ -176,20 +176,20 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
-    "gpu": null,
+    "windows": false,
+    "macos": false,
+    "arm64": false,
+    "gpu": false,
     "snapshot": "mem",
     "pause_resume": true,
-    "fork": null,
+    "fork": true,
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": false,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
     "browser": true,
@@ -197,25 +197,25 @@
     "computer_use": true,
     "code_interpreter": null,
     "agent_harnesses": true,
-    "ssh": null,
-    "public_ipv4": null,
+    "ssh": false,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": null,
     "private_network": null,
-    "self_host": null,
-    "byoc": null,
-    "open_source": null,
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "self_host": false,
+    "byoc": false,
+    "open_source": false,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
     "gpu_types": [],
     "regions": null,
     "browser_control": null,
     "desktop_control": true,
-    "anti_bot": null,
+    "anti_bot": false,
     "captcha_solving": false,
     "egress_ip_type": null,
     "ip_note": "Egress IPs/proxies not documented; CAPTCHAs and logins are handed to a human via request_takeover control links (Computers require a paid plan).",
@@ -232,7 +232,17 @@
     "guest_firewall": true,
     "secret_proxy": "ai-only",
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "snapshot_on_demand": true,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
+    "live_resize": false,
+    "own_agent_api": false,
+    "lang_python": true,
+    "lang_node": true,
+    "egress_http_rules": false,
+    "eu_data_residency": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -333,6 +343,195 @@
       "quote": "Its own persistent volume, with no shared filesystem between agents",
       "note": "Deliberately no shared filesystem between agents (official Maritime blog). File transfer is via the Files API (100 MB per file).",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://maritime.sh/blog/ai-agent-security-best-practices",
+      "quote": "Its own dedicated container. On serverless hosts, its own Firecracker microVM with its own guest kernel and a minimal virtio device model",
+      "note": "derived: an agent is one container process in a Firecracker microVM; no docs describe a docker daemon or nested containers running inside that guest",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://maritime.sh/blog/ai-agent-security-best-practices",
+      "quote": "Its own dedicated container. On serverless hosts, its own Firecracker microVM with its own guest kernel and a minimal virtio device model",
+      "note": "derived: single-process container inside a microVM guest; /dev/kvm passthrough for nested VMs/emulators is not documented",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://maritime.sh/docs/computers",
+      "quote": "If you reach a login, CAPTCHA or payment step, call request_takeover with a short reason and show the user the link it returns",
+      "note": "not offered: CAPTCHAs/logins are escalated to a human via takeover links rather than solved by stealth/fingerprint evasion; no anti-bot feature documented",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://maritime.sh/docs/api",
+      "quote": "Run a one-shot, non-interactive shell command in the agent's VM (its sandboxed container). Wakes a sleeping agent.",
+      "note": "not offered: the documented ways into a running agent are chat, the exec API/CLI (one-shot commands), and file APIs; no SSH access, key, or port is documented anywhere (CLI reference, API reference)",
+      "checked": "2026-09-30"
+    },
+    "snapshot_on_demand": {
+      "value": true,
+      "source": "https://maritime.sh/docs/limits",
+      "quote": "Template capture\tUsually 1 to 10 minutes (snapshots the image and volume)",
+      "note": "Packaging a running agent into a Template snapshots its image and volume on demand (dashboard-triggered); no separate lower-level 'checkpoint now' CLI/API verb is documented",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": true,
+      "source": "https://maritime.sh/docs/how-it-works",
+      "quote": "Templates are also how you share. Package any working agent (image, config, memory) into a template others can clone: see Templates.",
+      "note": "an existing agent can be packaged as a Template and cloned into new independent agents",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://maritime.sh/docs/limits",
+      "quote": "Template capture\tUsually 1 to 10 minutes (snapshots the image and volume)",
+      "note": "derived: template capture takes 1-10 minutes and its interaction with a currently-running agent is not documented; no claim that cloning happens without pausing/affecting the source agent",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://maritime.sh/docs/how-it-works",
+      "quote": "A persistent volume, mounted at /data for most templates. This is the agent's memory: it survives restarts, redeploys, and sleep/wake.",
+      "note": "derived: Maritime's docs use 'memory' to mean the persistent /data volume, not live process/RAM state; template clones start a fresh container from that data, not a running-process fork",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://maritime.sh/docs/configuration",
+      "quote": "Agents that need more can be sized up to 8 GB RAM and 100 GB SSD at creation or later from the agent's settings, at flat monthly add-on prices",
+      "note": "no CLI/API 'resize' verb is documented and env/config changes explicitly note they 'apply on the agent's next boot unless you push them into the running container with --reload'; resource resizing is not shown to apply without a restart",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://maritime.sh/docs/computers",
+      "quote": "A persistent Linux desktop (XFCE, Chromium, LibreOffice) for each of your end users, driven by your model.",
+      "note": "not offered: outside the product's scope. Maritime hosts YOUR agent/model driving the desktop or chat; it does not offer its own first-party browser/computer-use/research agent that customers call as a black box",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://maritime.sh/docs/frameworks",
+      "quote": "Hermes\thermes\tPython\tA self-improving agent with persistent memory and its own full dashboard",
+      "note": "Hermes template runtime is Python; custom Docker images can also ship any Python runtime",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://maritime.sh/docs/frameworks",
+      "quote": "Claude Code\tclaude_code\tNode.js (Claude Agent SDK)\t... Codex\tcodex\tNode.js (Codex CLI) ... OpenClaw\topenclaw\tNode.js",
+      "note": "Claude Code, Codex, OpenClaw and DeepSeek Harness templates all run on Node.js; the CLI itself requires Node.js 20.12+",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://maritime.sh/docs/web-apps",
+      "quote": "Any repo with a Dockerfile can be served on a public, no-login HTTPS URL.",
+      "note": "not offered: machines are reached through HTTPS invoke/public URLs and a chat/webhook API, not a per-machine public IPv4 address; no IPv4 allocation is documented",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://maritime.sh/docs/how-it-works",
+      "quote": "No key: the Maritime LLM proxy. ... Your own key: direct. Set OPENAI_API_KEY ... and the agent talks to the provider directly",
+      "note": "not offered: the only outbound control documented is an optional LLM-call proxy for model traffic; no allow/deny list, no-internet mode, or security-group-style egress control is documented",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://maritime.sh/docs/how-it-works",
+      "quote": "No key: the Maritime LLM proxy. ... Your own key: direct.",
+      "note": "not offered: no method/path-level egress rule feature is documented anywhere in the docs; only the model-call proxy is mentioned",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://maritime.sh/pricing",
+      "quote": "EVERY AGENT\tVCPU 1\tRAM 2 GB\tSSD 5 GB\tWAKE ~1s",
+      "note": "not offered: outside the product's scope. Every plan/size in the pricing and limits pages lists only vCPU/RAM/SSD; no GPU machine or GPU add-on exists",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://maritime.sh/blog/ai-agent-security-best-practices",
+      "quote": "On serverless hosts, its own Firecracker microVM with its own guest kernel",
+      "note": "not offered: outside the product's scope. Firecracker microVMs run Linux guest kernels; every template, Computer desktop (XFCE/Chromium) and doc is Linux-only",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://maritime.sh/docs/how-it-works",
+      "quote": "An agent is a long-lived program running in its own isolated VM (a sandboxed container)",
+      "note": "not offered: outside the product's scope; a Linux Firecracker-microVM hosting product, no Apple hardware/macOS VM is offered",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://maritime.sh/docs/configuration",
+      "quote": "--cpu (vCPUs), e.g. 0.5 or 2 (per-agent override)",
+      "note": "not documented: no architecture choice (x86_64 vs arm64) appears anywhere in pricing, CLI, or API docs; treated as not offered",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://maritime.sh/pricing",
+      "quote": "Host persistent agents on the cloud. Each one in its own VM.",
+      "note": "not offered: outside the product's scope. Maritime is a hosted SaaS platform; there is no self-hosted/on-prem distribution of the platform itself (only client SDK/CLI code is open on GitHub)",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://maritime.sh/pricing",
+      "quote": "Host persistent agents on the cloud. Each one in its own VM.",
+      "note": "not offered: outside the product's scope; no bring-your-own-cloud deployment option is documented, including on the Enterprise tier",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/maritime-sh",
+      "quote": "maritime-sdk: Official TypeScript + Python SDKs for Maritime — provision and drive AI agents from your own backend (MIT)",
+      "note": "the client SDK and CLI are MIT-licensed on GitHub, but the core hosting platform/runtime is closed-source; no repo for the platform itself",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://maritime.sh/pricing",
+      "quote": "Enterprise support is dedicated, with terms set in your agreement.",
+      "note": "not offered: no SOC 2 attestation, trust page, or compliance page exists anywhere on maritime.sh (checked pricing, docs, blog); Enterprise terms are only 'set in your agreement'",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://maritime.sh/pricing",
+      "quote": "Enterprise support is dedicated, with terms set in your agreement.",
+      "note": "not offered/not documented: no HIPAA or BAA mention anywhere on the site",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://maritime.sh/docs/cli",
+      "quote": "Sign in with Google or GitHub? You have no password, so use the browser flow, or paste a token from maritime.sh/cli/auth",
+      "note": "account login supports Google/GitHub OAuth for individual users, but no SAML/OIDC enterprise SSO is documented anywhere",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://maritime.sh/pricing",
+      "quote": "the network round-trip, which is tens of milliseconds in Europe and under 200 ms from most of the world",
+      "note": "not documented: no region selection appears in the CLI, API, or pricing docs (single implicit deployment), so there is no way to pin machines/data to an EU region",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://maritime.sh/docs/billing",
+      "quote": "Always-on is for agents that must react in milliseconds, around the clock; everything else sleeps when idle at no cost.",
+      "note": "no maximum runtime/session length is documented; an always-on agent (or one kept awake by continuous requests) runs indefinitely. The only caps are on how many machines may be awake at once, not how long any one machine may run",
+      "checked": "2026-09-30"
     }
   }
 }

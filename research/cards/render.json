@@ -592,14 +592,14 @@
     "gpu_types": [],
     "snapshot": "fs",
     "pause_resume": true,
-    "fork": false,
+    "fork": true,
     "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": false,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": null,
     "systemd": false,
     "browser": false,
@@ -633,11 +633,11 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": false,
-    "memory_snapshot_fork": false,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": true,
+    "memory_snapshot_fork": true,
     "webhooks": true,
     "scheduled_wakeups": true,
     "audit_logs": true,
@@ -646,7 +646,7 @@
     "scoped_api_keys": null,
     "spend_limits": false,
     "mcp_server": true,
-    "isolation": null,
+    "isolation": "container",
     "image_oci": true,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
@@ -654,7 +654,13 @@
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "guest_firewall": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -815,6 +821,205 @@
       "quote": "A persistent disk is accessible by only a single service instance, and only at runtime.",
       "note": "'You can't access a service's disk from any other service.' No shared/network FS product.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://render.com/docs/sandboxes",
+      "quote": "Render Sandboxes provides managed, ephemeral environments for executing untrusted code. Spin up a sandbox, install what you need, and run your workload.",
+      "note": "Render's docs never name a specific hypervisor/microVM technology for services or sandboxes; the product is a container PaaS (custom Docker images run as 'containerized environments', per pricing/docs language and the card's existing top-level isolation value). No firecracker/gVisor/kata mention found on official pages within the research window.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://render.com/docs/compute-plans",
+      "quote": "Your Render service's compute plan determines the CPU and RAM specs for its instances.",
+      "note": "not offered: outside the product's scope. Render runs services/sandboxes as containers on a shared-kernel PaaS; no docs page mentions /dev/kvm or nested virtualization support, and container-based isolation typically has no exposed KVM device.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://render.com/pricing",
+      "quote": "Render is a unified cloud to build and run all your apps and websites.",
+      "note": "not offered: outside the product's scope. Render is a general-purpose app-hosting PaaS (web services, workers, cron, workflows, sandboxes for untrusted code execution); it has no browser/stealth/fingerprinting product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://render.com/pricing",
+      "quote": "Render is a unified cloud to build and run all your apps and websites.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature on any Render docs/pricing page; not a browser-automation or scraping product.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://render.com/docs/dedicated-ips",
+      "quote": "For an additional monthly fee, you can create sets of dedicated outbound IP addresses for your Render workspace. These IP addresses are exclusive to your workspace, enabling you to more precisely allowlist your services with external providers.",
+      "note": "Datacenter IPs (Render's own cloud ranges), static/dedicated by default on Pro+ via paid IP sets; without dedicated IPs, services share a per-region datacenter CIDR range (still not residential/mobile).",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://render.com/docs/faq",
+      "quote": "You are billed for each of the following: Each paid instance of a service or datastore ... For scaled services, you are billed for each running instance.",
+      "note": "Paid services never spin down / auto-stop on idle (card feature auto_stop_idle = false), so there is no stopped/sleeping state for an inbound request to wake from; a suspended service must be manually resumed. Render's free web-service tier does spin down after 15 min idle and wakes on the next request, but that tier is out of scope for this card's paid product.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://render.com/docs/compute-plans",
+      "quote": "Render automatically triggers a deploy to apply the new compute plan. ... The following services require brief downtime when changing their compute plan ... Other services redeploy with zero downtime deploys.",
+      "note": "Changing a service's compute plan (CPU/RAM) always triggers a new deploy (a redeploy/replacement of the running instance), never an in-place resize of the same running machine; some service types (Postgres, Key Value, any service with a persistent disk) require brief downtime to change plan.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://render.com/docs/sandboxes",
+      "quote": "Enable agents to install packages, write files, and run generated code without touching your infrastructure.",
+      "note": "not offered: outside the product's scope. Render Sandboxes give a generic exec/files/snapshot API for running any (including agent-generated) code; there is no first-party browser/computer-use/research task agent that Render itself operates and exposes via API.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://render.com/docs/sandboxes-cli-reference",
+      "quote": "Outbound network policy: allow-all, deny-all. Defaults to `allow-all`.",
+      "note": "Only an all-or-nothing outbound network toggle exists for sandboxes (no-internet mode); no documented per-method/per-path HTTP egress rules anywhere in Render's docs. Regular services have no egress filtering at all (only shared/dedicated outbound IP ranges for allowlisting on the destination side).",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://render.com/docs/sandboxes",
+      "quote": "Render Sandboxes provides managed, ephemeral environments for executing untrusted code. Spin up a sandbox, install what you need, and run your workload.",
+      "note": "Isolation is container-based (shared kernel), and root/sudo access is not documented as available inside services or sandboxes, so the full-VM/root=true precondition for this derived flag does not hold.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://render.com/docs/faq",
+      "quote": "Compute and storage costs: Prorated by the second. If a service is active for ten seconds in a given month, you are billed only for those ten seconds.",
+      "note": "For the card's primary modeled product (on-demand web/private service or background worker), a paid instance runs continuously until you stop/suspend/delete it - no platform-enforced maximum session length. Other modes on this card have explicit limits (Sandboxes: 24 h default timeout; Workflow task runs: 24 h max), but those are separate alt/beta modes, not the on-demand service session cap.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://render.com/docs/sandboxes.md",
+      "quote": "You can restore the snapshot only to a new sandbox in that group... Create a new sandbox from the saved filesystem. `render ea sandboxes create --snapshot-id snp-abc123 --timeout 300`",
+      "note": "Render Sandboxes (early access) let you snapshot a sandbox's filesystem (or, with a 'runtime' snapshot, filesystem+memory+CPU state) and restore it into a brand-new sandbox in the same group - this is a clone/fork. The card's own mode block for 'sandbox-early-access' already lists fork: true; only the top-level features.fork was left false with no evidence.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://render.com/docs/sandboxes.md",
+      "quote": "Creating a snapshot does not stop the source sandbox.",
+      "note": "The source sandbox keeps running (uninterrupted) while its snapshot is captured and then restored into a new sandbox - i.e. you can clone a running sandbox without stopping it. Applies to Render Sandboxes (early access) only; regular services/workflows have no fork concept.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://render.com/docs/sandboxes.md",
+      "quote": "`runtime` | The writable filesystem, memory, and CPU state | Must restore using the snapshot's `plan` value",
+      "note": "A 'runtime' snapshot captures memory and CPU state (running processes), and restoring it resumes that state in a new sandbox - satisfies memory_snapshot_fork. Render Sandboxes (early access) only.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://render.com/docs/docker.md",
+      "quote": "Render fully supports Docker-based deploys... Render can build your service's Docker image based on the Dockerfile in your project repo.",
+      "note": "Render's 'Docker' feature is about building/deploying your service FROM a Dockerfile/image; the running service is itself a container instance (isolation: container) with no documented privileged mode, /dev/kvm, or docker socket access to run nested Docker/containers inside it. No docs mention docker-in-docker support for services, workflows, or sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://render.com/pricing",
+      "quote": "Render is a cloud application platform for deploying and scaling web applications, APIs, databases, AI workloads, workflows, and agent infrastructure.",
+      "note": "Not offered: outside the product's scope. Render's products (web/private services, background workers, cron, workflows, sandboxes) are headless server/compute products; no VNC/RDP/streamed graphical desktop is offered anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://render.com/pricing",
+      "quote": "Render is a cloud application platform for deploying and scaling web applications, APIs, databases, AI workloads, workflows, and agent infrastructure.",
+      "note": "Not offered: outside the product's scope. No managed/embedded browser product exists; Render Sandboxes provide a bare Debian-based ephemeral fs/exec environment for running arbitrary code, not a browser.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://render.com/docs/sandboxes.md",
+      "quote": "Inside the sandbox, you (and your agents) can run commands and manage files without exposing your production infrastructure to untrusted code.",
+      "note": "Not offered: outside the product's scope. Sandbox API is exec/files/snapshots only (no screenshot+click driving API); no computer-use product exists elsewhere on Render.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://render.com/docs/faq.md",
+      "quote": "Free web service instances spin down if they receive no incoming traffic for 15 consecutive minutes... Paid compute plans do _not_ spin down.",
+      "note": "Confirmed false for the modeled paid compute plans (the card's priced regimes exclude the free tier per its own caveats). Only the (unpriced, excluded) Free web service tier auto-idles; workflows scale-to-zero between discrete task runs, which is normal serverless behavior, not an idle-timeout on a persistent machine; Sandboxes terminate on a fixed timeout, not idle detection.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://render.com/docs/web-services.md",
+      "quote": "Every Render web service gets a unique `onrender.com` subdomain, and you can add your own custom domains.",
+      "note": "Services are reached via Render's shared edge/load-balancer over the onrender.com subdomain or a custom domain (TLS-terminated), not a dedicated public IPv4 address per instance. Render only sells dedicated *outbound* IP sets (docs/dedicated-ips.md), confirming no inbound public IPv4 product exists.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://render.com/agents.md",
+      "quote": "This is a procedure. Execute the steps in order... Determine which agent product you are... | Claude Code | ... | Cursor | ... | Codex CLI | ... |",
+      "note": "Render's 'agents' page and MCP server/skills are for driving Render's own platform (deploys, services) FROM an external coding agent - not preinstalled coding-agent harnesses running inside a Render sandbox/service. No template/image ships Claude Code, Codex, etc. as a runnable harness.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://render.com/docs/compute-plans.md",
+      "quote": "Compute plans vary by service type... | 0.1 CPU | 512 MB | free | | 0.5 CPU | 512 MB | 0.5c-512mb | ... | 12 CPU | 96 GB | 12c-96g |",
+      "note": "The full, exhaustive list of Render compute plans (web service, private service/background worker, cron, workflow) contains only CPU/RAM tiers; no GPU plan exists and no GPU product page exists on render.com (docs/gpu returns 404).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://render.com/docs/native-runtimes.md",
+      "quote": "All Render native runtimes run on Debian 12.x, \"bookworm\"",
+      "note": "Render only runs Linux (Debian-based) native runtimes and Docker images; no Windows machine option is offered anywhere in compute-plans, docker, or sandboxes docs.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://render.com/docs/native-runtimes.md",
+      "quote": "All Render native runtimes run on Debian 12.x, \"bookworm\"",
+      "note": "Linux-only platform; no macOS machine option is offered anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://render.com/docs/compute-plans.md",
+      "quote": "Compute plans vary by service type... | 0.5 CPU | 512 MB | 0.5c-512mb | starter | ... | 12 CPU | 96 GB | 12c-96g |",
+      "note": "Compute plans are specified purely by CPU count/RAM with no architecture choice, and Render's docs never mention ARM/Graviton/Ampere machines; treated as x86-64-only (not offered). No official page states this explicitly, so kept medium confidence.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://render.com/docs/shared-responsibility-model.md",
+      "quote": "Render is responsible for:\n- Managing the underlying servers, networks, and storage\n- Securing the infrastructure that hosts all hardware, software, networking, and facilities",
+      "note": "Render is a fully managed, Render-operated cloud platform; there is no downloadable/self-hostable version of the core platform for running on your own infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://render.com/docs/shared-responsibility-model.md",
+      "quote": "Render is responsible for:\n- Managing the underlying servers, networks, and storage\n- Securing the infrastructure that hosts all hardware, software, networking, and facilities",
+      "note": "Render deploys and runs services on infrastructure Render itself owns/operates (its own regions/datacenters); there is no offering to deploy the managed control plane into a customer's own cloud account.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/render-oss",
+      "quote": "render-oss/cli, render-oss/sdk, render-oss/render-mcp-server, render-oss/terraform-provider-render, render-oss/typesafe-sdk-go",
+      "note": "Render's public GitHub org (render-oss) only publishes auxiliary tooling (CLI, SDKs, MCP server, Terraform provider, agent plugins); the core hosting/compute platform itself is closed-source and proprietary, with no OSI-licensed 'core product' to name.",
+      "checked": "2026-09-30"
     }
   }
 }

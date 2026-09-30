@@ -396,18 +396,18 @@
     "windows": false,
     "macos": false,
     "arm64": true,
-    "gpu": false,
+    "gpu": true,
     "gpu_types": [],
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": 8,
     "custom_image": true,
-    "docker_inside": false,
-    "nested_virt": false,
+    "docker_inside": null,
+    "nested_virt": null,
     "root": true,
     "systemd": false,
     "browser": true,
@@ -421,10 +421,10 @@
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
-    "byoc": false,
+    "byoc": true,
     "open_source": false,
     "regions": [
       "us",
@@ -433,18 +433,18 @@
       "other"
     ],
     "soc2": true,
-    "hipaa": null,
+    "hipaa": true,
     "sso": true,
     "lang_python": true,
-    "lang_node": null,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": true,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": false,
@@ -454,7 +454,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": true,
     "browser_control": true,
     "desktop_control": true,
     "anti_bot": false,
@@ -471,7 +471,8 @@
     "ingress_rules": true,
     "guest_firewall": true,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -587,6 +588,196 @@
       "quote": "Data is shared – multiple sessions, multiple agents, or external applications can access the same file system simultaneously.",
       "note": "Read-write: EFS (NFSv4.1, full POSIX, 'Concurrent read-write access from multiple sessions and agents') and S3 Files (NFSv4.2, bidirectional sync with S3 bucket). VPC required. Session storage is per-session only.",
       "checked": "2026-09-29"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-sessions.html",
+      "quote": "A new session is created on the first invoke with a unique runtimeSessionId provided by your application. AgentCore Runtime provisions a dedicated execution environment (microVM) for each session.",
+      "note": "No standing machine: each InvokeAgentRuntime call with a session id transparently provisions (or resumes, if that session is still warm) the microVM, i.e. the compute wakes on request.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://aws.amazon.com/bedrock/agentcore/pricing/",
+      "quote": "Fixed 2 vCPU/8 GB, 10 GB disk.",
+      "note": "Consumption sessions (Code Interpreter, Runtime v1/v2, Browser) have a fixed size per session/mode (2 vCPU/8GB, Browser 1 vCPU/4GB); no documented API to change CPU/RAM of a running session without recreating it. Instances mode is EC2 with its own resize semantics but isn't the modeled microVM product.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/awslabs/mcp/main/src/amazon-bedrock-agentcore-mcp-server/README.md",
+      "quote": "This MCP server gives AI agents (Claude Code, Kiro, Cursor, VS Code, Codex CLI) direct access to AgentCore platform APIs. Agents can create and manage runtimes, store and retrieve memories, configure identity providers, deploy gateways, and manage policies — all through standard MCP tool calls backed by real boto3 API calls.",
+      "note": "Official awslabs 'AWS Bedrock AgentCore MCP Server' (part of the awslabs/mcp suite) includes a Runtime primitive (14 tools: deploy/manage/invoke agent runtimes and endpoints) and Code Interpreter/Browser primitives, i.e. it controls AgentCore's sandboxes via MCP, not just documentation search.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-getting-started.html",
+      "quote": "Get started with the AgentCore CLI in TypeScript",
+      "note": "First-party TypeScript/Node.js getting-started tutorial and CLI tooling for AgentCore Runtime, alongside the Python path.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-vpc.html",
+      "quote": "Security groups act as virtual firewalls for your Amazon Bedrock AgentCore Runtime or built-in tool when connected to a VPC. They control inbound and outbound traffic at the instance level.",
+      "note": "Egress control is VPC security-group/route-table (IP/port) level only; no documented HTTP method/path-level egress rule mechanism for AgentCore Runtime, Code Interpreter or Browser.",
+      "checked": "2026-09-30"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity-getting-started.html",
+      "quote": "What you’ll learn: Set up OAuth2 credential providers, obtain access tokens, and integrate with Google services",
+      "note": "AgentCore Identity is a credential/token vault: it issues OAuth2/API-key tokens that your agent code retrieves and uses itself to call third-party APIs, rather than a first-party HTTP proxy that injects credentials so the secret never reaches the sandbox.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-vpc.html",
+      "quote": "To provide internet access from Amazon Bedrock AgentCore Runtime or built-in tools inside a VPC, configure a NAT gateway in a public subnet. Update the route table for private subnets to send outbound traffic (0.0.0.0/0) to the NAT gateway.",
+      "note": "derived: in VPC mode, outbound traffic is routed through a customer-provisioned NAT Gateway, which egresses from a single Elastic IP — a fixed outbound IP achievable via standard AWS networking, not an AgentCore-native always-on static IP. Default (non-VPC) mode uses rotating AWS IPs per the card's ip_note.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": true,
+      "source": "https://aws.amazon.com/compliance/hipaa-eligible-services-reference/",
+      "quote": "Amazon Bedrock AgentCore",
+      "note": "Listed by name on AWS's HIPAA Eligible Services reference (last updated September 3, 2026); BAA required via AWS before processing ePHI, per the page's standard shared-responsibility caveat.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-filesystem-configurations.html",
+      "quote": "Session storage (Preview) – Per-session storage on microVM runtimes that persists across stop/resume cycles. ... Capacity provider volumes – Amazon EBS volumes on Instances runtimes ... Persist across session stop/resume. ... Resume with same session – A new compute is provisioned and the file system state is restored from durable storage. The agent can continue from where it left off.",
+      "note": "Contradiction confirmed: default compute is ephemeral (microVM torn down on stop/timeout), but files survive first-party via (1) managed 'Session storage' (Preview, microVM Runtime, up to 1GB, persists across stop/resume, 14-day idle expiry) and (2) capacity-provider EBS volumes on Instances runtimes, plus bring-your-own S3 Files/EFS mounts (always persistent, independent of sessions). Default-on behaviour is still ephemeral unless one of these is configured (opt-in).",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-how-it-works.html",
+      "quote": "On V2, AgentCore Runtime manages a snapshot for each runtime version that an endpoint points to. You do not create or delete snapshots directly.",
+      "note": "No customer-facing API to snapshot a running session's disk or memory for Runtime, Code Interpreter, or Browser; the only 'snapshot' is AWS's internal per-version deploy snapshot, not user-invocable. Persisted state (session storage / EBS / EFS) is not a machine snapshot.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-filesystem-configurations.html",
+      "quote": "Resume with same session – A new compute is provisioned and the file system state is restored from durable storage.",
+      "note": "'Resume' here is stop-then-provision-new-compute-and-restore-files, not a suspended/paused machine (no in-memory pause, no reduced-billing paused state). This is the persistent-disk mechanism, not a pause/resume feature.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-how-it-works.html",
+      "quote": "On V2, AgentCore Runtime manages a snapshot for each runtime version that an endpoint points to. You do not create or delete snapshots directly.",
+      "note": "No documented API to clone a session/machine into a new one anywhere in the Runtime, Code Interpreter, Browser, or Instances docs checked; only per-session filesystem persistence and per-version internal snapshots exist.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-how-it-works.html",
+      "quote": "On V2, AgentCore Runtime manages a snapshot for each runtime version that an endpoint points to. You do not create or delete snapshots directly.",
+      "note": "Same as fork: no cloning capability documented, so cloning a running machine without stopping it is a fortiori unsupported.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-how-it-works.html",
+      "quote": "On V2, AgentCore Runtime manages a snapshot for each runtime version that an endpoint points to. You do not create or delete snapshots directly.",
+      "note": "Persistence is filesystem-only (session storage/EBS/EFS); no memory-inclusive snapshot/fork of a running process is documented anywhere checked.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Checked harness-security.html, harness-environment.html, bedrock-agentcore-limits.html, code-interpreter-tool.html for Docker-in-Docker / privileged-container support; found only references to AWS building/deploying the agent's own container image (docker/ECR), not to running a nested Docker engine inside a session. Not settled either way by official docs within the time budget.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Sessions run in Firecracker microVMs (per pricing page/product docs); no doc found stating whether /dev/kvm or nested virtualization is exposed inside a session. Not settled by official docs within the time budget.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-security.html",
+      "quote": "JWT configured Harness resources require callers to present a valid JWT issued by a configured identity provider before they can invoke the harness.",
+      "note": "Sessions are reached only through AgentCore APIs (InvokeAgentRuntime / InvokeHarness / command-shell over the control API), authenticated by IAM SigV4 or JWT; no SSH endpoint is offered or documented for any mode.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/browser-tool.html",
+      "quote": "The Amazon Bedrock AgentCore Browser provides session-based web browsing with comprehensive observability. ... Live View endpoint allows an end user to watch the browser session in real time and interact with it directly through the live stream.",
+      "note": "AgentCore's only GUI-adjacent surface is the Browser tool's live view/interact stream scoped to the browser window itself; there is no general-purpose graphical desktop (VNC/RDP/full-OS stream) offered for Runtime or Code Interpreter sessions.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-security.html",
+      "quote": "JWT configured Harness resources require callers to present a valid JWT issued by a configured identity provider before they can invoke the harness.",
+      "note": "Sessions have no exposed HTTP/HTTPS listener reachable by arbitrary inbound requests; all interaction goes through the AgentCore control-plane APIs (SigV4/JWT), optionally over PrivateLink in VPC mode.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://aws.amazon.com/bedrock/agentcore/pricing/",
+      "quote": "Amazon EBS storage for persistent volumes is billed at standard EBS rates (including while a session is stopped). Network data transfer is billed at standard EC2 rates.",
+      "note": "No public IPv4 is assigned to sessions/microVMs; the card's own network.ipv4_available is already false and no pricing/docs page mentions a per-session public IP for Runtime/Code Interpreter/Browser. (Runtime Instances run on customer-owned EC2 which could optionally get a public IP via normal EC2 networking, but that is not an AgentCore-provided public IPv4.)",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-get-started.html",
+      "quote": "The response streams to your terminal. Reuse the same --session-id across invocations to continue the conversation in the same environment.",
+      "note": "AgentCore's harness is AWS's own Strands Agents-powered harness (config-declared model/tools/skills/memory), not a preinstalled Claude Code / Codex / OpenCode template; card's own evidence notes 'Claude Agent SDK coming soon' is not yet shipped.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://aws.amazon.com/bedrock/agentcore/pricing/",
+      "quote": "GPU instances: G-series families (including Graviton-based gr6) carry a reduced management fee of 7.8%.",
+      "note": "Runtime Instances mode explicitly offers GPU EC2 instances (T4/A10G/L4/L40S per the card's own runtime-instances sizes, g6.xlarge etc.) at a reduced 7.8% management fee. Top-level features.gpu=false contradicts the card's own runtime-instances mode data; should be true.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/bedrock-agentcore-limits.html",
+      "quote": "Docker image in an AgentCore Runtime 2 GB",
+      "note": "All AgentCore compute (microVM Runtime, Code Interpreter, Browser, and Instances) runs Linux containers/EC2 Linux AMIs (x86_64/arm64 per card's own mode 'os' fields); no Windows machine option is documented anywhere in the product.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/bedrock-agentcore-limits.html",
+      "quote": "Docker image in an AgentCore Runtime 2 GB",
+      "note": "Same as windows: AgentCore is a Linux container/microVM/EC2-Linux product; no macOS compute is offered or documented.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://aws.amazon.com/bedrock/agentcore/pricing/",
+      "quote": "microVMs: serverless agent compute. With microVMs, your agents run on serverless compute with hardware-enforced isolation and predictable, fast session initialization.",
+      "note": "AgentCore is a fully managed AWS service (microVMs run on AWS-controlled infrastructure); there is no package/binary customers can run on their own infrastructure outside AWS.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://aws.amazon.com/bedrock/agentcore/pricing/",
+      "quote": "For persistent, resource-intensive, or specialized agent workloads, AgentCore Runtime also offers the Instances compute type, which runs your agents on AWS-managed Amazon EC2 instances in your own account.",
+      "note": "The Runtime 'Instances' mode is explicitly deployed onto EC2 capacity inside the customer's own AWS account (AWS-managed control plane, customer-owned compute/account) — this matches the byoc definition ('managed service deployed into your own cloud account'). Should be true (at least for the Instances mode).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-get-started.html",
+      "quote": "AgentCore harness (GA): managed, Strands Agents-powered harness declared as config",
+      "note": "AgentCore itself is a proprietary managed AWS service (no OSI license, no source repo for the service); the underlying Strands Agents SDK it uses is separately open source, but that is not 'the core product' being evaluated here.",
+      "checked": "2026-09-30"
     }
   }
 }

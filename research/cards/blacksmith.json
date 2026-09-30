@@ -444,13 +444,13 @@
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": false,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": true,
     "root": true,
     "systemd": false,
     "browser": true,
@@ -463,7 +463,7 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": true,
     "private_network": false,
     "self_host": false,
@@ -474,28 +474,28 @@
       "eu"
     ],
     "soc2": true,
-    "hipaa": null,
-    "sso": null,
-    "lang_python": null,
-    "lang_node": null,
+    "hipaa": false,
+    "sso": false,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
     "harness_api": false,
@@ -503,7 +503,13 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "firecracker",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -600,6 +606,245 @@
       "quote": "Every job always works on its own isolated clone of the sticky disk — jobs never share a live disk, and a job's writes only become visible to future runs if its clone is committed as the new snapshot when the job completes.",
       "note": "Many concurrent jobs can hydrate from the same sticky-disk snapshot (read-write private clone each), last commit wins; not a shared live filesystem. Optional branch protection limits which jobs can commit.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "firecracker",
+      "source": "https://www.blacksmith.sh/security",
+      "quote": "We run jobs in a secure, isolated Firecracker microVM on our own bare-metal hardware, protected by a private VPN.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-runners/overview",
+      "quote": "Blacksmith runners are 2x faster and costs 67% less than GitHub-hosted runners",
+      "note": "not offered: Blacksmith runners boot fixed Ubuntu/Windows/macOS runner images (drop-in GitHub Actions runners); no documented way to start a job from a customer-supplied Docker/OCI image as the machine image itself. Docker layer caching / sticky disks speed up docker builds run inside the job, which is a different thing.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": true,
+      "source": "https://docs.blacksmith.sh/blacksmith-runners/overview",
+      "quote": "Do Blacksmith runners support KVM or nested virtualization? Yes, on our x64 Linux runners. Nested virtualization makes it possible to run KVM-dependent jobs, emulator-based test environments, and other VM-backed CI tasks ... nested virtualization is only supported on x64 runners, not ARM runners.",
+      "note": "True on x64 Linux runners; explicitly not supported on ARM runners, and Windows runners cannot run Docker Linux containers due to nested-virtualization constraints (card already encodes per-mode nested_virt for windows=false, linux x64=true).",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.blacksmith.sh/pricing",
+      "quote": "Switch to Blacksmith and start saving up to 67% on your GitHub Actions",
+      "note": "not offered: outside the product's scope (drop-in GitHub Actions CI runners, not a browser/scraping product).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.blacksmith.sh/pricing",
+      "quote": "Switch to Blacksmith and start saving up to 67% on your GitHub Actions",
+      "note": "not offered: outside the product's scope (CI runner product, not a browser automation/scraping product).",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://www.blacksmith.sh/pricing",
+      "quote": "Static IPs (+$100/IP/mo.)",
+      "note": "Datacenter outbound IPs; static IP is a paid add-on ($100/IP/month) for Ubuntu/Windows runners, otherwise shared/dynamic datacenter IPs.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-testbox/overview",
+      "quote": "The default idle timeout is 30 minutes. If no `run` command is issued within that window, the testbox is automatically stopped.",
+      "note": "not offered: stopped Testboxes/runners do not auto-wake on an inbound request; a stopped testbox must be re-warmed explicitly, and CI runners are only started per triggered GitHub Actions job, not per arbitrary inbound request.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://www.blacksmith.sh/pricing",
+      "quote": "vCPU: 2 4 8 16 32 6 12",
+      "note": "not offered: vCPU/RAM size is chosen per job via a fixed runner-label size; no documented API to change CPU/RAM of an already-running runner/Testbox without recreating it.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/codesmith/build-from-anywhere",
+      "quote": "Install the [code]smith app via Slack ... Mention @codesmith on any PR in any GitHub repo that Blacksmith is connected to. ... Open the Web UI to directly message [code]smith.",
+      "note": "not offered: [code]smith is Blacksmith's own background coding agent (a task/coding harness), driven only via Slack, GitHub mentions, Linear and a Web UI, not a browser/computer-use/research agent, and has no documented public API to drive it programmatically.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/codesmith/integrations",
+      "quote": "Extend [code]smith with external MCP servers to debug production systems and add context ... You can connect either Remote or Local MCP servers.",
+      "note": "Blacksmith is an MCP *client* ([code]smith connects out to external/customer MCP servers); no first-party MCP server is shipped to control Blacksmith sandboxes/runners themselves.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.blacksmith.sh/blacksmith-runners/overview",
+      "quote": "uses: actions/setup-python@v6",
+      "note": "Standard GitHub Actions Ubuntu/Windows/macOS runner images ship Python; actions/setup-python works on Blacksmith runners.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.blacksmith.sh/blacksmith-caching/dependencies-actions",
+      "quote": "Node.js projects can have extensive dependency trees, leading to large `node_modules` directories. ... - name: Setup Node.js",
+      "note": "Standard GitHub Actions runner images ship Node.js; actions/setup-node works on Blacksmith runners.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-administration/network-allowlisting",
+      "quote": "Control plane IPs to allowlist in GitHub for Blacksmith to register runners ... You need to allowlist these IPs if: Your GitHub organization has IP allowlists or network restrictions enabled",
+      "note": "not offered: this doc is about the customer allowlisting Blacksmith's control-plane IPs *in GitHub* (inbound direction), not a Blacksmith-side control over the sandbox's own outbound traffic; no egress allow/deny-list or no-internet mode for runners/Testboxes is documented.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-administration/network-allowlisting",
+      "quote": "Control plane IPs to allowlist in GitHub for Blacksmith to register runners",
+      "note": "not offered: no documented HTTP method/path-level egress rules for jobs/runners; the only network-allowlisting doc covers inbound allowlisting of Blacksmith's own IPs in the customer's GitHub org.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/about/data-processing-addendum",
+      "quote": "Blacksmith does not request or require sensitive or special-category data (as described in Articles 9 and 10 GDPR) and does not design the Service to process it.",
+      "note": "No BAA or HIPAA-eligibility is advertised anywhere in the DPA, security page, or trust center; the DPA only defines HIPAA/PHI as a type of sensitive data the product is not designed to process.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://www.blacksmith.sh/security",
+      "quote": "login is available exclusively through GitHub SSO ... We exclusively support GitHub SSO, and authentication is fully delegated to GitHub's OAuth flow.",
+      "note": "Login is GitHub-account OAuth only ('GitHub SSO'); no separate first-party SAML/OIDC enterprise SSO integration for the Blacksmith app itself is documented.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://docs.blacksmith.sh/llms-full.txt",
+      "quote": "Blacksmith is available in `us-east` (Ashburn), `us-west` (Phoenix), `eu-west` (Amsterdam), and `eu-central` (Frankfurt). To request that your organization be moved to a different region, contact support.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-caching/dependencies-sticky-disks.md",
+      "quote": "Each sticky disk is hot-loaded into the runner and mounted at the specified path. The sticky disk is formatted as an ext4 filesystem. ... Once the job completes, the sticky disk will be unmounted and committed for future invocations.",
+      "note": "Default behaviour is ephemeral: the microVM and its root disk are destroyed at job end ('After a job completes, the microVM is destroyed, along with any of its state.' - security page). But Sticky Disks are a first-party opt-in persistent volume (ext4, mounted, up to 5/job, $0.50/GB-mo) whose contents survive across job runs via commit/clone - this satisfies the definition's 'persistent volume' clause even though the OS/root disk itself does not persist. Card's volumes/volume_attach were already true, so persistent_disk=false was an internal contradiction; corrected to true with the default-ephemeral caveat noted.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://www.blacksmith.sh/security",
+      "quote": "After a job completes, the microVM is destroyed, along with any of its state.",
+      "note": "No whole-machine disk or memory snapshot/restore exists for the GA runner/Testbox product. The only snapshot-like thing is Sticky Disks, which persist specific mounted paths (not the OS disk) via commit/clone, not a bootable machine snapshot. Blacksmith Sandboxes ('Fully managed environment snapshots ... to boot sandboxes from', https://www.blacksmith.sh/sandboxes) is a waitlist-only, unpriced, unreleased beta and is excluded per the card's own caveats.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-testbox/overview.md",
+      "quote": "The default idle timeout is 30 minutes. If no run command is issued within that window, the testbox is automatically stopped.",
+      "note": "Idle timeout/stop is a hard shutdown (Testbox 'stop' 'cancels the underlying GitHub Actions run'), not a pause with resume; there is no documented API/CLI to resume a stopped runner or testbox. CI runner VMs are destroyed at job end with no pause option.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/llms.txt",
+      "quote": "Testboxes: Let coding agents run CI against local changes, instantly",
+      "note": "No documented API/CLI to clone an existing machine into new ones. Each Testbox/runner is created fresh via 'warmup'/job dispatch from a workflow, not by cloning another running or stopped machine. Searched the full docs index (llms.txt) for a clone/fork feature; none exists outside the unreleased Sandboxes waitlist product.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-testbox/overview.md",
+      "quote": "The agent calls blacksmith testbox warmup <repo>. This dispatches a GitHub Actions workflow and returns a testbox ID immediately.",
+      "note": "New instances are always created by dispatching a fresh workflow/job, never by cloning a currently running microVM. No fork capability exists at all (see fork), so fork_running is also false.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://www.blacksmith.sh/security",
+      "quote": "After a job completes, the microVM is destroyed, along with any of its state.",
+      "note": "No fork feature exists (see fork/fork_running), and no memory-state capture/restore is documented anywhere in the product; running-process state is never preserved or cloned.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-runners/overview.md",
+      "quote": "Blacksmith runs Linux and Windows jobs in ephemeral Firecracker microVMs that boot in under 3 seconds.",
+      "note": "not offered: outside the product's scope. Blacksmith is a headless GitHub Actions CI runner / CLI-driven Testbox product; no VNC/RDP/streamed desktop is documented anywhere in the docs index.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-runners/overview.md",
+      "quote": "Blacksmith runs Linux and Windows jobs in ephemeral Firecracker microVMs that boot in under 3 seconds.",
+      "note": "not offered: outside the product's scope. No GUI exists to drive (see desktop), so no screenshot+click computer-use API is offered.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-runners/overview.md",
+      "quote": "We're a drop-in replacement: Blacksmith runners boot off of the same image(s) as GitHub's runners and have the exact same environment.",
+      "note": "Runners boot from Blacksmith's own fixed Ubuntu/Windows/macOS images; there is no documented way to supply a custom base/OCI image for a runner or Testbox.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-observability/ssh-access.md",
+      "quote": "SSH access is opt-in and must be enabled by a GitHub organization admin ... Only the GitHub user who triggered the job can SSH into the runner",
+      "note": "The only inbound path documented for a runner/Testbox is opt-in debug SSH, gated per-job; there is no exposed HTTPS URL/ingress feature for reaching ports on the machine.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-runners/static-ip.md",
+      "quote": "On purchasing a static IP, all of the organization's runners will route network packets through a NAT gateway with a static IP.",
+      "note": "The paid 'Static IP' add-on is an outbound NAT gateway for CI jobs reaching external services (egress), confirmed by the admin docs: 'Runner static IPs (paid): used by your CI jobs to reach your own external services.' No per-machine public/inbound IPv4 is offered.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/codesmith/overview.md",
+      "quote": "[code]smith is a background coding agent that operates and improves your codebase alongside you. ... tagged from any surface to start building: GitHub, Slack, or from the Web UI.",
+      "note": "Blacksmith ships its own proprietary background agent ([code]smith, driven via Slack/GitHub mentions/Web UI, $1.75/agent compute unit), not third-party coding-agent harnesses (Claude Code, Codex, OpenCode, etc.) preinstalled or offered as templates in the runner/Testbox environments.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/llms.txt",
+      "quote": "Instance Types: Blacksmith runners are 2x faster and costs 67% less than GitHub-hosted runners",
+      "note": "not offered: outside the product's scope. The full runner instance-type catalogue (x64/ARM Ubuntu, Windows, macOS) and pricing page list only CPU vCPU/RAM tiers; no GPU instance type or GPU add-on is documented or priced anywhere.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://www.blacksmith.sh/security",
+      "quote": "We run jobs in a secure, isolated Firecracker microVM on our own bare-metal hardware, protected by a private VPN.",
+      "note": "not offered: outside the product's scope. Blacksmith is a hosted SaaS running on its own bare-metal fleet; there is no self-hosted/on-prem deployment option documented.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://www.blacksmith.sh/security",
+      "quote": "We run jobs in a secure, isolated Firecracker microVM on our own bare-metal hardware, protected by a private VPN.",
+      "note": "not offered: outside the product's scope. No option to deploy the managed service into a customer's own cloud account; capacity is exclusively Blacksmith's own bare-metal fleet across its published regions.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://www.blacksmith.sh/pricing",
+      "quote": "Switch to Blacksmith and start saving up to 67% on your GitHub Actions",
+      "note": "Blacksmith is a paid, closed-source SaaS control plane/runner fleet; it open-sources some small client-side GitHub Actions (e.g. useblacksmith/stickydisk, useblacksmith/setup-node) but the core orchestration/runner product itself is not published under an OSI license anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": false,
+      "source": "https://docs.blacksmith.sh/blacksmith-administration/network-allowlisting.md",
+      "quote": "Control plane IPs (this page): used by Blacksmith to communicate with GitHub. Runner static IPs (paid): used by your CI jobs to reach your own external services.",
+      "note": "Networking features documented are limited to control-plane IP allowlisting (inbound to GitHub) and a paid static egress NAT IP; no VPC/private-network peering or private connectivity between machines is offered.",
+      "checked": "2026-09-30"
     }
   }
 }

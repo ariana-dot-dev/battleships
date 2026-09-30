@@ -147,19 +147,19 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "gpu_types": [],
     "snapshot": "fs",
-    "pause_resume": null,
+    "pause_resume": false,
     "fork": false,
     "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": false,
     "root": null,
     "systemd": true,
     "browser": true,
@@ -173,7 +173,7 @@
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
@@ -182,22 +182,22 @@
     "soc2": null,
     "hipaa": null,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
-    "fork_running": null,
+    "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": true,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
@@ -212,7 +212,11 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": 21.14,
@@ -331,6 +335,188 @@
       "quote": "Mount the same directory-backed named volume into multiple sandboxes when they need to share files. Use `readonly` on consumers that should not write. microsandbox attaches disk-backed named volumes as block devices; use one writable sandbox at a time, or read-only mounts where sharing is intended.",
       "note": "Directory-backed named volumes: read-write shared across concurrent sandboxes (ro optional). Disk-backed (block) volumes: single writer. Cloud supports directory volumes ('Default and named directory volumes support lifecycle and filesystem access'); all cloud sandboxes of an org sit on one 'host volume'.",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.microsandbox.dev/examples/docker/docker-in-sandbox",
+      "quote": "This example starts a complete Docker environment inside a microsandbox VM. ... The command below boots the docker:dind image on a flat root disk, starts Docker inside the sandbox... From there, Docker commands run against the daemon inside the sandbox.",
+      "note": "Documented and worked example (dockerd/dind, then nested `docker run ubuntu`) inside a sandbox. The specific CLI walkthrough is flagged Local-only, but the underlying capability is a normal full-VM-with-own-kernel property that the docs say carries to cloud ('the same sandboxes on our hardware... own-kernel isolation from local to cloud'); not explicitly re-demonstrated on the cloud backend.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/troubleshooting/linux.md",
+      "quote": "Diagnose KVM, permissions, and host runtime setup on Linux ... /dev/kvm setup and permission checks",
+      "note": "derived: all /dev/kvm discussion in the docs is about the HOST needing KVM to boot the microsandbox microVM itself (and about passing /dev/kvm into a Docker container that runs the msb CLI). No page documents exposing /dev/kvm or nested virtualization capability to code running inside a microsandbox sandbox; one CI example explicitly warns 'many managed runners do not allow nested virtualization.' Treated as not offered.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://microsandbox.dev/pricing",
+      "quote": "microsandbox: open-source microVM sandboxes for AI agents and untrusted code, with a separate guest kernel for each sandbox. Run locally or request managed cloud access.",
+      "note": "not offered: outside the product's scope. microsandbox is a general-purpose microVM sandbox/compute runtime; browser automation (Playwright, Browser Use) is shown as something you run inside it, but no stealth/fingerprint-evasion or bot-detection-bypass feature is documented anywhere in the docs, pricing, or enterprise pages.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://microsandbox.dev/pricing",
+      "quote": "microsandbox: open-source microVM sandboxes for AI agents and untrusted code, with a separate guest kernel for each sandbox. Run locally or request managed cloud access.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature, API, or third-party integration is documented; microsandbox provides the sandbox compute, not a scraping/anti-bot service.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.microsandbox.dev/networking/overview",
+      "quote": "By default, sandboxes can reach the public internet but cannot reach private networks, loopback, link-local addresses, or cloud metadata endpoints.",
+      "note": "Egress is plain public-internet access from the provider's own compute (a microVM cloud/hosting product, benchmarked on GCP Sapphire Rapids bare metal), not a residential or mobile proxy network. No IP type is branded beyond ordinary outbound datacenter internet.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/cloud/overview",
+      "quote": "Snapshots: Limited on cloud. Capture disk snapshots from stopped persistent sandboxes and restore them into new sandboxes. Live capture, full checkpoints, branching, groups, and local artifact archives remain local-only.",
+      "note": "Cloud only supports disk snapshots taken from a STOPPED sandbox and restored into a new sandbox; live branching/cloning of a RUNNING sandbox is explicitly local-only.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/sandboxes/lifecycle",
+      "quote": "Pause freezes a local sandbox in memory. Resume continues where it left off. ... Pause and resume are not supported on cloud.",
+      "note": "Explicitly local-runtime-only; not available on the cloud product this card models.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/getting-started/agents",
+      "quote": "The SDK and CLI give you full programmatic control, and there are two additional ways to connect agents directly: Agent Skills for coding assistants and an MCP server for any MCP-compatible client.",
+      "note": "not offered: microsandbox exposes sandboxes to OUTSIDE agents (via MCP server / Agent Skills / SDK); it does not ship its own browser/computer-use/research task agent. Documented agent examples (Browser Use, Claude Code, Codex, etc.) are third-party agents run inside the sandbox, not a first-party microsandbox agent API.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://microsandbox.dev/llms-full.txt",
+      "quote": "microVMs spin up as child processes directly from your code in rust, typescript, python, or go, and each one gets its own kernel and ephemeral filesystem.",
+      "note": "First-party Python SDK plus official `python` OCI images (msb create --name dev python:3.12).",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://microsandbox.dev/llms-full.txt",
+      "quote": "microVMs spin up as child processes directly from your code in rust, typescript, python, or go, and each one gets its own kernel and ephemeral filesystem.",
+      "note": "First-party TypeScript/Node SDK, listed alongside Rust, Python and Go on every SDK-selection tab throughout the docs.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/networking/overview",
+      "quote": "Rules can target groups like public, private, and host, or specific IPs, CIDRs, domains, and port ranges.",
+      "note": "Egress policy is IP/CIDR/domain/port-level (plus hostname-based rules over inspected HTTP/TLS). No HTTP method or URL-path level rule is documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/networking/overview",
+      "quote": "All sandbox traffic flows through a host-controlled networking stack. From inside the VM it looks like a normal network interface; from the host side, every packet is checked against policy before it leaves.",
+      "note": "No static/dedicated/fixed outbound IP feature, add-on, or pricing line is documented anywhere in networking, cloud, or pricing pages after a full search.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://microsandbox.dev/llms-full.txt",
+      "quote": "In the public microsandbox 0.4.5 harness, microsandbox measured 320 ms median end to end... using pre-pulled Alpine on bare-metal Linux x86_64 (GCP c3-standard-192-metal, Intel Sapphire Rapids...).",
+      "note": "The local runtime and guest OS images are multi-arch (works on Apple Silicon / ARM64 laptops, and Go SDK/gems build for arm64 hosts), but the managed cloud product's own benchmarked/documented hardware is x86_64 bare metal; no ARM64 cloud instance type or region is published.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/cloud/overview",
+      "quote": "microsandbox cloud runs your sandboxes on hosted infrastructure. ... access is by request while we widen the private beta.",
+      "note": "No region selection, region list, or EU-residency option appears anywhere in the cloud docs, pricing, or REST API description; the pricing card's own regions field is null. Multi-region/residency controls are not documented for this private-beta cloud.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/cloud/overview",
+      "quote": "Snapshots Limited on cloud Capture disk snapshots from stopped persistent sandboxes and restore them into new sandboxes. Live capture, full checkpoints, branching, groups, and local artifact archives remain local-only.",
+      "note": "Cloud only offers disk snapshot-and-restore of a stopped sandbox (a template clone, not a live fork). Live branching of a running/paused sandbox ('Branching Local-only' on docs.microsandbox.dev/sandboxes/snapshots) and CoW-forked restore (which requires a Full snapshot, also Local-only) are local-runtime-only features, unavailable on the cloud product this card prices.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/sandboxes/snapshots",
+      "quote": "Full snapshots\nLocal-only \nCapture a running workload to resume its processes and memory later.",
+      "note": "Memory-including ('Full') snapshots, and the CoW-forked restore that shares their memory pages between children (.forked()), are explicitly Local-only. Cloud snapshot/restore is disk-only ('Cloud requires a stopped persistent source' for disk snapshots).",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/examples/development/vnc-desktop",
+      "quote": "Local-only \nVNC does not require a physical display or GPU. TigerVNC's X server draws into a virtual framebuffer in guest memory... noVNC provides the browser client over WebSockets.",
+      "note": "No managed/offered desktop product exists; this is a DIY recipe (install LXQt+TigerVNC+noVNC yourself in a Debian image) and is itself flagged Local-only. It couldn't even run on cloud today since published ports ('Port mapping Local-only', docs.microsandbox.dev/networking/overview) are unsupported there.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://microsandbox.dev/features/isolation",
+      "quote": "microsandbox runs untrusted code in hardware-isolated microvms with their own kernel. it is open source under apache 2.0.",
+      "note": "No screenshot+click driving API is documented anywhere (docs index, features pages, examples). The product is a programmatic code/command sandbox (exec, files, SSH); the only GUI-adjacent example is the local-only VNC desktop recipe, which has no computer-use API layered on it.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/sandboxes/lifecycle",
+      "quote": "await using sb = await Sandbox.builder(\"worker\")\n    .image(\"python\")\n    .maxDuration(3600)   // maximum sandbox lifetime in seconds\n    .idleTimeout(300)    // auto-drain after 5 minutes of inactivity\n    .create();",
+      "note": "auto_stop_idle exists (idleTimeout auto-drains/stops), but there is no documented mechanism that wakes a stopped/drained sandbox when an inbound request arrives: cloud has no published ports/preview URLs at all (only a platform-assigned hostname for SSH), so there is no request path that could trigger a wake.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/networking/overview",
+      "quote": "Port mapping\nLocal-only \nPublish a guest port when a service inside the sandbox should be reachable from the host.",
+      "note": "Published/mapped ports (the only inbound path) are Local-only. Cloud/overview's compatibility table confirms: 'Custom networking Local-only Published ports, custom nameservers... are not accepted by cloud create.' Cloud sandboxes get a hostname for SSH only, no HTTPS ingress.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/cloud/overview",
+      "quote": "Networking. Cloud sandboxes get a platform-assigned hostname. SSH works through the same msb ssh and SDK SSH clients you use locally.",
+      "note": "Cloud sandboxes are addressed by a platform hostname, not a per-machine public IPv4; there is no published-port/ingress path either (see inbound_https). No IPv4 purchase/attach option is documented.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/examples/agents/claude-code",
+      "quote": "Local-only \n...\nmsb run -t --name claude-code-demo --replace ... node:24-bookworm-slim -- sh -lc '\n    apt-get update &&\n    apt-get install -y --no-install-recommends ca-certificates git &&\n    npm install -g @anthropic-ai/claude-code@2.1.235 &&\n    exec claude\n  '",
+      "note": "Claude Code, Codex, OpenCode, Goose, etc. are documented as manual-install recipes you script into a plain base image yourself (and this example is flagged Local-only) -- not preinstalled images or one-click templates. getting-started/agents describes the reverse direction: microsandbox ships Agent Skills + an MCP server so an EXTERNAL coding agent can drive microsandbox, not a harness offered inside the sandbox.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://microsandbox.dev/features/isolation",
+      "quote": "run untrusted code in hardware-isolated microvms. each sandbox has its own guest kernel, memory, and filesystem, with explicit resource limits and host access.",
+      "note": "No GPU offering, GPU pricing, or GPU passthrough is mentioned anywhere across the pricing page, features pages, docs index, or llms-full.txt (one example page even advertises a browser server 'without a GPU'). Sizing is CPU/RAM only (vcpu_h, ram_gib_h).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://microsandbox.dev/llms-full.txt",
+      "quote": "The filesystem we picked is EROFS... the VM's own kernel is Linux regardless of what's running outside it, so once the disk image is built, the host's filesystem stops mattering.",
+      "note": "'macOS · Linux · Windows' on the homepage names HOST platforms the local msb daemon/CLI runs on; every sandbox itself always boots a Linux guest kernel from an OCI image. No Windows-guest sandbox is offered on any backend (local, cloud, or byoc).",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://microsandbox.dev/llms-full.txt",
+      "quote": "EROFS also solved the macOS problem: the VM's own kernel is Linux regardless of what's running outside it, so once the disk image is built, the host's filesystem stops mattering.",
+      "note": "Same as windows: macOS is a supported HOST for the local runtime (hypervisor.framework), not a guest OS a sandbox can boot. Every sandbox guest kernel is Linux.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.microsandbox.dev/cloud/overview",
+      "quote": "Reconfiguration\tLocal-only\tRecreate the sandbox with the new CPU, memory, mounts, or other settings instead of using modify.",
+      "note": "'Live Modify' (msb modify / SDK .modify({cpus, memory,...})), which resizes a running sandbox's CPU/RAM without recreating it, is explicitly Local-only; the cloud compatibility table tells users to delete-and-recreate instead.",
+      "checked": "2026-09-30"
     }
   }
 }

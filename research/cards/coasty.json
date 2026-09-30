@@ -145,10 +145,10 @@
     "windows": true,
     "macos": true,
     "arm64": null,
-    "gpu": null,
+    "gpu": false,
     "snapshot": "fs",
     "pause_resume": true,
-    "fork": null,
+    "fork": false,
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": false,
@@ -162,18 +162,18 @@
     "desktop": true,
     "computer_use": true,
     "code_interpreter": null,
-    "agent_harnesses": null,
+    "agent_harnesses": false,
     "ssh": true,
     "public_ipv4": true,
-    "inbound_https": null,
+    "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": false,
     "private_network": null,
-    "self_host": null,
+    "self_host": false,
     "byoc": true,
-    "open_source": null,
+    "open_source": false,
     "soc2": null,
     "hipaa": null,
     "sso": true,
@@ -186,11 +186,11 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": true,
     "scheduled_wakeups": null,
     "audit_logs": null,
@@ -206,10 +206,17 @@
     "egress_ip_type": "datacenter+residential",
     "ip_note": "Machines run on AWS/Daytona/Azure (datacenter egress); proxy {mode:'managed'} routes via Coasty's residential upstream, or bring your own http/https/socks5 proxy; no per-GB price published.",
     "isolation": "vm",
-    "image_oci": null,
+    "image_oci": false,
     "snapshot_on_demand": true,
     "own_agent_api": true,
-    "harness_api": false
+    "harness_api": false,
+    "snapshot_auto": false,
+    "volume_attach": false,
+    "volume_shared": false,
+    "ingress_rules": false,
+    "guest_firewall": true,
+    "secret_proxy": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -278,6 +285,160 @@
       "quote": "A run gives the agent a task plus a machine and drives it to completion server-side: an autonomous loop with pass/fail verification, optional human takeover, managed per-step wallet billing (or zero-cost BYOK), a streaming event log, and webhooks.",
       "note": "Coasty's own computer-use agent only (no Claude Code/Codex/OpenCode). The agent loop runs server-side and drives the VM via screenshots/actions rather than running inside it. API: POST /v1/runs (start with task prompt), GET /v1/runs/{id}/events (SSE, resumable), /log, /cancel, /resume (after human takeover), list runs; plus /v1/tasks, /v1/workflows, /v1/sessions and schedules. No follow-up-message endpoint documented. BYOK Anthropic/OpenAI key can power the harness.",
       "checked": "2026-09-29"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`os_type` string no `linux` `linux` or `windows`. Windows costs more to run. ... `restore_from_snapshot` bool no `false` Boot from your latest snapshot instead of a clean image (Linux only).",
+      "note": "Provisioning only accepts os_type (linux/windows), desktop_enabled, cpu/memory/storage sizing, ttl, metadata, proxy, and restore_from_snapshot — no field to boot from a caller-supplied Docker/OCI image. Not offered: outside documented provisioning schema.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`stopped` Stopped rate Powered off, disk + snapshots preserved. Start it again. ... `POST /v1/machines/{id}/snapshot` — capture a restorable machine image. Needs `snapshots:write`; the default price is `$0.01`",
+      "note": "Snapshotting is an explicit priced API call (POST .../snapshot); stopping a machine simply powers it off and keeps its disk — there is no automatic state capture on stop/sleep/timeout.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "Boot a future machine from a confirmed image with `restore_from_snapshot: true`.",
+      "note": "The only cloning-like mechanism is booting a brand-new machine from your LATEST disk snapshot (no memory, no snapshot-id selection, Linux only). No documented 'fork' endpoint that clones a machine directly. Treated as not offered as a first-class fork feature.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "External `/snapshot` returns `400 UNSUPPORTED_MACHINE_KIND` because Coasty does not own the disk.",
+      "note": "No API to clone a live running machine without stopping it; snapshotting captures a disk image for a later separate boot, not an in-place running clone. Not offered.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`POST /v1/machines/{id}/snapshot` — capture a restorable machine image. Needs `snapshots:write`",
+      "note": "Snapshot/restore is documented as disk-image only ('Disk image only (no memory mentioned)'); no memory state or running-process restoration is described.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "Managed `POST /v1/machines/{id}/start` — boot a `stopped` or `error` VM. Async.",
+      "note": "A stopped/suspended machine only becomes running again via an explicit start API call; there is no mechanism for an inbound request to automatically wake it.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`storage_gb` int|null no auto 8-500.",
+      "note": "Storage is a single fixed disk sized at provision time (8-500 GB); there is no documented separate attachable/detachable volume resource. Not offered.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`storage_gb` int|null no auto 8-500.",
+      "note": "No shared-volume concept exists at all (only a single per-machine boot disk), so multi-machine shared mounting is not offered.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`cpu_cores` int|null no auto 1-16. Capped by tier. `memory_gb` int|null no auto 1-64. Capped by tier.",
+      "note": "CPU/RAM are set only at provision time in the create-machine request; no documented endpoint to change cpu_cores/memory_gb on a running machine.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "A run gives the agent a task plus a machine and drives it to completion server-side: an autonomous loop with pass/fail verification, optional human takeover, managed per-step wallet billing (or zero-cost BYOK), a streaming event log, and webhooks.",
+      "note": "Coasty ships its own server-side computer-use agent (own_agent_api), not coding-agent harnesses like Claude Code/Codex/OpenCode preinstalled on the machine.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`connection`: `public_ip`, `ssh_port`, `ssh_username`, `vnc_port`, `websocket_port`, `has_ssh_key`, `has_vnc_password` ... returns `ssh_private_key_pem`, `vnc_password`, `websocket_url`, and `devtools_url`.",
+      "note": "Reachability is via a raw public IP plus SSH/VNC/websocket/devtools ports; no documented provider-managed HTTPS URL feature for reaching arbitrary ports on the machine.",
+      "checked": "2026-09-30"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`public_ip` string|null Public IP once assigned (null while `creating`).",
+      "note": "No documented IP allowlisting, security groups, or private/auth-gated URL controls for inbound access — just a public IP with fixed SSH/VNC ports gated by credential possession.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`proxy` object|null no null Route egress through a proxy. `{\"mode\":\"managed\"}` uses Coasty's residential upstream; `{\"mode\":\"custom\",...}` uses yours (http/https/socks5, auth optional).",
+      "note": "The only egress control is routing traffic through a chosen proxy (Coasty's own or a custom one) — there is no allow/deny list or no-internet mode documented.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`proxy` object|null no null Route egress through a proxy.",
+      "note": "No HTTP method/path-level egress rule feature is documented; only whole-machine proxy routing exists.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "SSH usernames: `ubuntu` (Linux), `Administrator` (Windows). ... `POST /v1/machines/{id}/terminal` Scope `terminal:exec` Shell command.",
+      "note": "derived: full Linux/Windows VM with root-equivalent SSH/terminal access implies nftables/iptables (or Windows Firewall) work inside, per the card's isolation model.",
+      "checked": "2026-09-30"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`proxy` object|null no null Route egress through a proxy ... (http/https/socks5, auth optional).",
+      "note": "The proxy feature routes traffic and can carry proxy auth (username/password) for the outbound proxy itself, but there is no first-party credential-injection proxy for arbitrary/AI HTTP APIs on the caller's behalf; secrets are provided as API keys (e.g. BYOK) passed by the caller.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`proxy` ... `{\"mode\":\"managed\"}` uses Coasty's residential upstream ... so a proxy that is not carrying traffic fails instead of silently browsing from the datacenter IP.",
+      "note": "No fixed/dedicated outbound IP is offered per machine; the default egress IP is a shared datacenter IP, and a fixed alternative requires bringing your own custom proxy rather than a provider-issued static IP.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`os_type` string no `linux` `linux` or `windows`. Windows costs more to run. `cpu_cores` int|null no auto 1-16. `memory_gb` int|null no auto 1-64.",
+      "note": "Machine provisioning only exposes cpu_cores/memory_gb/storage_gb/os_type; no GPU option or GPU pricing is documented anywhere. Not offered: outside the product's scope (a CPU desktop/computer-use VM product).",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://coasty.ai/pricing",
+      "quote": "Coasty AI Employee: AI computer-use agent that controls a desktop like a human (85.60% OSWorld) AND ships the best computer-use API of 2026.",
+      "note": "Coasty is offered exclusively as a hosted SaaS/API product; no self-hosting distribution, on-prem package, or Docker image of the platform itself is documented. Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://coasty.ai/pricing",
+      "quote": "Coasty AI Employee: AI computer-use agent... ships the best computer-use API of 2026 with a $0.05 /v1/predict base price, published surcharges, 1,000+ native app integrations, free sandbox keys, and OpenAPI 3.1.",
+      "note": "No GitHub org, OSI license, or open-source claim found for the core Coasty product; it is presented as a proprietary hosted product/API. Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`ttl_minutes` int|null no null Auto-destroy after N minutes (5-10080). Omit for no auto-destroy (adds a `Warning` header).",
+      "note": "TTL is optional and capped at 10080 minutes (7 days) when set, but omitting it means no automatic destroy at all — the machine (a full VM) runs until you explicitly stop/terminate it, so there is no hard provider-enforced ceiling.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "No-TTL warning. If you provision without a ttl_minutes, the machine will run (and bill the hourly runtime rate) until you explicitly destroy it. To make that machine-observable, the response carries an HTTP Warning: 199 - \"...\" header noting the machine has no auto-stop — set ttl_minutes at provision time, or PATCH /v1/machines/{id} later, to bound the spend.",
+      "note": "Machines have no idle-based auto-stop; the only auto-termination is an explicit fixed ttl_minutes countdown from creation time (opt-in, not idle detection), and the API itself warns 'no auto-stop' when ttl_minutes is omitted. Confirms auto_stop_idle: false.",
+      "checked": "2026-09-30"
     }
   }
 }

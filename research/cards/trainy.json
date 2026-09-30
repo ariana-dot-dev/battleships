@@ -126,7 +126,7 @@
     "linux": null,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": true,
     "snapshot": "none",
     "pause_resume": true,
@@ -146,7 +146,7 @@
     "code_interpreter": null,
     "agent_harnesses": false,
     "ssh": true,
-    "public_ipv4": null,
+    "public_ipv4": true,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
@@ -196,7 +196,8 @@
     "harness_api": false,
     "own_agent_api": false,
     "guest_firewall": false,
-    "max_session_unlimited": true
+    "max_session_unlimited": true,
+    "ingress_rules": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -366,9 +367,9 @@
     },
     "persistent_disk": {
       "value": false,
-      "source": "https://docs.trainy.ai/runtime-file-sync.md",
-      "quote": "Local storage (`/tmp`, `/root`, or your `workdir`) is ephemeral and wiped when the pod restarts or completes.",
-      "note": "Job containers are ephemeral pods; data must be manually pushed to external object storage to survive restarts.",
+      "source": "https://docs.trainy.ai/runtime-file-sync",
+      "quote": "When a Konduktor job runs, its containers execute in ephemeral pods. Local storage (/tmp, /root, or your workdir) is ephemeral and wiped when the pod restarts or completes. Therefore, we recommend uploading to cloud storage any data that must survive restarts or be analyzed later.",
+      "note": "Not a contradiction: Konduktor's 'suspend/start' (konduktor stop / konduktor start) is a scheduler-queue pause (job goes to SUSPENDED and is later rescheduled onto a fresh pod), not a filesystem-preserving pause/resume. Docs explicitly recommend app-level checkpointing to S3/GCS (RESTART_ATTEMPT env var) because local disk does not survive a restart. No PersistentVolume/PVC or disk snapshot feature is documented anywhere in the docs (checked llms-full.txt for 'persistent volume', 'PVC', 'snapshot' with no relevant hits). Card's persistent_disk=false is correct as-is.",
       "checked": "2026-09-30"
     },
     "volume_attach": {
@@ -495,6 +496,27 @@
       "source": "https://docs.trainy.ai/quickstart.md",
       "quote": "labels: kueue.x-k8s.io/queue-name: user-queue maxRunDurationSeconds: \"3200\"",
       "note": "Max run duration is a user-set Kueue label per job, not a fixed platform-imposed session cap; jobs otherwise run until completion/failure.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": true,
+      "source": "https://docs.trainy.ai/deployments.md",
+      "quote": "`trainy.us` endpoints use `https` while direct IP endpoints use `http`. ... Optionally, use `--direct` to display direct IP endpoints instead of `trainy.us` endpoints.",
+      "note": "Konduktor Serve exposes deployments via a direct IP endpoint (in addition to a trainy.us hostname); Konduktor deploys into the customer's own VPC (AWS/GCP/Azure/bare-metal), so the underlying IP is provisioned from that cloud, but Trainy's own tooling surfaces a direct/public IP for reaching services.",
+      "checked": "2026-09-30"
+    },
+    "ingress_rules": {
+      "value": true,
+      "source": "https://docs.trainy.ai/deployments.md",
+      "quote": "Konduktor Serve is a powerful feature that simplifies deploying and managing ML models and general applications on Kubernetes. ... Accessible at `<COMPANY>.trainy.us`",
+      "note": "Konduktor routes serving traffic through per-company trainy.us hostnames (vs. raw direct IP), and interactive SSH access is gated behind Tailscale ACLs/authkeys (docs.trainy.ai/tailscale.md) rather than open ports, i.e. the platform provides auth/hostname-scoped and allowlist-based access control to exposed services rather than raw open ports; underlying security-group rules are otherwise inherited from the customer's own cloud (BYOC).",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://www.trainy.ai/pricing",
+      "quote": "Konduktor GPU cluster scheduling & management ... Deploys in your VPC: AWS, GCP, Azure, bare-metal, and more...",
+      "note": "not offered: outside the product's scope. Konduktor is an NVIDIA GPU (H100, etc.) training/inference cluster scheduler for x86 Kubernetes nodes; no ARM64 CPU or GPU nodes are mentioned anywhere in docs, pricing, or blog content.",
       "checked": "2026-09-30"
     }
   }

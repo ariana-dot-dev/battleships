@@ -256,17 +256,17 @@
     "pause_resume": true,
     "fork": false,
     "persistent_disk": true,
-    "volumes": false,
+    "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
-    "custom_image": false,
+    "custom_image": true,
     "docker_inside": null,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": true,
     "desktop": false,
-    "computer_use": null,
+    "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": true,
     "ssh": false,
@@ -275,15 +275,15 @@
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
-    "self_host": false,
+    "self_host": true,
     "byoc": true,
     "open_source": false,
     "regions": [],
     "soc2": true,
     "hipaa": false,
-    "sso": null,
+    "sso": true,
     "lang_python": true,
     "lang_node": true,
     "lang_go": true,
@@ -292,8 +292,8 @@
     "gpu_desktop": false,
     "credential_injection": true,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
+    "wake_on_request": true,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
@@ -305,7 +305,7 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "container",
-    "image_oci": false,
+    "image_oci": true,
     "snapshot_auto": true,
     "snapshot_on_demand": false,
     "harness_api": true,
@@ -313,7 +313,12 @@
     "ingress_rules": false,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "guest_firewall": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -402,10 +407,10 @@
     },
     "snapshot_on_demand": {
       "value": false,
-      "source": "https://platform.claude.com/llms.txt",
-      "quote": null,
-      "note": "The full beta API list (sessions, events, threads, resources, environments, vaults, work) has no snapshot/checkpoint/fork endpoint; checkpointing only happens implicitly on idle. No boot-from-snapshot or session fork. Sessions do not share filesystem state.",
-      "checked": "2026-09-29"
+      "source": "https://platform.claude.com/docs/en/managed-agents/events-and-streaming",
+      "quote": "When a session goes idle, its sandbox is checkpointed, preserving the full sandbox state, including the filesystem, installed packages, and any files the agent created.",
+      "note": "Not a contradiction: snapshot=\"fs\" describes the TYPE of state saved (filesystem/packages/files), which happens only automatically on session-idle (snapshot_auto=true). No API/CLI endpoint exists to trigger a checkpoint on demand; the beta API surface (sessions, events, threads, environments, vaults) has no snapshot/checkpoint-create endpoint.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": true,
@@ -431,10 +436,10 @@
     },
     "ingress_rules": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No inbound ports, preview URLs, SSH or public IP are documented at all for cloud sandboxes; the sandbox is not reachable from outside (only via the sessions API), so there is nothing to control. Effectively private-only.",
-      "checked": "2026-09-29"
+      "source": "https://platform.claude.com/docs/en/managed-agents/environments",
+      "quote": "The networking field controls the sandbox's outbound network access.",
+      "note": "Cloud-sandboxes-reference and environments docs document only outbound (egress) network controls (unrestricted/limited + allowed_hosts); no inbound ports, preview URLs, IP allowlists, or security groups for reaching the sandbox are documented anywhere. Nothing to control since there is no ingress at all.",
+      "checked": "2026-09-30"
     },
     "secret_proxy": {
       "value": "any-http",
@@ -456,6 +461,213 @@
       "quote": "**Shared reference material:** one read-only store attached to many sessions (standards, conventions, domain knowledge), kept separate from each session's own read-write store.",
       "note": "A memory store can be attached to many sessions; access read_write (default) or read_only, 'enforced at the filesystem level'; concurrent writes guarded by content_sha256 preconditions on the API. Small text-doc store, not a general shared FS. Multiagent threads in one session share one sandbox filesystem.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Cloud sandboxes run as isolated Linux containers on Anthropic-managed infrastructure.",
+      "note": "not offered: outside the product's scope. Sandboxes are shared-kernel Linux containers (isolation: container), and even the in-container docker tool is only 'limited availability'; no /dev/kvm or nested-virtualization capability is documented.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/overview",
+      "quote": "Claude Managed Agents gives Claude access to a set of built-in tools: Bash ... File operations ... Web search and fetch ... MCP servers",
+      "note": "not offered: outside the product's scope. The documented built-in toolset is bash/files/web-search-fetch/MCP; there is no screenshot+click desktop-driving 'computer use' tool for Managed Agents sandboxes (no desktop/VNC surface either, features.desktop=false).",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Playwright (Python and Node.js) - Browser automation library; Chromium (/opt/pw-browsers/chromium) - Browser used by Playwright",
+      "note": "not offered: outside the product's scope. The sandbox ships plain Playwright/Chromium for browser automation/testing; no stealth or anti-fingerprinting feature against bot detection is documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/overview",
+      "quote": "Pre-built, configurable agent harness that runs in managed infrastructure. Best for long-running tasks and asynchronous work.",
+      "note": "not offered: outside the product's scope. Managed Agents is a general coding/task-agent harness (bash, files, web search/fetch, MCP); no CAPTCHA-solving tool or service is documented.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Cloud sandboxes run as isolated Linux containers on Anthropic-managed infrastructure.",
+      "note": "derived: sandboxes are shared containers on Anthropic's own cloud infrastructure with domain-based egress allowlisting (environments.networking); no residential/mobile IP product is offered or implied anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://platform.claude.com/docs/en/managed-agents/events-and-streaming",
+      "quote": "When a session goes idle, its sandbox is checkpointed, preserving the full sandbox state, including the filesystem, installed packages, and any files the agent created. This allows you to resume cleanly from inactivity.",
+      "note": "An idle session's checkpointed sandbox resumes automatically (no separate 'start' API call) the next time a user.message event arrives, as long as it's within the 30-day sandbox-state retention window; functionally equivalent to wake-on-request for a sleeping machine.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Memory: Up to 8 GB; Disk space: Up to 10 GB",
+      "note": "not offered: outside the product's scope. Sandbox size is a fixed, unpublished spec ('up to 8 GB/10 GB') set by the flat $0.08/session-hour SKU; there is no API or config field to change CPU/RAM of a running sandbox.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/overview",
+      "quote": "Claude Managed Agents provides the harness and infrastructure for running Claude as an autonomous agent.",
+      "note": "not offered: outside the product's scope as defined. This IS a first-party API for Anthropic's own agent, but it drives a general coding/task harness (already captured by harness_api=true) rather than a distinct browser/computer-use/research task-agent product; Anthropic documents no separate own-agent API of that kind for Managed Agents.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Cloud sandboxes run as isolated Linux containers on Anthropic-managed infrastructure.",
+      "note": "derived: the field's medium-confidence heuristic (VM/microVM with root=true) does not apply here; isolation is a shared-kernel Linux container, not a VM/microVM, and root access is undocumented/null, so nftables/iptables working as expected inside cannot be assumed.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/environments",
+      "quote": "allowed_hosts specifies domains the sandbox can reach. Specify bare hostnames or wildcard patterns (such as *.example.com).",
+      "note": "not offered: egress control in the docs is entirely domain/host-based (allowed_hosts, allow_package_managers, allow_mcp_servers); no fixed/dedicated outbound IP address or IP-based egress feature is documented for cloud sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": true,
+      "source": "https://support.claude.com/en/articles/13132885-set-up-single-sign-on-sso",
+      "quote": "Single sign-on is available for Team plans, Enterprise plans, and Console organizations.",
+      "note": "Console organizations (platform.claude.com) are the org type Managed Agents API accounts belong to; SSO is configured via SAML with providers such as Okta, Entra ID, Google, OneLogin, JumpCloud, Duo, and can be required org-wide.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/memory",
+      "quote": "When you attach a store to a session, it is mounted as a directory inside the session's sandbox. ... one read-only store attached to many sessions ... kept separate from each session's own read-write store.",
+      "note": "Direct contradiction in the card itself: features.volumes=false while features.volume_attach=true and features.volume_shared=true, both backed by evidence (memory stores: attachable, up to 8/session, and one store can be shared read-only across many sessions). Correct volumes to true (memory-store-style volumes, not generic block storage).",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://platform.claude.com/llms.txt",
+      "quote": null,
+      "note": "No fork/clone/duplicate-session endpoint anywhere in the Managed Agents API surface (sessions, events, threads, environments, reference, session-operations, budgets docs all reviewed); sessions/sandboxes are created fresh or resumed from their own idle checkpoint only. No evidence of machine cloning.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/session-operations",
+      "quote": null,
+      "note": "Session operations documented are create, resume, interrupt, delete, and budget updates — no operation clones a live/running sandbox. Follows from fork=false (no cloning capability exists at all, running or not).",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": null,
+      "note": "No fork feature exists (see fork/fork_running), so a memory-including fork variant does not exist either. Checkpointing itself explicitly covers only filesystem/packages/files, not running processes or memory state.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/overview",
+      "quote": "Send user messages as events. Claude autonomously runs tools and streams back results through server-sent events (SSE).",
+      "note": "The sandbox is reachable only via the sessions/events API driving the agent's own bash tool; no SSH/remote-shell access for the human operator is documented anywhere in the Managed Agents docs (overview, cloud-sandboxes-reference, self-hosted-sandboxes).",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Cloud sandboxes run as isolated Linux containers on Anthropic-managed infrastructure. They come pre-installed with a comprehensive set of programming languages, databases, and utilities.",
+      "note": "Product is a headless container sandbox (no VNC/RDP/GUI streaming documented); features.browser=true refers to a managed headless browser tool, not a graphical desktop. Outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes",
+      "quote": "Build an image with ant installed and ant beta:worker run as the entrypoint. The base image must provide /bin/bash; curl is only used at build time. ... FROM your-base-image",
+      "note": "For self-hosted sandboxes (a documented, first-party mode of this same product) you build your own Docker image (FROM your-base-image) as the sandbox environment. The default Anthropic-managed cloud sandbox is a fixed Ubuntu 24.04 image with no custom-image option, but the product as a whole does offer custom images via self-hosting.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes",
+      "quote": "FROM your-base-image ARG ANT_VERSION=1.36.0 ARG TARGETARCH RUN ARCH=$([ \"$TARGETARCH\" = \"arm64\" ] && echo arm64 || echo amd64) && curl -fsSL \"https://github.com/anthropics/anthropic-cli/releases/download/...\"",
+      "note": "Same evidence as custom_image: self-hosted worker sandboxes are started from a Docker/OCI image you build yourself (any base image + the ant worker binary as entrypoint). Managed cloud sandboxes remain a fixed image; self-hosted sandboxes are OCI-image-based.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Cloud sandboxes run as isolated Linux containers on Anthropic-managed infrastructure.",
+      "note": "No HTTPS/URL exposure mechanism for sandbox ports is documented; the sandbox environments/networking docs cover outbound access only, and the sandbox is reachable exclusively through the sessions API, never via a public URL.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/environments",
+      "quote": "allowed_hosts specifies domains the sandbox can reach.",
+      "note": "Networking docs describe only which outbound hosts a sandbox may reach; no per-sandbox public/inbound IPv4 address is documented or assignable.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Sandbox specifications: Operating system Ubuntu 24.04 LTS, Architecture x86_64 (amd64), Memory Up to 8 GB, Disk space Up to 10 GB",
+      "note": "Full published sandbox spec table lists OS, architecture, memory, and disk only — no GPU row/option. Product is a lightweight coding-agent container sandbox, not a compute/GPU cloud.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Sandbox specifications: Operating system Ubuntu 24.04 LTS, Architecture x86_64 (amd64)",
+      "note": "Cloud sandbox OS is fixed at Ubuntu 24.04 LTS. Additionally, self-hosted worker docs state explicitly: \"Windows hosts are not supported, because the worker requires O_NOFOLLOW when it opens memory files\" (https://platform.claude.com/docs/en/managed-agents/memory).",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Sandbox specifications: Operating system Ubuntu 24.04 LTS",
+      "note": "Cloud sandbox OS is fixed at Ubuntu Linux; no macOS sandbox option exists. (macOS appears in docs only as a developer install target for the ant CLI used to run a self-hosted worker, not as a sandbox OS.) Outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
+      "quote": "Sandbox specifications: Architecture x86_64 (amd64)",
+      "note": "Managed cloud sandbox architecture is explicitly fixed at x86_64/amd64. (arm64 only appears in self-hosted-worker install scripts, i.e. the architecture of infrastructure YOU supply, not an offered sandbox CPU architecture choice.)",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes",
+      "quote": "Self-hosted sandboxes keep the orchestration on Anthropic's side but move tool execution into infrastructure you control, so the agent's code, filesystem, and network egress never leave your environment. Tool execution stays on your host: the filesystem the agent reads and writes, the processes it spawns, and the network it can reach are all under your control.",
+      "note": "Contradiction in the card: top-level features.self_host=false even though the card's own \"self-hosted\" mode sets features.self_host=true and self-hosted-sandboxes docs describe running the sandbox/worker entirely on infrastructure you control. Correct top-level self_host to true.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/overview",
+      "quote": "Claude Managed Agents is a beta feature of the Claude Developer Platform for running long-lived, autonomous Claude agent sessions.",
+      "note": "Managed Agents is a proprietary hosted Anthropic API product (beta feature of the paid Claude Developer Platform), not released under an OSI license. (The `ant` CLI/worker binary is a closed-source download, not published as open source.)",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/managed-agents/overview",
+      "quote": "Managed Agents is not currently eligible for Zero Data Retention or HIPAA Business Associate Agreement (BAA) coverage.",
+      "note": "Explicit statement of non-eligibility for HIPAA BAA.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://platform.claude.com/docs/en/manage-claude/data-residency",
+      "quote": "The inference_geo parameter controls where model inference runs for a specific API request. ... Value Description \"global\" Default. Inference may run in any available geography ... inference_geo = \"us\"",
+      "note": "The only geographic pinning values documented for the Claude API / Managed Agents are \"global\" and \"us\" (allowed_inference_geos / default_inference_geo also only take these). No EU region/residency option is offered.",
+      "checked": "2026-09-30"
     }
   }
 }

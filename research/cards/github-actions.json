@@ -688,7 +688,7 @@
     "gpu_types": [
       "T4"
     ],
-    "snapshot": "none",
+    "snapshot": "fs",
     "pause_resume": false,
     "fork": false,
     "persistent_disk": false,
@@ -704,7 +704,7 @@
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
-    "agent_harnesses": false,
+    "agent_harnesses": true,
     "ssh": false,
     "public_ipv4": false,
     "inbound_https": false,
@@ -713,16 +713,16 @@
     "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
-    "self_host": false,
+    "self_host": true,
     "byoc": false,
-    "open_source": false,
+    "open_source": true,
     "regions": [
       "us",
       "eu",
       "asia"
     ],
     "soc2": true,
-    "hipaa": null,
+    "hipaa": false,
     "sso": true,
     "lang_python": true,
     "lang_node": true,
@@ -731,9 +731,9 @@
     "lang_java": true,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
@@ -743,7 +743,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": true,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
     "harness_api": true,
@@ -752,7 +752,13 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "hyper-v",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -861,10 +867,203 @@
     },
     "volume_shared": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No shared filesystem between concurrent hosted runners documented; jobs share data via artifacts/cache or external storage (e.g. through Azure VNET).",
-      "checked": "2026-09-29"
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "Each workflow run executes in a fresh, newly-provisioned virtual machine.",
+      "note": "No shared-volume-across-concurrent-runners feature documented; each runner VM is independent and isolated. Jobs only share data via artifacts/cache/external storage.",
+      "checked": "2026-09-30"
+    },
+    "isolation": {
+      "value": "hyper-v",
+      "source": "https://docs.github.com/en/actions/reference/runners/github-hosted-runners",
+      "quote": "each GitHub-hosted runner is a new virtual machine (VM) hosted by GitHub ... Windows and Ubuntu runners are hosted in Azure",
+      "note": "Standard/larger runners are full per-job Azure VMs (Windows/Ubuntu run on Azure IP ranges; macOS on GitHub's own macOS fleet using Apple's Virtualization Framework). Azure's default hypervisor is Hyper-V; docs don't name the hypervisor explicitly, so this is derived. ubuntu-slim single-CPU runners instead use a shared-VM container ('hypervisor level 2 isolation').",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/use-custom-images",
+      "quote": "You can create a custom image to define the exact environment that your GitHub-hosted larger runners use.",
+      "note": "Custom images are whole-VM images built via an image-generation runner + the `snapshot` workflow keyword (Packer-style), not OCI/Docker images the runner boots from. docker_inside (running containers inside the VM) is separately true, but the machine itself never starts from a customer-supplied OCI image.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "GitHub Actions is a continuous integration and continuous delivery (CI/CD) platform that allows you to automate your build, test, and deployment pipeline.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "GitHub Actions is a continuous integration and continuous delivery (CI/CD) platform that allows you to automate your build, test, and deployment pipeline.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.github.com/en/actions/reference/runners/github-hosted-runners",
+      "quote": "Windows and Ubuntu runners are hosted in Azure and subsequently have the same IP address ranges as the Azure datacenters.",
+      "note": "macOS runners are hosted in GitHub's own macOS cloud (also datacenter-class, not residential/mobile).",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "Each workflow run executes in a fresh, newly-provisioned virtual machine.",
+      "note": "not offered: outside the product's scope — there is no persistent/sleeping sandbox to wake; every job gets a brand-new ephemeral VM provisioned on trigger, which is a different mechanism than resuming a stopped machine.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/reference/runners/github-hosted-runners",
+      "quote": "For private repositories, jobs using the workflow labels shown in the table below will run on virtual machines with the associated specifications.",
+      "note": "CPU/RAM size is fixed per workflow label chosen at job start; no documented API to change vCPU/RAM of a running runner. not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.github.com/en/rest/agent-tasks/agent-tasks",
+      "quote": "Use the REST API to start and manage Copilot cloud agent tasks",
+      "note": "not offered: outside the product's scope — GitHub's own agent API drives the Copilot coding agent (a coding harness, already captured as harness_api), not a browser/computer-use/research task agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/github/github-mcp-server/main/README.md",
+      "quote": "CI/CD & Workflow Intelligence: Monitor GitHub Actions workflow runs, analyze build failures, manage releases, and get insights into your development pipeline.",
+      "note": "GitHub's official github-mcp-server (also served at https://api.githubcopilot.com/mcp/) lets an MCP client trigger/monitor Actions workflow runs, i.e. control the CI-runner sandboxes, alongside its broader repo/issue/PR tooling.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.github.com/en/organizations/managing-organization-settings/about-azure-private-networking-for-github-hosted-runners-in-your-organization",
+      "quote": "any outbound rules applied to your VNET's network security group (NSG) also apply, giving you the ability to control outbound access for your runners.",
+      "note": "Egress control is IP/network-security-group level (Azure NSG for VNET-injected larger runners, or an /etc/hosts block for standard runners), not HTTP method/path level.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://docs.github.com/en/enterprise-cloud@latest/admin/overview/accessing-compliance-reports-for-your-enterprise",
+      "quote": "You can access GitHub's compliance reports in your enterprise settings. SOC 1, Type 2 SOC 2, Type 2 Cloud Security Alliance CAIQ self-assessment (CSA CAIQ - Level 1) ISO/IEC 27001:2022 certification Cloud Security Alliance STAR certification (CSA STAR - Level 2) ... GitHub PCI DSS Attestation of Compliance",
+      "note": "GitHub's published compliance-report list (SOC 1/2, ISO 27001, CSA STAR, PCI DSS) does not include HIPAA/BAA; no GitHub page offers a BAA for github.com or GitHub Actions.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "fs",
+      "corrected_from": "none",
+      "source": "https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/use-custom-images",
+      "quote": "After you create an image-generation runner, run a workflow that includes the `snapshot` keyword to generate a custom image.",
+      "note": "Contradiction confirmed: the card already records snapshot_on_demand=true (disk-image snapshot via the `snapshot` workflow keyword, larger runners only, no memory captured) yet the enum field `snapshot` was set to \"none\". Correct value per the fs/mem/none enum is \"fs\" (disk-only, on-demand, no running-process/memory restore).",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "Each workflow run executes in a fresh, newly-provisioned virtual machine.",
+      "note": "No first-party way for a hosted-runner job's disk to survive between runs; only actions/cache, artifacts, or custom images (separate storage products) persist data, not the runner's own filesystem.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "Each workflow run executes in a fresh, newly-provisioned virtual machine.",
+      "note": "No pause/resume API or concept documented anywhere for hosted runners; a job runs to completion, cancellation, or timeout and the VM is torn down. Derived from the always-fresh/ephemeral model since no page states 'no pause' explicitly.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/use-custom-images",
+      "quote": "After you create an image-generation runner, run a workflow that includes the `snapshot` keyword to generate a custom image.",
+      "note": "Custom images are a boot template for future NEW runners, not cloning a specific machine's current state into siblings; no clone/fork-a-machine API exists for hosted runners.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "Each workflow run executes in a fresh, newly-provisioned virtual machine.",
+      "note": "No documented capability to clone a live/running runner VM without stopping it.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/use-custom-images",
+      "quote": "After you create an image-generation runner, run a workflow that includes the `snapshot` keyword to generate a custom image.",
+      "note": "The only snapshot mechanism is a disk-only custom-image capture at job completion; it explicitly carries no memory/process state, so memory-snapshot forking is not offered.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.github.com/en/organizations/managing-organization-settings/about-azure-private-networking-for-github-hosted-runners-in-your-organization",
+      "quote": "It is recommended to explicitly block all inbound connections to the runners. GitHub will never require inbound connections to these machines.",
+      "note": "No official SSH-into-runner feature is documented anywhere (only unofficial third-party marketplace actions like action-tmate exist, not first-party). Hosted runners accept no inbound connections at all, which precludes first-party SSH.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "GitHub Actions is a continuous integration and continuous delivery (CI/CD) platform that allows you to automate your build, test, and deployment pipeline.",
+      "note": "Hosted runners are headless CI/CD job VMs; no VNC/RDP/stream desktop product is offered or documented (outside product scope), medium confidence per rules for a plainly out-of-scope feature.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "GitHub Actions is a continuous integration and continuous delivery (CI/CD) platform that allows you to automate your build, test, and deployment pipeline.",
+      "note": "No screenshot+click desktop-driving API; plainly outside the CI/CD runner product's scope, medium confidence.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "Each workflow run executes in a fresh, newly-provisioned virtual machine.",
+      "note": "Matches the card's existing volume_attach evidence: no attachable extra persistent volumes for hosted runners, only the fixed local SSD per size.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.github.com/en/organizations/managing-organization-settings/about-azure-private-networking-for-github-hosted-runners-in-your-organization",
+      "quote": "It is recommended to explicitly block all inbound connections to the runners. GitHub will never require inbound connections to these machines.",
+      "note": "No first-party public URL / HTTPS ingress to a runner's ports; standard runners have no way to expose an inbound HTTPS endpoint.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/reference/runners/github-hosted-runners",
+      "quote": "Since there are so many IP address ranges for GitHub-hosted runners, we do not recommend that you use these as allowlists for your internal resources. Instead, we recommend you use larger runners with a static IP address range, or self-hosted runners.",
+      "note": "Standard hosted runners draw from large shared Azure/GitHub IP ranges (no dedicated public IPv4 per machine, no inbound use of it); only larger runners offer a fixed IP range, and that is for outbound allowlisting, not an inbound-usable public IPv4.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.github.com/en/copilot/concepts/agents/about-third-party-coding-agents",
+      "quote": "You can use third-party coding agents alongside Copilot cloud agent to work asynchronously on your development tasks. You can assign an existing issue or give a prompt to an agent, which will work on the required changes and create a pull request.",
+      "note": "GitHub offers Anthropic Claude and OpenAI Codex as selectable third-party coding-agent options (public preview) from the Agents tab/issues/PR mentions, each running in an ephemeral environment powered by GitHub Actions - this matches 'coding agents ... offered as templates'. Corrects the false value.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.github.com/en/actions/concepts/runners/self-hosted-runners",
+      "quote": "A self-hosted runner is a system that you deploy and manage to execute jobs from GitHub Actions on GitHub. ... Can be physical, virtual, in a container, on-premises, or in a cloud.",
+      "note": "GitHub Actions has a first-party, officially documented self-hosted runner mode: you run the (open-source) runner agent on your own infrastructure and it executes your workflow jobs. Corrects the false value.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "quote": "GitHub Actions is a continuous integration and continuous delivery (CI/CD) platform that allows you to automate your build, test, and deployment pipeline.",
+      "note": "GitHub does not deploy a managed Actions control plane into a customer's own cloud account; self-hosted runners are the user's own machines attaching outward to github.com, which is a different model from BYOC. No page offers a BYOC deployment of GitHub Actions itself; medium confidence (derived, no explicit 'no BYOC' statement).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://github.com/actions/runner",
+      "quote": "license: MIT (from api.github.com/repos/actions/runner); LICENSE file: \"The MIT License (MIT) Copyright (c) 2019 GitHub\"",
+      "note": "The GitHub Actions runner agent (actions/runner, and actions/runner-images defining the hosted VM images) is open source under the MIT license on GitHub. The cloud orchestration/backend is closed, but the core client software that executes jobs - the part users actually deploy/self-host - is OSI-licensed open source. Corrects the false value.",
+      "checked": "2026-09-30"
     }
   }
 }

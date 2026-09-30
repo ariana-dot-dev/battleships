@@ -331,16 +331,16 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
     "egress_http_rules": true,
-    "wake_on_request": null,
-    "live_resize": null,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
@@ -350,7 +350,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": true,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
     "harness_api": false,
@@ -359,7 +359,14 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "hyper-v",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -482,6 +489,167 @@
       "quote": "Azure shared disks is a feature for Azure managed disks that allows you to attach a managed disk to multiple virtual machines (VMs) simultaneously.",
       "note": "Shared managed disks (maxShares>1; Ultra, Premium SSD v2, Premium SSD, Standard SSD) are block-level read-write for all nodes but need a cluster manager (e.g. Windows Server Failover Cluster / SCSI PR) to coordinate writes. Simpler multi-VM read-write shared filesystem: Azure Files SMB shares mounted on Windows ('This article shows you how to mount an SMB Azure file share on Windows and Windows Server.').",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "hyper-v",
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/windows/overview",
+      "quote": "Azure virtual machines... run on the Hyper-V hypervisor",
+      "note": "Azure IaaS VMs (including the Windows Server D/F-series sizes modeled) run on Microsoft's Hyper-V hypervisor; each customer VM is a full Hyper-V guest partition, not a container or microVM.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/windows/capture-image-resource",
+      "quote": "Create a legacy managed image of the VM with az image create. Creating a legacy managed image directly from the VM ensures that the image includes all of the disks associated with the VM, including the OS disk and any data disks.",
+      "note": "not offered: outside the product's scope. Azure VM custom images are captured/created as managed-disk (VHD) images from an existing VM or uploaded VHD/generalized image via Azure Compute Gallery; there is no mechanism to boot a VM directly from a Docker/OCI container image.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://azure.microsoft.com/en-us/pricing/details/virtual-machines/windows/",
+      "quote": "Provision Windows and Linux virtual machines in seconds and get root or administrator access to fully support your evolving workload needs.",
+      "note": "not offered: outside the product's scope. Azure Windows VMs are general-purpose IaaS compute; there is no built-in browser stealth/anti-fingerprinting feature.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://azure.microsoft.com/en-us/pricing/details/virtual-machines/windows/",
+      "quote": "Provision Windows and Linux virtual machines in seconds and get root or administrator access to fully support your evolving workload needs.",
+      "note": "not offered: outside the product's scope. A generic IaaS VM has no built-in CAPTCHA-solving capability.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/public-ip-addresses",
+      "quote": "Static - The resource is assigned an IP address at the time it's created... Azure assigns the IP address from a pool of available IP addresses in the Azure location the resource is created in.",
+      "note": "Standard public IPs are allocated from Azure's own datacenter IP pools (no residential/mobile IPs); a Standard SKU public IP can be set to Static allocation, matching the card's static_egress_ip:true.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/states-billing",
+      "quote": "The virtual machine has released the lease on the underlying hardware. If the machine is powered off it is shown as Stopped (Deallocated).",
+      "note": "not offered: outside the product's scope. A stopped/deallocated Azure VM must be explicitly started via API/portal/CLI/schedule; there is no serverless-style mechanism that wakes the VM automatically when a network request arrives at it.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/resize-vm",
+      "quote": "Even when deallocation isn’t required, changing the size of a running VM will cause it to restart. For this reason, resizing a VM should be considered a disruptive operation, especially for stateful workloads.",
+      "note": "Resizing always restarts the VM (or requires deallocation first); CPU/RAM cannot be changed on a running VM without a restart.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://azure.microsoft.com/en-us/pricing/details/virtual-machines/windows/",
+      "quote": "Provision Windows and Linux virtual machines in seconds and get root or administrator access to fully support your evolving workload needs.",
+      "note": "not offered: outside the product's scope. Azure VMs are generic compute; there is no first-party browser/computer-use/research task agent shipped with the product (Run Command / Custom Script Extension only run arbitrary scripts, not a provider-owned agent).",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/microsoft/mcp/main/servers/Azure.Mcp.Server/README.md",
+      "quote": "All Azure MCP tools in a single server. The Azure MCP Server implements the [MCP specification](https://modelcontextprotocol.io) to create a seamless connection between AI agents and Azure services.",
+      "note": "Microsoft ships an official Azure MCP Server (open source, github.com/microsoft/mcp) exposing Azure resource operations, including Azure Compute/VM management, to MCP clients.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/windows/quick-create-portal",
+      "quote": "This quickstart shows you how to use the Azure portal to deploy a virtual machine (VM) in Azure that runs Windows Server 2022 Datacenter. To see your VM in action, you then RDP to the VM and install the IIS web server.",
+      "note": "not offered: outside the product's scope. The base Windows Server marketplace image is a bare OS image; even a basic web server (IIS) must be installed manually after deployment, and Python is not part of the default image and must be installed by the customer.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/windows/quick-create-portal",
+      "quote": "This quickstart shows you how to use the Azure portal to deploy a virtual machine (VM) in Azure that runs Windows Server 2022 Datacenter. To see your VM in action, you then RDP to the VM and install the IIS web server.",
+      "note": "not offered: outside the product's scope. Same base Windows Server image; Node.js is not preinstalled and must be installed by the customer after deployment.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://azure.microsoft.com/en-us/pricing/details/virtual-machines/windows/",
+      "quote": "Provision Windows and Linux virtual machines in seconds and get root or administrator access to fully support your evolving workload needs.",
+      "note": "An IaaS VM (non-Spot) runs indefinitely until the customer stops/deallocates or deletes it; there is no maximum-session/forced-stop time limit for the on-demand pay-as-you-go product modeled by this card (Spot VMs can be evicted but that is a separate mode, not the base max_session_h).",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/snapshot-copy-managed-disk",
+      "quote": "To recover by using a snapshot, create a managed disk from the snapshot. Then use the managed disk as the OS disk for a new VM or attach it as a data disk to an existing VM.",
+      "note": "Azure's only way to duplicate a VM is create a disk snapshot/image, then provision a brand-new VM from it (a separate, multi-step create operation) - there is no one-call 'fork this machine' API. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/snapshot-copy-managed-disk",
+      "quote": "To recover by using a snapshot, create a managed disk from the snapshot. Then use the managed disk as the OS disk for a new VM or attach it as a data disk to an existing VM.",
+      "note": "Cloning always goes through a disk snapshot -> new managed disk -> new VM create; there is no documented mechanism to clone a VM while it keeps running. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/snapshot-copy-managed-disk",
+      "quote": "To recover by using a snapshot, create a managed disk from the snapshot. Then use the managed disk as the OS disk for a new VM or attach it as a data disk to an existing VM.",
+      "note": "Managed-disk snapshots capture disk contents only. Azure's only memory-preserving mechanism is hibernation, which resumes the SAME VM (not a new forked copy); there is no first-party way to spin up a new, independent VM with the old VM's memory/process state. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/overview",
+      "quote": "An Azure virtual machine gives you the flexibility of virtualization without having to buy and maintain the physical hardware that runs it. However, you still need to maintain the virtual machine by performing tasks, such as configuring, patching, and installing the software that runs on it.",
+      "note": "Azure VMs are plain IaaS: Microsoft supplies the OS/hardware virtualization only, and the customer installs and manages any software. There is no first-party API that drives the desktop via screenshots+clicks (an agent 'computer use' loop) - that would be third-party software the customer installs. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/auto-shutdown-vm",
+      "quote": "In the \"Auto-shutdown\" configuration screen, toggle the switch to \"On.\" Set the time you want the virtual machine to shut down.",
+      "note": "Azure's built-in 'auto-shutdown' is a fixed daily clock time, not idle/activity detection. There is no first-party feature that stops a VM automatically because it has been idle. Confirms false (the existing feature is schedule-based, not idle-based).",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview",
+      "quote": "A network security group contains security rules that allow or deny inbound network traffic to, or outbound network traffic from, several types of Azure resources.",
+      "note": "A Windows VM only gets a raw public IPv4 and NSG port rules (already captured by public_ipv4/raw_tcp_inbound=true); Azure does not hand you a managed HTTPS URL/TLS termination for the VM the way PaaS services (App Service, Front Door, Application Gateway) do - you must deploy and operate that yourself. Confirms false for a first-party managed HTTPS endpoint.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/windows/run-command",
+      "quote": "The Run Command feature uses the virtual machine (VM) agent to run PowerShell scripts within an Azure Windows VM.",
+      "note": "The only first-party in-guest automation is generic script execution (Run Command / Custom Script Extension); Microsoft ships no preinstalled coding-agent harness (Claude Code, Codex, OpenCode, etc.) or agent template images for Windows VMs. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/linux/endorsed-distros",
+      "quote": "There are several different sources of Linux Virtual Machine (VM) images for Azure. ... images provided in partnership between Microsoft and several mainstream Linux publishers such as Red Hat, Canonical, and SUSE.",
+      "note": "Azure's supported guest operating systems for Virtual Machines are Windows Server/Windows client and the endorsed Linux distributions; Azure runs on Microsoft Hyper-V on non-Apple hardware, so macOS guests (which require Apple hardware/licensing) are plainly outside what this Windows/Linux VM product offers. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/overview",
+      "quote": "An Azure virtual machine gives you the flexibility of virtualization without having to buy and maintain the physical hardware that runs it.",
+      "note": "Azure VMs run only inside Microsoft's own Azure datacenters/regions; there is no distributable software package a customer can install and run on their own infrastructure. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/overview",
+      "quote": "An Azure virtual machine gives you the flexibility of virtualization without having to buy and maintain the physical hardware that runs it.",
+      "note": "Azure IS the cloud account/infrastructure itself (Microsoft-owned regions); there is no offering to deploy the Azure VM service into a customer's own AWS/GCP/other cloud account. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://azure.microsoft.com/en-us/pricing/details/virtual-machines/windows/",
+      "quote": "Pricing - Windows Virtual Machines | Microsoft Azure",
+      "note": "Azure Virtual Machines is a proprietary, metered commercial cloud service (billed per-hour as shown on this pricing page); Microsoft does not publish the VM service (hypervisor/control plane) under an OSI open-source license. Confirms false.",
+      "checked": "2026-09-30"
     }
   }
 }

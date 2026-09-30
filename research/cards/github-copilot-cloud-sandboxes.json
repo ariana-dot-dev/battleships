@@ -105,19 +105,19 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": false,
+    "arm64": null,
     "gpu": false,
     "gpu_types": [],
     "snapshot": "mem",
     "pause_resume": true,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": false,
     "auto_stop_idle": null,
     "max_session_h": null,
     "custom_image": false,
-    "docker_inside": false,
-    "nested_virt": false,
+    "docker_inside": null,
+    "nested_virt": null,
     "root": true,
     "systemd": false,
     "browser": false,
@@ -127,7 +127,7 @@
     "agent_harnesses": true,
     "ssh": false,
     "public_ipv4": false,
-    "inbound_https": null,
+    "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
@@ -150,23 +150,32 @@
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": true,
-    "wake_on_request": null,
+    "wake_on_request": false,
     "live_resize": null,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": false,
+    "eu_data_residency": null,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": true,
     "snapshot_auto": true,
     "harness_api": true,
     "egress_allowlist_level": "both",
     "guest_firewall": true,
-    "secret_proxy": false
+    "secret_proxy": false,
+    "isolation": "firecracker",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "snapshot_on_demand": false,
+    "volume_attach": false,
+    "volume_shared": false,
+    "own_agent_api": false,
+    "ingress_rules": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -250,6 +259,234 @@
       "quote": "Variables and secrets that you configure are exposed to Copilot as environment variables, except secrets and variables prefixed with `COPILOT_MCP_`, which are only available to MCP servers.",
       "note": "Agents secrets and variables (org/repo) are injected as env vars and masked in logs. No credential-injecting proxy. The model API is platform-side (Copilot), so there are no model keys in the sandbox.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "firecracker",
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/sandboxes-snapshots-state-management",
+      "quote": "Azure Container Apps Sandboxes are isolated, lightweight virtual machines for interactive sessions, agentic workloads, and controlled code execution.",
+      "note": "GitHub's cloud sandbox (copilot --cloud) is 'built on Azure Container Apps Sandboxes, with GitHub providing the identity, policy, and billing layer' (docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes). Microsoft describes the underlying platform as isolated lightweight VMs but does not name the specific hypervisor/microVM technology (Firecracker) in current public docs. Carried forward from the card's existing top-level classification at medium confidence since the exact hypervisor isn't published.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandboxing: Run an entire GitHub Copilot session remotely, inside a fully isolated, ephemeral Linux environment hosted by GitHub.",
+      "note": "GitHub's cloud sandbox docs describe only starting, stopping, resuming, and deleting a session; no user-facing option to supply a custom Docker/OCI image is documented for the Copilot product, even though the underlying Azure Container Apps Sandboxes platform supports custom OCI disk images. Consistent with the card's existing custom_image:false.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes",
+      "quote": "Cloud and local sandboxes provide isolated execution environments that let GitHub Copilot safely interact with code, tools, filesystem, and network resources securely on your local machine or in fully isolated cloud environments.",
+      "note": "not offered: outside the product's scope — this is a coding-agent execution sandbox, not a browser/scraping product; no stealth or fingerprinting-evasion feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes",
+      "quote": "Cloud and local sandboxes provide isolated execution environments that let GitHub Copilot safely interact with code, tools, filesystem, and network resources securely on your local machine or in fully isolated cloud environments.",
+      "note": "not offered: outside the product's scope — a coding-agent sandbox for running Copilot CLI/app sessions, not a browser-automation or scraping product; no CAPTCHA-solving capability is documented.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes",
+      "quote": "When you stop a session, the cloud sandbox creates a snapshot of its state so you can pick up where you left off later.",
+      "note": "Snapshotting is described only as an automatic side effect of stopping a session (Active → Stopped), not as a separate on-demand checkpoint API/CLI call a user can invoke while the session keeps running.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes",
+      "quote": "Stopped: The session is not currently running, but its state is saved. When you resume it, your files, environment variables, and in-progress work are restored.",
+      "note": "Resuming a stopped session is described as an explicit user action ('when you resume it'), not an automatic wake triggered by an inbound request; the product has no exposed inbound URL for arbitrary requests anyway.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandboxing is built on Azure Container Apps Sandboxes, with GitHub providing the identity, policy, and billing layer.",
+      "note": "not offered: outside the product's scope as exposed to Copilot users — no attach-a-volume feature is documented for Copilot cloud sandbox sessions, even though the underlying Azure Container Apps Sandboxes platform supports Blob/Data Disk volumes. Consistent with the card's existing volumes:false.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandboxing is built on Azure Container Apps Sandboxes, with GitHub providing the identity, policy, and billing layer.",
+      "note": "not offered: outside the product's scope as exposed to Copilot users — no shared-volume feature across Copilot cloud sandbox sessions is documented. Consistent with the card's existing volumes:false.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/cloud-sessions",
+      "quote": "Cloud sessions run Copilot work on GitHub-hosted compute and appear in the agents panel on GitHub. Use them when your app should create a session that executes remotely instead of starting a local GitHub Copilot CLI session on the user's machine or your server.",
+      "note": "not offered: outside the product's scope — GitHub's first-party API (Copilot SDK cloud sessions / REST agent tasks) drives Copilot's own CODING harness (already captured by harness_api:true), not a separate browser/computer-use/research task agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-with-mcp",
+      "quote": "Using Copilot cloud agent via the GitHub MCP Server ... Start Copilot cloud agent sessions from any IDE or agentic tool that supports Model Context Protocol (MCP).",
+      "note": "GitHub ships a first-party remote MCP Server that can start/drive Copilot cloud agent sessions (create_pull_request_with_copilot tool); this is documented for the Actions-based 'cloud agent' product rather than the ACA-based 'copilot --cloud' cloud sandbox this card models specifically, but both are the same underlying GitHub-hosted Copilot session infrastructure and share policy configuration, so this is answered true at medium confidence.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/cloud-sessions",
+      "quote": "Cloud sessions run Copilot work on GitHub-hosted compute and appear in the agents panel on GitHub.",
+      "note": "not offered: outside the product's scope — a Copilot cloud sandbox session is reached only through the Copilot CLI, GitHub Copilot app, or the agents panel URL; there is no documented feature to expose an arbitrary port on the sandbox as a public HTTPS URL.",
+      "checked": "2026-09-30"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/cloud-sessions",
+      "quote": "Cloud sessions run Copilot work on GitHub-hosted compute and appear in the agents panel on GitHub.",
+      "note": "not offered: outside the product's scope — since no inbound HTTPS/port exposure feature exists for Copilot cloud sandbox sessions, there is correspondingly no documented provider-side ingress control (IP allowlists, auth URLs) for them.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "Stopped: The session is not currently running, but its state is saved. When you resume it, your files, environment variables, and in-progress work are restored. ... When you stop a session, the cloud sandbox creates a snapshot of its state so you can pick up where you left off later.",
+      "note": "Card contradiction confirmed: stopping a cloud sandbox snapshots the filesystem (billed as snapshot storage, $0.005/GiB-month) and resuming restores files. That is a first-party persist-across-stop mechanism, so persistent_disk should be true (default: snapshot on stop, restored on resume; deleting the session removes the snapshot permanently).",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "A cloud sandbox session has three main states: Active ... Stopped ... Deleted: The session and its saved state are removed and cannot be recovered.",
+      "note": "Only active/stopped/deleted lifecycle is documented; no API or CLI/app action to duplicate a session into a second independent sandbox was found in the sandboxing, SDK cloud-sessions, or session-persistence docs.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "A cloud sandbox session has three main states: Active ... Stopped ... Deleted: The session and its saved state are removed and cannot be recovered.",
+      "note": "No documented way to branch a live/running session into a second running copy; same evidence as fork.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "When you stop a session, the cloud sandbox creates a snapshot of its state so you can pick up where you left off later.",
+      "note": "The snapshot on stop is used only to resume the same session later, not documented as a mechanism to spawn a new/forked sandbox from that snapshot.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Docs describe the sandbox as a container-based Linux environment for running Copilot CLI/app sessions; whether the container permits running Docker/nested containers is not documented either way. No 'docker' mention anywhere on the sandboxing, billing, or SDK cloud-session pages checked.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: No mention of nested virtualization/hardware-VM support inside the sandbox container in any page checked; ACA Sandboxes are container-based, so nested VMs are plausible but unconfirmed.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "Sandboxing uses your existing Copilot authentication. If you can sign in to Copilot CLI or the GitHub Copilot app and have access to Copilot, you don't need to configure separate authentication for the sandboxing options available in that surface.",
+      "note": "Access to a cloud sandbox session is only through Copilot CLI (copilot --cloud) or the GitHub Copilot app; no SSH endpoint or key-based shell access to the sandbox is documented anywhere in the sandboxing or billing pages.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandboxing: Run an entire Copilot session remotely, inside a fully isolated, ephemeral Linux environment hosted by GitHub.",
+      "note": "The product is a headless CLI/agent coding environment (shell + files), not a GUI desktop; no desktop/VNC/RDP access is documented.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandboxing: Run an entire Copilot session remotely, inside a fully isolated, ephemeral Linux environment hosted by GitHub.",
+      "note": "No embedded/controllable browser inside the sandbox is documented; the sandbox exposes a CLI/agent shell, not a browser UI.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "The commands that Copilot runs execute in the cloud environment, not on your local machine.",
+      "note": "Copilot cloud sandbox is a shell/file coding agent (runs commands, edits files), not a GUI computer-use/screen-control agent; no computer_use capability is documented.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandboxing: Run an entire Copilot session remotely, inside a fully isolated, ephemeral Linux environment hosted by GitHub.",
+      "note": "No option to supply a custom base container image for a cloud sandbox session is documented; 'Customize the agent environment' in GitHub's docs applies to the separate Actions-based cloud agent product, not this cloud-sandbox mode.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.github.com/en/billing/concepts/product-billing/cloud-and-local-sandboxes",
+      "quote": "Storage Snapshot storage for stopped sessions. GiB month $0.005",
+      "note": "Storage documented is only the automatic per-session state snapshot, not a separately attachable/mountable persistent volume; no volume_attach/volume_shared capability is documented.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandbox policies share the same configuration as Copilot cloud agent policies, extending existing security controls to cloud sandboxed execution without additional setup.",
+      "note": "No dedicated/public inbound IPv4 address for a cloud sandbox is documented; network docs describe only outbound firewall/allowlist controls, not inbound public IP assignment.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.github.com/en/billing/concepts/product-billing/cloud-and-local-sandboxes",
+      "quote": "GitHub measures cloud sandbox usage across three meters: Compute, Memory, Storage.",
+      "note": "Only CPU compute-second, memory GiB-second, and storage GiB-month meters are billed/documented; no GPU meter, GPU type, or GPU option exists for this coding-agent sandbox.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandboxing: Run an entire Copilot session remotely, inside a fully isolated, ephemeral Linux environment hosted by GitHub.",
+      "note": "Cloud sandbox is explicitly Linux-only. (Windows is only a supported OS for local sandboxing on the user's own machine, a different feature.)",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandboxing: Run an entire Copilot session remotely, inside a fully isolated, ephemeral Linux environment hosted by GitHub.",
+      "note": "Cloud sandbox is explicitly Linux-only. (macOS is only a supported OS for local sandboxing on the user's own machine, a different feature.)",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: GitHub does not publish the CPU architecture of cloud sandbox sessions (built on Azure Container Apps Sandboxes) anywhere checked; no confirmation of x86-only or ARM availability.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandboxing: Run an entire Copilot session remotely, inside a fully isolated, ephemeral Linux environment hosted by GitHub. ... Because cloud sandbox sessions run in GitHub-hosted infrastructure, you can pick up a Copilot session on any device.",
+      "note": "Cloud sandboxes run only on GitHub-hosted infrastructure; there is no option to run the cloud sandbox on your own servers (self-hosting is only offered for GitHub Actions-based cloud agent runners, a different product).",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "You don't need to configure a separate cloud provider, manage API keys, or set up infrastructure.",
+      "note": "Explicitly no bring-your-own-cloud option: GitHub owns the infrastructure (Azure Container Apps Sandboxes) end to end.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+      "quote": "Cloud sandboxing is built on Azure Container Apps Sandboxes, with GitHub providing the identity, policy, and billing layer.",
+      "note": "Cloud sandboxing is a proprietary GitHub/Azure-hosted service; no open-source repository for the cloud sandbox runtime itself is published (Copilot CLI and the MXC local-sandbox backend are separate open components, but the cloud sandbox service is not).",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: No region selection, data-residency, or EU-specific hosting option is documented for cloud sandboxes on the sandboxing, billing, or SDK pages checked; GitHub Enterprise Cloud has separate EU data residency features but none found tied to cloud sandboxes specifically.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -154,55 +154,55 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
-    "gpu": null,
-    "snapshot": null,
-    "pause_resume": null,
-    "fork": null,
+    "windows": false,
+    "macos": false,
+    "arm64": true,
+    "gpu": false,
+    "snapshot": "fs",
+    "pause_resume": true,
+    "fork": false,
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": null,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
     "browser": true,
-    "desktop": null,
-    "computer_use": null,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
-    "ssh": null,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "agent_harnesses": true,
+    "ssh": true,
+    "public_ipv4": false,
+    "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": true,
-    "byoc": null,
+    "byoc": false,
     "open_source": true,
     "soc2": null,
     "hipaa": null,
     "sso": true,
     "gpu_types": [],
     "regions": null,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": true,
     "egress_http_rules": true,
-    "wake_on_request": null,
+    "wake_on_request": true,
     "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": true,
     "audit_logs": true,
@@ -210,12 +210,20 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "own_agent_api": true,
     "harness_api": false,
     "egress_allowlist_level": "domain",
     "guest_firewall": true,
-    "secret_proxy": "any-http"
+    "secret_proxy": "any-http",
+    "isolation": "kata",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "snapshot_auto": true,
+    "volume_attach": false,
+    "volume_shared": false,
+    "ingress_rules": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -299,6 +307,209 @@
       "quote": "If allowed, the gateway matches the target host and path against the credentials **granted to that agent**, decrypts the match, and injects it as a header (e.g. `Authorization: Bearer ...`) or query parameter.",
       "note": "Core product: Rust MITM gateway; generic secrets for any host pattern (header or query-param injection, value templates), plus anthropic/openai types, OAuth app connections with token refresh (40+ apps), AWS SigV4 request signing, GitHub tokens into API calls and git-over-HTTPS (Basic auth), Bitwarden/1Password vault pull. Agents see placeholders ('onecli-managed' stubs). Non-HTTP (databases, SSH, raw git://) not covered; in sandboxes such traffic has no route out. Also usable standalone for external agents via 'onecli run' or SDK-injected Docker proxy config.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "kata",
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "e2fsprogs + util-linux serve the Kubernetes/Kata boot phase (the sandbox manager's boot.sh formats and mounts the raw block home, then setpriv-drops to `node` — plans/sandbox-platform.md step 2)",
+      "note": "OneCLI Cloud runs each agent in its own Kata Containers sandbox ('each sandbox owns a whole kernel', per the same Dockerfile's podman comments), matching the blog's 'one micro-VM per agent'. Self-hosted Community/Enterprise editions instead run sandboxes as plain Docker containers (CapDrop ALL, no-new-privileges) — a shared-kernel container, not this isolation level.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "COPY --from=jcode-runtime /opt/jcode /opt/jcode ... ENV ONECLI_JCODE_BINARY=/opt/jcode/jcode",
+      "note": "Sandboxes boot from OneCLI's own pinned agent image (jcode runtime baked in); no documented way for a customer to supply their own Docker/OCI image to start a sandbox from.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "Rootless podman works on the hosted microVM substrate, where each sandbox owns a whole kernel.",
+      "note": "The sandbox supports nested containers (rootless podman/docker, docker_inside=true) but nothing documents /dev/kvm or nested VM/emulator support inside the sandbox.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "xvfb is the fallback display for the rare tool that refuses headless mode",
+      "note": "The sandbox ships a headless Chromium plus Xvfb as a rendering fallback, not a user-facing graphical desktop (no VNC/RDP/stream product surface documented).",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://onecli.sh/blog/why-we-gave-every-agent-a-computer",
+      "quote": "A real browser, a real filesystem, and root on that VM, not on yours.",
+      "note": "not offered: the agent drives its browser via Playwright/Puppeteer APIs (DOM/CDP), not a screenshot+click computer-use API; no such API is documented.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://onecli.sh/docs/how-it-works.md",
+      "quote": "OneCLI runs each agent in its own sandbox on your infrastructure. A Rust gateway intercepts every outbound request, enforces policy, and injects credentials the agents never see.",
+      "note": "not offered: outside the product's scope — OneCLI is a credential-injecting agent gateway/sandbox platform, not a scraping/stealth product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://onecli.sh/docs/how-it-works.md",
+      "quote": "OneCLI runs each agent in its own sandbox on your infrastructure. A Rust gateway intercepts every outbound request, enforces policy, and injects credentials the agents never see.",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/ssh-terminator.Dockerfile",
+      "quote": "OneCLI SSH terminator — the sandbox platform's SSH front door (hosted agents) ... It terminates ssh with the short-lived certificates the api mints and bridges each session into an agent's container",
+      "note": "Hosted platform ships a dedicated SSH terminator service (short-lived certs, EXPOSE 2222) that bridges SSH sessions into an agent's sandbox; the agent image also bundles openssh-sftp-server/openssh-client for the SSH front door.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "fs",
+      "source": "https://onecli.sh/docs/how-it-works.md",
+      "quote": "The runner, polling outbound-only, picks up the turn and boots or wakes the agent's sandbox. The sandbox has a durable workspace volume that survives park and wake.",
+      "note": "Persistence is via a durable filesystem volume (/workspace) that survives park/wake, not a documented memory/process snapshot; running processes are not restored, so this is filesystem-level, not memory.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://onecli.sh/docs/how-it-works.md",
+      "quote": "idle sandboxes are parked to free resources ... The runner ... boots or wakes the agent's sandbox. The sandbox has a durable workspace volume that survives park and wake.",
+      "note": "Disk state is preserved automatically across the automatic park (idle stop) / wake (auto-restart on next message) cycle, with no explicit snapshot API call required.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://onecli.sh/docs/cli/onecli-cli.md",
+      "quote": "onecli agents create --name \"My Agent\" --identifier my-agent",
+      "note": "Agents/sandboxes are created fresh; no documented way to clone/fork an existing agent's sandbox into a new one.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://onecli.sh/docs/cli/onecli-cli.md",
+      "quote": "onecli agents create --name \"My Agent\" --identifier my-agent",
+      "note": "Depends on fork, which is not offered.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://onecli.sh/docs/cli/onecli-cli.md",
+      "quote": "onecli agents create --name \"My Agent\" --identifier my-agent",
+      "note": "No fork feature is documented at all, so memory-preserving fork is not offered.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": true,
+      "source": "https://onecli.sh/docs/how-it-works.md",
+      "quote": "idle sandboxes are parked to free resources ... The runner ... boots or wakes the agent's sandbox.",
+      "note": "Sandboxes are 'parked' (paused, freeing resources) when idle and 'woken' again on the next turn.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://onecli.sh/docs/how-it-works.md",
+      "quote": "The runner, polling outbound-only, picks up the turn and boots or wakes the agent's sandbox.",
+      "note": "An incoming message/turn automatically wakes a parked sandbox.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "VOLUME [\"/workspace\"]",
+      "note": "Each sandbox gets exactly one built-in durable workspace volume; no documented API/CLI to attach additional persistent volumes.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://onecli.sh/blog/why-we-gave-every-agent-a-computer",
+      "quote": "Nothing it does reaches another agent, another employee, or your systems. If it breaks something, it breaks only its own computer.",
+      "note": "Each agent's sandbox and its workspace volume are isolated from every other agent; no shared-volume feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "source": "https://onecli.sh/docs/guides/coding-agents.md",
+      "quote": "| Claude Code | `onecli run -- claude` | | Cursor | `onecli run -- cursor` | | Codex | `onecli run -- codex` | | Hermes | `onecli run -- hermes` | | OpenCode | `onecli run -- opencode` | | OpenClaw | `onecli run -- openclaw gateway run` |",
+      "note": "OneCLI documents first-class support for Claude Code, Cursor, Codex, Hermes, OpenCode and OpenClaw via `onecli run`, with auto-installed skill files — but this wraps the harness running on the USER's own machine/CI, gateway-routed; it is not a preinstalled template inside the hosted OneCLI Cloud sandbox itself, which instead runs OneCLI's own bundled 'jcode' agent runtime.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://onecli.sh/docs/guides/credential-stubs/general-app.md",
+      "quote": "Create placeholder credential files so MCP servers can start without real secrets. The gateway fills in values at request time.",
+      "note": "OneCLI supports OTHER MCP servers running behind its gateway (credential stubs so they can boot), but does not itself ship an MCP server that a client (e.g. Claude Desktop) can use to create/manage/control OneCLI sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "python3 python3-pip python3-venv ... python3 --version && pip3 --version",
+      "note": "Python 3 with pip and venv is baked into and verified in the hosted agent sandbox image.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "FROM node:22.23.2-trixie-slim AS runner ... [(\"command -v node\")] = \"/usr/local/bin/node\"",
+      "note": "The sandbox image is built on a Node.js 22 base and Node is verified present on PATH for the sandbox user.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/runner.Dockerfile",
+      "quote": "The control channel the sandboxes dial. Not published to the host: it is reachable only on the container networks (§3.3 — no inbound ports).",
+      "note": "Sandboxes are outbound-only with no inbound ports/public IP of their own; the only inbound path is the shared SSH-terminator front door with short-lived certs, not a per-machine public IPv4.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/runner.Dockerfile",
+      "quote": "Not published to the host: it is reachable only on the container networks (§3.3 — no inbound ports).",
+      "note": "No documented feature to expose an HTTPS URL to reach a port/webserver running inside a sandbox (architecture is outbound-only).",
+      "checked": "2026-09-30"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/ssh-terminator.Dockerfile",
+      "quote": "It terminates ssh with the short-lived certificates the api mints and bridges each session into an agent's container",
+      "note": "The only inbound surface is the SSH front door gated by short-lived certificates; there is no documented provider-side ingress control (IP allowlists, security groups, private/auth URLs) for exposed application ports.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "--disable-gpu because there is no GPU anywhere this image runs.",
+      "note": "Explicitly documented in the build: no GPU is present on the sandbox substrate.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "FROM node:22.23.2-trixie-slim AS runner",
+      "note": "Sandbox guest OS is Debian Linux; no Windows machine option is documented.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "FROM node:22.23.2-trixie-slim AS runner",
+      "note": "Sandbox guest OS is Debian Linux; no macOS machine option is documented.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": true,
+      "source": "https://github.com/onecli/onecli/blob/HEAD/docker/agent.Dockerfile",
+      "quote": "case \"$TARGETARCH\" in arm64) ASSET=\"jcode-linux-aarch64\";",
+      "note": "The agent image build explicitly targets and vendors an aarch64 jcode binary alongside amd64, i.e. multi-arch including arm64.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://onecli.sh/docs/self-hosting/overview.md",
+      "quote": "A connector deployment is coming, pairing the OneCLI Cloud dashboard and API with a gateway and database that run inside your network, so credentials never leave it.",
+      "note": "The closest thing to BYOC (provider-managed control plane, customer-network data plane) is an explicitly not-yet-shipped 'connector deployment'; today it's either fully self-operated self-hosting or fully OneCLI-operated Cloud, not a managed deployment into the customer's own cloud account.",
+      "checked": "2026-09-30"
     }
   }
 }

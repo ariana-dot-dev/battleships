@@ -377,7 +377,7 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
+    "docker_inside": true,
     "nested_virt": null,
     "root": true,
     "systemd": null,
@@ -387,15 +387,15 @@
     "code_interpreter": null,
     "agent_harnesses": true,
     "ssh": true,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "public_ipv4": false,
+    "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": false,
+    "static_egress_ip": true,
     "private_network": null,
     "self_host": true,
-    "byoc": false,
+    "byoc": true,
     "open_source": false,
     "regions": [
       "us"
@@ -403,8 +403,8 @@
     "soc2": null,
     "hipaa": null,
     "sso": null,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -425,8 +425,8 @@
     "mcp_server": true,
     "browser_control": true,
     "desktop_control": true,
-    "anti_bot": null,
-    "captcha_solving": null,
+    "anti_bot": false,
+    "captcha_solving": false,
     "egress_ip_type": "datacenter; residential beta by allowlist; customer-supplied HTTP CONNECT proxy supported",
     "ip_note": "Computers egress from data-center IPs; BYO upstream HTTP CONNECT proxy for browser traffic via /egress/upstream (changes exit IP for browser only); no managed residential proxies documented.",
     "isolation": "vm",
@@ -439,7 +439,10 @@
     "egress_allowlist_level": "both",
     "ingress_rules": true,
     "guest_firewall": true,
-    "secret_proxy": false
+    "secret_proxy": false,
+    "volume_attach": false,
+    "volume_shared": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -571,6 +574,120 @@
       "quote": "At create, Orgo writes the user's matching secrets into the computer at `/root/.env` (mode `0600`). They are never baked into the shared snapshot.",
       "note": "Vault secrets are injected as plain env/files inside the computer (also POST /computers/{id}/secrets/sync); the agent can read them. No credential-injecting proxy.",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.orgo.ai/guides/instance-types",
+      "quote": "Every Orgo computer runs on a dedicated instance with guaranteed resources.",
+      "note": "derived: computers are full root Ubuntu VMs (own kernel, hypervisor field on the computer record) reachable over bash/SSH, and docs show apt-based installs of arbitrary software (Node, ffmpeg, systemd services); Docker itself is not named in any doc, so this is inferred from the VM architecture, not a direct statement.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.orgo.ai/pricing",
+      "quote": "Launch cloud computers that AI agents can control and interact with. Every Orgo computer is a full desktop environment with a browser and the standard userland.",
+      "note": "not offered: no stealth/fingerprint-evasion feature documented anywhere; egress is plain data-center IPs (residential only in an allowlisted beta upstream proxy), with no anti-bot-detection product mentioned.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.orgo.ai/pricing",
+      "quote": "Launch cloud computers that AI agents can control and interact with. Every Orgo computer is a full desktop environment with a browser and the standard userland.",
+      "note": "not offered: Orgo is a general computer-use/agent-sandbox product (screenshot+click+type API); no CAPTCHA-solving feature, endpoint, or partner integration appears anywhere in the docs or changelog.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.orgo.ai/guides/instance-types",
+      "quote": "A computer's size is the `ram` and `cpu` you send to `POST /computers`; the names below are shorthand for common pairs, not API values.",
+      "note": "not offered: a computer has one built-in persistent disk sized implicitly by the plan's storage pool; there is no separate volume-create/attach API or field anywhere in the API reference or templates schema.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.orgo.ai/guides/instance-types",
+      "quote": "A computer's size is the `ram` and `cpu` you send to `POST /computers`; the names below are shorthand for common pairs, not API values.",
+      "note": "not offered: outside the product's scope — there is no volume/disk resource distinct from a computer's own disk, so nothing can be mounted by multiple running computers at once.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.orgo.ai/api-reference/computers/exec",
+      "quote": "For Python code execution, use Execute Python instead. POST /computers/{id}/exec",
+      "note": "First-party API/SDK action `computer.exec(code)` / `orgo_execute_python` runs Python code directly inside the computer; Python 3.11+ is also installed by default per the setup guides.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.orgo.ai/llms-full.txt",
+      "quote": "Open orgo.ai/workspaces and create a computer with at least 8 GB RAM and 4 CPU cores. The installer pulls Python, Node.js, ripgrep, and ffmpeg.",
+      "note": "Node.js is not exposed via a dedicated exec action (only Bash and Python have first-party actions), but it is installed by first-party setup scripts/templates (e.g. Node 20+/24 LTS for the CLI and OpenClaw) and is runnable via the Bash action; no evidence it ships by default on a bare computer without running an installer.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.orgo.ai/guides/migrations/digitalocean",
+      "quote": "No public per-computer IP. Reach it via the authenticated proxy: `www.orgo.ai/api/desktops/{instance_id}/proxy/<path>`",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": true,
+      "source": "https://docs.orgo.ai/guides/migrations/digitalocean",
+      "quote": "No public per-computer IP. Reach it via the authenticated proxy: `www.orgo.ai/api/desktops/{instance_id}/proxy/<path>`",
+      "note": "Ports/apps on the computer are reached over HTTPS through Orgo's own authenticated proxy domain (www.orgo.ai/api/...), not via a direct public IP; template apps can also be marked 'Expose publicly' for external HTTPS access.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.orgo.ai/llms-full.txt",
+      "quote": "Linux computers boot in under 500 ms, and every computer runs continuously until you stop it.",
+      "note": "auto_stop_minutes (0-1440) only controls an optional idle-timeout auto-stop; there is no maximum session/runtime cap documented — a computer runs indefinitely until the user stops it.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.orgo.ai/guides/templates/introduction",
+      "quote": "Think of it as a `Dockerfile` for a full desktop computer: write it once, version it, and hand out reproducible computers from it.",
+      "note": "Orgo is a full-VM desktop platform (isolation: vm); 'custom_image'/templates are Orgo's own YAML template format producing a golden VM snapshot, explicitly analogized to (not built on) Dockerfile/OCI. No Docker/OCI image import, registry, or 'docker pull'-style boot is documented anywhere in the API reference or CLI ('--snapshot <id>' boots Orgo's own snapshot/custom image format, not an OCI image).",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.orgo.ai/api-reference/computers/delete",
+      "quote": "Deleting a computer does not release its dedicated egress IP, and does not stop the charge for it. ... Release it separately with `DELETE /api/egress-ips/{id}`, or reassign it to another computer with `PATCH /api/egress-ips/{id}`.",
+      "note": "Orgo has a dedicated/static egress IP feature managed via /api/egress-ips (allocate, delete, and PATCH-reassign to a different computer), billed independently of the computer it's attached to. This is separate from the BYO browser-proxy feature already recorded (egress_ip_type note). Card's 'static_egress_ip: false' with no evidence was wrong.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.orgo.ai/guides/templates/schema",
+      "quote": "`cpu` | integer | `1`, `2`, `4`, `8`, `16` | vCPU count. Any other value is rejected. Capped by your plan.",
+      "note": "No ARM/Graviton/Apple-Silicon CPU architecture option appears anywhere in the ~13,500-line combined docs (llms-full.txt), the instance-types/template schema (only a vCPU-count knob, no arch field), or the pricing page; GPU support (T4/L4/A10/L40S/A100/H100) further implies a CUDA/x86_64 host fleet. Absence is well-documented but not an explicit 'x86-only' statement, hence medium confidence.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://www.orgo.ai/pricing",
+      "quote": "Enterprise ... Custom. Volume pricing, billed annually. 60+ computers, 50+ team members, Linux + Windows + Mac, Shared, dedicated, or on-prem, ... Custom privacy controls",
+      "note": "The Enterprise tier explicitly offers on-prem deployment (i.e. running Orgo's stack in the customer's own infrastructure/cloud), which is BYOC. Card's 'byoc: false' with no evidence was wrong; price is custom/sales-gated so exact terms aren't public, but the offering itself is documented.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://www.orgo.ai/pricing",
+      "quote": "Start with one computer for $29/month. Grow to a dedicated fleet on Enterprise.",
+      "note": "Orgo is a closed commercial SaaS (paid monthly/yearly plans, sales-gated Enterprise, proprietary dashboard/API); only the thin client SDKs (`pip install orgo`, `npm install orgo`) are published as API wrappers, and even those aren't asserted to be open-source licensed in the docs. No OSS license, public core-platform repo, or self-hostable-for-free open-source release is documented for the Orgo platform itself, so 'right' at medium confidence (absence of any open-source claim, not an explicit 'closed source' statement).",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://docs.orgo.ai/guides/templates/schema",
+      "quote": "`region` | string | `auto-us`, `iad`, `sjc`, `lax` | Placement region.",
+      "note": "The only documented placement regions are US (auto-us, iad=N. Virginia, sjc=San Jose, lax=Los Angeles); no EU/EEA region code exists in the docs, CLI (`--region <codes>`), or pricing page, and no data-residency/GDPR guarantee is mentioned. Matches card's features.regions: [\"us\"].",
+      "checked": "2026-09-30"
     }
   }
 }

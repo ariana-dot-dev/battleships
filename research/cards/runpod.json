@@ -627,7 +627,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": false,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": false,
     "browser": false,
@@ -640,8 +640,8 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": true,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": false,
     "private_network": true,
     "self_host": false,
     "byoc": false,
@@ -654,17 +654,17 @@
     ],
     "soc2": true,
     "hipaa": true,
-    "sso": null,
+    "sso": true,
     "lang_python": true,
-    "lang_node": null,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": true,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
@@ -681,7 +681,15 @@
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "container",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "guest_firewall": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -806,10 +814,10 @@
     },
     "snapshot_on_demand": {
       "value": false,
-      "source": "https://docs.runpod.io/llms.txt",
-      "quote": null,
-      "note": "No snapshot/checkpoint/save-image feature anywhere in the docs (1.9 MB llms-full.txt searched); the API v2 Pod resource has only list/create/get/update/terminate/logs/state-transition (start/stop/restart). Closest: network volumes that outlive Pods, and Pod templates (image + config, no user data).",
-      "checked": "2026-09-29"
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "no snapshot/checkpoint/save-image feature anywhere in the docs; the API v2 Pod resource has only list/create/get/update/terminate/logs/state-transition (start/stop/restart)",
+      "note": "No on-demand snapshot/checkpoint API exists for Pods or Serverless. The apparent contradiction is that the card's `snapshot` field is set to \"fs\" only because a stopped Pod keeps its volume/network disk (persistent_disk-style retention), not because a real filesystem-snapshot API exists (that field, not snapshot_on_demand, is the mismatch to flag). snapshot_on_demand=false stands.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": false,
@@ -845,6 +853,223 @@
       "quote": "Writing to the same volume from multiple workers simultaneously may cause data corruption. Handle concurrent write access in your application logic.",
       "note": "Read-write, mounted by multiple running Pods/workers at once within one datacenter (storage table: 'Shareable ... Yes (across Pods)'); no locking/consistency guarantees. Global volumes (beta) are shareable 'across Pods in any data center'. S3-compatible API to network volumes too.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "Your Pods and workers run in a multi-tenant environment with containerized isolation that prevents other users from accessing your data. Each Pod/worker operates in its own container with strict separation from other workloads.",
+      "note": "Docs explicitly describe container-based multi-tenant isolation (shared kernel), matching the card's top-level isolation:container; consistent with docker_inside:false (no nested Docker/Compose inside a Pod).",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "Custom Docker image to deploy. When specified, the endpoint runs your Docker image instead of Flash's managed workers.",
+      "note": "Pods and Serverless endpoints both start from custom Docker/OCI images (public or private registries); templates package a Docker image + config for reuse.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "Each container includes its own dependencies... Containers share the host OS kernel, using fewer resources than virtual machines.",
+      "note": "Pods/workers are containers sharing the host kernel; no /dev/kvm, nested-virtualization, or VM-inside-Pod capability is documented anywhere in the docs corpus searched.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.runpod.io/pricing",
+      "quote": "Runpod is a cloud platform for building AI applications... Pods, Serverless GPU endpoints, and AI infrastructure.",
+      "note": "not offered: outside the product's scope (GPU/CPU cloud compute platform, not a browser/scraping product; no anti-bot/stealth or fingerprinting feature found in docs).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.runpod.io/pricing",
+      "quote": "Runpod is a cloud platform for building AI applications... Pods, Serverless GPU endpoints, and AI infrastructure.",
+      "note": "not offered: outside the product's scope (GPU/CPU cloud compute platform; no CAPTCHA-solving feature found in docs).",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "Public IP addresses may change for Community Cloud Pods if your Pod is migrated or restarted, but they should remain stable for Secure Cloud Pods.",
+      "note": "Standard datacenter IPs assigned per Pod/host; no residential or mobile IP product is offered.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "If no workers are active, Runpod automatically starts one (cold start). The request is queued until a worker is available.",
+      "note": "Applies to Serverless workers scaled to zero (workers=(0,n)); Pods themselves have no idle auto-stop/wake (must be started manually), so this reflects the Serverless product only.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.runpod.io/pods/manage-pods.md",
+      "quote": "Stopping a Pod releases the GPU and preserves data in `/workspace` (volume disk). Container disk data is cleared.",
+      "note": "No documented API/console feature to change a running Pod's CPU/RAM/GPU without stopping and reconfiguring it; changing size requires stop/edit/restart, which releases the GPU.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.runpod.io/get-started/agent-skills.md",
+      "quote": "Official Runpod instructions that install the Runpod skills and MCP server into your coding agent in one shot.",
+      "note": "Runpod's agent-facing features (skills plugin, MCP server at mcp.getrunpod.io) let a user's own coding agent/LLM manage Runpod infrastructure; Runpod does not ship its own browser/computer-use/research task agent with a driving API.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "The JavaScript SDK supports Node.js and modern JavaScript environments using ES modules.",
+      "note": "First-party runpod-sdk npm package for Node.js/JS, alongside the Python SDK.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "Ensure your network allows outbound connections to the Runpod IP range",
+      "note": "No provider-side outbound allow/deny list, no-internet mode, or security-group egress rules found anywhere in the docs corpus; the only related text is about the user's own network permitting outbound connections to Runpod, not the reverse.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "A firewall or VPN configured with a specific Pod ID. A firewall or VPN configured with a specific Pod IP address.",
+      "note": "The only firewall/rule mentions are examples of the customer's own external firewall/VPN pointed at a Pod; no provider-side HTTP method/path-level egress control feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "Containers share the host OS kernel, using fewer resources than virtual machines.",
+      "note": "derived: Pods/workers are containers (shared kernel), not a full VM/microVM, and no capability grants (NET_ADMIN) for iptables/nftables are documented, so guest-side firewalling is not assumed to work despite root access.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "Public IP addresses may change for Community Cloud Pods if your Pod is migrated or restarted, but they should remain stable for Secure Cloud Pods.",
+      "note": "IPs are only 'stable' while a Secure Cloud Pod keeps running, not a reserved/fixed IP product; Community Cloud IPs can change on migration/restart, and no dedicated static-IP purchase option is documented.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": true,
+      "source": "https://www.runpod.io/enterprise",
+      "quote": "SSO/SAML Single sign-on with your existing identity provider, Okta, Entra ID, Auth0, Google Workspace, or Duo. Our team sets it up with you directly.",
+      "note": "Available on the Organizations/Enterprise tier, set up directly with Runpod's team; not self-service in the standard console.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "Pods are billed by the second for compute and storage, with no fees for data ingress or egress.",
+      "note": "Pods have no documented maximum runtime or forced stop; a running Pod bills and keeps running until the user stops it or account balance hits $0 (auto_stop_idle:false in the card). Serverless workers are governed by per-job TTL/executionTimeout (default 24h, up to 7 days), not a session cap on the product itself.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "click the three dots to the top right of your production endpoint. Click Clone Endpoint. ... Each environment maintains independent GPU and worker configurations.",
+      "note": "Only \"clone\" concept in the docs is Clone Endpoint for Serverless (copies config/repository settings to a new, empty endpoint) and 'Save as template' (image+config only). No API/console action clones a running Pod's disk/state into a new machine.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "Click the three dots to the top right of your production endpoint. Click Clone Endpoint. Expand the Repository Configuration section and select your staging branch.",
+      "note": "Same evidence as fork: cloning duplicates configuration, not a live running machine's memory/disk state. No fork-while-running feature exists.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "no snapshot/checkpoint/save-image feature anywhere in the docs",
+      "note": "There is no memory-state capture of any kind (see snapshot_on_demand), so a clone that preserves running processes/memory is impossible; consistent with fork/fork_running being false.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.runpod.io/pods/overview.md",
+      "quote": "Docker Compose is not supported: Runpod runs Docker for you, so you cannot spin up your own Docker instance or use Docker Compose on Pods.",
+      "note": "Pods are themselves containers; nested Docker (docker-in-docker) and Docker Compose are explicitly unsupported.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.runpod.io/pods/connect-to-a-pod.md",
+      "quote": "You can connect directly to your running Pods and execute code on them using a variety of methods, including a built-in web terminal, an SSH connection from your local machine, a JupyterLab instance, or a remote VSCode/Cursor development environment.",
+      "note": "Only text-based/terminal, SSH, Jupyter and remote-IDE access are offered; no VNC/RDP/graphical-desktop product anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "Web Terminal: A browser-based terminal.",
+      "note": "\"Browser\" mentions in the docs are the browser-based terminal/Jupyter UI and the CLI's OAuth login flow, not a managed/real browser instance offered as a product feature.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "no snapshot/checkpoint/save-image feature anywhere in the docs; the API v2 Pod resource has only list/create/get/update/terminate/logs/state-transition (start/stop/restart)",
+      "note": "No desktop exists to drive (see `desktop`), and no screenshot+click / computer-use API appears anywhere in the docs or API reference. Runpod's product is GPU/CPU compute pods and serverless workers, not a desktop-automation service.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.runpod.io/pods/manage-pods.md",
+      "quote": "Schedule a stop (e.g., after 2 hours): sleep 2h; runpodctl pod stop $RUNPOD_POD_ID &",
+      "note": "Pods only stop when the user manually stops them (console/CLI/API) or must self-schedule a timer inside the Pod; there is no provider-side idle-detection auto-stop for Pods. (Serverless workers do scale to zero via idle_timeout, but that is captured per-mode as wake_on_request, not this top-level Pod feature.)",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.runpod.io/get-started/agent-skills.md",
+      "quote": "Official Runpod instructions that install the Runpod skills and MCP server into your coding agent in one shot.",
+      "note": "This installs Runpod's MCP server/skills into the USER's own local coding agent (Claude Code, Codex, etc.) so it can manage Runpod resources; it is not a preinstalled coding-agent template running inside a Pod. No template list (PyTorch, Stable Diffusion, ComfyUI, Jupyter, etc.) includes a coding-agent harness.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.runpod.io/pods/overview.md",
+      "quote": "Windows is not supported: Pods do not currently support Windows.",
+      "note": "Explicit limitation in the Pods overview page.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.runpod.io/pods/overview.md",
+      "quote": "Secure Cloud: Operates in T3/T4 data centers, providing high reliability and security for enterprise and production workloads.",
+      "note": "Runpod is a Linux-container GPU/CPU cloud (Pods run Docker images in Runpod-operated data centers); macOS machines are outside the product's scope, consistent with `windows` also being unsupported.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.runpod.io/tutorials/introduction/containers/create-dockerfiles.md",
+      "quote": "Runpod's infrastructure uses linux/amd64 architecture. If you're building on an Apple Silicon Mac (ARM64), specify the platform: docker build --platform=linux/amd64 -t my-image .",
+      "note": "Runpod explicitly tells ARM (Apple Silicon) users to cross-build for amd64 because the infrastructure itself is amd64 only; no ARM64 compute is offered.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.runpod.io/pods/overview.md",
+      "quote": "Runpod offers two cloud options: Secure Cloud: Operates in T3/T4 data centers... Community Cloud: Connects individual compute providers to users through a vetted, secure peer-to-peer system",
+      "note": "Runpod is a fully managed multi-tenant cloud (its own or partner data centers); no docs describe running the Runpod platform itself on a customer's own infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.runpod.io/pods/overview.md",
+      "quote": "Runpod offers two cloud options: Secure Cloud... Community Cloud...",
+      "note": "Both offered cloud options are Runpod-operated (own data centers or peer-hosted capacity onboarded by Runpod); no bring-your-own-cloud-account deployment mode is documented anywhere in llms-full.txt.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.runpod.io/llms-full.txt",
+      "quote": "runpodctl - Pre-built binaries are available on conda-forge for Linux (x86_64, aarch64, ppc64le), macOS (x86_64, arm64), and Windows (x86_64).",
+      "note": "Only peripheral tooling (the runpodctl CLI, worker templates on GitHub) is open source; the core Pods/Serverless platform, console, and billing engine are Runpod's proprietary closed product with no OSI license mentioned anywhere in the docs.",
+      "checked": "2026-09-30"
     }
   }
 }

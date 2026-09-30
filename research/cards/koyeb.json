@@ -502,13 +502,13 @@
     "snapshot": "mem",
     "pause_resume": true,
     "fork": true,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": false,
@@ -524,16 +524,16 @@
     "egress_allowlist": true,
     "static_egress_ip": false,
     "private_network": true,
-    "self_host": false,
+    "self_host": true,
     "byoc": true,
-    "open_source": null,
+    "open_source": false,
     "regions": [
       "us",
       "eu",
       "asia"
     ],
     "soc2": true,
-    "hipaa": null,
+    "hipaa": false,
     "sso": true,
     "lang_python": true,
     "lang_node": true,
@@ -544,8 +544,8 @@
     "credential_injection": null,
     "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": false,
+    "live_resize": false,
+    "fork_running": null,
     "memory_snapshot_fork": true,
     "webhooks": false,
     "scheduled_wakeups": null,
@@ -564,7 +564,13 @@
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "guest_firewall": true,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -713,6 +719,161 @@
       "quote": "At the moment, once a volume is attached to a Service, it cannot currently be detached except if the Service is deleted. The Volume can’t be attached to another Service.",
       "note": "Also 'Volumes currently only work with Services with a scale of one.' Local, single-machine block device, read-write.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/reference/instances",
+      "quote": "Koyeb Instances run on cloud-hypervisor micro-VMs.",
+      "note": "No mention of /dev/kvm, nested virtualization, or the ability to run VMs/emulators inside a Koyeb instance anywhere in the docs or SDK reference (exec/launch_process only run processes). Cloud-hypervisor microVM guests do not expose KVM passthrough by default and Koyeb documents none, so treated as not offered.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/sandboxes",
+      "quote": "The Koyeb Sandbox SDK provides a Python interface for programmatically creating, managing, and interacting with Koyeb sandboxes — ephemeral compute environments designed for isolated code execution on the Koyeb platform.",
+      "note": "not offered: outside the product's scope (generic code-execution/compute sandboxes and app hosting, not a browser-automation/scraping product; no stealth or fingerprinting features documented)",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/sandboxes",
+      "quote": "The Koyeb Sandbox SDK provides a Python interface for programmatically creating, managing, and interacting with Koyeb sandboxes — ephemeral compute environments designed for isolated code execution on the Koyeb platform.",
+      "note": "not offered: outside the product's scope (generic code-execution/compute sandboxes and app hosting, not a browser/CAPTCHA-solving product)",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://www.koyeb.com/docs/reference/instances",
+      "quote": "Koyeb Instances run on cloud-hypervisor micro-VMs.",
+      "note": "Koyeb is a standard cloud compute/hosting platform (own datacenters/cloud regions: fra, par, sin, tyo, was, aws-us-east-1). No residential/mobile IP product is offered anywhere in the docs; outbound traffic uses Koyeb's own datacenter IP ranges (egress_allowlist works on IP/CIDR, static_egress_ip is false).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/koyeb/koyeb-python-sdk/HEAD/docs/sandbox.md",
+      "quote": "def update_lifecycle(delete_after_delay: Optional[int] = None, delete_after_inactivity_delay: Optional[int] = None)",
+      "note": "The Sandbox/AsyncSandbox SDK only exposes update_lifecycle() (auto-delete timers) and update_network_policy() (egress rules) as runtime updates; there is no method to change instance_type/vCPU/RAM on a running sandbox. Changing instance_type requires creating a new sandbox/service (redeploy), so a running machine's size cannot be changed in place.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/sandboxes",
+      "quote": "You should use a sandbox to: Execute untrusted or user-generated code securely, Prototype applications quickly, Test APIs or libraries in clean environments...",
+      "note": "not offered: outside the product's scope. Koyeb ships an MCP server and Agent Skills so external coding agents can drive Koyeb infrastructure, and tutorials show running third-party agents (Claude Agent SDK, Codex, Copilot CLI) inside sandboxes, but Koyeb has no first-party browser/computer-use/research task agent of its own.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/koyeb/sandbox-container/main/Dockerfile",
+      "quote": "FROM ubuntu:22.04 ... CARGO_HOME=/root/.cargo",
+      "note": "derived: isolation is cloud-hypervisor (full microVM per instance, not a shared-kernel container) and the default sandbox image's Dockerfile sets no USER directive and installs to /root, so the guest runs as root by default — nftables/iptables would work inside a full VM with root, consistent with docker_inside=true. Not directly documented.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/koyeb",
+      "quote": "High-performance serverless infrastructure for AI. Run inference, sandboxes, and intensive workloads on CPUs, GPUs & accelerators.",
+      "note": "The core platform (control plane/orchestrator that runs koyeb.com) is closed-source SaaS; only client-side pieces are open source under Apache-2.0 (koyeb-python-sdk, koyeb-sandbox-sdk-js, sandbox-container default image, koyeb CLI). The product itself cannot be self-hosted (features.self_host = false), so the core product is not open source.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://www.koyeb.com/pricing",
+      "quote": "ISO27001 and SOC2 Certifications",
+      "note": "The Enterprise plan's compliance list (pricing page comparison table) names ISO27001 and SOC2 only; HIPAA/BAA is not mentioned there or in the Master Service Agreement, Service Level Agreement, or Data Processing Agreement docs, so treated as not offered.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://www.koyeb.com/docs/sandboxes/sandbox-lifecycle",
+      "quote": "For all plans (Starter, Pro, and Scale), auto-deletion can be configured with a minimum delay of 60 seconds and a maximum of 24 hours, or 12 hours after scaling to zero.",
+      "note": "24h/12h are optional, caller-configured auto-delete/auto-deletion-after-inactivity timers (delete_after_delay / delete_after_inactivity_delay), not a forced platform-imposed session cap. If left unset, a sandbox (a billed running VM/service) keeps running until explicitly deleted or the account/plan limits are hit, so no hard maximum session length is documented.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://www.koyeb.com/docs/reference/volumes",
+      "quote": "Koyeb volumes are block storage devices that can be provisioned to provide persistent storage across deployments. Unlike the local ephemeral storage available for Instances, volume storage can be reattached to new deployments, saving important context and configuration that would otherwise be lost.",
+      "note": "Card already sets features.volumes=true and pause_resume=true (Light Sleep 'Saves the full VM state to disk') while persistent_disk is false — a direct contradiction. Volumes (public preview, 1-10 GB, was/fra only, standard/GPU Services, not eco/free) give first-party persistent storage that survives redeployment/pause; default without a volume is ephemeral local SSD that is lost on redeploy/stop. Corrected value: persistent_disk=true (opt-in via Volumes; default is not persistent).",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Checked the Python SDK reference (Sandbox.snapshot(FILESYSTEM|FULL) + Sandbox.create_from_snapshot()) and the sandbox lifecycle/quickstart docs and the sandboxes announcement blog. None state whether the source sandbox must be stopped/paused before or during snapshot(), nor whether the original keeps running once a new sandbox is spawned from the snapshot. No explicit 'fork without stopping the original' statement found anywhere; genuinely undocumented, so left unclear rather than asserting true or false.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/build-and-deploy/cli/reference",
+      "quote": "koyeb instances exec",
+      "note": "Koyeb's own remote-access primitive is the CLI 'koyeb instances exec' (generic command exec), not an SSH command; there is no 'koyeb ssh' or built-in SSH client/agent. The only path to true SSH is the generic (currently public-preview) TCP Proxy feature, which the docs describe only as an example: 'TCP Proxy lets you expose the TCP ports of your Services to the Internet, enabling direct TCP connections such as SSH' (https://www.koyeb.com/docs/run-and-scale/tcp-proxy) — that requires the user to run their own sshd inside the container/sandbox image; it is not a managed SSH-into-the-sandbox feature. Confirmed as false but medium confidence because a workaround exists.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://github.com/koyeb/koyeb-python-sdk/blob/HEAD/docs/sandbox.md",
+      "quote": "Launch new sandbox instances Wait for readiness and TCP proxy availability Expose or unexpose internal ports Execute background processes and list or terminate them Access sandbox filesystem and execution interfaces",
+      "note": "Sandbox SDK surface (exec/filesystem/expose_port/snapshot) has no VNC/RDP/streamed-desktop capability; no mention of 'desktop', 'VNC', or 'GUI' anywhere in the sandbox docs, lifecycle page, or SDK reference.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/sandboxes",
+      "quote": "The Koyeb Sandbox SDK provides a Python interface for programmatically creating, managing, and interacting with Koyeb sandboxes — ephemeral compute environments designed for isolated code execution on the Koyeb platform.",
+      "note": "Sandbox docs, lifecycle page, SDK reference, and the sandboxes announcement blog describe only isolated code execution (filesystem, process exec, port exposure, snapshots); no managed/pre-installed browser or browser automation surface is mentioned anywhere.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://github.com/koyeb/koyeb-python-sdk/blob/HEAD/docs/sandbox.md",
+      "quote": "Access sandbox filesystem and execution interfaces",
+      "note": "No screenshot/click-driving API exists in the sandbox SDK; interaction is limited to exec/filesystem/ports/snapshots. No computer-use/GUI-automation feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/reference/edge-network",
+      "quote": "All Koyeb Apps are automatically accessible via a subdomain of koyeb.app routed via our Global Edge Network. ... Our Global Edge Network provides native load balancing, TLS encryption.",
+      "note": "Inbound traffic (including the sandbox TCP Proxy) is always routed through Koyeb-managed domains/edge network, never a dedicated public IPv4 attached to the instance. Matches card's network.ipv4_available=false.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/faqs/general",
+      "quote": "dig +short outbound-ips.infra.prod.koyeb.com Note: Please keep in mind that IP addresses may be added or removed from the pool without notice. If you are relying on these addresses for populating an allow list for another service, you will have to recheck and update the values periodically. As an alternative to the above solution, you may want to consider a cloud-aware static IP service. Providers include: Fixie Noble IP QuotaGuard",
+      "note": "Koyeb only publishes a mutable outbound IP pool (no per-app/per-instance static egress IP) and explicitly points customers to third-party static-IP add-on services as the workaround, confirming Koyeb itself has no static egress IP feature.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/reference/instances",
+      "quote": "Instances are microVMs which serve as a thin, isolated, high performance wrapper around your code.",
+      "note": "The full GPU/Standard/Eco instance-type tables list only Linux container/microVM instance types (nano..5xlarge, eco-*, gpu-nvidia-*); no Windows instance type, image, or OS option exists anywhere on the instances reference or pricing page.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/reference/instances",
+      "quote": "Instances are microVMs which serve as a thin, isolated, high performance wrapper around your code.",
+      "note": "Same instance-type tables show only Linux-container-based microVM types; Koyeb is a container/microVM PaaS with no macOS hardware or VM offering documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://www.koyeb.com/docs/reference/instances",
+      "quote": "GPU Instance types ... Standard Instance types ... Eco Instance types (available in Washington, D.C., Frankfurt, and Singapore)",
+      "note": "The complete published instance catalog (GPU/Standard/Eco) lists no ARM/Graviton/Apple-Silicon instance type or architecture selector; all documented instances imply x86_64 (Intel/AMD Milan/Genoa CPUs referenced in card notes). No ARM option found on instances, pricing, or sandbox docs, so kept as false at medium confidence (no explicit 'x86_64-only' statement was found, only absence of any ARM listing).",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://www.koyeb.com/docs/faqs/general",
+      "quote": "Our core locations can run on any Cloud Service Provider. Koyeb also supports edge and on-premise deployments for Enterprises workload. Please contact us if you have such a need.",
+      "note": "Koyeb's own FAQ documents on-premise (self-hosted) deployment of the platform for Enterprise customers, distinct from the already-true BYOC (deploy-into-your-cloud-account) feature. It is sales-gated/custom ('contact us'), so kept at medium confidence, but the card's blanket self_host=false with no evidence is contradicted by this official statement. Corrected value: self_host=true (Enterprise-only, contact sales).",
+      "checked": "2026-09-30"
     }
   }
 }

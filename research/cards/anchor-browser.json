@@ -3,7 +3,7 @@
   "name": "Anchor Browser",
   "url": "https://anchorbrowser.io/pricing",
   "category": "browser",
-  "isolation": null,
+  "isolation": "dedicated-vm",
   "modes": [
     {
       "key": "on-demand",
@@ -159,7 +159,7 @@
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -207,7 +207,20 @@
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "dedicated-vm",
+    "image_oci": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "mcp_server": true,
+    "lang_python": true,
+    "lang_node": true,
+    "egress_http_rules": false,
+    "guest_firewall": false,
+    "eu_data_residency": true,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -332,6 +345,217 @@
       "quote": "A volume can be mounted by any number of sessions, read-write or read-only.",
       "note": "Also: 'Several sessions can mount the same volume at once and see each other's files immediately.' Read-write or read-only (read_only: true); session-written files show in the API about a minute after writes stop.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "dedicated-vm",
+      "source": "https://docs.anchorbrowser.io/security.md",
+      "quote": "Anchor creates a dedicated, isolated virtual machine (VM) for each browser instance. This VM is permanently terminated and erased upon session completion.",
+      "note": "Docs confirm one dedicated VM per browser session but never name the underlying hypervisor (no mention of Firecracker/KVM/Cloud Hypervisor), so the specific virtualization tech can't be confirmed beyond 'a VM'.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/quickstart/browser-sessions.md",
+      "quote": "A browser session is a cloud Chromium instance you control over CDP (Playwright, Puppeteer) or Anchor's APIs.",
+      "note": "not offered: outside the product's scope. Sessions are Anchor-managed Chromium VMs configured via session/browser JSON options (proxy, profile, extensions, volumes) - there is no way to boot the machine from a customer-supplied Docker/OCI image.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/security.md",
+      "quote": "Browsers are never reused between sessions or customers. Every session starts with a pristine, isolated browser instance that is terminated and wiped clean after use.",
+      "note": "not offered: outside the product's scope. No API clones a live/running session; the closest feature (Profiles) only carries cookies/localStorage/cache into a brand-new session, not a running-process clone.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/api-reference/profiles/create-profile.md",
+      "quote": "Creates a new profile from a browser session. A Profile stores cookies, local storage, and cache.",
+      "note": "not offered: outside the product's scope. Profiles persist only browser storage state, not machine memory/process state, so no memory-snapshot fork with running processes exists.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/quickstart/browser-sessions.md",
+      "quote": "A browser session is a cloud Chromium instance you control over CDP (Playwright, Puppeteer) or Anchor's APIs. Create one, automate, then end it when done.",
+      "note": "not offered: outside the product's scope. Sessions are freshly created per request and permanently terminated/erased on timeout or stop (see security.md) - there is no stopped/sleeping session that wakes on an incoming request.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://anchorbrowser.io/pricing",
+      "quote": "$0.05/browser-hour + $0.01/browser",
+      "note": "not offered: outside the product's scope. Browser-session vCPU/RAM is undisclosed and fixed per session; no API to change CPU/RAM of a running session.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://docs.anchorbrowser.io/advanced/mcp.md",
+      "quote": "Anchor provides a hosted Model Context Protocol (MCP) integration, allowing you to use browser automation directly from your preferred AI tools without any local setup. Our hosted MCP server runs on our infrastructure...",
+      "note": "Also ships an open-source, self-hostable MCP server (docs.anchorbrowser.io/advanced/mcp-open-source.md) with customizable Playwright integration.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.anchorbrowser.io/sdk-reference/overview.md",
+      "quote": "The anchorbrowser npm package and the anchorbrowser PyPI package are generated directly from this API's OpenAPI specification... pip install anchorbrowser",
+      "note": "First-party Python SDK (PyPI) with sync and async (AsyncAnchorbrowser) clients covering every documented API endpoint.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.anchorbrowser.io/sdk-reference/overview.md",
+      "quote": "The anchorbrowser npm package... npm install anchorbrowser",
+      "note": "First-party TypeScript/Node.js SDK (npm) covering every documented API endpoint.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/security.md",
+      "quote": "We also offer the ability to define granular whitelists of allowed domains, providing precise control over network access at the browser level.",
+      "note": "Egress control is domain-level allowlisting only; no documented HTTP method/path-level egress rules.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://anchorbrowser.io/pricing",
+      "quote": "SOC2 Type 2, ISO27001, HIPAA, GDPR compliant, bring your own cloud, on-premise options",
+      "note": "not offered: outside the product's scope. Sessions are a managed headful Chromium VM with no root/SSH access (root=false in the card), so customer-configured nftables/iptables inside the guest is not applicable.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://anchorbrowser.io/pricing",
+      "quote": "Custom regions - EU, Asia, Australia",
+      "note": "EU region hosting is listed as an Enterprise-tier custom-region option (sales-negotiated); self-serve Free/Starter/Team plans are US-only per the card's regions/caveats.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.anchorbrowser.io/advanced/session-timeout.md",
+      "quote": "The default maximum duration is 180 minutes (3 hours)... There is no upper limit on how long you can set the maximum duration.",
+      "note": "max_duration defaults to 180 minutes but is customer-configurable with no documented upper bound, so the platform itself imposes no hard session-length ceiling (idle_timeout can also be disabled with -1).",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.anchorbrowser.io/advanced/volumes.md",
+      "quote": "A volume is a folder your team owns that outlives any single browser session. Mount it into a session and everything the browser downloads is written to it; upload files to it beforehand and the browser can use them; read the results back through the API afterwards.",
+      "note": "Contradiction resolved: the per-session VM itself is wiped ('This VM is permanently terminated and erased upon session completion' - security.md), so default behaviour on stop is delete. But Volumes are a first-party persistent store attachable to sessions (mounted via browser.volume.id) whose files survive across many session stop/starts, which meets the persistent_disk definition. Card's own volumes/volume_attach/volume_shared fields are already true, so persistent_disk:false was the contradiction, not them.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.anchorbrowser.io/security.md",
+      "quote": "Anchor creates a dedicated, isolated virtual machine (VM) for each browser instance. This VM is permanently terminated and erased upon session completion, ensuring that browsers are never reused and data remnants are eliminated.",
+      "note": "No disk or memory snapshot of the machine exists. Browser 'profiles' (cookies/localStorage/cache) and Volumes are separate persistence mechanisms but are not filesystem/memory snapshots of the VM.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/advanced/session-timeout.md",
+      "quote": "Anchor provides multiple ways to control and terminate browser sessions. In addition to manually stopping sessions via the stop session API, you can configure two types of automatic timeout mechanisms to manage session lifetime effectively.",
+      "note": "Session lifecycle only exposes create/stop plus idle_timeout/max_duration auto-termination - no pause/resume of the machine or billing. The only 'pause/resume' in the docs is POST /v1/sessions/{id}/agent/pause|resume, which pauses the built-in AI agent driving the browser, not the session/VM itself (see own_agent_api evidence already on the card).",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/llms.txt",
+      "quote": "Start Browser Session ... List All Sessions Status ... Get Browser Session ... End Browser Session ... Batch Browser Sessions: Create and manage multiple browser sessions simultaneously for large-scale automation tasks",
+      "note": "Full endpoint catalog only has create/list/get/end for sessions and 'Batch Browser Sessions' for launching many new independent sessions in parallel - no clone/fork-a-running-session endpoint exists.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/introduction.md",
+      "quote": "Secure cloud browsers for agents. Anchor gives agents a real browser in the cloud - navigate, authenticate, fill forms, and extract data on sites that were never built for automation.",
+      "note": "not offered: outside the product's scope. The product is a managed remote-browser VM reached only via CDP/live-view/OS-level input control; no shell or package-manager access is exposed to run Docker inside.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/security.md",
+      "quote": "Anchor creates a dedicated, isolated virtual machine (VM) for each browser instance.",
+      "note": "not offered: outside the product's scope. Users get a browser inside a disposable VM, not shell/kernel access to expose /dev/kvm.",
+      "checked": "2026-09-30"
+    },
+    "root": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/advanced/os-level-control.md",
+      "quote": "OS-level control provides direct access to operating system primitives like mouse movements, keyboard input, and screen interactions within your browser sessions.",
+      "note": "not offered: outside the product's scope. 'OS-level control' means mouse/keyboard/screenshot on the browser, not a root/sudo shell on the VM.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/api-reference/browser-sessions/start-browser-session-async.md",
+      "quote": "Poll GET /v1/sessions/async/{request_id}/status until status becomes ready to obtain the resolved session_id, cdp_url and live_view_url.",
+      "note": "not offered: outside the product's scope. The only connection endpoints exposed per session are the CDP websocket and the live-view URL; no SSH endpoint exists anywhere in the API/docs.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/advanced/browser-live-view.md",
+      "quote": "Anchor Browser offers a live view feature that allows you to embed an interactive frame of a website as a web element. The live_view_url is received when creating a session.",
+      "note": "not offered: outside the product's scope. Live view streams only the browser tab/chrome, not a full OS desktop (no VNC/RDP of the underlying VM).",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/api-reference/browser-sessions/start-browser-session.md",
+      "quote": "Allocates a new browser session for the user, with optional configurations for ad-blocking, captcha solving, proxy usage, and idle timeout.",
+      "note": "Session creation options cover browser behaviour (proxy, captcha, ad-block, profile, volume, timeout, extensions) - there is no image/OCI parameter anywhere in the API reference to boot from a custom disk/container image.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/api-reference/browser-sessions/start-browser-session.md",
+      "quote": "Generate a single-use live view URL. After the first viewer connects, the link becomes invalid. Requires a headful browser.",
+      "note": "not offered: outside the product's scope. There is no user-arbitrary port/service to expose over HTTPS - the only inbound endpoints are Anchor's own CDP websocket and the (optionally single-use) live-view URL.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/advanced/proxy.md",
+      "quote": "Anchor provides proxy configurations to access websites from different geographic locations, configurable down to the city level. Use Bring Your Own Proxy or Anchor's built-in proxy for localization.",
+      "note": "Anchor's IP features (residential proxy, dedicated sticky IP, BYO proxy) are all outbound/egress addressing for the browser's traffic, not a public IPv4 assigned to the machine for inbound reachability. No such assignment is documented.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/introduction.md",
+      "quote": "Anchor gives agents a real browser in the cloud - navigate, authenticate, fill forms, and extract data on sites that were never built for automation.",
+      "note": "not offered: outside the product's scope. No GPU option is mentioned anywhere in pricing/docs; the product is a browser-automation service, not a compute/GPU cloud.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/security.md",
+      "quote": "Anchor creates a dedicated, isolated virtual machine (VM) for each browser instance.",
+      "note": "not offered: outside the product's scope. Only Linux-hosted cloud browser sessions are offered (card's features.linux=true); no Windows machine option is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/security.md",
+      "quote": "Anchor creates a dedicated, isolated virtual machine (VM) for each browser instance.",
+      "note": "not offered: outside the product's scope. No macOS machine option is documented; the product ships Linux-hosted browser VMs only.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/pricing.md",
+      "quote": "Applied on usage without tasks. Pay for what you use. $0.01 per browser ... $0.05 per browser hour",
+      "note": "not offered: outside the product's scope. Pricing/docs never expose or price an architecture choice; nothing indicates an ARM option exists alongside the (undisclosed, presumably x86) default.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.anchorbrowser.io/advanced/mcp-open-source.md",
+      "quote": "Anchor MCP Server (Open Source): A Model Context Protocol (MCP) server that provides browser automation capabilities using Anchor Browser's remote browser service with Playwright.",
+      "note": "Only a thin client-side MCP wrapper that talks to Anchor's hosted service is open source; the core cloud-browser platform itself (the paid, credit-metered SaaS in pricing.md) is closed-source and not self-hostable outside the Enterprise BYOC/on-prem sales tier.",
+      "checked": "2026-09-30"
     }
   }
 }

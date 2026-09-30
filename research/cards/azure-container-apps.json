@@ -399,7 +399,7 @@
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -440,9 +440,9 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": false,
@@ -452,8 +452,8 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": null,
-    "isolation": null,
+    "mcp_server": true,
+    "isolation": "container",
     "image_oci": true,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
@@ -463,7 +463,12 @@
     "guest_firewall": false,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -550,10 +555,10 @@
     },
     "snapshot_on_demand": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No snapshot/checkpoint API for container apps or session pools (management endpoints are getSession/listSessions/stopSession). See azure-container-apps-sandboxes for the new Sandboxes product with snapshots.",
-      "checked": "2026-09-29"
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
+      "quote": "Container-scoped storage | Ephemeral storage available to a running container | Data is available until container shuts down",
+      "note": "No API/CLI operation to snapshot or checkpoint a container app, revision, or session at will; management surface is limited to Azure Files mounts (external, always-on storage) and revision/replica lifecycle, not point-in-time snapshots.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": false,
@@ -604,6 +609,210 @@
       "quote": "Multiple containers can mount the same file share, including ones that are in another replica, revision, or container app.",
       "note": "Read-write or read-only (--access-mode ReadWrite|ReadOnly), SMB or NFS. Applies to container apps/jobs; session-pool volume support not verified.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
+      "quote": "Azure Container Apps doesn't allow privileged containers mode with host-level access.",
+      "note": "Consumption/Dedicated plans (the modeled default) run standard Linux containers on a managed Kubernetes-based platform, shared kernel, no privileged/host access; this matches the card's already-resolved Dedicated-mode isolation ('container'). Only the separate Dynamic Sessions feature uses per-session Hyper-V isolation ('Secure isolation: Hyper-V isolation ... Sessions are isolated from each other and from the host environment', learn.microsoft.com/azure/container-apps/sessions), already captured per-mode in the card.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps enables you to build serverless microservices and jobs based on containers.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps enables you to build serverless microservices and jobs based on containers.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/networking",
+      "quote": "Outbound public IP Used as the \"from\" IP for outbound connections that leave the virtual network. These connections aren't routed down a VPN. Outbound IPs might change over time. Using Azure NAT Gateway or another proxy for outbound traffic from a Container Apps environment is supported only in a workload profile environment.",
+      "note": "Default outbound IP is a shared, changeable Azure datacenter IP; a fixed outbound IP requires attaching an Azure NAT Gateway (with its own static public IP) to a workload-profiles environment, matching the card's static_egress_ip=true. All are Azure datacenter IPs, never residential/mobile.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps enables you to build serverless microservices and jobs based on containers.",
+      "note": "Changing an app's CPU/memory (or workload profile) triggers a new revision/replica deployment; no documented in-place live-resize API for a running replica.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps enables you to build serverless microservices and jobs based on containers.",
+      "note": "not offered: outside the product's scope (Container Apps/Dynamic Sessions offer a code-interpreter execution API for your own agent to call, not a first-party browser/computer-use/research agent driven via API)",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/microsoft/mcp/main/servers/Azure.Mcp.Server/README.md",
+      "quote": "📦 Azure Container Apps - \"List the container apps in my subscription\" - \"Show me the container apps in my 'my-resource-group' resource group\"",
+      "note": "Microsoft's official Azure MCP Server (microsoft/mcp) ships Container Apps tools (list/show container apps, check quota/usage) as one of its built-in service integrations, and can itself be self-hosted on Azure Container Apps.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/use-azure-firewall",
+      "quote": "Use a UDR to restrict outbound traffic from your container app through Azure Firewall or other network appliances.",
+      "note": "Outbound control is network-layer only: NSG/UDR IP-port-service-tag rules or Azure Firewall FQDN application rules on the environment subnet; no documented HTTP method/path-level egress rule capability.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps enables you to build serverless microservices and jobs based on containers.",
+      "note": "Container Apps (Consumption/Dedicated) are long-running microservices with no maximum lifetime imposed by the provider; a replica runs until it's scaled down, updated, or you stop it. Dynamic Sessions instead use an idle cooldown (300-3600 s) that destroys an unused session, not a hard maximum active-duration cap.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
+      "quote": "Azure Files | Permanent storage | Data is persisted to Azure Files | Writing files to a file share to make data accessible by other systems.",
+      "note": "Card's false contradicts its own volumes:true/volume_attach:true. Container- and replica-scoped storage are ephemeral ('temporary and disappears when the container shuts down or restarts'), but an Azure Files-backed volume mount is documented as 'Permanent storage' that survives replica restarts and scale-to-zero. Corrected field: persistent_disk=true (default ephemeral disk still does not persist; persistence requires opting into an Azure Files mount).",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
+      "quote": "Container-scoped storage ... Replica-scoped storage ... Azure Files ... Permanent storage",
+      "note": "The doc enumerates exactly three storage types (container-scoped ephemeral, replica-scoped ephemeral EmptyDir, and permanent Azure Files) with no snapshot/checkpoint mechanism for either the filesystem or memory; Dynamic Sessions are destroyed (not snapshotted) after cooldown per sessions-usage. Confirms snapshot: none.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
+      "quote": "The storage is temporary and disappears when the container shuts down or restarts.",
+      "note": "Only scale-to-zero exists, which is a stop (ephemeral state and running processes are discarded, new replica starts fresh), not a pause that preserves in-memory state for later resume. No pause/resume API found.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Run multiple container revisions and manage the container app's application lifecycle.",
+      "note": "Container Apps' unit of duplication is a new revision/replica deployed from the same image+config, not a clone of an existing running instance's disk/memory state. No fork/clone-machine API documented; outside this managed-serverless-container product's scope.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps is a serverless platform for running containerized applications without managing the underlying infrastructure.",
+      "note": "No documented API to clone a live running replica (with its memory/process state) into a new one; scaling creates fresh replicas from the image, not forks of a running one.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
+      "quote": "Container-scoped storage ... Replica-scoped storage ... Azure Files ...",
+      "note": "No memory-snapshot mechanism exists at all (see snapshot: none), so a memory-including fork is not possible; consistent with no fork/fork_running support.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
+      "quote": "Privileged containers: Azure Container Apps doesn't allow privileged containers mode with host-level access.",
+      "note": "Running a Docker daemon (dind) inside a container normally requires privileged mode / extra capabilities, which ACA explicitly disallows.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
+      "quote": "Privileged containers: Azure Container Apps doesn't allow privileged containers mode with host-level access.",
+      "note": "No privileged mode / host device access means no /dev/kvm passthrough for nested virtualization inside the container.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps is a serverless platform for running containerized applications without managing the underlying infrastructure.",
+      "note": "No SSH daemon/port is exposed; the closest capability is the Azure portal/CLI 'exec into container' console (control-plane driven, not an SSH server), which does not meet the SSH-into-the-machine definition.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps is a serverless platform for running containerized applications without managing the underlying infrastructure.",
+      "note": "Not offered: a headless serverless container/job/microservice/HTTP-ingress platform, outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Common uses of Azure Container Apps include: Deploying API endpoints, Hosting background processing jobs, Handling event-driven processing, Running microservices",
+      "note": "No managed/pre-installed browser; not offered, outside the product's scope (users could run their own browser image, but none is provided).",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps is a serverless platform for running containerized applications without managing the underlying infrastructure.",
+      "note": "No screenshot/click computer-use API; outside the product's scope (managed container hosting, not an agent-desktop product).",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Enable HTTPS or TCP ingress without having to manage other Azure infrastructure.",
+      "note": "Access is via a managed HTTPS/TCP ingress endpoint (shared front end / FQDN), not a dedicated public IPv4 per app; consistent with the card's own network.ipv4_available: false.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Common uses of Azure Container Apps include: Deploying API endpoints, Hosting background processing jobs, Handling event-driven processing, Running microservices",
+      "note": "No pre-installed coding-agent harnesses (Claude Code, Codex, etc.) or templates; Dynamic Sessions code-interpreter targets are aimed at running untrusted code for an external caller, not shipping a harness. Outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
+      "quote": "Operating system: Linux-based (linux/amd64) container images are required.",
+      "note": "Explicitly Linux/amd64 only; no Windows container support.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
+      "quote": "Operating system: Linux-based (linux/amd64) container images are required.",
+      "note": "Linux-only container platform; macOS is not offered.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
+      "quote": "Operating system: Linux-based (linux/amd64) container images are required.",
+      "note": "Only linux/amd64 images are supported; no ARM64 architecture offered.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps is a serverless platform for running containerized applications without managing the underlying infrastructure.",
+      "note": "Fully-managed Azure PaaS control plane; there is no self-hosted / on-prem distribution of the Container Apps service itself.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Azure Container Apps is a serverless platform for running containerized applications without managing the underlying infrastructure.",
+      "note": "Runs only inside Microsoft-operated Azure regions/subscriptions; no option to deploy the managed service into a customer-owned cloud account (Connected/Arc-enabled environments run on the customer's own Kubernetes, a different sub-product, not modeled here).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
+      "quote": "Build microservices with Dapr and access its rich set of APIs.",
+      "note": "Container Apps is a closed-source managed Azure service; it is built on/integrates open-source components (Kubernetes, KEDA, Dapr, Envoy) but the Container Apps control plane itself is not released under an OSI license.",
+      "checked": "2026-09-30"
     }
   }
 }

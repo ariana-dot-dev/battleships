@@ -207,13 +207,13 @@
     "linux": null,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "gpu_types": [],
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": false,
     "auto_stop_idle": true,
     "max_session_h": 6,
@@ -224,7 +224,7 @@
     "systemd": false,
     "browser": true,
     "desktop": false,
-    "computer_use": null,
+    "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": true,
     "ssh": false,
@@ -246,16 +246,16 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
@@ -281,7 +281,9 @@
     "guest_firewall": false,
     "secret_proxy": "ai-only",
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "dedicated-vm",
+    "image_oci": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -468,6 +470,217 @@
       "quote": "Persistent storage | None",
       "note": "No shared filesystem. A Context can be attached to several sessions, but docs advise against simultaneous use ('Avoid having multiple sessions using the same Context at once').",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "dedicated-vm",
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "Isolation | 1 browser per VM ... Each browser runs in a dedicated VM, providing strong isolation at the hardware virtualization layer.",
+      "note": "Hypervisor/VMM not named (not Firecracker/QEMU-branded in docs); one browser session = one dedicated VM, destroyed and recreated after each session.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://www.browserbase.com/pricing",
+      "quote": "Browserbase is the Browser Agent Platform: one API key gives your agent everything it needs to browse and interact with the web like a human: Browsers, Fetch, Search, Agent Identity, Functions, and the Model Gateway.",
+      "note": "not offered: outside the product's scope. Browserbase provisions fixed, provider-managed Chrome browser VMs (and a fixed TypeScript Functions runtime); there is no way to start a machine from a customer-supplied Docker/OCI image.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/agents/how-it-works",
+      "quote": "The Agent uses Stagehand, the SDK for browser agents, to interact with web pages. It navigates to URLs, clicks elements, types into forms, extracts structured data, and waits for page state to settle.",
+      "note": "not offered: outside the product's scope. Browserbase is browser-only (no general desktop/GUI); its Agents drive the browser via Stagehand's DOM/accessibility-based actions and CDP, not a screenshot+click computer-use API against a desktop.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "No browser reuse: After each session, the virtual machine is killed and recreated from scratch, ensuring every browser session is completely fresh.",
+      "note": "not offered: outside the product's scope. There is no persistent/sleeping machine to wake — every session's VM is created fresh on request and destroyed at session end, so there is no stop/sleep-then-wake lifecycle.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://www.browserbase.com/pricing",
+      "quote": "Each browser runs in a dedicated VM destroyed after the session; vCPU/RAM not published.",
+      "note": "not offered: outside the product's scope. Browser VMs are ephemeral (one per session, unsized/unpublished specs) with no documented API to change CPU/RAM of a running session.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.browserbase.com/reference/sdk/python",
+      "quote": "If you're working with Python, the official `browserbase` package is the easiest way to connect to and control headless browsers running on Browserbase. ... pip install browserbase",
+      "note": "First-party Python SDK for creating/controlling sessions.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.browserbase.com/reference/sdk/nodejs",
+      "quote": "If you're working with Node.js, the official `@browserbasehq/sdk` package is the easiest way to connect to and control headless browsers running on Browserbase.",
+      "note": "First-party Node.js SDK; Functions runtime language is also TypeScript.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/browser/security/allowed-domains",
+      "quote": "If you pass one or more domains, Browserbase blocks top-level page navigations to any domain not on the list.",
+      "note": "Egress control is domain-level only (allowedDomains blocks top-level navigation to non-listed domains, and only for top-frame navigations, not iframes/XHR/scripts). No HTTP method/path-level egress rules are documented.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://www.browserbase.com/pricing",
+      "quote": "Each browser runs in a dedicated VM destroyed after the session; vCPU/RAM not published.",
+      "note": "not offered: outside the product's scope. Browserbase sells browser-hours in a managed Chrome VM, not selectable machine architectures; no ARM/arm64 option is documented anywhere in the docs or pricing pages.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.browserbase.com/platform/browser/core-features/contexts",
+      "quote": "Contexts allow you to persist user data across multiple browser sessions... A Context persists the contents of the Chromium user data directory, including: Cookies... localStorage... IndexedDB... Session Storage... Service Workers... Web Data... Browser preferences",
+      "note": "With browserSettings.context.persist:true, the Chromium user-data directory (cookies, localStorage, IndexedDB, service workers, form data, prefs) is written to durable storage when the session closes and reloaded into later sessions passing the same context id -> files do survive stop/start in a first-party way. Scope is limited to the browser profile directory (no HTTP cache, no arbitrary filesystem/volume); default without a Context is a fresh, non-persistent user-data dir each session.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "No browser reuse: After each session, the virtual machine is killed and recreated from scratch, ensuring every browser session is completely fresh.",
+      "note": "No fs/mem machine-snapshot primitive; the only state carried across sessions is the Contexts browser-profile directory (see persistent_disk), not a VM disk or memory snapshot.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/browser/long-sessions/overview",
+      "quote": "By default, Browserbase sessions automatically terminate in two scenarios: 1. When a session disconnects 2. When the session reaches its timeout... Browserbase offers session keep alive and custom timeout to address this need.",
+      "note": "Long-session tooling is keepAlive (session stays running/billed across client disconnects) and extended timeouts, not a pause primitive; sessions are running or terminated, never suspended.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.browserbase.com/llms-full.txt",
+      "quote": "Persistent storage | None",
+      "note": "No clone/fork API or docs mention anywhere in the full docs corpus; a new session either starts fresh or reuses a Context's profile data, it never clones a live or stopped session/VM.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "No browser reuse: After each session, the virtual machine is killed and recreated from scratch, ensuring every browser session is completely fresh.",
+      "note": "No cloning of a running VM is documented; each session is a fresh, isolated VM destroyed at session end.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "No browser reuse: After each session, the virtual machine is killed and recreated from scratch, ensuring every browser session is completely fresh.",
+      "note": "No memory/process snapshotting or cloning capability exists; consistent with no fork feature at all.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "Browser isolation: Each browser runs in a dedicated VM, providing strong isolation at the hardware virtualization layer.",
+      "note": "Users get CDP/browser access only (no shell, root, or general-purpose OS access on the VM); there is no documented way to run Docker/containers inside a session or Function. Not offered: outside the product's scope (browser-as-a-service, not a general compute sandbox).",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "Browser isolation: Each browser runs in a dedicated VM, providing strong isolation at the hardware virtualization layer.",
+      "note": "No shell/root access is exposed to customers, so /dev/kvm is not reachable; nested virtualization is not documented anywhere. Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "root": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/functions/limits",
+      "quote": "Persistent storage | None ... Sandbox directories such as /tmp aren't guaranteed to be empty or unique for each invocation.",
+      "note": "Customer access to the VM is limited to the browser via CDP (connectUrl) and to a sandboxed Functions runtime; no root/sudo shell is documented anywhere. Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/browser/getting-started/remote-browser-versus-local-browser",
+      "quote": "Every session runs in its own ephemeral sandbox, so a compromised page can't reach your infrastructure or other sessions",
+      "note": "No SSH access is documented anywhere in the docs; the only remote-access surfaces are the CDP connectUrl and the Live View debugger URL for the browser itself.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.browserbase.com/welcome/what-is-browserbase.md",
+      "quote": "Browserbase is the Browser Agent Platform: one API key gives your agent everything it needs to browse and interact with the web like a human: Browsers, Fetch, Search, Agent Identity, Functions, and the Model Gateway.",
+      "note": "Product surface is a managed Chrome browser (plus Live View/session-replay of that browser), not a general graphical OS desktop (no VNC/RDP to a full desktop environment). Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "Browserbase patches Chrome versions proactively and automatically.",
+      "note": "The VM image is Browserbase's own managed Chromium build; there is no documented API/option to start a session from a customer-supplied OCI/Docker image.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/functions/limits",
+      "quote": "Persistent storage | None",
+      "note": "No attachable/shared volume product exists; the only persistence primitive is the Contexts browser-profile directory (see persistent_disk), which is not a general-purpose disk/volume.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/browser/security/ip-allowlisting",
+      "quote": "IP allowlisting lets you route Browserbase sessions through your own proxy so that services you control can allowlist Browserbase's traffic",
+      "note": "That page is about outbound proxy routing so a target site can allowlist Browserbase, not an inbound HTTPS surface. No user-exposed ports/preview URLs exist; access is only via the CDP connectUrl (wss) and per-session Live View debugger links, both API-key/token gated, not arbitrary inbound HTTPS to ports on the machine.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "Network isolation: Every browser runs in an isolated subnet with strict firewalls to prevent lateral movement.",
+      "note": "Browsers sit in private, firewalled subnets; outbound egress uses Browserbase's shared/static or proxy IPs (see egress_ip_type), but no per-machine public IPv4 for inbound traffic is offered or documented.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.browserbase.com/account/enterprise/security",
+      "quote": "No GPU access: To avoid known security risks associated with shared GPU memory attacks.",
+      "note": "Explicit statement that browser VMs have no GPU access, by design (security).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://www.browserbase.com/pricing",
+      "quote": "Browser session, Developer overage rate ($0.12/browser-hour)",
+      "note": "Product is a managed Chrome/Chromium browser service (headless/headful Chrome); no Windows machines or Windows-only browser are offered. Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://www.browserbase.com/pricing",
+      "quote": "Browser session, Developer overage rate ($0.12/browser-hour)",
+      "note": "No macOS machines/browsers are offered; sessions run Browserbase's Linux-hosted Chromium build. Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/browser/getting-started/remote-browser-versus-local-browser",
+      "quote": "Local vs managed at a glance ... Air-gapped or policy-locked environments | ✅ (Local Chromium) | No (Browserbase)",
+      "note": "Documentation explicitly contrasts self-hosted/local Chromium with Browserbase's fully managed cloud service and marks air-gapped/self-hosted-style deployment as not possible on Browserbase.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/browser/getting-started/remote-browser-versus-local-browser",
+      "quote": "Browserbase absorbs that operational surface so your team can focus on agent logic",
+      "note": "Browserbase is a single multi-tenant managed SaaS (own subnets/VMs); no documented option to deploy the platform into a customer's own cloud account.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.browserbase.com/platform/browser/getting-started/remote-browser-versus-local-browser",
+      "quote": "Browserbase absorbs that operational surface so your team can focus on agent logic",
+      "note": "The Browserbase cloud platform (VM fleet, proxies, Contexts, Agents) is closed-source managed infrastructure; only the separate Stagehand automation library is open source, which does not make the core sandbox product open source.",
+      "checked": "2026-09-30"
     }
   }
 }

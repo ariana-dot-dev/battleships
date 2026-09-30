@@ -129,11 +129,11 @@
     "windows": false,
     "macos": false,
     "arm64": true,
-    "gpu": null,
+    "gpu": true,
     "snapshot": "none",
     "pause_resume": true,
     "fork": false,
-    "persistent_disk": null,
+    "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -152,14 +152,14 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": true,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": false,
     "byoc": true,
     "open_source": false,
     "soc2": true,
-    "hipaa": null,
+    "hipaa": false,
     "sso": true,
     "gpu_types": [],
     "regions": null,
@@ -170,7 +170,7 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": true,
     "fork_running": false,
@@ -194,7 +194,10 @@
     "snapshot_on_demand": false,
     "own_agent_api": false,
     "guest_firewall": false,
-    "max_session_unlimited": true
+    "max_session_unlimited": true,
+    "egress_ip_type": "datacenter",
+    "volume_attach": true,
+    "volume_shared": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -497,6 +500,69 @@
       "source": "https://www.skyhook.io/platform/run",
       "quote": "Deployments spread across multiple nodes for resilience. Your app instances remain available even during node maintenance or outages.",
       "note": "Services are long-running Kubernetes deployments meant to run continuously (not a bounded sandbox session); they run until stopped/scaled down by the user.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.skyhook.io/introduction/welcome.md",
+      "quote": "A Kubernetes platform that generates the workflows, manifests, and GitOps plumbing — you keep the repo and the cloud account.",
+      "note": "derived: Skyhook is BYOC — workloads run inside the customer's own AWS/GCP/Azure Kubernetes cluster, so outbound traffic egresses through that cloud provider's normal datacenter IP ranges, not a residential/mobile pool. No Skyhook-managed egress IP feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "source": "https://docs.skyhook.io/infrastructure/clusters/cluster-view.md",
+      "quote": "Storage Classes — Lists available storage backends for persistent volumes (e.g., standard-rwo, premium-rwo on GCP; gp2, gp3 on AWS). The default storage class is marked; that's what PVCs use when you don't specify storageClassName.",
+      "note": "derived: full Kubernetes clusters with native PersistentVolume/PersistentVolumeClaim support (also listed as a browsable resource kind in the Resource Viewer), so data on a PVC-backed StatefulSet/pod survives restarts.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://docs.skyhook.io/infrastructure/clusters/resource-viewer.md",
+      "quote": "Storage — PersistentVolume, PersistentVolumeClaim, StorageClass",
+      "note": "Skyhook's cluster Resource Viewer natively tracks PersistentVolumeClaim/StorageClass objects and the cluster view page explains provisioning volumes via storage classes, i.e. extra persistent volumes can be attached (standard Kubernetes PVCs) to workloads deployed through Skyhook.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.skyhook.io/infrastructure/clusters/cluster-view.md",
+      "quote": "Lists available storage backends for persistent volumes (e.g., standard-rwo, premium-rwo on GCP; gp2, gp3 on AWS).",
+      "note": "not offered: the only storage classes Skyhook's own docs name are *-rwo (ReadWriteOnce, single-mounter) classes; no ReadWriteMany/shared-volume feature or storage class is documented.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://docs.skyhook.io/infrastructure/clusters/resource-viewer.md",
+      "quote": "Networking — Service, Ingress, NetworkPolicy, Gateway, HTTPRoute ... Toggle from Resources to Traffic to see the network flow between workloads, based on real-time service mesh or NetworkPolicy data.",
+      "note": "derived: full Kubernetes clusters natively support NetworkPolicy egress rules, and Skyhook's Resource Viewer/Traffic view surfaces NetworkPolicy objects and traffic; rules are authored as standard K8s manifests via Skyhook's GitOps flow rather than a dedicated allowlist UI.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.skyhook.io/infrastructure/clusters/resource-viewer.md",
+      "quote": "Networking — Service, Ingress, NetworkPolicy, Gateway, HTTPRoute",
+      "note": "not offered: the documented egress control primitive is Kubernetes NetworkPolicy, which operates at L3/L4 (IP/port); no HTTP method/path-level egress rule feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.skyhook.io/infrastructure/clusters/connecting-clusters.md",
+      "quote": "The connector runs as a pod in your cluster and communicates outbound to the Skyhook API. No inbound ports or public endpoints are required.",
+      "note": "not offered: outside the product's scope. Skyhook is a BYOC control plane over the customer's own cluster/VPC; it documents its own connector's outbound calls but offers no feature to assign or manage a fixed outbound IP for customer workloads — that would be configured at the cloud provider (NAT gateway) level, not through Skyhook.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": true,
+      "source": "https://docs.skyhook.io/application/jobs/argo-workflows.md",
+      "quote": "GPU resources: resources: limits: nvidia.com/gpu: \"1\"",
+      "note": "Skyhook's Jobs/Argo Workflows docs show first-party support for requesting GPU resources per step, plus nodeSelector/affinity examples for scheduling onto GPU node pools (e.g. g4dn.xlarge); Jobs overview also lists GPU as a customizable per-environment resource allocation.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://trust.skyhook.io/",
+      "quote": "Compliance ... SOC 2",
+      "note": "Skyhook's Trust Center lists only SOC 2 (Type II report available) under Compliance; no HIPAA/BAA program is mentioned anywhere in the docs or trust pages.",
       "checked": "2026-09-30"
     }
   }

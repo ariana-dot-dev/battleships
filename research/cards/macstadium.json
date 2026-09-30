@@ -272,17 +272,17 @@
     "windows": false,
     "macos": true,
     "arm64": true,
-    "gpu": false,
+    "gpu": true,
     "gpu_types": [],
-    "snapshot": "none",
-    "pause_resume": false,
-    "fork": false,
+    "snapshot": "fs",
+    "pause_resume": true,
+    "fork": true,
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": false,
     "max_session_h": null,
-    "custom_image": false,
-    "docker_inside": null,
+    "custom_image": true,
+    "docker_inside": true,
     "nested_virt": true,
     "root": true,
     "systemd": false,
@@ -307,18 +307,18 @@
       "eu"
     ],
     "soc2": true,
-    "hipaa": null,
+    "hipaa": false,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": false,
@@ -328,7 +328,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
     "harness_api": false,
@@ -336,7 +336,15 @@
     "ingress_rules": true,
     "guest_firewall": true,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "bare-metal",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "secret_proxy": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -436,6 +444,214 @@
       "quote": "Starting with Orka 1.6.0, all deployed Intel-based VMs will have access to a shared storage volume in the cluster. Starting with Orka 2.1.0, all deployed ARM-based VMs will have access to the same shared storage.",
       "note": "Read-write NFS-backed volume (/Volumes/orka; automount on ARM with Orka VM Tools, `mount_9p` on Intel) shared by all VMs in the cluster, for CI artifact caching. Orka (sales) only; off by default for new 3.5 deployments (support ticket).",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "bare-metal",
+      "source": "https://www.macstadium.com/pricing",
+      "quote": "Individual MacStadium bare metal subscriptions are available on a monthly basis with pre-payment on the first day of the calendar month.",
+      "note": "The card's primary self-serve mode is a whole dedicated (bare metal) Mac per customer, not a shared-kernel container or a standard hypervisor VM. Orka (sales-only mode) instead runs macOS VMs via Apple's Virtualization.framework ('apple-vm') on top of that bare metal, at most 2 VMs/host under the Apple SLA.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://docs.macstadium.com/orka/oci-images/oci-images-overview.md",
+      "quote": "Starting with Orka 3.0.0, you can work with OCI-compatible images. You can deploy a VM using a compatible image straight from a private or public registry, and you can store your images in your own registry.",
+      "note": "Orka (contact-sales product) only: VMs deploy from OCI-compatible macOS images stored in registries like ghcr.io/ECR (macOS VM images, not Linux Docker containers). The self-serve individual hosted Mac SKUs have no custom-image/OCI feature (features.custom_image=false on the card).",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.macstadium.com/orka/orka-devops-integrations/bazel-rbe.md",
+      "quote": "docker run -d -u 1000:1000 -v /path/to/cache:/data -p 9090:8080 --restart unless-stopped buchgr/bazel-remote-cache --max_size=50",
+      "note": "Docker is used throughout MacStadium's own docs (e.g. running bazel-remote / Orka on-prem installer containers) on Linux VMs/hosts they operate, and customers have full root on their dedicated Mac to install Docker Desktop for Mac themselves; docs show installing Docker on a companion Linux CI build node. Not a managed/first-party 'Docker inside the Mac' feature, but nothing blocks it on a root-access dedicated Mac.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.macstadium.com/pricing",
+      "quote": "Individual MacStadium bare metal subscriptions are available on a monthly basis with pre-payment on the first day of the calendar month.",
+      "note": "not offered: outside the product's scope (dedicated Mac hosting / macOS VM orchestration for CI, VDI, and build workloads, not a browser/bot-automation product)",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.macstadium.com/pricing",
+      "quote": "Individual MacStadium bare metal subscriptions are available on a monthly basis with pre-payment on the first day of the calendar month.",
+      "note": "not offered: outside the product's scope (dedicated Mac hosting / macOS VM orchestration, not a browser-automation or scraping product)",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://www.macstadium.com/pricing",
+      "quote": "Whole dedicated Mac, root access, dedicated IPv4, unlimited bandwidth (1 Gbps).",
+      "note": "Each dedicated Mac / Orka host gets a fixed public IPv4 out of MacStadium's own datacenter ranges (card features.static_egress_ip=true, features.public_ipv4=true); not residential/mobile IPs.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/orka3-cli-reference/vm-lifecycle-management.md",
+      "quote": "orka3 vm resize ... Resize the disk and automatically resize the partition of the specified VM",
+      "note": "Documented VM 'resize' operations only cover the disk/storage size, not CPU/RAM. Individual hosted Macs are fixed-spec dedicated hardware (Mac mini/Studio models); changing CPU/RAM means switching to a different physical machine, not a live in-place resize.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/orka-devops-integrations/claude-code.md",
+      "quote": "The Orka3 CLI agent skill gives AI coding agents deep knowledge of the Orka CLI and, when you're authenticated and connected to the VPN, the ability to run commands directly against your cluster.",
+      "note": "not offered: MacStadium's only agent-related integration is a skill that teaches outside coding agents to drive the orka3 CLI; there is no first-party browser/computer-use/research agent that MacStadium itself operates via an API.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/orka-overview/orka-overview.md",
+      "quote": "You can access Orka via the CLI, API, or through direct integration with common CI (continuous integration) systems such as Jenkins, GitHub Actions, GitLab, BuildKite",
+      "note": "not offered: access is documented as CLI (orka3), REST API, Web UI, and CI plugins; no MCP server for controlling sandboxes is documented. (Note: MacStadium's own trust.macstadium.com portal advertises an 'enableTrustCenterMcp' flag, but that is a third-party SafeBase trust-center chat feature, not an MCP server for controlling MacStadium machines.)",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/quick-start-guides/mac-cicd-essentials.md",
+      "quote": "Ansible is a largely free and open source server configuration tool. It must be installed, along with Python, on the control machine",
+      "note": "not preinstalled out of the box: docs treat Python/Node.js as something you install yourself via Homebrew on a bare macOS machine (e.g. 'Install Node.js', 'brew install python' style CI setup guides); modern macOS ships without a system Python3/Node runtime guaranteed by MacStadium.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.macstadium.com/iaas/cisco-firewalls/network-firewalls-for-ci-build-node-homebrew.md",
+      "quote": "## Install Node.js\n\nTo install the latest version of Node.js run:",
+      "note": "not preinstalled out of the box: Node.js is documented as an optional install step (via Homebrew/nvm) for CI build nodes, not a runtime shipped by default on hosted Macs or Orka VMs.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.macstadium.com/iaas/cisco-firewalls/network-firewalls-overview.md",
+      "quote": "Filter any Internet and internal traffic real-time. For example, pass traffic from selected IPs or IP ranges (like a Jenkins master) and block all other traffic.",
+      "note": "Egress control is at the network/IP level via a dedicated Cisco ASA/Firepower firewall (sales add-on) or Orka's cluster-wide internet isolation toggle; no documented HTTP method/path-level egress rule engine.",
+      "checked": "2026-09-30"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/orka3-cli-reference/oci-registry-integration.md",
+      "quote": "Orka stores the registry credentials as a Kubernetes secret.",
+      "note": "Credentials (OCI registry creds, Orka service-account tokens, backup keys) are stored/passed as Kubernetes secrets or CI/CD secret-manager environment variables, not injected by a first-party HTTP proxy that keeps the secret out of the machine.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://docs.macstadium.com/remote-desktop-vdi/planning/compliance-frameworks-comparison.md",
+      "quote": "HIPAA (U.S.-based healthcare policy): Encrypt data at rest (FileVault on VMs) ... Sign BAA with Citrix",
+      "note": "MacStadium's own compliance guidance for HIPAA workloads tells the customer to sign the Business Associate Agreement with Citrix (a third party used for VDI), not with MacStadium; MacStadium's Trust Center lists ISO 27001/27017/27018, SOC 1 Type 2, SOC 2, SOC 3, and CSA STAR, but no HIPAA attestation or BAA offering of its own was found.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://www.macstadium.com/pricing",
+      "quote": "Individual MacStadium bare metal subscriptions are available on a monthly basis with pre-payment on the first day of the calendar month.",
+      "note": "Hosted Macs are always-on dedicated hardware billed monthly with no stopped/paused state (card caveat: 'Cancelling takes the Mac offline ... there is no stopped/paused state'); the machine runs indefinitely until the subscription is cancelled. Apple's SLA sets a 24-hour *minimum* lease per Mac, not a maximum session length.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "fs",
+      "corrected_from": "none",
+      "source": "https://docs.macstadium.com/orka/orka3-cli-reference/vm-lifecycle-management.md",
+      "quote": "Save a new image from a running VM. This saves the file system and the state of the OS, including any running applications. You can preserve the original image and deploy new VMs with the applied changes from the new image.",
+      "note": "Card says snapshot='none' but the card's own feature_evidence.snapshot_on_demand=true (same quote) and caveats say Orka has on-demand snapshots. Correct to 'fs': orka3 vm save/commit/push create disk+OS-state images (on-demand only, restarts the VM); 'saved state' that resumes running processes is documented as an Intel-only startup optimization, not general memory snapshotting, so 'mem' would overstate it. Bare hosted Macs (the self-serve SKUs) have no snapshot feature at all; only Orka (contact-sales) does.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.macstadium.com/orka/orka3-cli-reference/command-quick-reference.md",
+      "quote": "orka3 vm suspend | Suspend VM ... orka3 vm resume | Resume VM (both listed under 'Intel only (amd64)')",
+      "note": "Orka VMs on Intel nodes support suspend/resume. Intel-only, and Orka 3.6 is the last release to support Intel (support continues through Mar 2028, migration recommended by Dec 2027), but it is a documented current feature, so pause_resume should be true rather than false with no evidence.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.macstadium.com/orka/orka3-cli-reference/vm-lifecycle-management.md",
+      "quote": "Save a new image from a running VM ... You can preserve the original image and deploy new VMs with the applied changes from the new image.",
+      "note": "orka3 vm save/commit/push plus `orka3 image copy` let you take a saved image of a VM and deploy any number of new VMs from it — a fork-via-image workflow. Orka (contact-sales) only; bare hosted Macs have none.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/orka3-cli-reference/vm-lifecycle-management.md",
+      "quote": "This operation restarts the VM.",
+      "note": "The only fork path (vm save/commit) explicitly restarts the source VM and the async image isn't deployable until the save job finishes, so it is not a clone-without-stopping operation. false is correct, now with evidence.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/compatibility/compatibility-performance-improving-features.md",
+      "quote": "Use saved state (optimizes startup) | ✅ (Intel) | ❌ (Apple silicon)",
+      "note": "The only 'saved state' concept (resuming a suspended VM's running processes) is an Intel-only startup optimization for suspend/resume, not something carried into forked/deployed images — vm save/commit produce disk images that boot fresh. false is correct, now with evidence.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.macstadium.com/macstadium/macstadium-overview/macstadium-overview.md",
+      "quote": "MacStadium hosts Apple hardware for enterprise: bare metal Macs, Orka macOS virtualization, and cloud access, in MacStadium data centers, AWS, or on-prem.",
+      "note": "not offered: outside the product's scope. MacStadium is Mac infrastructure hosting/VM orchestration/VDI; it ships VNC/Screen Sharing/Citrix remote desktop, not a screenshot+click computer-use API.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.macstadium.com/orka/oci-images/oci-images-overview.md",
+      "quote": "Starting with Orka 3.0.0, you can work with OCI-compatible images. You can deploy a VM using a compatible image straight from a private or public registry, and you can store your images in your own registry.",
+      "note": "Card's top-level features.custom_image=false directly contradicts its own mode 'orka-cloud'.features.custom_image=true. Orka VMs deploy from custom OCI images (your own registry) or from images saved/committed from a running VM. Correct top-level value: true (Orka only; bare hosted Macs come as fixed macOS installs with no custom-image deploy).",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/orka-resources/burst.md",
+      "quote": "Only administrators can start and stop burst nodes via the MacStadium Admin Portal. Burst nodes are powered on/off manually by an admin user in the portal.",
+      "note": "No mechanism wakes a stopped Mac/VM automatically on an inbound request; hosted Macs are always-on monthly hardware and even elastic Orka Burst capacity is toggled manually by an admin. false confirmed.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://www.macstadium.com/pricing",
+      "quote": "Individual MacStadium bare metal subscriptions are available on a monthly basis with pre-payment on the first day of the calendar month.",
+      "note": "Hosted Macs are always-on monthly hardware with no idle-stop state (cancelling destroys data, no pause). Orka VMs also run until explicitly deleted/suspended by the user/CI job, not auto-stopped on idle. false confirmed.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.macstadium.com/iaas/networking/networking-overview.md",
+      "quote": "MacStadium IaaS environments run on a private network. All access, whether you're connecting from your local machine, a cloud provider, or a CI/CD system, goes through one of the networking options below.",
+      "note": "not offered: outside the product's scope. Access is via VPN/site-to-site tunnel or a per-network Cisco firewall with raw TCP/IP ACLs (raw_tcp_inbound=true); there is no first-party managed HTTPS URL/reverse-proxy feature for exposing a machine's ports. (Orka's own built-in/custom TLS domains only front the Orka control-plane API, not deployed VM ports.)",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/orka-devops-integrations/claude-code.md",
+      "quote": "The Orka3 CLI agent skill gives AI coding agents deep knowledge of the Orka CLI and, when you're authenticated and connected to the VPN, the ability to run commands directly against your cluster.",
+      "note": "This is an outside agent skill for driving the orka3 CLI from an external coding agent, not a coding-agent harness preinstalled inside a Mac/VM. false confirmed.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.macstadium.com/orka/orka-configuration/performance-gpu-passthrough.md",
+      "quote": "When GPU passthrough is enabled for a cluster, VMs with GPU passthrough enabled can access and use the host GPU for their workloads. ... GPU passthrough is always enabled for Apple silicon-based nodes and VMs and cannot be disabled.",
+      "note": "Orka VMs get host GPU access via passthrough — always on for Apple silicon nodes, opt-in (--gpu) for Intel nodes. Correct value: true (Orka only; not applicable to bare hosted Macs, which already have their own on-board GPU).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.macstadium.com/iaas/iaas-faqs/can-i-change-the-os-on-my-server-from-macos-to-linux.md",
+      "quote": "Mac servers at MacStadium run macOS and cannot be converted to Linux. For Linux or Windows workloads, MacStadium recommends Private Cloud x86 VMs instead.",
+      "note": "not offered: outside the product's scope. The card models MacStadium's macOS hosting/Orka products; Windows only exists on the separate Private Cloud x86 VM product, which isn't in the card's modes.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.macstadium.com/orka/orka-engine/managing-your-orka-license.md",
+      "quote": "Your Orka license is managed through the LicenseSpring customer portal ... License type (trial or commercial)",
+      "note": "Orka is a licensed commercial product (per-node LicenseSpring seats), not open source. Only the vanilla macOS base images (github.com/macstadium/orka-images) are published, not the Orka control plane itself. false confirmed.",
+      "checked": "2026-09-30"
     }
   }
 }

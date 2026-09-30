@@ -207,8 +207,8 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": false,
-    "gpu": false,
+    "arm64": true,
+    "gpu": true,
     "gpu_types": [],
     "snapshot": "mem",
     "pause_resume": true,
@@ -218,8 +218,8 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": false,
+    "docker_inside": false,
+    "nested_virt": true,
     "root": true,
     "systemd": null,
     "browser": false,
@@ -232,7 +232,7 @@
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": null,
-    "egress_allowlist": false,
+    "egress_allowlist": true,
     "static_egress_ip": null,
     "private_network": true,
     "self_host": true,
@@ -246,8 +246,8 @@
     "soc2": true,
     "hipaa": true,
     "sso": null,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -255,7 +255,7 @@
     "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
+    "live_resize": true,
     "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
@@ -265,7 +265,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "isolation": "firecracker",
     "image_oci": true,
     "snapshot_auto": true,
@@ -273,7 +273,12 @@
     "harness_api": false,
     "ingress_rules": true,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "own_agent_api": false,
+    "secret_proxy": "any-http",
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -368,6 +373,171 @@
       "quote": "`rwx`       | Read-write many. The volume can be mounted in read-write mode by multiple instances simultaneously. This access mode is only supported for volumes with `virtiofs` filesystem.",
       "note": "Read-write many via virtiofs volumes (slower than block); rox = read-only many for block volumes. BYOC/on-prem can add custom filesystem drivers (e.g. S3 via JuiceFS); managed host-path volumes Enterprise.",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://unikraft.com/docs/faq.md",
+      "quote": "Why can't you just use a container? When you deploy a container on the public cloud, it gets deployed on top of a virtual machine to have strong, hardware-level isolation... At Unikraft, Dockerfiles create the filesystem at build time. Then, a lean microVM provides the best efficiency at deploy time.",
+      "note": "Unikraft turns your Dockerfile into the microVM image itself at build time (TinyX); the running instance is a minimal Linux microVM, not a host with a Docker/OCI container runtime inside it. nested_virt is also false in the card (no /dev/kvm), and no docs mention running docker/containerd inside a running instance.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://unikraft.com/llms.txt",
+      "quote": "Unikraft Cloud (unikraft.com) runs any Dockerfile-based workload as a minimal, Linux-based microVM with hardware-level isolation, sub-10ms cold starts, millisecond scale-to-zero, and 100,000+ strongly isolated instances per server.",
+      "note": "not offered: outside the product's scope. Unikraft Cloud is a general-purpose compute/microVM platform (customers run their own Chrome/browser workloads on it, e.g. Browser Use); it does not itself provide stealth/anti-fingerprinting for bot detection.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://unikraft.com/llms.txt",
+      "quote": "Unikraft Cloud (unikraft.com) runs any Dockerfile-based workload as a minimal, Linux-based microVM with hardware-level isolation, sub-10ms cold starts, millisecond scale-to-zero, and 100,000+ strongly isolated instances per server.",
+      "note": "not offered: outside the product's scope. It is infrastructure (microVMs) for running any workload, not a browser/automation product with built-in CAPTCHA solving.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": true,
+      "source": "https://unikraft.com/docs/cli/unikraft/instances/edit.md",
+      "quote": "Resize instance memory: unikraft instance edit demo-instance --memory 256 ... --vcpus n Number of vCPUs.",
+      "note": "`unikraft instance edit` can change --memory and --vcpus on an existing instance via `--set`/flags without recreating it.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://unikraft.com/ai.md",
+      "quote": "Run millions of agents and functions on just a few servers -- not a datacenter.",
+      "note": "not offered: outside the product's scope. Unikraft Cloud provides microVM compute for AI workloads (including running other companies' agents), but ships no first-party API that drives its OWN browser/computer-use/research task agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://github.com/unikraft-cloud",
+      "quote": "Repos: cli, cpp-sdk, docs, examples, go-sdk, harbor, js-sdk, k8s-operator, lib-ukp-bin, openapi, pg_ukc_scaletozero, plugin-sdk, python-sdk, tailscale, terraform-provider-ukc, unikraft-videos, x",
+      "note": "No MCP-server repository in the unikraft-cloud GitHub org, and no MCP mention in docs/llms-full.txt; the platform ships CLI + JS/Python/Go/C++ SDKs + Terraform provider + K8s operator instead.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://unikraft.com/docs/faq.md",
+      "quote": "runtime: python:3.12 ... The runtime specifies one of the Unikraft Cloud runtimes (microVMs) built to run different languages and apps. Here it specifies a Python runtime.",
+      "note": "Official python:3.x runtime plus a Python HTTP-server guide (/guides/httpserver-python3.12) and a first-party async Python SDK (unikraft-cloud, Python 3.10+).",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://unikraft.com/docs/sdks/overview.md",
+      "quote": "`@unikraft/cloud` for Node.js and TypeScript. Fully typed, with chainable handles, multi-metro fan-out, and a `Sandbox` class for running commands and moving files inside an instance.",
+      "note": "Official Node.js/TypeScript SDK plus Node runtime guides (Node HTTP Server, Express, Next.js, etc. under /guides).",
+      "checked": "2026-09-30"
+    },
+    "secret_proxy": {
+      "value": "any-http",
+      "source": "https://unikraft.com/docs/features/network-shield.md",
+      "quote": "The shield provides filtering capabilities but also the possibility to inject credentials/secrets for agentic or other use cases. This is useful in sandbox environments, as it means the sandbox won't need unfiltered network access or access to secrets.",
+      "note": "Network shield relay microVM sits in front of the workload and can inject credentials for third-party APIs/package registries generically (any-http), not just model-provider keys. Currently Enterprise-only ('Limited Access' preview); also matches the Browser Use customer story pattern (control-plane proxy holds all credentials).",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://unikraft.com/docs/platform/quotas.md",
+      "quote": "vcpu limit: 1-1 ... memory size limits: 16MiB-8GiB ... autoscale limit: 0-16",
+      "note": "Quotas doc only caps concurrency/size, not wall-clock duration; instances are VM-style (running until stopped, or scaled to standby on idle via wake_on_request/auto_stop_idle), with no published maximum session length.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://unikraft.com/docs/releases/r13-adrastea.md",
+      "quote": "An instance can now reach the host's virtualization extensions, so a hypervisor runs inside the guest. Request the feature per instance with the new `nested-virt` feature flag ... Requires the new `nested_virt` user permission, and the host must carry a nested virtualization configuration. ... **Enterprise only.**",
+      "note": "Shipped in Release 13 (2026-09-02), Enterprise-only (permission-gated). Card's enterprise-dedicated mode already lists nested_virt:true; the top-level features.nested_virt should also be true since the feature is genuinely offered (paid tier), matching how gpu/arm64 are treated.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://unikraft.com/blog/metis-11-release",
+      "quote": "Coming soon: SSH directly into an instance, create and delete instances, and inspect the lifetime of an instance as you checkpoint or fork it — among other things.",
+      "note": "Still listed as 'coming soon' as of Release 11 and never mentioned as shipped in the later R12/R13 release notes or current docs (no /guides/ssh page exists, 404). Access today is via the exec/filesystem sandbox plugin (Enterprise) or the CLI/API, not SSH.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://unikraft.com/ai.md",
+      "quote": "Unikraft Cloud runs workloads on minimal, Linux-based microVMs ... It runs any Docker-based workload",
+      "note": "Unikraft Cloud is an infrastructure platform for running any Dockerfile-based workload (incl. customer-run headless browsers) as a microVM; it does not itself offer a graphical desktop (VNC/RDP/stream) product. Plainly outside the product.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://unikraft.com/ai.md",
+      "quote": "### Browser Workloads\nIsolated sessions cold started in < 10 ms",
+      "note": "Customers (Kernel, Tinyfish, Browser Use) run their own headless browsers inside microVMs; Unikraft Cloud itself does not manage/provide a browser as a first-party feature — only the infra to host one from a Dockerfile.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://unikraft.com/docs/features/plugins.md",
+      "quote": "The sandbox plugin lets you run commands and manipulate the filesystem inside an instance, over the plugin endpoint",
+      "note": "No screenshot+click driving API found anywhere in docs; the only control-plane API is the generic exec/filesystem sandbox plugin (Enterprise). Plainly not offered.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://unikraft.com/ai.md",
+      "quote": "### AI Agents\nSpawn and scale 1000+ agents in seconds",
+      "note": "The AI page markets running agent workloads (bring-your-own-Dockerfile), but no preinstalled coding-agent templates (Claude Code, Codex, OpenCode, etc.) are documented anywhere on the site or in the CLI/API docs.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://unikraft.com/docs/features/network-shield.md",
+      "quote": "Network shield and relay is a new feature which is available to enterprise customers. ... The shield provides filtering capabilities but also the possibility to inject credentials/secrets for agentic or other use cases.",
+      "note": "The network shield is an Enterprise-only microVM that sits between an instance and the internet and filters outbound traffic (plus secret injection), matching the definition of egress_allowlist. Genuinely offered, so should be true, consistent with the card's enterprise-dedicated mode which already lists egress_allowlist:true.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://unikraft.com/docs/platform/networking.md",
+      "quote": "Every instance, by default, receives a private IP and a private FQDN (of the format `<instance-name>.internal`).",
+      "note": "Public reachability is via a service's public FQDN behind Unikraft's own load balancer/proxy (TLS), not a per-instance public IPv4 address; no public IPv4 allocation is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://unikraft.com/docs/releases/r12-thebe.md",
+      "quote": "Release 12 introduces GPU support for enterprise customers ... The platform now supports NVIDIA GPUs. You select the instance type and GPU count when creating an instance via `POST /v1/instances` ... Requires instance `type` `full` and a plan with GPU support.",
+      "note": "GPU instances (NVIDIA, via full-VM type) are a real, shipped, Enterprise-only feature, consistent with the card's own enterprise-dedicated mode (gpu:true) and note about the GPU preview / browser customer story. Should be true at top level too.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://unikraft.com/llms-full.txt",
+      "quote": "Unikraft Cloud runs workloads on minimal, Linux-based microVMs ... It provides VM-level isolation, not container-level isolation.",
+      "note": "The platform only runs Linux-based microVMs/full VMs; no Windows guest OS is offered anywhere in docs, pricing, or release notes. (The CLI tool itself also isn't officially supported on native Windows, only via WSL, per the FAQ — a separate, corroborating point.)",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://unikraft.com/llms-full.txt",
+      "quote": "Unikraft Cloud runs workloads on minimal, Linux-based microVMs",
+      "note": "Linux-only guest platform; no macOS machines offered anywhere in docs, pricing, or release notes.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://unikraft.com/docs/faq.md",
+      "quote": "Both `x86_64` and `arm64`, and the hosted platform runs on `x86_64`. ... `arm64` hosts are available as part of enterprise plans. To deploy to them, reach out to the Unikraft Cloud Discord or send an email to support@unikraft.com.",
+      "note": "ARM64 host support shipped in Release 13 (2026-09-02) and is real, documented, and orderable (Enterprise-only). Should be true, matching the card's own enterprise-dedicated mode (arm64:true).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://unikraft.com/llms-full.txt",
+      "quote": "Unikraft Cloud (unikraft.com) is the commercial cloud platform built by Unikraft Inc. It must NOT be confused with: - The open-source Unikraft unikernel project at unikraft.org (a Linux Foundation project)",
+      "note": "The Unikraft Cloud platform itself (controller, proxy, dashboard, API) is closed-source/commercial. Only the `unikraft` CLI ('the open source `unikraft` CLI tool', per docs/faq.md) and the unrelated unikraft.org unikernel project are open source — the core product is not.",
+      "checked": "2026-09-30"
     }
   }
 }

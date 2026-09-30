@@ -419,7 +419,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
     "browser": true,
@@ -432,8 +432,8 @@
     "inbound_https": true,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": false,
     "private_network": false,
     "self_host": false,
     "byoc": true,
@@ -444,17 +444,17 @@
     ],
     "soc2": true,
     "hipaa": false,
-    "sso": false,
-    "lang_python": null,
-    "lang_node": null,
+    "sso": true,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
@@ -464,7 +464,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": false,
     "isolation": "vm",
     "image_oci": true,
     "snapshot_auto": false,
@@ -473,7 +473,13 @@
     "ingress_rules": true,
     "guest_firewall": true,
     "secret_proxy": false,
-    "volume_attach": false
+    "volume_attach": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "volume_shared": false,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -625,9 +631,9 @@
     "snapshot_on_demand": {
       "value": false,
       "source": "https://ona.com/docs/ona/projects/prebuilds",
-      "quote": "A prebuild starts on schedule or manual trigger",
-      "note": "No API/CLI to snapshot a user's running or stopped environment (Environments API has create/start/stop/archive/update/delete only). Closest analog: prebuilds, which build a fresh temporary env from the project's Dev Container config and snapshot its filesystem ('Ona snapshots the Dev Container filesystem. New environments start from this snapshot'), no memory, expire after 5 days. Snapshot storage free on Ona Cloud for now.",
-      "checked": "2026-09-29"
+      "quote": "A prebuild starts on schedule or manual trigger ... Ona snapshots the Dev Container filesystem. New environments start from this snapshot",
+      "note": "Not a contradiction: features.snapshot='fs' describes the filesystem-only mechanism used by prebuilds/persistent storage, not a user-triggerable on-demand snapshot API. The Environments API only exposes create/start/stop/archive/update/delete; no snapshot/checkpoint call exists for a user's running or stopped environment. Prebuilds are the closest analog (build-time filesystem snapshot of a fresh temp env from Dev Container config), not an on-demand snapshot of an arbitrary running environment.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": true,
@@ -663,6 +669,217 @@
       "quote": "Storage size is configured through environment classes.",
       "note": "No user-attachable extra volumes documented. Enterprise 'dual disk' splits system and data disk, but both are runner-managed per-environment disks, not attachable volumes.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/runners/aws/environment-classes",
+      "quote": "Small (m6i.large), Regular (m6i.xlarge), Large (m6i.2xlarge), Extra Large (m6i.8xlarge)",
+      "note": "derived: environments run as standard AWS EC2 instance types (m6i / g5 families) or the equivalent Ona Cloud VM sizes; these are not bare-metal/metal instance types and nested virtualization (/dev/kvm passthrough) is not documented anywhere in Ona's docs.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://ona.com/pricing",
+      "quote": "Ona is the platform for background agents — autonomous AI software engineers that plan, code, test, and open PRs in isolated cloud environments.",
+      "note": "not offered: outside the product's scope (a cloud dev environment / coding-agent runner, not a browser-automation/scraping product).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://ona.com/pricing",
+      "quote": "Ona is the platform for background agents — autonomous AI software engineers that plan, code, test, and open PRs in isolated cloud environments.",
+      "note": "not offered: outside the product's scope (a cloud dev environment / coding-agent runner, not a browser-automation/CAPTCHA-solving product).",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://ona.com/docs/ona/runners/aws/networking",
+      "quote": "The AWS runner runs as a Fargate service in your VPC... Each Fargate task gets its own elastic network interface (ENI) in your subnets",
+      "note": "derived: Ona Cloud and Enterprise runners execute on standard AWS/GCP cloud VM infrastructure, so outbound traffic originates from ordinary datacenter IP ranges (AWS/GCP), not residential or mobile. No dedicated/static outbound IP product is documented.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/organizations/policies/environment-timeout",
+      "quote": "Set the maximum auto-stop timeout to 30 minutes, 1 hour, 3 hours, 8 hours, or No max timeout.",
+      "note": "not offered: stopped/archived environments must be explicitly started again via the UI, CLI (`ona environment start`), or API; no documentation describes a stopped environment automatically waking when an inbound HTTP/port request arrives.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/environments/persistent-storage",
+      "quote": "Ona environments use persistent storage attached to the underlying VM. Everything on disk persists across environment stops and starts.",
+      "note": "Storage is a disk attached to a single environment's VM (sized via environment classes); there is no documented way to mount one volume across multiple simultaneously-running environments.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://ona.com/docs/api-reference/generated/environment/update-environment",
+      "quote": "Note: Machine class changes require stopping the environment and creating a new one.",
+      "note": "Explicitly documented: changing vCPU/RAM (environment class) requires stopping and recreating the environment, not a live resize of a running machine.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/agents/overview",
+      "quote": "Ona Agent is deprecated. Use Codex Agent for all new environments and automations. Ona Agent and Ona-managed Anthropic model access are no longer available on Ona Cloud.",
+      "note": "Ona's own proprietary task agent (\"Ona Agent\") is deprecated/retired; the current agent is OpenAI's Codex coding harness (already captured by harness_api). Ona has no separate own browser/computer-use/research agent API.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/mcp",
+      "quote": "There are two ways to add MCP servers to Ona: Custom organization integrations... Repo-local configuration... MCP servers run as separate processes in your environment and communicate over stdio or HTTP.",
+      "note": "Ona is an MCP client (agents inside Ona environments consume external MCP servers you configure). It does not ship its own MCP server for controlling Ona sandboxes/environments.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/organizations/policies/default-image",
+      "quote": "Enter a container image reference (e.g., `mcr.microsoft.com/devcontainers/base:2.0.4-noble`). If empty, uses system default.",
+      "note": "Environments run whatever Dev Container image the repo (or org default) specifies; the documented default/example base image is a generic Ubuntu devcontainer base without a Python runtime preinstalled. Users pick a language-specific template/devcontainer (e.g. Go, Python) themselves - not guaranteed out of the box.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/organizations/policies/default-image",
+      "quote": "Enter a container image reference (e.g., `mcr.microsoft.com/devcontainers/base:2.0.4-noble`). If empty, uses system default.",
+      "note": "Same as lang_python: the generic example/default base image does not include Node.js; runtime availability depends on the project's own Dev Container configuration, not guaranteed out of the box.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://ona.com/docs/llms.txt",
+      "quote": "Port sharing policy: Control whether members can share ports from environments and how widely those ports can be accessed.",
+      "note": "Ona's organization policies cover inbound port sharing/admission, auto-stop, and similar controls, but no policy for outbound/egress allow-deny lists or no-internet mode is documented for Ona Cloud. (Enterprise AWS/GCP runner egress is governed by the customer's own VPC security groups, not an Ona-side feature.)",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://ona.com/docs/llms.txt",
+      "quote": "Port sharing policy: Control whether members can share ports from environments and how widely those ports can be accessed.",
+      "note": "No documented provider-side egress rule feature at the HTTP method/path level for Ona Cloud; existing policies only govern inbound port sharing, not outbound HTTP filtering.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/runners/aws/networking",
+      "quote": "Route traffic from private subnets to AWS service public endpoints via a NAT gateway in a public subnet... Assign a public IP directly to the Fargate task and route traffic through an internet gateway.",
+      "note": "No fixed/static outbound IP is documented for Ona Cloud environments; on the Enterprise self-hosted runner, outbound IP depends on the customer's own AWS NAT/IGW configuration, not a static IP Ona guarantees.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://ona.com/docs/ona/organizations/policies/environment-timeout",
+      "quote": "Set the maximum auto-stop timeout to 30 minutes, 1 hour, 3 hours, 8 hours, or No max timeout.",
+      "note": "Only an idle-inactivity auto-stop timeout is enforced (configurable, can be disabled/'Never'); there is no documented hard cap on how long a continuously-active environment/session may run.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://ona.com/docs/api-reference/generated/project/create-project-from-environment",
+      "quote": "Creates a new project using an existing environment as a template. Use this method to: Clone environment configurations; Create projects from templates; Share environment setups",
+      "note": "The only 'clone'-like API call creates a new PROJECT (a reusable devcontainer/config template) from an environment's configuration, not a new independent machine with the source's disk/process state. No API creates a second running or stopped environment that is a data/state copy of an existing one.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://ona.com/docs/api-reference/generated/project/create-project-from-environment",
+      "quote": "Creates a new project using an existing environment as a template.",
+      "note": "Follows directly from fork=false: since there is no machine-cloning primitive at all, there is no cloning of a RUNNING machine either. No mention anywhere in the API/docs of cloning a live environment without stopping it.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/environments/persistent-storage",
+      "quote": "Ona environments use persistent storage attached to the underlying VM. Everything on disk persists across environment stops and starts.",
+      "note": "Persistence is disk-only (no documented memory/process checkpoint anywhere), and there is no fork primitive at all (see fork=false), so a memory-inclusive fork is not offered.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/integrations/sdk",
+      "quote": "provides browser-based and desktop IDE options with full feature parity",
+      "note": "'Desktop' in Ona's marketing/docs means a native desktop IDE client (VS Code Desktop, JetBrains) connecting remotely over SSH, not a graphical desktop (VNC/RDP/pixel-streamed GUI) running inside the sandbox. No VNC/RDP/remote-desktop feature is documented for the environment itself; it is a dev-container VM meant for terminal/IDE/SSH access.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/integrations/sdk",
+      "quote": "Use the Ona SDK to create and manage environments, run commands, access files, and start Codex agents from Python, TypeScript, or Go.",
+      "note": "The SDK/Agents API exposes environment/command/file/agent-execution operations, not a screenshot+click GUI-driving API. There is no remote desktop in the product for a computer-use API to drive (see desktop=false).",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/environments/persistent-storage",
+      "quote": "Storage size is configured through environment classes.",
+      "note": "Disk size is fixed per environment class; no documented user-attachable extra/detachable volume. Enterprise 'dual disk' runners split system vs data disk, but both are runner-managed per-environment disks, not user-mountable volumes.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/integrations/ports",
+      "quote": "By default, the CLI opens the port for the environment creator only.",
+      "note": "Ports are exposed only via provider-managed HTTPS URLs (e.g. *.gitpod.io) with admission control, never a routable public IPv4 address on the environment. Matches network.ipv4_available=false already on the card.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/runners/aws/environment-classes",
+      "quote": "X64 architecture (Intel or AMD)",
+      "note": "Environment classes doc only discusses Linux VM instance types; no Windows environment OS is offered anywhere in the runner/environment docs. (The 'operatingSystem':['Web Browser','Linux','macOS','Windows'] schema.org tag on ona.com/pricing describes client platforms that can access Ona's web app, not the sandbox OS.)",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/runners/aws/environment-classes",
+      "quote": "X64 architecture (Intel or AMD)",
+      "note": "Same as windows: environments run on Linux VMs (AWS EC2 / Ona Cloud); no macOS environment/runner is documented. The pricing-page schema.org 'operatingSystem' list refers to client OSes for using the web app.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://ona.com/docs/ona/runners/aws/environment-classes",
+      "quote": "ARM-based instance types (e.g., Graviton) are not currently supported.",
+      "note": "Explicit statement that ARM/Graviton instances are unsupported; only x64 (Intel/AMD) classes exist.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://ona.com/pricing",
+      "quote": "Compute Deployment: Ona Cloud (multi-tenant) | Self-hosted, Ona-managed VPC",
+      "note": "Enterprise's 'self-hosted' option is Ona-managed compute deployed into the customer's own VPC (BYOC), not the customer running the Ona platform itself on their own infrastructure. Matches byoc=true / self_host=false already on the card.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://ona.com/pricing",
+      "quote": "Compute Deployment: Ona Cloud (multi-tenant) | Self-hosted, Ona-managed VPC",
+      "note": "Ona (formerly Gitpod's SaaS successor) is offered only as a hosted/managed product (Core or Enterprise BYOC); the current Ona platform is not distributed as an OSI-licensed open-source project (the legacy 'Gitpod Classic' self-hosted OSS product was sunset 2025-10-15, and the pricing/plan pages show no OSS/self-host distribution today).",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://trust.ona.com",
+      "quote": "SOC 2 ... GDPR",
+      "note": "Ona's public trust center lists SOC 2 and GDPR compliance artifacts but no HIPAA/BAA program; no HIPAA mention found on the trust center, pricing, or docs pages.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://ona.com/pricing",
+      "quote": "SSO and OIDC identity and access controls",
+      "note": "The pricing comparison table lists 'SSO and OIDC identity and access controls' as an available Enterprise-plan feature (also referenced in the card's own Enterprise plan note: 'Adds SSO/OIDC, audit logs...' and mode features.sso=true for enterprise-self-hosted-aws). Top-level features.sso should be true (Enterprise-only), not false.",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": false,
+      "source": "https://ona.com/pricing",
+      "quote": "Complete network control (incl. load balancers)",
+      "note": "reviewed: proposed correction rejected (Enterprise plan offers complete network control per the pricing comparison table, and the card's own enterprise-self-hosted-aws mode already sets features.private_network=true. Top-level features.private_network should be true (Enterprise-only), not false.)",
+      "checked": "2026-09-30"
     }
   }
 }

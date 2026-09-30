@@ -336,36 +336,36 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
+    "windows": false,
+    "macos": false,
     "arm64": null,
-    "gpu": null,
+    "gpu": false,
     "pause_resume": true,
-    "fork": null,
+    "fork": false,
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": true,
     "custom_image": null,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": true,
     "browser": true,
     "desktop": true,
-    "computer_use": null,
+    "computer_use": true,
     "code_interpreter": null,
     "agent_harnesses": true,
-    "ssh": null,
-    "public_ipv4": null,
+    "ssh": false,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
-    "byoc": null,
-    "open_source": null,
+    "byoc": false,
+    "open_source": false,
     "soc2": true,
     "hipaa": null,
     "sso": true,
@@ -382,11 +382,11 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": false,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": true,
     "audit_logs": true,
@@ -394,7 +394,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": true,
     "snapshot_on_demand": false,
     "harness_api": true,
@@ -402,7 +402,14 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "firecracker",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -469,9 +476,9 @@
     "snapshot_on_demand": {
       "value": false,
       "source": "https://ampcode.com/docs/orbs/customizing",
-      "quote": "A snapshot is a saved copy of a prepared orb. It contains the repository and anything changed by `.agents/setup`, such as installed software. ... If setup finishes successfully, Amp saves the prepared orb as the new project snapshot. ... amp projects snapshots list <project> / amp projects snapshots delete <project> --resource a1.small",
-      "note": "Only automatic per-project, per-size setup snapshots (filesystem, reused up to 72 h to boot new orbs); users can list/delete them but no documented API/CLI to snapshot a running orb on demand or fork an orb.",
-      "checked": "2026-09-29"
+      "quote": "A snapshot is a saved copy of a prepared orb. It contains the repository and anything changed by `.agents/setup`, such as installed software. Amp uses snapshots so every new thread does not need to repeat the same setup work. ... If setup finishes successfully, Amp saves the prepared orb as the new project snapshot. ... Amp can reuse a matching project snapshot for up to 72 hours. ... When you need a setup change to apply right away, delete the cached snapshot from the project settings or run: amp projects snapshots list <project> / amp projects snapshots delete <project> --resource a1.small",
+      "note": "No contradiction with features.snapshot='mem': that field describes the automatic pause/resume mechanism (idle pause preserves filesystem+memory, per docs/orbs 'the orb wakes up with your conversation, files, and services still in place'), which is snapshot_auto, not a user-triggered on-demand snapshot API. The only user-facing snapshot object is the automatic, per-project/per-size setup snapshot; users can only list/delete it (to force a refresh), not create a snapshot of a running orb on demand, and there is no fork/checkpoint-on-demand command in the CLI/SDK docs. False confirmed.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": true,
@@ -515,6 +522,181 @@
       "quote": "If several orbs will mount the same disk at once, read Archil's [shared disk guidance](https://docs.archil.com/concepts/shared-disks) before adding `--shared`.",
       "note": "Shared read-write storage across orbs only via third-party Archil (user's own account/secret), not first-party.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "firecracker",
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "Amp's default E2B orbs currently run in Google Cloud us-west1... E2B microVM orbs can expose only a link-local IPv4 interface.",
+      "note": "Amp's security page states 'e2b provides ephemeral compute instances for Amp orbs'; E2B's compute product is Firecracker-based microVMs.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "Add an executable .agents/setup shell script at the repository root. Use it to install the dependencies and software needed in every orb... Orbs run Debian 12 and include common development tools",
+      "note": "not offered: orbs always start from Amp's Debian 12 base image plus a repository setup script/snapshot; no documented way to boot an orb from a customer-supplied Docker/OCI image.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "E2B microVM orbs can expose only a link-local IPv4 interface.",
+      "note": "derived: orbs run as E2B/Firecracker microVMs; nested KVM inside a microVM is not documented and is not typically exposed by this class of sandbox.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": true,
+      "source": "https://ampcode.com/docs/orbs/desktop",
+      "quote": "You can also try computer use in the orb desktop, but this is early and unsupported.",
+      "note": "Available but explicitly called early/unsupported by Amp.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/desktop",
+      "quote": "Open the Desktop tab in an orb thread to use a high-resolution, interactive Linux desktop environment running in the orb.",
+      "note": "not offered: outside the product's scope. Orbs give agents a real Chrome/desktop to drive, with no documented stealth/fingerprint-evasion features against bot detection.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/desktop",
+      "quote": "use the window yourself when Amp asks you to take over, for example to sign in or solve a CAPTCHA",
+      "note": "Docs explicitly describe a human taking over to solve CAPTCHAs; there is no built-in automated CAPTCHA-solving.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "Amp's default E2B orbs currently run in Google Cloud us-west1",
+      "note": "derived: orbs run as GCP-hosted E2B compute instances; no residential/mobile egress product is documented, so outbound traffic is ordinary cloud-datacenter IP space.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs",
+      "quote": "Open the Terminal pane to get a shell inside the orb. The terminal and the agent use the same filesystem and working copy... The terminal runs in a shared tmux session.",
+      "note": "not offered: shell access is via the web/app Terminal pane (tmux) or the shared `.agents` hooks; no documented direct SSH endpoint into an orb.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "A snapshot is a saved copy of a prepared orb. It contains the repository and anything changed by .agents/setup... Amp uses snapshots so every new thread does not need to repeat the same setup work.",
+      "note": "not offered: snapshots are automatic, per-project/per-size filesystem caches used only to speed up starting a *new* orb; there is no documented API/UI action to clone/fork an existing orb into new independent copies.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "Amp can reuse a matching project snapshot for up to 72 hours.",
+      "note": "not offered: no fork feature at all is documented (see fork), so cloning a running orb without stopping it is not offered either.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "A snapshot is a saved copy of a prepared orb. It contains the repository and anything changed by .agents/setup, such as installed software.",
+      "note": "not offered: documented snapshots are filesystem-only (repo + installed software) project caches, not user-triggered forks, and Amp explicitly stops any processes left running before saving one, so running state is not carried into new instances.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/sizes-and-costs",
+      "quote": "Select a size in the new-thread dialog on the web when one task needs more or less compute than usual... The default applies to new threads. Changing it does not resize an orb that is already running.",
+      "note": "Docs state directly that changing the size setting does not resize an orb that is already running; you must start a new orb/thread at a different size.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://ampcode.com/docs/sdk",
+      "quote": "The Amp SDK allows you to programmatically use the Amp agent in your TypeScript or Python programs.",
+      "note": "not offered: Amp's SDK/API drives Amp's own coding agent (a coding harness, already captured by harness_api), not a separate browser/computer-use/research task agent. Orb 'computer use' is an early, unsupported chat-driven feature, not a distinct first-party agent API.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://ampcode.com/docs/sdk",
+      "quote": "MCP Integration: specify which MCP servers are available for a given session... const mcpConfig: MCPConfig = { playwright: { command: 'npx', args: ['-y', '@playwright/mcp@latest', '--headless'] }, ... }",
+      "note": "not offered: Amp is an MCP *client* that lets you plug external MCP servers into a thread/orb; there is no documented first-party MCP server that Amp ships for controlling orbs.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "E2B microVM orbs can expose only a link-local IPv4 interface.",
+      "note": "Inbound access is only via Amp's authenticated Portal proxy (onamp.dev subdomains), not a public IPv4 address on the orb.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "if ! command -v shellcheck >/dev/null 2>&1; then sudo apt-get update; sudo apt-get install -y shellcheck; fi",
+      "note": "not offered: setup docs show orbs freely reaching the public internet (apt-get, curl installers) with no documented allow/deny-list or no-internet mode for outbound traffic.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "Orbs run Debian 12 and include common development tools",
+      "note": "not offered: no documentation of HTTP method/path-level egress rules; outbound network access is unrestricted general Debian networking.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "E2B microVM orbs can expose only a link-local IPv4 interface.",
+      "note": "not offered: no fixed/static outbound IP is documented for orbs; the only networking address feature described is the link-local internal interface plus the Portal proxy for inbound.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/sizes-and-costs",
+      "quote": "Size CPUs Memory Standard price a1.tiny 1 2 GB $0.08/hour ... a1.3xlarge 16 44 GB $2.13/hour",
+      "note": "not offered: outside the product's scope. Every documented orb size is CPU/RAM only; no GPU size or GPU option is listed.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "Orbs run Debian 12 and include common development tools",
+      "note": "not offered: outside the product's scope. Orb machines are Linux (Debian 12) only; Windows is not an orb OS option.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://ampcode.com/docs/orbs/customizing",
+      "quote": "Orbs run Debian 12 and include common development tools",
+      "note": "not offered: outside the product's scope for hosted orb compute. macOS only appears via 'Use Your Mac as a Runner', where the customer's own Mac becomes a runner — not a machine Amp provides.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://ampcode.com/security",
+      "quote": "Amp doesn't offer self-hosted deployments, but it can use your own API keys for certain model providers.",
+      "note": "Amp explicitly does not offer self-hosted/BYOC deployments; orbs run only on Amp's own GCP/E2B infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://ampcode.com/security",
+      "quote": "Amp Server: A multi-tenant cloud service at ampcode.com, hosted on Google Cloud Platform... Amp doesn't offer self-hosted deployments",
+      "note": "not offered: outside the product's scope. Amp is described throughout as a closed, multi-tenant hosted service with no self-host option; no OSI license is named for the core product.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://ampcode.com/docs/orbs/sizes-and-costs",
+      "quote": "These are idle timeouts, not a limit on how long an orb can run. An orb keeps running for as long as the agent has work to do, and you are only billed while it runs.",
+      "note": "No maximum session length is documented; only idle-pause timeouts (5 min after agent work ends / 20 min after last interaction) apply.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://ampcode.com/security",
+      "quote": "Google Cloud Platform (GCP) Sees & stores partial code data Our primary infrastructure is hosted on Google Cloud Platform in the US. This infrastructure serves ampcode.com, including storing user and thread data ... e2b Sees code data when using orbs e2b provides ephemeral compute instances for Amp orbs.",
+      "note": "Security Reference lists every infrastructure/service provider (GCP, Anthropic, OpenAI, Bedrock, Baseten, Fireworks, e2b, Pierre, LiveKit, etc.) as hosted on US-based servers, with only a note that 'We have no infrastructure or service providers based in China' -- no EU region is offered or mentioned. Enterprise pricing page mentions only generic 'regional endpoints' for bring-your-own-key model providers, not EU data residency for Amp's own storage/orb compute. Orb regions elsewhere documented as GCP us-west1. False confirmed with an explicit official source (previously missing).",
+      "checked": "2026-09-30"
     }
   }
 }

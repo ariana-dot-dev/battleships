@@ -108,7 +108,7 @@
     "gpu": false,
     "gpu_types": [],
     "snapshot": "fs",
-    "pause_resume": null,
+    "pause_resume": false,
     "fork": true,
     "persistent_disk": false,
     "volumes": null,
@@ -125,8 +125,8 @@
     "code_interpreter": false,
     "agent_harnesses": false,
     "ssh": true,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "public_ipv4": false,
+    "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": null,
@@ -134,35 +134,35 @@
     "private_network": null,
     "self_host": false,
     "byoc": false,
-    "open_source": null,
+    "open_source": false,
     "regions": null,
     "soc2": null,
     "hipaa": null,
     "sso": null,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "browser_control": null,
     "desktop_control": true,
-    "anti_bot": null,
-    "captcha_solving": null,
+    "anti_bot": false,
+    "captcha_solving": false,
     "egress_ip_type": null,
     "ip_note": "No browser-automation API, stealth, CAPTCHA or proxy options documented; browsers (e.g. Safari) are driven via the macOS desktop/shell API.",
     "snapshot_auto": false,
@@ -171,7 +171,12 @@
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "apple-vm",
+    "image_oci": false,
+    "own_agent_api": false,
+    "guest_firewall": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -266,10 +271,206 @@
     },
     "volume_shared": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No shared filesystem/volume concept; snapshots (disk deltas) are the only way to share state between sandboxes.",
-      "checked": "2026-09-29"
+      "source": "https://api.use.computer/openapi.yaml",
+      "quote": "displayWindows",
+      "note": "No volume/mount endpoints exist in the full OpenAPI spec at all (grep for volume/mount/shared returns nothing); storage is the VM image disk on the Mac's local SSD. Since there is no volume concept at all, there cannot be a shared-volume feature. Matches card's own feature_evidence for volume_attach.",
+      "checked": "2026-09-30"
+    },
+    "isolation": {
+      "value": "apple-vm",
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "The macOS warm pool is built on a fork of lume, the VM orchestrator from cua... the Sequoia base image and the initial VZ plumbing came from there.",
+      "note": "Apple Virtualization.framework (VZ) macOS VMs on dedicated M4 Mac minis; card already sets this.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.use.computer/docs/concepts",
+      "quote": "disk_gib must be the image's disk size: disks are not resized at create.",
+      "note": "not offered: outside the product's scope — sandboxes boot from the provider's own macOS VM images/snapshots (VZ disk images), no Docker/OCI image import; card's custom_image:true refers to macOS snapshot images, not OCI.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://use.computer/",
+      "quote": "Infrastructure for agents that use computers. Instant macOS sandboxes on dedicated Apple M4 Mac minis, driven via Python and TypeScript SDKs.",
+      "note": "not offered: outside the product's scope — no stealth/fingerprinting features documented; product is a raw macOS computer-use sandbox, not a browser-automation/anti-detect product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://use.computer/",
+      "quote": "Infrastructure for agents that use computers. Instant macOS sandboxes on dedicated Apple M4 Mac minis, driven via Python and TypeScript SDKs.",
+      "note": "not offered: outside the product's scope — no CAPTCHA-solving service documented; browsers are just apps run inside the macOS VM via the desktop/shell API.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://api.use.computer/openapi.yaml",
+      "quote": "Captures a macOS sandbox as a snapshot. Preserves disk state. Snapshots... POST /v1/sandboxes/{sandboxID}/snapshots",
+      "note": "Snapshot creation (the mechanism behind fork) is called on a running sandbox without stopping/pausing it first; disk-only, not memory.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "When you delete() (or your sandbox times out), the gateway throws away the dirty VM and clones a fresh one in the background.",
+      "note": "No pause/resume API; lifecycle is create/delete plus an idle timeout that destroys the sandbox (state kept only via explicit snapshot), not a pause/resume of a live VM.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "The server defaults new sandboxes on a reserved Mac to the reservation lifetime... Set ephemeral: true to opt into the two-minute idle timeout.",
+      "note": "Idle sandboxes are destroyed (and a fresh warm VM is cloned for the next caller) rather than put to sleep and auto-woken by an incoming request; there is no sleeping-machine-wakes-on-traffic mechanism.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "Any other size resizes a warm VM and boots it, which takes as long as a macOS boot (a minute or two); the response says boot: \"cold\".",
+      "note": "Changing CPU/RAM requires rebooting the VM (cold boot), not a live in-place resize of a running machine.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "Replay boots a fresh sandbox, runs the setup script, and re-executes the recorded actions. A live VNC link lets you watch the run; if the task has a grader, the reward is reported when the replay completes.",
+      "note": "The Trajectories feature records human demonstrations and replays the exact recorded actions (no autonomous goal-driven agent); the optional SDK computer-use agents run client-side using third-party model APIs, not a first-party hosted task-agent API.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "Both SDKs (Python on PyPI, TypeScript on npm) expose the same macOS sandbox surface — create() for macOS sandboxes, plus mouse, keyboard, screenshot, exec, files, recording, and the UI tree.",
+      "note": "No MCP server is mentioned anywhere in the docs, SDK READMEs, or OpenAPI spec; only Python/TypeScript SDKs and a raw HTTP API are offered.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "The Python SDK is published on PyPI. pip install daytona-use-computer",
+      "note": "First-party Python SDK for driving sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "TypeScript (@daytona/use-computer) exposes the same surface; see SDK & API.",
+      "note": "First-party TypeScript/Node SDK, published on npm.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://api.use.computer/openapi.yaml",
+      "quote": "VNC and SSH WebSocket proxies.",
+      "note": "Access to a sandbox is only via the gateway's authenticated SSH/VNC WebSocket proxies; no public IPv4 address is assigned to the sandbox itself.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://api.use.computer/openapi.yaml",
+      "quote": "With WebSocket upgrade headers, upgrades and bridges binary frames to the sandbox VM's sshd (port 22)... VNC connection metadata for the sandbox.",
+      "note": "No feature to expose arbitrary HTTP(S) ports/URLs on the sandbox; only SSH and VNC are proxied through the gateway with short-lived tokens.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://api.use.computer/openapi.yaml",
+      "quote": "macOS Computer Use API — create sandboxes, control input, take screenshots, record sessions.",
+      "note": "not offered: outside the product's scope — the API surface is sandbox lifecycle + input/screenshot control; no HTTP method/path-level egress rules exist.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://use.computer/",
+      "quote": "Instant macOS sandboxes on dedicated Apple M4 Mac minis",
+      "note": "not offered: outside the product's scope — the guest OS is macOS (uses pf, not nftables/iptables); no Linux guest firewall applies, and no firewall control is documented.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "The macOS warm pool is built on a fork of lume, the VM orchestrator from cua... Thanks to the cua team for open-sourcing it.",
+      "note": "The core use.computer gateway/product itself is closed-source; it is built on top of the open-source `lume` VM orchestrator (from the cua project), which is not the same as the product being open source.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "Reservations are physical Macs for at least 24 hours",
+      "note": "No regions/data-residency feature documented anywhere; fleet is a fixed pool of Mac minis (docs: '28 Mac minis live') with no region selection, so EU residency cannot be guaranteed.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.use.computer/llms-full.txt",
+      "quote": "The server defaults new sandboxes on a reserved Mac to the reservation lifetime when the create request omits ephemeral: they live until you delete them or the reservation reaches end_at.",
+      "note": "A non-ephemeral sandbox runs until you delete it or the (extendable) reservation ends; there is no fixed per-session hour cap distinct from the reservation itself.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://docs.use.computer/docs/concepts",
+      "quote": "When you `delete()` (or your sandbox times out), the gateway throws away the dirty VM and clones a fresh one in the background. The next caller already has a warm VM waiting.",
+      "note": "Idle-reaped (~2 min idle) or timed-out sandboxes and all sandboxes at reservation end_at are destroyed; disk does not survive stop/pause automatically. Only an explicit snapshot (disk-only, via POST /v1/sandboxes/{id}/snapshots) preserves files, and restoring it creates a new sandbox rather than resuming the old one in place. Default on timeout/idle/end_at is delete; opt in to snapshot to keep files.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.use.computer/docs/concepts",
+      "quote": "macOS snapshots are portable disk deltas.",
+      "note": "Snapshots (the only fork/restore mechanism) are disk-only deltas; no memory or running-process state is captured or restored. Confirmed also by the card's own caveat: 'Snapshots are portable disk images, no memory resume.'",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://api.use.computer/openapi.yaml",
+      "quote": "displayWindows / List windows (accessibility tree)",
+      "note": "Full OpenAPI surface (auth, sandboxes, snapshots, display/vnc, ssh, exec, trajectories, credits) has no Docker/container-runtime endpoints, and no docs page (llms-full.txt, concepts, sdk, quickstart) mentions Docker or container support. The product is a macOS desktop-automation VM, not a container host; not offered.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.use.computer/docs/concepts",
+      "quote": "Choose the Mac model when reserving with `mac_model`: `m4` (the default; 10 cores, 16 GiB) or `m4-pro` (12 or more cores, 24 GiB).",
+      "note": "No mention anywhere in docs/OpenAPI of nested virtualization, /dev/kvm, or running VMs/emulators inside the sandbox. The sandbox is itself a macOS VM on Apple's Virtualization framework on M4/M4 Pro silicon; nested virtualization support is not advertised or documented. Not offered.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://pypi.org/project/daytona-use-computer/",
+      "quote": "The `agents` extra installs the agent runtime plus model-provider dependencies (Anthropic, OpenAI, Gemini, LiteLLM).",
+      "note": "Those are client-side computer-use agent loops (Anthropic/OpenAI/Gemini/OSWorld via LiteLLM) that drive the VM's mouse/keyboard/screenshot API from your own Python process; no coding-agent harness (Claude Code, Codex, OpenCode, etc.) is preinstalled or offered as a template inside the VM. Not offered.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.use.computer/docs/concepts",
+      "quote": "A reservation is a contract for N Mac minis for X hours. You pay up front (hourly rate x N x X): $0.90/hr per M4 Mac, $1.97/hr per M4 Pro Mac.",
+      "note": "The only offered machines are M4 and M4 Pro Mac mini VM slots; no GPU instance type exists in docs, pricing, or the OpenAPI catalog. Outside the product's scope (macOS desktop-automation VMs, not a GPU compute cloud).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://use.computer/",
+      "quote": "Instant macOS sandboxes for computer-use agents.",
+      "note": "The product is exclusively macOS VMs on Apple Mac mini hardware (Apple's macOS software license/SLA governs the whole offering); no Windows machine type is offered anywhere in docs, pricing, or the API. Outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.use.computer/docs/concepts",
+      "quote": "So use.computer sells reservations: you reserve one or more physical Mac minis for at least 24 hours, and then create/destroy as many sandboxes as you need inside that reservation.",
+      "note": "The service is delivered only as a hosted reservation on use.computer's own fleet of physical Mac minis; no self-hosted/on-prem deployment option, downloadable server, or open-source core is mentioned anywhere in docs, OpenAPI, or the homepage. Not offered.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.use.computer/docs/concepts",
+      "quote": "Activation binds physical Mac mini IPs to your reservation.",
+      "note": "Machines are specific physical Apple Mac minis owned/leased by use.computer under Apple's macOS hardware-leasing terms; there is no mechanism to deploy the service into a customer's own cloud account (Apple's SLA in fact requires the lessor to control the hardware). No BYOC option is mentioned anywhere in docs, pricing, or OpenAPI. Not offered.",
+      "checked": "2026-09-30"
     }
   }
 }

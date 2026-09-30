@@ -235,12 +235,12 @@
     "snapshot": "mem",
     "pause_resume": true,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": false,
     "auto_stop_idle": true,
     "max_session_h": 8,
     "custom_image": true,
-    "docker_inside": false,
+    "docker_inside": null,
     "nested_virt": false,
     "root": true,
     "systemd": false,
@@ -249,13 +249,13 @@
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
-    "ssh": false,
+    "ssh": null,
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
     "byoc": false,
@@ -267,24 +267,24 @@
       "other"
     ],
     "soc2": true,
-    "hipaa": null,
+    "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": true,
     "wake_on_request": true,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -299,7 +299,11 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -429,6 +433,215 @@
       "quote": "Sessions never share state.",
       "note": "No first-party shared volume or bucket mount; data sharing via S3 SDK calls. Same caveat as volume_attach (self-mounted NFS/EFS undocumented).",
       "checked": "2026-09-29"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-microvms-guide.html",
+      "quote": "If you're building an application where multiple users or AI agents connect to a compute environment and run code (for example, interactive development environments, CI/CD systems, or sandboxes for AI) – you need compute environments that start fast, stay isolated between tenants, and don't require you to manage servers or networking.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-microvms-guide.html",
+      "quote": "If you're building an application where multiple users or AI agents connect to a compute environment and run code (for example, interactive development environments, CI/CD systems, or sandboxes for AI) – you need compute environments that start fast, stay isolated between tenants, and don't require you to manage servers or networking.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-networking.html",
+      "quote": "By default, Lambda MicroVMs have public internet access on the egress path.",
+      "note": "Default egress (INTERNET_EGRESS connector) is a Lambda-managed AWS datacenter IP, not residential/mobile; a VPC egress connector routes through a customer NAT gateway/EIP, also AWS-owned datacenter address space. Same classification used for other AWS compute cards (aws-agentcore).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-images.html",
+      "quote": "You set the baseline by using the memory parameter when creating your MicroVM image. ... During peak activity, your MicroVM can automatically scale vertically up to 4x the baseline.",
+      "note": "The baseline (vCPU/RAM floor) is fixed when the MicroVM image is created, not adjustable on a running MicroVM without a new image/run. The up-to-4x burst is automatic, best-effort headroom, not a user-triggered live resize of a running machine's allocation.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-integrations-claude-managed-agents.html",
+      "quote": "Anthropic hosts the agent loop and Claude model, while the Lambda MicroVM is where your tool calls run.",
+      "note": "not offered: outside the product's scope — MicroVMs is the sandbox/compute layer; the agent loop (browser/computer-use/research agent) is provided by third parties (Anthropic, OpenAI, Cursor) that use MicroVMs as a self-hosted execution backend, not an AWS-owned task agent.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-images.html",
+      "quote": "Lambda builds your application container image by running your Dockerfile on top of an operating system environment that is provided by a Lambda-managed MicroVM base image.",
+      "note": "MicroVM base image is bare Amazon Linux 2023; there is no managed Python runtime layer as with classic Lambda functions — you must install Python yourself via your Dockerfile, same as aws-fargate/aws-ec2 in this dataset.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-images.html",
+      "quote": "Lambda builds your application container image by running your Dockerfile on top of an operating system environment that is provided by a Lambda-managed MicroVM base image.",
+      "note": "Same as lang_python: bare Amazon Linux 2023 base image, Node.js must be installed via your own Dockerfile; no managed Node runtime is provided out of the box.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/tls-inspection-configurations.html",
+      "quote": "After decryption, Network Firewall inspects the traffic according to your firewall policy's stateful rules, and then re-encrypts it before sending it to its destination.",
+      "note": "Only reachable via a customer-managed VPC egress Lambda Network Connector routed through AWS Network Firewall (separate paid service) with Suricata-compatible HTTP-header/host/URI rules; requires TLS inspection for HTTPS. Not a native per-MicroVM setting — same mechanism/consistency used for aws-fargate and aws-ec2 in this dataset.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-networking.html",
+      "quote": "To connect MicroVMs with resources in your private VPCs ... create a Lambda Network Connector with your VPC configuration.",
+      "note": "Default INTERNET_EGRESS path has no fixed IP, but attaching a VPC egress connector lets outbound traffic go through a customer NAT Gateway with an Elastic IP, giving a fixed outbound address — the same NAT-gateway pattern noted in the card's own caveats and used for aws-fargate/aws-ec2 in this dataset.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": true,
+      "source": "https://aws.amazon.com/compliance/hipaa-eligible-services-reference/",
+      "quote": "AWS Lambda",
+      "note": "\"AWS Lambda\" is listed on AWS's HIPAA-eligible services reference (BAA-covered). Lambda MicroVMs is part of the Lambda service/API surface; no MicroVMs-specific carve-out or exclusion was found, but this newer sub-feature isn't separately named on the list.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://aws.amazon.com/lambda/pricing/",
+      "quote": "eu-west-1, eu-north-1, eu-central-1",
+      "note": "MicroVM SKUs exist in eu-west-1, eu-north-1, and eu-central-1 per the AWS Price List API; a customer can pin a MicroVM (and its snapshot/image storage) to an EU region.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-how-it-works.html",
+      "quote": "SUSPENDING SUSPENDED /suspend hook completed, memory and disk state checkpointed. SUSPENDED RUNNING Traffic arrives (autoResumeEnabled=true) or explicit resume-microvm API call.",
+      "note": "Suspend (pause) checkpoints disk+memory and resume restores it with files intact — files survive a stop/pause. Default behaviour: idle policy auto-suspends (default off unless configured) and the checkpoint is kept only up to the account's suspend duration; hitting maximumDurationInSeconds (max 8h total incl. suspended time) instead TERMINATEs the MicroVM and the disk state is lost (no snapshot taken on hard termination). So persistent_disk should be true, with the caveat that it's bounded to the 8h suspend/lifetime window, not indefinite.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-launching.html",
+      "quote": "The only required parameter is --image-identifier (which must be the ARN of the MicroVM image). All other parameters are optional.",
+      "note": "run-microvm only ever boots from a MicroVM image (a Firecracker snapshot built from a Dockerfile at image-build time); there is no parameter or API operation to start a new MicroVM from another running/suspended MicroVM's state, so machines cannot be cloned/forked.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-launching.html",
+      "quote": "The only required parameter is --image-identifier (which must be the ARN of the MicroVM image). All other parameters are optional.",
+      "note": "Same as fork: no operation clones a running MicroVM; new MicroVMs only start from a pre-built image snapshot, never from a live sibling.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-how-it-works.html",
+      "quote": "MicroVM image A MicroVM image is a resource that defines the application environment of a MicroVM. When you create an image, Lambda builds it into a snapshot that enables near-instant launch",
+      "note": "Memory+disk snapshots exist only as (a) the build-time image snapshot and (b) the suspend/resume checkpoint of the SAME MicroVM — neither is exposed as a 'clone this MicroVM into N new running copies with memory' operation.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Docker/a Dockerfile is used to BUILD the single application container that becomes the MicroVM's snapshot, and that container runs inside the microVM's own Amazon Linux 2023 kernel — but the docs never show a Docker daemon or 'docker run' available to the user's code at runtime, and elevated capabilities (additionalOsCapabilities: [\"ALL\"]) are described for mounting filesystems/network namespaces/eBPF, not for running nested containers. No page confirms or denies a runtime docker/containerd binary is present, so false (as 'not documented as offered') stays but with medium confidence rather than a clean 'no evidence' gap.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-images.html",
+      "quote": "By default, Lambda MicroVMs run with a standard set of Linux capabilities. You can grant elevated Linux capabilities using the additionalOsCapabilities field when creating or updating a MicroVM image. The only supported value is [\"ALL\"]. Elevated capabilities enable operations such as mounting filesystems, creating network namespaces, or running eBPF programs.",
+      "note": "The documented list of what elevated capabilities unlock (mount, netns, eBPF) never mentions /dev/kvm or nested virtualization, and Firecracker microVMs do not expose hardware virtualization extensions to the guest by design — confirms no nested_virt.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: There IS a first-party interactive-shell mechanism (SHELL_INGRESS connector + create-microvm-shell-auth-token), so 'no shell access at all' would be wrong; however it is AWS's own proprietary shell-access-token protocol, not the SSH protocol/port 22, so the specific field 'ssh' (SSH into the machine) is correctly false — verdict kept as right for the literal SSH claim, but note the shell-access capability so it isn't confused with 'no remote shell whatsoever'.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-microvms-guide.html",
+      "quote": "AWS Lambda MicroVMs are purpose-built for these use cases. They are serverless compute environments that provide VM-level isolation with full operating system capabilities... snapshot-based rapid startup speeds, and fine-grained control over ingress networking (port access, support for HTTP/2, gRPC, WebSockets) and egress networking",
+      "note": "Product is a headless serverless compute/VM environment reached via HTTPS/API endpoints; no VNC/RDP/graphical desktop is described anywhere in the guide's Key features list (rapid startup, lifecycle control, flexible networking, flexible resource allocation) — outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-microvms-guide.html",
+      "quote": "If you're building an application where multiple users or AI agents connect to a compute environment and run code (for example, interactive development environments, CI/CD systems, or sandboxes for AI) – you need compute environments that start fast, stay isolated between tenants",
+      "note": "No managed/preinstalled browser is mentioned; the service is a generic code-execution VM, not a browser product — outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-integrations-claude-managed-agents.html",
+      "quote": "Anthropic hosts the agent loop and Claude model, while the Lambda MicroVM is where your tool calls run.",
+      "note": "Any computer-use/screenshot+click loop is run by a third party (e.g. Anthropic Claude, Cursor) that treats the MicroVM as a sandboxed backend; AWS itself ships no screenshot/click-driving API — outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-launching.html",
+      "quote": "The only required parameter is --image-identifier (which must be the ARN of the MicroVM image). All other parameters are optional.",
+      "note": "Full RunMicrovm parameter set (image, version, execution role, idle policy, max duration, run-hook payload, logging, ingress/egress connectors) has no volume/storage-attach parameter; only the root disk baked into the image snapshot is available.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-launching.html",
+      "quote": "Every MicroVM gets a unique public HTTPS endpoint",
+      "note": "Access is via a Lambda-managed HTTPS endpoint (DNS name + JWE auth token), not a dedicated public IPv4 address per machine; matches network.ipv4_available: false already on the card.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-integrations-claude-managed-agents.html",
+      "quote": "Anthropic hosts the agent loop and Claude model, while the Lambda MicroVM is where your tool calls run.",
+      "note": "MicroVMs are documented as the underlying sandbox that third-party agent products (Claude Managed Agents, Cursor Cloud Agents, OpenAI Agents API) run their sandboxes on; AWS does not preinstall/offer any coding agent (Claude Code, Codex, OpenCode, etc.) as a template itself.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://aws.amazon.com/lambda/pricing/",
+      "quote": "Lambda MicroVMs pricing is based on the compute resources you use, snapshot read/write operations and storage, and data transfer at standard AWS rates. Compute Lambda MicroVMs eliminate the need to right-size each compute environment for peak activity. You configure a baseline by setting memory, and CPU is allocated proportionally.",
+      "note": "Pricing page enumerates only vCPU/memory/snapshot/data-transfer meters; no GPU SKU or GPU option exists for MicroVMs (unlike EC2/SageMaker).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-how-it-works.html",
+      "quote": "Each MicroVM runs an Amazon Linux 2023 operating system with operating system capabilities, providing near-instant launch and resume.",
+      "note": "Base image / guest OS is fixed to Amazon Linux 2023 — Linux only, no Windows option.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/microvms-how-it-works.html",
+      "quote": "Each MicroVM runs an Amazon Linux 2023 operating system with operating system capabilities, providing near-instant launch and resume.",
+      "note": "Firecracker microVMs run Amazon Linux 2023 only; macOS is not offered (and Firecracker cannot virtualize macOS).",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-microvms-guide.html",
+      "quote": "AWS Lambda MicroVMs are purpose-built for these use cases. They are serverless compute environments that provide VM-level isolation with full operating system capabilities... you need compute environments that start fast, stay isolated between tenants, and don't require you to manage servers or networking.",
+      "note": "AWS Lambda MicroVMs is a fully-managed AWS control-plane service; there is no downloadable runtime/binary to run on your own infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-microvms-guide.html",
+      "quote": "AWS Lambda MicroVMs are purpose-built for these use cases. They are serverless compute environments that provide VM-level isolation... and don't require you to manage servers or networking.",
+      "note": "It is AWS's own multi-tenant service running in AWS-owned infrastructure (with optional VPC egress INTO your account's VPC for networking only); there is no mode where the whole MicroVMs control plane is deployed into a customer's own cloud account.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-microvms-guide.html",
+      "quote": "AWS Lambda MicroVMs deliver these core capabilities through Firecracker virtualization, which powers Lambda Functions' 15 trillion+ monthly invocations.",
+      "note": "The underlying Firecracker VMM is open source, but the AWS Lambda MicroVMs product itself (control plane, APIs, billing, orchestration) is a closed, proprietary managed AWS service, not something you can download the full source of.",
+      "checked": "2026-09-30"
     }
   }
 }

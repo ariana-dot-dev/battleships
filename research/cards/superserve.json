@@ -106,27 +106,27 @@
     "snapshot": "mem",
     "pause_resume": true,
     "fork": true,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": null,
+    "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": true,
     "agent_harnesses": true,
-    "ssh": null,
+    "ssh": false,
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": false,
     "self_host": true,
     "byoc": true,
@@ -136,7 +136,7 @@
     ],
     "soc2": true,
     "hipaa": true,
-    "sso": null,
+    "sso": false,
     "lang_python": true,
     "lang_node": true,
     "lang_go": null,
@@ -145,14 +145,14 @@
     "gpu_desktop": false,
     "credential_injection": true,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
+    "wake_on_request": true,
+    "live_resize": false,
+    "fork_running": false,
     "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": true,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -167,7 +167,12 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -294,6 +299,182 @@
       "quote": "Mount an Archil **disk** inside a Superserve sandbox to give it a fast workspace whose data persists across runs, survives the sandbox, and can be mounted by several sandboxes at once with `--shared`.",
       "note": "Not first-party: shared read-write filesystems only via the third-party Archil service (own account/billing) or user-mounted buckets, documented as integration guides.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.superserve.ai/templates/build-spec.md",
+      "quote": "Powered by Firecracker MicroVMs.",
+      "note": "Not documented anywhere (no /dev/kvm, nested virtualization, or 'run VMs inside your sandbox' mention across docs/build-spec/OpenAPI). Firecracker microVMs do not expose hardware virtualization extensions to the guest by default, so nested KVM is not available; derived.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://superserve.ai",
+      "quote": "Virtual machines for long-horizon agents. Durable Firecracker VMs that pause indefinitely, resume instantly, and run as long as your agents need.",
+      "note": "not offered: outside the product's scope. Superserve is a generic Firecracker sandbox/VM runtime for code execution — the homepage lists running 'AI-generated code, browsers, or system tasks' as a use case a customer can build, but there is no managed/preinstalled browser, browser template, or browser-control API documented anywhere in docs.superserve.ai.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://superserve.ai/pricing",
+      "quote": "Superserve — Virtual machines for long-horizon agents.",
+      "note": "not offered: outside the product's scope. No stealth/fingerprinting features are mentioned anywhere in the docs; the product is generic sandbox infrastructure, not a browser-automation/anti-bot product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://superserve.ai/pricing",
+      "quote": "Superserve — Virtual machines for long-horizon agents.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature is mentioned anywhere in the docs; the product is generic sandbox/VM infrastructure, not a browser/scraping product.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.superserve.ai/sandbox/networking.md",
+      "quote": "By default, a sandbox can reach any public IP on the internet. The platform always blocks egress to private, link-local, and loopback ranges regardless of your allow rules.",
+      "note": "derived: sandboxes run as Firecracker microVMs on cloud infrastructure (Google Cloud Platform is a listed subprocessor in the Vanta trust center); no residential/mobile proxy product is offered or mentioned, so outbound traffic uses standard cloud/datacenter IPs.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.superserve.ai/sandbox/connect.md",
+      "quote": "Reconnect to a sandbox you created earlier using its ID, and list sandboxes on your team.",
+      "note": "not offered: access to a sandbox is exclusively via the SDK/API (commands.run/spawn, exec REST/SSE/WebSocket, files API). SSH is never mentioned in the docs, quickstart, SDK reference, or OpenAPI spec — there is no SSH endpoint or key-injection mechanism documented.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.superserve.ai/api-reference/snapshots/snapshot-a-sandbox.md",
+      "quote": "The sandbox must be active or paused. A running sandbox is paused for the capture: under a second for the first memory snapshot of a sandbox, longer when all of memory has to be written.",
+      "note": "Forking (via a snapshot + from_snapshot) briefly pauses a running sandbox to take the memory+disk snapshot before it resumes, so it is not cloned while continuously running.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://docs.superserve.ai/api-reference/sandboxes/activate-a-sandbox.md",
+      "quote": "Returns the sandbox with a fresh access token. If the sandbox is paused, it is resumed first. Idempotent — calling it on an active sandbox just returns a new token.",
+      "note": "Confirmed broadly: 'sandbox_exec and the file tools transparently resume a paused sandbox, so agents never need to call sandbox_resume first' and 'A paused sandbox wakes on its own before the session opens' (commands/sessions.md) — any exec/file/connect call auto-resumes a paused sandbox.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.superserve.ai/api-reference/sandboxes/partially-update-a-running-sandbox.md",
+      "quote": "Currently patchable fields - `network` ... `metadata` ... `auto_delete_seconds` ... `timeout_seconds` ... `preview_access`",
+      "note": "The homepage markets 'Elastic resource allocation — Let your agents request CPU/memory resources on the fly from within the box', but the documented PATCH /sandboxes/{id} endpoint (the only way to modify a running sandbox) does not include a vcpu/memory field, and no separate resize endpoint exists in the OpenAPI spec; per-sandbox vCPU/RAM is fixed by the template at creation.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://superserve.ai/pricing",
+      "quote": "Superserve — Virtual machines for long-horizon agents.",
+      "note": "not offered: outside the product's scope. Superserve provides only sandbox/VM execution infrastructure; coding/browser/research agents are third-party (Claude Code, Codex, Claude Managed Agents, Cursor Cloud Agents, LangChain, OpenAI Agents SDK, Agno) run by the customer inside the sandbox — there is no first-party Superserve agent or API to drive one.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.superserve.ai/sandbox/networking.md",
+      "quote": "By default, a sandbox can reach any public IP on the internet.",
+      "note": "No fixed/static outbound IP, elastic IP, or NAT-gateway feature is documented anywhere; network controls only cover allow/deny rules by CIDR/domain, not a stable egress address. Matches card's network.ipv4_available: false (no public IPv4 either).",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.superserve.ai/api-reference/rbac/add-or-invite-a-team-member.md",
+      "quote": "Get team management state ... Returns the caller-visible team members, role assignments, and capability flags used by customer-facing member management UI.",
+      "note": "Team membership is managed by email invite plus role assignment; no SAML/OIDC/SSO endpoint, field, or mention exists anywhere in the RBAC API, docs, pricing, or enterprise page (enterprise plan only advertises 'on-premise deployment and dedicated support').",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://docs.superserve.ai/introduction.md",
+      "quote": "Superserve provides sandbox infrastructure to run code in isolated cloud environments powered by Firecracker MicroVMs.",
+      "note": "No region-selection field exists on sandbox/template creation and no EU/Europe region is mentioned anywhere in the docs; the card's own researched regions list is [\"us\"] only (API described as cell-based with no documented region parameter).",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://superserve.ai",
+      "quote": "Indefinite sessions - NO 24-HOUR LIMIT",
+      "note": "A sandbox stays active until paused/deleted or an opt-in timeout_seconds cap (off by default, max 7 days for the auto-pause trigger) is set; there is no mandatory maximum runtime after which the platform force-stops a sandbox.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.superserve.ai/sandbox/lifecycle",
+      "quote": "Pausing checkpoints its state and stops compute billing... Resume restores full memory and filesystem.",
+      "note": "pause()/resume() is a full VM checkpoint (memory+processes+filesystem) that survives a stop; files are not lost. Card's persistent_disk:false contradicts its own pause_resume:true and snapshot fields. Correct to true, with the caveat that it's opt-in checkpoint/pause-resume (and named snapshots/forks), not a permanently-attached separate disk (no volume_attach).",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.superserve.ai/llms-full.txt",
+      "quote": "system: \"You are a coding assistant with a Linux sandbox.\"",
+      "note": "Superserve is a headless Firecracker microVM sandbox for code exec/agents (exec, files, templates from OCI images); no VNC/RDP/streamed GUI desktop is offered or documented anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.superserve.ai/llms-full.txt",
+      "quote": "cloud-agent-artifacts.s3.us-east-1.amazonaws.com - screenshot and recording uploads",
+      "note": "The only 'screenshot' reference is Cloud Agent artifact uploads (e.g. browser-driven CI runs), not a first-party API to drive a desktop via screenshots+clicks. No computer-use / desktop-control API is documented; consistent with desktop:false (no GUI to control).",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.superserve.ai/sandbox/lifecycle",
+      "quote": "It's a cap on active time, not idle time. Running work doesn't reset it, so a task still going when the window elapses is paused mid-run.",
+      "note": "Auto-pause (timeoutSeconds) is opt-in and keyed to cumulative active seconds, not idleness; an idle-but-running sandbox is not detected/stopped. No separate idle-detection feature exists.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.superserve.ai/sandbox/preview-urls",
+      "quote": "Preview URLs route a hostname such as `https://3000-{sandbox-id}.sandbox.superserve.ai` to a process listening inside your sandbox.",
+      "note": "Inbound access is exclusively via shared-hostname HTTPS preview URLs, not a per-sandbox public IPv4 address; no public IPv4 is offered or mentioned anywhere in networking docs.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://api.superserve.ai/billing/pricing/public",
+      "quote": "vcpu, memory_gib, storage_gib meters exist",
+      "note": "The public billing API and pricing page only meter vCPU/RAM/storage; templates/build-spec require a linux/amd64 OCI base image with no GPU option; no GPU instance type, pricing, or docs exist anywhere in the product.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.superserve.ai/templates/build-spec",
+      "quote": "Must be a **linux/amd64** image",
+      "note": "Sandboxes are built exclusively from Linux OCI base images (linux/amd64); no Windows base image or Windows machine type is offered.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.superserve.ai/templates/build-spec",
+      "quote": "Must be a **linux/amd64** image",
+      "note": "Same evidence as windows: Firecracker microVM sandboxes only run linux/amd64 OCI images; macOS is only referenced as an allowed *client/controller* OS for reaching Superserve (e.g. Cursor guide), never as a sandboxed machine type.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.superserve.ai/templates/build-spec",
+      "quote": "Must be a **linux/amd64** image",
+      "note": "Build-spec explicitly restricts templates to linux/amd64; no arm64 base image or machine type is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/superserve-ai/sandbox/refs/heads/main/LICENSE",
+      "quote": "Open Core Ventures Source Available License (OCVSAL) version 1.0 ... Using software and associated documentation files (the \"Software\") in production requires a valid commercial agreement from the copyright holder.",
+      "note": "The core sandbox repo (superserve-ai/sandbox, source of the OpenAPI spec) is source-available, not OSI open source; production use needs a paid commercial agreement. Other public superserve-ai repos (langchain-superserve, guides) are example/integration code, not the core product.",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": false,
+      "source": "https://docs.superserve.ai/sandbox/networking",
+      "quote": "By default, a sandbox can reach any public IP on the internet. The platform always blocks egress to private, link-local, and loopback ranges regardless of your allow rules.",
+      "note": "Networking docs cover only an egress allow/deny-list to public destinations and per-port preview access; there is no VPC/private-network peering or sandbox-to-sandbox private network feature documented; private/link-local ranges are always blocked, not offered as a reachable private network.",
+      "checked": "2026-09-30"
     }
   }
 }

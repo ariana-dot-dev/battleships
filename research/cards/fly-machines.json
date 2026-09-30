@@ -691,8 +691,8 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": false,
     "root": true,
     "systemd": false,
     "browser": false,
@@ -720,17 +720,17 @@
     "soc2": true,
     "hipaa": true,
     "sso": false,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": null,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": false,
     "scheduled_wakeups": null,
@@ -749,7 +749,13 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "harness_api": false,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -998,6 +1004,181 @@
       "quote": "A Machine can only mount one volume at a time and a volume can be attached to only one Machine.",
       "note": "Not network storage (\"It is not network storage.\"); no shared FS product for Machines (use Tigris object storage separately).",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.fly.io/blueprints/working-with-docker.md",
+      "quote": "Fly.io doesn't run Docker containers. It uses Docker images as a packaging format. Once deployed, your app runs inside a lightweight VM booted from an unpacked image.",
+      "note": "derived: Fly Machines are full Firecracker microVMs with their own real Linux kernel and root access (not shared-kernel containers), so a user-installed Docker/containerd daemon can run inside using normal cgroups/namespaces (no /dev/kvm needed for plain containers). Fly itself doesn't run a Docker daemon on your behalf; this is about running one yourself inside the guest.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.fly.io/reference/architecture.md",
+      "quote": "Apps running on Fly.io run inside Firecracker, a Rust-based, memory-safe KVM hypervisor... Firecracker VMs run as userland processes on our hosts.",
+      "note": "derived: Machines are themselves Firecracker guests; Fly's docs never mention exposing /dev/kvm or nested-virtualization support inside a Machine, and Firecracker microVMs do not pass through KVM to their guests by default. Not documented as available.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://fly.io/pricing",
+      "quote": "Fly.io Machines run your Docker container or app as a lightweight VM in one of 30+ regions.",
+      "note": "not offered: outside the product's scope. Fly Machines is a general-purpose VM/container hosting platform, not a browser automation or scraping product; no stealth/anti-fingerprinting feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://fly.io/pricing",
+      "quote": "Fly.io Machines run your Docker container or app as a lightweight VM in one of 30+ regions.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature is documented for Fly Machines; that is not what this VM/container platform does.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.fly.io/networking/egress-ips.md",
+      "quote": "By default, outbound (egress) IPs from Fly Machines are unstable and may change. You can allocate static egress IPs for an app (both IPv4 and IPv6) via `fly ips allocate-egress`.",
+      "note": "Fly's IPs (both dynamic and static egress) are datacenter/cloud-provider IP ranges, not residential or mobile.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://docs.fly.io/flyctl/cmd/fly_machine_clone.md",
+      "quote": "Clone a Fly Machine. The new Machine will be a copy of the specified Machine. If the original Machine has a volume, then a new empty volume will be created and attached to the new Machine.",
+      "note": "`fly machine clone` copies a Machine's config (not a live memory snapshot) and boots a fresh new Machine; nothing in the docs requires stopping the source Machine first, so a running source Machine can be cloned without interrupting it. Distinct from memory_snapshot_fork (false): the clone is a fresh boot, not a running-state fork.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.fly.io/machines/flyctl/fly-machine-update.md",
+      "quote": "Compares the Machine's existing configuration and confirms the changes you've asked for... Recreates the Machine with the new config, and, by default, starts it.",
+      "note": "Changing CPU/RAM via `fly machine update` (or the Machines API update endpoint) recreates/restarts the Machine with the new config rather than resizing a running instance in place.",
+      "checked": "2026-09-30"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://fly.io/pricing",
+      "quote": "Fly.io Machines run your Docker container or app as a lightweight VM in one of 30+ regions.",
+      "note": "not offered: outside the product's scope. Fly Machines is a general VM/container runtime; there is no first-party API to drive a coding agent harness (Claude Code, Codex, etc.) inside a Machine. Fly's separate 'Sprites' product (own card) offers agent-oriented sandbox APIs.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://fly.io/pricing",
+      "quote": "Fly.io Machines run your Docker container or app as a lightweight VM in one of 30+ regions.",
+      "note": "not offered: outside the product's scope. Fly Machines has no first-party browser/computer-use/research agent of its own; it's an infrastructure primitive, not a task-agent product.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.fly.io/python/index.md",
+      "quote": "Fly.io is a great place to launch your Python applications, especially if you plan on running them on multiple servers around the world so your users have a fast, snappy, low-latency experience.",
+      "note": "Python runs via your own Dockerfile/buildpack image; Fly provides first-party Python docs, framework guides (FastAPI, Flask, Streamlit) and base images.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.fly.io/js/index.md",
+      "quote": "Fly is a great place to run JavaScript applications, especially if you plan on running them on multiple servers around the world so your users have a fast, snappy, low-latency experience.",
+      "note": "Node.js runs via your own Dockerfile/buildpack image; Fly provides first-party Node.js/JavaScript docs and getting-started guides.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.fly.io/machines/guides-examples/network-policies.md",
+      "quote": "Each rule has: `action`: Only `allow` is supported. `direction`: Either `ingress` or `egress`. `ports`: A list of port and protocol objects.",
+      "note": "Fly's Network Policies (Machines API network_policies) are allow-list rules scoped to port + protocol only; there is no HTTP method/path-level egress rule capability documented.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.fly.io/reference/architecture.md",
+      "quote": "Application code runs in Firecracker microVMs... Your workloads are safely isolated no matter where they're running on our infrastructure.",
+      "note": "No documented maximum runtime for a Machine; a started Machine runs until you (or autostop/health checks) stop it, or until it is destroyed/migrated. The only time cap found is the free-trial-specific 2 VM-hour/7-day allowance, which is a plan restriction, not a per-session ceiling on paid Machines.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.fly.io/reference/suspend-resume",
+      "quote": "Machine suspend ... only resumes the same Machine; cannot fork or boot new Machines, not guaranteed to persist.",
+      "note": "Fly's only memory-inclusive snapshot mechanism is Machine suspend (Firecracker snapshot of CPU/memory/file handles for machines <=2GB RAM), and it is documented to resume only that same Machine, not to fork a new Machine from the snapshot. Volume snapshots (the other snapshot feature) are disk-only, not memory, so they don't count as memory_snapshot_fork either.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.fly.io/machines/overview",
+      "quote": "Fly Machines are fast-launching VMs with a simple REST API. They're the compute behind the Fly.io platform.",
+      "note": "Machines is a generic Firecracker VM/REST-API compute product: you boot your own OCI image and get a shell/SSH into a Linux VM. There is no first-party managed remote desktop (VNC/RDP/noVNC) offered as part of Machines itself; a full desktop environment (Xfce) is only offered by Fly's separate 'Sprites' product (docs.fly.io/sprites), not Machines.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.fly.io/machines/overview",
+      "quote": "Fly Machines are fast-launching VMs with a simple REST API. They're the compute behind the Fly.io platform.",
+      "note": "No managed/pre-installed browser or browser-automation endpoint ships with Machines; a Chrome browser is only installed as part of Fly's separate Sprites product's optional 'computer use' setup, not as a Machines feature.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.fly.io/machines/overview",
+      "quote": "Fly Machines are fast-launching VMs with a simple REST API. They're the compute behind the Fly.io platform.",
+      "note": "Machines has no built-in computer-use (click/type/screenshot) capability; that exists only as an opt-in feature of Fly's separate Sprites product (Xfce desktop + Chrome + Cursor computer-use support installed on a Sprite), a different product/card in this dataset, not on raw Machines.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.fly.io/machines/overview",
+      "quote": "Fly Machines are fast-launching VMs with a simple REST API. They're the compute behind the Fly.io platform.",
+      "note": "Machines ships no pre-integrated agent harness/runner; the agent-harness-style integrations (Claude Managed Agents self-hosted sandboxes, Cursor self-hosted machines) documented on Fly's docs are all built on the separate Sprites product, not on the bare Machines API this card describes.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://community.fly.io/t/gpu-migration-fly-io-gpus-will-be-deprecated-as-of-july-31-2026/27110",
+      "quote": "Fly.io GPUs will be fully deprecated as of July 31, 2026",
+      "note": "Confirms the card's own caveat ('GPU Machines discontinued, unavailable from 2026-08-01'); as of the check date (2026-09-30) Fly no longer offers GPU Machines at all, so gpu=false is correct (was previously true/L40S-A100 era).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.fly.io/reference/architecture",
+      "quote": "Application code runs in Firecracker microVMs.",
+      "note": "Firecracker (the KVM-based microVM tech Fly Machines runs on) only supports Linux guest kernels; Fly's own docs example VM shell shows 'Linux ... x86_64 x86_64 x86_64 GNU/Linux' (docs.fly.io/machines/overview). No Windows guest OS option exists on Fly Machines.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.fly.io/reference/architecture",
+      "quote": "Application code runs in Firecracker microVMs.",
+      "note": "Firecracker microVMs on Fly's own x86 hardware only run Linux guests (see 'Linux ... x86_64' shell example on docs.fly.io/machines/overview); there is no macOS guest offering, consistent with macos=false for a Linux-container/VM PaaS.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.fly.io/machines/overview",
+      "quote": "root@d8d9510a295118:/# uname -a\nLinux d8d9510a295118 5.15.98-fly #gf0950f1d7c SMP Sun Sep 17 02:33:12 UTC 2023 x86_64 x86_64 x86_64 GNU/Linux",
+      "note": "Fly's own quick-start example of a launched Machine reports x86_64 in every uname field. Searched docs/llms-full.txt for arm64/aarch64 Machine guest architecture and found only unrelated hits (LiteFS binaries, Fly CLI/Sprites client binaries for macOS/Windows/Linux ARM64 -- these are client tooling, not the Machine guest CPU architecture). No published arm64 Machine size/region option exists; Fly Machines are x86_64 only.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.fly.io/about/extensions",
+      "quote": "Fly.io is a global cloud service for running full stack apps close to users. We run on our own hardware in datacenters all over the world.",
+      "note": "Fly Machines is a managed hosted service running on Fly's own hardware in Fly's datacenters; there is no distributable Fly Machines server/agent for customers to run on their own infrastructure, so self_host=false is correct.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.fly.io/security/",
+      "quote": "We run on our own hardware deployed in secure data centers like Equinix.",
+      "note": "Fly explicitly runs on its own owned hardware (not customer cloud accounts / not reselling AWS-GCP-Azure capacity into a customer's own cloud account), so there is no bring-your-own-cloud deployment mode; byoc=false is correct.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.fly.io/security/sso",
+      "quote": "Fly.io supports Google and GitHub as Identity Providers, and you can use one or both.",
+      "note": "Org-level 'SSO' on Fly is limited to requiring a Google Workspace domain or a GitHub org for login -- there is no SAML/OIDC enterprise SSO integration (no generic IdP like Okta/Azure AD/OneLogin documented), matching the card's own caveat ('SSO is Google/GitHub org login only (no SAML)'). Treated as false consistent with that definition.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -131,55 +131,55 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
-    "gpu": null,
-    "snapshot": null,
+    "windows": false,
+    "macos": false,
+    "arm64": false,
+    "gpu": false,
+    "snapshot": "fs",
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": null,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": true,
-    "desktop": null,
-    "computer_use": null,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
+    "agent_harnesses": false,
     "ssh": true,
-    "public_ipv4": null,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
-    "byoc": null,
+    "byoc": false,
     "open_source": true,
     "soc2": null,
     "hipaa": null,
-    "sso": null,
+    "sso": false,
     "gpu_types": [],
     "regions": [],
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": true,
-    "memory_snapshot_fork": null,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
@@ -187,15 +187,22 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "isolation": "firecracker",
-    "image_oci": null,
+    "image_oci": false,
     "snapshot_note": "Official homepage says snapshots preserve state, but does not specify filesystem-only versus memory+filesystem.",
     "snapshot_on_demand": false,
     "harness_api": false,
     "ingress_rules": true,
     "guest_firewall": true,
-    "secret_proxy": false
+    "secret_proxy": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "snapshot_auto": true,
+    "volume_attach": false,
+    "volume_shared": false,
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -287,10 +294,206 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
+      "source": "https://docs.celesto.ai/cloud/computers",
+      "quote": "Computer(cpus, memory, disk, template_id, template_version, persistent_home, network_policy)",
+      "note": "Hosted Computer.create() only accepts sizing, template, persistent_home, and network_policy params -- no secrets/credential-proxy parameter or endpoint. The docs' only secret/credential-injection mechanism (env_vars=, vm.set_env_vars/unset_env_vars/list_env_vars, injected via SSH into /etc/profile.d/smolvm_env.sh or Windows HKCU\\Environment) belongs to the local/self-hosted SmolVM product, not the hosted Computers API, and even there it is plain env-var injection, not an HTTP-request-signing secret proxy. No first-party proxy that injects credentials into outbound HTTP calls without exposing them to the sandbox is documented anywhere for Celesto; matches definition of secret_proxy=false (secrets only as env vars/mounted files).",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/computers",
+      "quote": "Sandbox template ID. Pass `coding-agent` when your agent needs common coding tools already installed.",
+      "note": "Hosted Computers API only creates from Celesto's own fixed templates (`scratch`, `coding-agent`); no parameter accepts a user-supplied Docker/OCI image. Dockerfile-based custom images (`DockerRootfsBuilder`, `Celesto.from_image`) are a local SmolVM feature, not documented for the hosted cloud product.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.celesto.ai/llms-full.txt",
+      "quote": "KVM not available: /dev/kvm not found",
+      "note": "derived: every /dev/kvm reference in the docs is about the host needing KVM to boot the Firecracker/QEMU microVM itself; nothing documents /dev/kvm being exposed inside the guest for nested virtualization.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.celesto.ai/smolvm/api/browsersession",
+      "quote": "Use `Celesto.desktop()` when your agent needs the whole desktop environment, such as a window manager, visible apps, or a VNC-compatible computer-use driver.",
+      "note": "not offered on the hosted Cloud Computers product: the hosted `Computer` response only exposes `connection.ssh` and `connection.access_url` (docs.celesto.ai/cloud/computers). `Celesto.desktop()`/`viewer_url`/`display_url` (VNC desktop) is documented only for local SmolVM sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.celesto.ai/smolvm/api/browsersession",
+      "quote": "VNC URL for desktop viewers and computer-use agents that need direct screen control.",
+      "note": "not offered on the hosted Cloud Computers product for the same reason as desktop: the VNC `display_url` computer-use driver endpoint is documented for local SmolVM `Celesto.browser()/desktop()` sandboxes, not the hosted Computers API.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/computers",
+      "quote": "The Computers API gives your code or agent an isolated Linux computer. You create a computer, run work inside it, and then stop, start, or delete it when your workflow is done.",
+      "note": "not offered: outside the product's scope. Celesto is a generic sandboxed-computer/coding-agent runtime; no stealth/fingerprint-evasion feature is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/computers",
+      "quote": "The Computers API gives your code or agent an isolated Linux computer. You create a computer, run work inside it, and then stop, start, or delete it when your workflow is done.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature or API is documented on any Celesto page.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.celesto.ai/cloud/features/network-control",
+      "quote": "`open` Connect to the internet. This is the default.",
+      "note": "Outbound traffic just goes through the normal cloud host's network path (open/off toggle only); no static, residential, or mobile IP option is documented, so it is ordinary shared datacenter egress.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "fs",
+      "source": "https://docs.celesto.ai/cloud/features/persistence",
+      "quote": "Celesto keeps both the computer root disk and workspace state across stop and start.",
+      "note": "Stop/start preserves files/disk (root disk + CelestoFS workspace), not a running-process memory image — stopping actually shuts the VM down. No documented snapshot/fork call exists in the hosted SDK (see snapshot_on_demand evidence in the card), so this is filesystem-level persistence, not a memory snapshot.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_auto": {
+      "value": true,
+      "source": "https://docs.celesto.ai/cloud/features/persistence",
+      "quote": "The simplest way to keep state is to stop a computer instead of deleting it. A stopped computer keeps its workspace, which means the files and folders inside the computer.",
+      "note": "No extra API call is needed to save state: calling `stop()` automatically preserves the root disk and workspace, and `start()` automatically restores it.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://github.com/CelestoAI/sdk/blob/main/src/celesto/sdk/client.py",
       "quote": null,
-      "note": "No secret proxy or secret store for hosted computers: Computer.create takes only resources, template, image, persistent_home, network_policy; secrets reach the sandbox only via commands/files you send. Gatekeeper is delegated end-user OAuth (Google Drive) called from your app, not an egress proxy. The Pi cloud guide keeps model credentials on the local machine because Pi itself runs locally.",
-      "checked": "2026-09-29"
+      "note": "The hosted Computers SDK/CLI exposes create/list/get/stop/start/delete/run/publish-port/terminal only — there is no fork or snapshot call, so cloned machines with restored in-memory process state are not available (matches the card's existing snapshot_on_demand evidence).",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/features/lifecycle",
+      "quote": "The CLI can start a stopped computer automatically when you run a command or open a terminal.",
+      "note": "Auto-start only happens when your own CLI/SDK call (`run`, `ssh`) explicitly triggers it — there is no evidence a stopped computer wakes itself when an inbound HTTP/network request arrives at a previously published port.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/features/petabyte-storage",
+      "quote": "Celesto sandboxes include a large durable filesystem for workspace data.",
+      "note": "Storage is limited to the resizable root disk (`disk_size_mb`, set at create time) plus the automatically-included CelestoFS workspace mount; there is no API to attach a separate, independently manageable extra volume.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/features/petabyte-storage",
+      "quote": "CelestoFS is mounted inside the sandbox so programs can use normal file operations from the guest.",
+      "note": "CelestoFS workspace storage is documented as one computer's own durable filesystem; nothing describes mounting the same volume on multiple running computers simultaneously.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/features/lifecycle",
+      "quote": "Stop it to pause work and keep the files inside it. Start it when you want to continue.",
+      "note": "Lifecycle docs describe only explicit `stop()`/`start()` calls; no idle-timeout auto-stop/auto-sleep behavior is documented for hosted computers.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/features/resources",
+      "quote": "CPU and memory must match one of these named sizes ... Omit both CPU and memory to use the template default.",
+      "note": "CPU/memory/disk are chosen once at `Computer()` creation time; no documented API resizes a running computer's vCPU/RAM without recreating it.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.celesto.ai/smolvm/features/coding-agents",
+      "quote": "Run Claude Code, Codex, OpenCode, OpenClaw, Hermes, and Pi inside a Celesto sandbox with full permissions",
+      "note": "Preinstalled coding-agent presets (`celesto claude|codex|opencode|openclaw|hermes|pi start`) are local SmolVM CLI launchers requiring local virtualization. The hosted Cloud Computers template list is only `scratch` and `coding-agent` (which installs generic dev tools — git/node/npm — not a preinstalled coding-agent harness).",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/managed-agents/overview",
+      "quote": "Managed agents let you run AI agents for your end users, with per-user budgets and an audit trail. You define an agent once, then call it on behalf of one of your users each time they interact with your product.",
+      "note": "The Managed Agents API drives an agent that YOU define (via the Agentor framework), not a first-party Celesto-built browser/computer-use/research agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.celesto.ai/llms-full.txt",
+      "quote": "CelestoMCPHub is a context manager that provides access to Celesto AI's MCP Hub, which aggregates multiple MCP servers and their tools into a single endpoint.",
+      "note": "CelestoMCPHub/LiteMCP let you build or aggregate MCP servers as agent *tools*; no MCP server ships that itself exposes control of Celesto Computers/sandboxes (create/run/stop/etc.) to an MCP client.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.celesto.ai/cloud/computers",
+      "quote": "result = computer.run(\"python3 --version\")",
+      "note": "Python 3 runs out of the box in Celesto computers, and the first-party SDK itself is Python (`pip install celesto`).",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.celesto.ai/cloud/guides/publish-github-app",
+      "quote": "Create a `coding-agent` computer. This template comes with Node, npm, and git already installed, which is what most web apps need.",
+      "note": "Node.js/npm ship in the `coding-agent` template, and a first-party TypeScript/Node SDK (`@celestoai/sdk`) exists.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/features/publish-ports",
+      "quote": "Publishing a port gives your computer a public HTTPS URL.",
+      "note": "Reachability is via a per-port HTTPS URL through Celesto's proxy, not a dedicated public IPv4 address per machine; no public IPv4 allocation is documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/features/network-control",
+      "quote": "Network Control currently supports these two settings. Domain and IP allowlists are not available.",
+      "note": "Only an open/off outbound toggle is documented; no fixed/static outbound IP feature exists.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://celesto.ai/pricing",
+      "quote": "Micro 1 CPU 2 GB 20 GB disk $0.03/h; Small 1/4/25 $0.04; Standard 2/4/30 $0.06; Memory 2/8/40 $0.08; Large 4/16/60 $0.16; XL 8/32/100 $0.32.",
+      "note": "not offered: outside the product's scope. Only shared-vCPU/RAM/disk sizes are sold; no GPU size, GPU pricing, or GPU mention appears anywhere on the site or docs.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/computers",
+      "quote": "The Computers API gives your code or agent an isolated Linux computer.",
+      "note": "not offered: outside the product's scope. The hosted product is explicitly a Linux sandbox (demo output shows `Linux celesto 6.8.0 x86_64 GNU/Linux`); no Windows guest option exists.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/computers",
+      "quote": "The Computers API gives your code or agent an isolated Linux computer.",
+      "note": "not offered: outside the product's scope. No macOS guest option is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://celesto.ai/",
+      "quote": "Linux celesto 6.8.0 x86_64 GNU/Linux",
+      "note": "The hosted Cloud demo/output is x86_64. arm64 boot images are only mentioned for local SmolVM builds (e.g. `codex-v0.0.31-arm64-qemu`); no arm64 option is documented for hosted Cloud computers.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://celesto.ai/",
+      "quote": "Open-source core. Self-host or use our cloud.",
+      "note": "not offered: outside the product's scope. Celesto offers exactly two deployment modes — fully self-hosted open-source SmolVM on your own infra, or Celesto's own managed multi-tenant cloud — not a managed deployment into the customer's own cloud account.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.celesto.ai/cloud/authentication",
+      "quote": "The command prompts for your API key and stores it in your operating system's secure credential store: Keychain on macOS, Credential Manager on Windows, or Secret Service on Linux.",
+      "note": "Authentication is API-key based only; no SAML/OIDC SSO is documented.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -3,7 +3,7 @@
   "name": "Browserless",
   "url": "https://www.browserless.io/pricing",
   "category": "browser",
-  "isolation": null,
+  "isolation": "container",
   "modes": [
     {
       "key": "free-quota-only",
@@ -313,20 +313,20 @@
   },
   "features": {
     "linux": null,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
+    "windows": false,
+    "macos": false,
+    "arm64": false,
     "gpu": true,
-    "snapshot": null,
-    "pause_resume": null,
-    "fork": null,
-    "persistent_disk": null,
+    "snapshot": "none",
+    "pause_resume": false,
+    "fork": false,
+    "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
-    "max_session_h": null,
+    "auto_stop_idle": true,
+    "max_session_h": 1,
     "custom_image": null,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": false,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": true,
@@ -334,13 +334,13 @@
     "computer_use": true,
     "code_interpreter": null,
     "agent_harnesses": true,
-    "ssh": null,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "ssh": false,
+    "public_ipv4": false,
+    "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
@@ -380,7 +380,16 @@
     "egress_allowlist_level": "domain",
     "ingress_rules": true,
     "guest_firewall": false,
-    "secret_proxy": false
+    "secret_proxy": false,
+    "isolation": "container",
+    "image_oci": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
+    "wake_on_request": false,
+    "volume_attach": false,
+    "volume_shared": false,
+    "live_resize": false,
+    "eu_data_residency": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -486,6 +495,181 @@
       "quote": "A 1Password service account lets a browser session fill secrets (usernames, passwords, API keys) straight from your vault **without the value ever reaching your automation code**.",
       "note": "Not an outbound HTTP credential proxy. Closest analogue: server-side 1Password form-fill (Browserless.loadSecret with op:// reference, optional origin allow-list, https-only, audit log, session lockdown after fill). The secret never reaches the client/agent code or LLM, but it IS typed into the browser page. No DB/SSH/git coverage.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://docs.browserless.io/llms-full.txt",
+      "quote": "Browserless manages the browser pool, handles resource isolation between sessions, and keeps the runtime up to date.",
+      "note": "Product is Docker-container-based (open-source/enterprise image runs 'headless browsers inside Docker'); hosted cloud is built on the same containerized architecture, i.e. shared-kernel container isolation between Chrome sessions, not a per-session VM/microVM. Exact hosted-fleet isolation boundary (one container per session vs. process-level) isn't spelled out beyond 'resource isolation between sessions'.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://www.browserless.io/pricing",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket.",
+      "note": "not offered: outside the product's scope. The hosted product runs a managed Chromium/Firefox/WebKit; there is no API to boot a session from a customer-supplied OCI/Docker image. Self-hosting is the reverse direction (you deploy Browserless's own image on your infra), not a per-session custom image on Browserless's cloud.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.browserless.io/llms-full.txt",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket. Full browser control by changing one line.",
+      "note": "not offered: outside the product's scope. Sessions expose only a browser (CDP/BQL/REST); there is no shell/root access inside the session to run Docker.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.browserless.io/llms-full.txt",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket.",
+      "note": "not offered: outside the product's scope. No general-purpose compute or /dev/kvm access is exposed inside a browser session.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.browserless.io/llms-full.txt",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket.",
+      "note": "not offered: outside the product's scope. Access is via WebSocket CDP/BQL/REST endpoints only; no SSH into the underlying container/host is documented.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.browserless.io/baas/session-management/persisting-state",
+      "quote": "await browser.close(); // Closes the browser; session data is saved to disk",
+      "note": "Persisted sessions/profiles save browser storage (cookies, localStorage, IndexedDB, cache) under a session/profile id and a new Chrome process is launched from that disk state on reconnect ('a new browser process starts on reconnect') — this is a persistent-disk/profile mechanism, not a filesystem or memory snapshot of a machine/instance; no running-process state is ever captured or restored.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.browserless.io/baas/features/authenticated-profiles",
+      "quote": "Browserless captures the cookies, localStorage, and IndexedDB from the running browser and persists them under the profile name. Each session gets its own working copy.",
+      "note": "Multiple sessions can start from one saved profile in parallel, but this clones a browser's auth/storage state into new sessions, not a machine/instance clone (no API to fork the full container/VM).",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.browserless.io/baas/features/authenticated-profiles",
+      "quote": "Each session gets its own working copy.",
+      "note": "not offered: outside the product's scope. There is no concept of forking a live running machine; profiles are copied only into new, separately-started sessions.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.browserless.io/baas/features/authenticated-profiles",
+      "quote": "Browserless captures the cookies, localStorage, and IndexedDB from the running browser and persists them under the profile name.",
+      "note": "not offered: outside the product's scope. Profile capture is storage/cookie state only; no process/memory state is captured, so clones never keep processes running.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://www.browserless.io/pricing",
+      "quote": "1 unit/30 s connection",
+      "note": "not offered: outside the product's scope. Billing is metered per connected second (units per 30s); there is no API to pause a session and resume it later at reduced/no billing. Persisted sessions instead close the browser and start a fresh process on reconnect.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.browserless.io/llms-full.txt",
+      "quote": "By default, Browserless automatically closes chrome when the session disconnects.",
+      "note": "not offered: outside the product's scope. There is no persistent/sleeping machine that a request wakes; every connection provisions a fresh browser session (optionally rehydrated from a saved profile on disk), which is a different model from wake-on-request VM/sandbox sleep.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "source": "https://docs.browserless.io/baas/session-management/persisting-state",
+      "quote": "await browser.close(); // Closes the browser; session data is saved to disk",
+      "note": "Persisted-session/profile data (cookies, localStorage, IndexedDB, cache) survives browser close and is reloaded on the next connect; retention window is 1/7/30/90 days depending on plan (pricing page).",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://www.browserless.io/pricing",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket.",
+      "note": "not offered: outside the product's scope. No API to attach extra persistent volumes to a hosted session; only the built-in profile/session storage exists.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.browserless.io/pricing",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket.",
+      "note": "not offered: outside the product's scope. No shared-volume mechanism across concurrently running sessions is documented.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": true,
+      "source": "https://docs.browserless.io/llms-full.txt",
+      "quote": "By default, Browserless automatically closes chrome when the session disconnects.",
+      "note": "Sessions also carry a configurable connection `timeout` (default 30s, e.g. 'Session timeout in ms (default 30 s, increase for long-running tasks)') after which an idle/unused session is closed automatically.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://www.browserless.io/pricing",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket.",
+      "note": "not offered: outside the product's scope. No published CPU/RAM per session (hardware sizes are not exposed to customers at all), so there is no API to resize a running session's resources.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://www.browserless.io/pricing",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket.",
+      "note": "not offered: outside the product's scope. Sessions are reached only via Browserless's own WebSocket/HTTPS endpoints (production-sfo/lon/ams); there is no per-session public IPv4 address assigned to the customer.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://www.browserless.io/pricing",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket.",
+      "note": "not offered: outside the product's scope. The only inbound HTTPS surface is Browserless's fixed regional API/WS endpoints (plus short-lived, tokenless Live URLs for viewing a session), not a general mechanism for reaching arbitrary ports on the machine.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.browserless.io/baas/troubleshooting/whitelisting-ips",
+      "quote": "The shared fleet's IP addresses may change every few months as we scale capacity or perform maintenance. We recommend checking this page or using the GraphQL API for the latest list.",
+      "note": "Outbound IPs come from a published, but explicitly non-fixed, shared-fleet pool (fetchable via GraphQL) that changes periodically; not a dedicated/static per-account or per-session egress IP. (A static/dedicated residential/datacenter proxy IP add-on is not documented either.)",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://www.browserless.io/pricing",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket.",
+      "note": "not offered: outside the product's scope. Hosted browsers run headless in Linux Docker containers; there are no Windows machines. (Docs show Windows shell commands only for local client setup, not the hosted runtime.)",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://www.browserless.io/pricing",
+      "quote": "Browsers as a Service: connect your existing Puppeteer or Playwright code to managed cloud browsers over WebSocket.",
+      "note": "not offered: outside the product's scope. Hosted browsers run headless in Linux Docker containers; no macOS machines are offered.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.browserless.io/llms-full.txt",
+      "quote": "All images are published to `ghcr.io/browserless/` and support both `linux/amd64` and `linux/arm64` architectures.",
+      "note": "ARM64 support applies to the self-hosted/open-source Docker image running on a customer's own ARM hardware, not to Browserless's own hosted cloud fleet, whose architecture is not documented as ARM-based; treating the hosted product as offering ARM64 machines would be an over-read.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://docs.browserless.io/llms-full.txt",
+      "quote": "Europe (London) | `wss://production-lon.browserless.io` | Europe (Amsterdam) | `wss://production-ams.browserless.io`",
+      "note": "Customers can pin sessions to EU regional endpoints (London, Amsterdam) in addition to the US (San Francisco) endpoint.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": 1,
+      "source": "https://www.browserless.io/pricing",
+      "quote": "500,000 shared units/mo. 0.0015/unit overage. Max session 60 min.",
+      "note": "Self-serve max session length depends on plan: Free 2 min, Prototyping 15 min, Starter 30 min, Scale 60 min (the card's Scale plan is the top self-serve tier, hence 1 h here); Enterprise/self-hosted can run longer, uncapped sessions by configuring the connection `timeout` themselves.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://www.browserless.io/",
+      "quote": "A managed headless browser platform for developers running Puppeteer, Playwright, and headless Chrome. No servers, containers, or Chrome updates to manage. Connect with one line of code.",
+      "note": "Browserless is a managed headless-browser-as-a-service product (Chrome/Chromium/Firefox/WebKit sessions reached via CDP/Puppeteer/Playwright/BQL/REST/MCP). It exposes no general-purpose remote desktop / VM GUI to control; the only 'desktop' concept in its docs is the `emulationOs=windows|macos|linux` browser fingerprint/viewport emulation parameter, not an actual desktop environment. This is a case of the feature being plainly outside what the product is, so 'no desktop' is correct.",
+      "checked": "2026-09-30"
     }
   }
 }

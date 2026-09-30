@@ -115,7 +115,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": null,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": true,
@@ -129,28 +129,28 @@
     "custom_domain": null,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
-    "self_host": null,
-    "byoc": null,
-    "open_source": null,
+    "self_host": false,
+    "byoc": false,
+    "open_source": false,
     "regions": [
       "us",
       "eu"
     ],
     "soc2": false,
-    "hipaa": null,
-    "sso": null,
-    "lang_python": null,
-    "lang_node": null,
+    "hipaa": false,
+    "sso": false,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
     "egress_http_rules": true,
-    "wake_on_request": null,
-    "live_resize": null,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
@@ -171,7 +171,12 @@
     "guest_firewall": true,
     "secret_proxy": "ai-only",
     "volume_attach": true,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -297,6 +302,174 @@
       "quote": "One sandbox holds a disk at a time.",
       "note": "Tigris lease: 'a concurrent attach fails until the first detaches'. Sharing is via copy-on-write forks (independent copies), not concurrent mounts. No read-only multi-attach.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.isorun.ai/getting-started/pricing",
+      "quote": "Isorun runs your code in real microVMs, hardware-isolated sandboxes that boot in milliseconds.",
+      "note": "not offered: outside the product's scope. No docs mention /dev/kvm or a second virtualization layer inside the guest; microVM hosts (Firecracker-class) essentially never expose nested KVM to tenants, and nothing on the site suggests an exception.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.isorun.ai/sandboxes/browser-and-computer-use",
+      "quote": "The image ships Xvfb (a virtual display), a window manager, Chromium started",
+      "note": "not offered: outside the product's scope. The browser/computer-use image is a plain Chromium in a virtual display for agent-driven browsing; no stealth/fingerprint-evasion feature is documented anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.isorun.ai/sandboxes/browser-and-computer-use",
+      "quote": "The image ships Xvfb (a virtual display), a window manager, Chromium started",
+      "note": "not offered: outside the product's scope. Isorun is a general microVM sandbox/compute runtime; no CAPTCHA-solving API or integration is mentioned anywhere in the docs, changelog, or homepage.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.isorun.ai/sandboxes/lifecycle",
+      "quote": "The VM gets a new guest IP on resume, so any ESTABLISHED outbound TCP connection from before hibernation is reset.",
+      "note": "Isorun runs sandboxes as regular cloud-hosted microVMs (US/EU regions) with no public IPv4 and no residential/mobile IP product; outbound traffic is plain datacenter cloud IP space, changing on resume.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.isorun.ai/sandboxes/lifecycle",
+      "quote": "Resume restores a hibernated sandbox. The same runID is reused",
+      "note": "A hibernated sandbox only comes back via an explicit sandbox.resume() SDK/API call; nothing in the port-forwarding or lifecycle docs describes an incoming HTTP/proxy request auto-waking a stopped or hibernated sandbox.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.isorun.ai/api-reference",
+      "quote": "PATCH /v1/runs/{id} Reset the auto-destroy timer",
+      "note": "The only update-in-place API on a running sandbox is PATCH /v1/runs/{id}, which resets the idle timer. There is no endpoint or SDK method to change vCPU/RAM of a running sandbox; resizing requires creating a new sandbox (optionally from a fork/snapshot).",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.isorun.ai/integrations/claude-managed-agents",
+      "quote": "The Isorun SDK ships a self-hosted adapter that",
+      "note": "not offered: outside the product's scope. Isorun is a sandbox/compute runtime; its integrations (Claude Managed Agents, OpenAI Agents, LangChain, CrewAI, MCP server) all drive third-party agent frameworks or your own code inside the sandbox. There is no first-party Isorun browser/computer-use/research agent with its own driving API.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.isorun.ai/llms-full.txt",
+      "quote": "const sandbox = await isorun.create({ image: 'python:3.12-slim' })",
+      "note": "Python is available out of the box by selecting the python:3.12-slim (or any Python) OCI image at create() time; nearly every SDK/integration example (code_interpreter tools, CrewAI, LangChain) runs Python this way. No dedicated first-party Python SDK is shipped yet ('Isorun Python SDK (in development)').",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.isorun.ai/sdks/typescript",
+      "quote": "Official Node.js client for sandbox lifecycle, command execution, file I/O, snapshots, fork, hibernate, and port exposure.",
+      "note": "Node.js is the first-party SDK language (the Isorun client itself is the Node/TypeScript SDK) and the default sandbox base image is node:22-slim per the SDK reference.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.isorun.ai/sandboxes/lifecycle",
+      "quote": "The VM gets a new guest IP on resume, so any ESTABLISHED outbound TCP connection from before hibernation is reset.",
+      "note": "The guest's outbound IP changes across hibernate/resume cycles, and no fixed/static egress IP product is documented or priced anywhere (network.ipv4_available is false in this card).",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.isorun.ai/getting-started/pricing",
+      "quote": "Isorun runs your code in real microVMs, hardware-isolated sandboxes that boot in milliseconds.",
+      "note": "not offered: outside the product's scope. Isorun is a hosted SaaS runner (US/EU regions, per-second billing via API key); there is no downloadable runtime/appliance to run the microVM host on your own infrastructure. 'Self-hosted' in the Claude Managed Agents integration refers to Isorun acting as the self-hosted sandbox *for Anthropic's* Managed Agents API, not to running Isorun itself on-prem.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.isorun.ai/getting-started/pricing",
+      "quote": "Isorun runs your code in real microVMs, hardware-isolated sandboxes that boot in milliseconds.",
+      "note": "not offered: outside the product's scope. No docs, pricing, or homepage content mentions deploying the Isorun runner into a customer-owned AWS/GCP/Azure account; it is a single multi-tenant SaaS with a US or EU region choice.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/isorun/sdk",
+      "quote": "\"private\":false",
+      "note": "Only the client SDK (github.com/isorun/sdk, MIT-licensed) is open source; the sandbox runtime/microVM host itself is closed-source hosted infrastructure with no public repo or self-host distribution.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://isorun.ai/",
+      "quote": "SOC 2 Type II (soon)",
+      "note": "not offered: outside the product's scope for now. The homepage lists only a pending SOC 2 Type II attestation as a compliance milestone for this public-beta product; no HIPAA/BAA mention anywhere in docs or site.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.isorun.ai/getting-started/pricing",
+      "quote": "No plan fee. $50 one-time signup credit, no card.",
+      "note": "not offered: outside the product's scope for now. This is a self-serve public-beta API product (sign up, get an API key); no SAML/OIDC/SSO feature, enterprise auth page, or mention is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.isorun.ai/sandboxes/lifecycle",
+      "quote": "Use sandbox.setTimeout(seconds) to extend it during a long-running workflow, pass 0 to disable.",
+      "note": "No documented hard cap on total sandbox lifetime; only an idle auto-destroy timer exists (default 300s), which can be disabled (timeoutSec 0) or reset via PATCH, and a running/actively-used sandbox otherwise persists (billed) until you call destroy().",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.isorun.ai/llms-full.txt",
+      "quote": "sandbox.exec(cmd, timeoutSec)",
+      "note": "Full docs dump (2752 lines) list only exec(), WebSocket PTY/shell sessions, and HTTPS port proxying as access methods. The only 'SSH' hit in the whole corpus is 'a long-running node server.js, a jupyter notebook kernel, an SSH agent, they all survive' hibernation - describing an in-guest process surviving, not an SSH access method offered by Isorun. No sshd, no SSH key management, no ssh:// endpoint anywhere in docs or homepage.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.isorun.ai/sandboxes/public-urls",
+      "quote": "The sandbox ID is the only credential on a public URL.",
+      "note": "Only access to sandbox network services is via HTTPS/WebSocket proxy URLs of the form <apiUrl>/v1/runs/<runID>/proxy/<port>/...; no dedicated/public IPv4 address is issued or documented anywhere ('ipv4', 'static ip', 'public ip' do not appear in the docs corpus). Consistent with raw_tcp_inbound already false.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.isorun.ai/integrations/claude-managed-agents",
+      "quote": "The SDK ships a self-hosted adapter for Anthropic Claude Managed Agents. Each Anthropic session is bound to its own sandbox for the lifetime of the session.",
+      "note": "runOrchestrator() and the OpenAI Agents/LangChain/CrewAI/MCP integrations are client-side adapters that drive Isorun sandboxes from other vendors' agent frameworks/harnesses; Isorun itself exposes no API to start/stream/manage an agent harness (its REST/SDK surface is sandbox lifecycle, exec, PTY/shell, files, snapshots, network - matches the card's existing harness_api:false evidence).",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.isorun.ai/llms-full.txt",
+      "quote": "sandbox is a real Linux box with its own kernel, built for AI agents",
+      "note": "No mention of 'gpu' anywhere in the 2752-line full docs dump, the homepage, or the lifecycle/pricing pages; the product is described purely as CPU/RAM-billed microVMs (vCPU-h + GiB-h pricing, no GPU SKU or GPU image). DuckDuckGo search for 'isorun.ai GPU sandbox' returns nothing relevant. Product is a general-purpose CPU agent-sandbox, not a GPU offering.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.isorun.ai/llms-full.txt",
+      "quote": "Each isorun.create() boots a microVM with its own kernel and defaults to",
+      "note": "Every example boots Linux OCI images (e.g. 'isorun.create({ image: \"ubuntu:24.04\" })'); no Windows image, guest OS option, or mention of 'windows' anywhere in the docs corpus or homepage. Isorun is a Linux-only microVM sandbox product.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.isorun.ai/llms-full.txt",
+      "quote": "Each microVM gets its own kernel.",
+      "note": "No mention of macOS/Darwin guest support anywhere in docs or homepage; sandboxes run Linux OCI images on KVM microVMs. macOS guest virtualization is outside what this product is.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://www.computesdk.com/benchmarks/sandboxes/",
+      "quote": "8 vCPU / 15.7 GiB x86_64 env",
+      "note": "The card's own third-party benchmark source records the test environment as x86_64; no arm64/aarch64 architecture option is mentioned anywhere in Isorun's docs, homepage, or changelog. No evidence of an ARM64 image/architecture choice.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://isorun.ai/",
+      "quote": "SOC 2 Type II (soon)",
+      "note": "Homepage pricing feature list explicitly marks SOC 2 Type II as upcoming/not-yet-certified, confirming false for the current state.",
+      "checked": "2026-09-30"
     }
   }
 }

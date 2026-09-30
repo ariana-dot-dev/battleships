@@ -90,45 +90,45 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
-    "gpu": null,
+    "arm64": false,
+    "gpu": false,
     "snapshot": "mem",
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": false,
     "max_session_h": 8,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": null,
     "systemd": true,
     "browser": true,
     "desktop": true,
     "computer_use": true,
     "code_interpreter": true,
-    "agent_harnesses": null,
+    "agent_harnesses": false,
     "ssh": true,
-    "public_ipv4": null,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
-    "open_source": null,
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "open_source": false,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
     "gpu_types": [],
     "regions": [
       "us"
     ],
     "lang_python": true,
-    "lang_node": null,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -136,13 +136,13 @@
     "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": null,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": false,
     "spend_limits": null,
@@ -156,7 +156,12 @@
     "ingress_rules": true,
     "guest_firewall": true,
     "secret_proxy": "any-http",
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "volume_attach": true,
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -263,6 +268,160 @@
       "quote": "Leap0 mounts the bucket inside the sandbox with s3fs without exposing the storage credentials in the sandbox.",
       "note": "First-party mount of a customer-owned S3-compatible bucket (s3fs), read-write or read_only, add/edit/delete at runtime; the same bucket can be mounted in several sandboxes (not explicitly stated as a shared-volume feature, and s3fs has no strong consistency).",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "Each sandbox runs in its own Firecracker microVM with a dedicated Linux kernel. The VMM process is jailed with chroot, cgroup v2, seccomp filters, and unique UID/GID pairs.",
+      "note": "No mention of /dev/kvm or nested virtualization anywhere in the full API/SDK docs. Firecracker microVMs do not expose hardware virtualization extensions to the guest by default and Leap0 documents no opt-in for it.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "The runtime is based on Ubuntu 22.04 with an XFCE4 desktop at 1440x900 resolution. Firefox ESR, Google Chrome, and VS Code are pre-installed.",
+      "note": "not offered: outside the product's scope. Leap0 is a general coding-agent sandbox (code interpreter + desktop/computer-use) with a plain Chrome/Firefox install, not a scraping/anti-detect browser product; no stealth or fingerprint-evasion feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "The runtime is based on Ubuntu 22.04 with an XFCE4 desktop at 1440x900 resolution. Firefox ESR, Google Chrome, and VS Code are pre-installed.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving API or service is documented anywhere in the Leap0 API/SDK reference; it is a general sandbox runtime, not a scraping/CAPTCHA product.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://leap0.dev/docs/firewall",
+      "quote": "Control what a sandbox can reach over the network using the `network_policy` field when creating or restoring a sandbox.",
+      "note": "derived: sandboxes are Firecracker microVMs run on Leap0's own cloud infrastructure (\"Sandboxes currently run in the US\"); no residential/mobile egress product is mentioned anywhere, so outbound traffic is ordinary datacenter IP space.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://leap0.dev/docs/snapshots",
+      "quote": "Snapshots can only be created from a `running` sandbox. The VM is briefly paused during the capture and then resumed automatically unless you set `kill_sandbox_after`. ... You can then restore that snapshot into a brand new sandbox that starts from the same checkpoint.",
+      "note": "Taking a snapshot only briefly pauses the source VM (auto-resumes) and the snapshot can be restored into a brand-new independent sandbox, i.e. a running sandbox can be cloned into a new one without being stopped.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": true,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "A sandbox can attach up to 8 object storage mounts.",
+      "note": "Object storage (S3-compatible bucket) mounts are attachable/detachable at runtime as extra persistent storage beyond the fixed 10 GiB local disk; there is no separate block-volume product, but this satisfies attachable extra persistent volumes.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://leap0.dev/docs/sandboxes",
+      "quote": "Set auto_pause to true if you want Leap0 to pause the sandbox when its timeout is reached.",
+      "note": "The sandbox `timeout` is a fixed wall-clock deadline set at create/restore time (1 min - 8 h, default 5 min), not an idle-activity detector; there is no idle-detection based auto-stop.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "Compute settings come from the snapshot, not the restore request.",
+      "note": "not offered: vCPU/RAM are set only at sandbox create time (or inherited from a snapshot on restore); the API reference documents no endpoint to change vCPU/RAM of a running sandbox in place.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://leap0.dev/docs/guides/claude-code",
+      "quote": "You can either bake it into a template or install it at runtime using `process.execute`.",
+      "note": "Claude Code, Codex and OpenCode guides all show manually installing the CLI via the process API or baking a custom template yourself; Leap0 ships no ready-made agent-harness template (only `system/code-interpreter` and `system/desktop` are first-party templates).",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://leap0.dev/",
+      "quote": "Leap0 is primarily offered as a fully managed service with the option to bring your own compute (BYOC).",
+      "note": "not offered: outside the product's scope. Leap0 is sandbox/VM infrastructure (compute, filesystem, git, process, desktop/computer-use APIs) for running your own agents; it has no first-party browser/research/computer-use agent of its own that it exposes via API.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "`typescript`, `ts`, `javascript`, `js`, `bun`, `node` | Bun v1.3.10 (TypeScript) | Last expression is returned as a result. State accumulates across calls.",
+      "note": "The Code Interpreter template supports JS/TypeScript execution out of the box via a Bun runtime, alongside Python.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "A presigned URL is a temporary public hostname that routes traffic to a specific port inside a sandbox.",
+      "note": "Inbound access is exposed through Leap0-managed hostnames/presigned URLs (a gateway/reverse-proxy model), not a dedicated public IPv4 address per sandbox; no public IPv4 assignment is documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://leap0.dev/docs/firewall",
+      "quote": "Control what a sandbox can reach over the network using the `network_policy` field when creating or restoring a sandbox.",
+      "note": "The firewall docs describe allow/deny domain and CIDR based egress policy only; no fixed/static outbound IP address feature is mentioned anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://leap0.dev/",
+      "quote": "Sandboxes currently run in the US. More regions are planned.",
+      "note": "not offered: outside the product's scope for now. No GPU machine type, GPU pricing, or GPU template is mentioned anywhere on the site or docs; card's own gpu_types is empty.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "Each sandbox runs in its own Firecracker microVM with a dedicated Linux kernel.",
+      "note": "No ARM/aarch64 architecture option is mentioned anywhere in the docs, pricing, or templates; the runtime and Docker examples (e.g. amd64-oriented base images) imply x86_64 only.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://leap0.dev/",
+      "quote": "Leap0 is primarily offered as a fully managed service with the option to bring your own compute (BYOC). However, it can also be deployed on your own infrastructure.",
+      "note": "Self-hosting/BYOC is offered commercially (\"contact our sales team\"), but that is not the same as the core sandbox platform being open source; no OSI-licensed repo for the core engine is published (only client SDKs).",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://leap0.dev/",
+      "quote": "Leap0 is free to use during the public preview period.",
+      "note": "not offered: no SOC 2 attestation, security/trust page, or compliance page exists (leap0.dev/security and /trust both 404); a free public-preview product with no published compliance page.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://leap0.dev/",
+      "quote": "Leap0 is free to use during the public preview period.",
+      "note": "not offered: no HIPAA/BAA mention anywhere on the site or docs; no compliance/security page exists (404s).",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "API keys authenticate all requests to the Leap0 API. Each key is scoped to an organization and grants full access to sandboxes, templates, and snapshots within that organization.",
+      "note": "Authentication docs describe organization-scoped API keys only; no SAML/OIDC single sign-on is mentioned anywhere in the docs or on the site.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://leap0.dev/",
+      "quote": "Sandboxes currently run in the US. More regions are planned.",
+      "note": "Only a US region exists today; EU (or any other) region is explicitly future/roadmap, not currently available.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "Every sandbox runs in its own Firecracker microVM: ... Sandboxes run on the Linux 6.1 LTS kernel.",
+      "note": "Leap0 sandboxes are Firecracker microVMs that only boot a Linux 6.1 LTS guest kernel; no Windows guest OS option exists anywhere in the docs (the one 'Windows' mention is about APPDATA in a locally-printed CLI config, not a guest OS).",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://leap0.dev/docs/llms-full.txt",
+      "quote": "Every sandbox runs in its own Firecracker microVM: ... Sandboxes run on the Linux 6.1 LTS kernel.",
+      "note": "Firecracker microVMs cannot boot a macOS guest, and Leap0's docs only describe the Linux 6.1 LTS kernel guest; no macOS support is offered or mentioned anywhere in the docs/homepage.",
+      "checked": "2026-09-30"
     }
   }
 }

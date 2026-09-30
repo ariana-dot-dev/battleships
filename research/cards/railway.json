@@ -259,13 +259,13 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": false,
+    "arm64": null,
     "gpu": false,
     "gpu_types": [],
     "snapshot": "fs",
-    "pause_resume": false,
+    "pause_resume": true,
     "fork": true,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -306,8 +306,8 @@
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": true,
@@ -319,7 +319,7 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "vm",
-    "image_oci": null,
+    "image_oci": false,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
     "harness_api": true,
@@ -327,7 +327,12 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -502,6 +507,147 @@
       "quote": "Replicas cannot be used with volumes",
       "note": "Also 'Each service can only have a single volume' and multiple deployments are prevented from mounting the same service volume. Storage buckets are S3-compatible object storage, not mounted.",
       "checked": "2026-09-29"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "A template is a reusable base: an ordered list of build steps that Railway builds once, content-addresses, and caches... `.withPackages(...names)` | Install system packages via `apt-get`",
+      "note": "Sandboxes/Cloud Agents boot from Railway's own Ubuntu base image, customized only via an apt-get-based template builder (packages/env/run steps) — not from a user-supplied Docker/OCI image. Railway Services (container-service mode) do support deploying from an arbitrary Docker/OCI image (Docker Hub, GHCR, Quay), per docs.railway.com/quick-start.md ('Railway supports deploying pre-built Docker images from the following registries'), but that is a separate, non-sandbox product mode already recorded as true on that mode.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://railway.com/pricing",
+      "quote": "Railway is the all-in-one intelligent cloud provider for deploying web apps, servers, databases, and more.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://railway.com/pricing",
+      "quote": "Railway is the all-in-one intelligent cloud provider for deploying web apps, servers, databases, and more.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "Every sandbox has outbound internet access through a NAT gateway.",
+      "note": "Default outbound IPs are Railway's own datacenter/NAT IPs (dynamic, not per-machine dedicated). Services on the Pro plan can additionally enable 'Static Outbound IPs' (docs.railway.com/networking/static-outbound-ips.md: 'permanent outbound IPv4 addresses... may be shared with other customers'), i.e. static-datacenter, but that is an opt-in add-on for the services mode, not the sandbox default.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.railway.com/cloud-agents.md",
+      "quote": "A running agent bills for compute while it is awake, including when no client is connected. Sleeping stops compute billing and keeps the disk.",
+      "note": "Cloud Agents must be woken explicitly ('Railway creates or wakes an agent' via the CLI launch command), not automatically by an inbound request. Sandboxes have no sleep/wake state at all: an idle sandbox is destroyed by its idle timeout, not put to sleep and later auto-woken by traffic ('Once the sandbox has no activity keeping it alive and its idle timeout expires, Railway destroys it', docs.railway.com/sandboxes.md).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "Each sandbox gets a VM size at creation... You can ask for a different size, up to your plan's maximum, with the `resources` field on the `sandboxCreate` API mutation",
+      "note": "Sandbox vCPU/RAM ceiling is set only at creation (or on a new fork/checkpoint boot); no documented API to change a running sandbox's or Cloud Agent's CPU/RAM ceiling in place. (Volumes, a services-only feature, do support live resize, but that is disk size, not CPU/RAM of a running machine.)",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.railway.com/ai/railway-agent.md",
+      "quote": "Chat with the Railway Agent to manage services, diagnose failures, and ship fixes directly from the Railway dashboard.",
+      "note": "not offered: outside the product's scope. Railway Agent (and its CLI, `railway agent`, docs.railway.com/cli/agent.md: 'Interact with the Railway Agent to manage your project using natural language') is a first-party assistant for managing Railway infrastructure itself, not a browser/computer-use/research task agent as defined by this field; it is also offered as one interchangeable coding tool inside Cloud Agents/Sandboxes alongside Claude Code, Codex, etc., not a distinct product-driving API.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "A command started with `exec` runs on the sandbox independently of the client that started it... the sandbox... run commands in it, and destroy it when you're done.",
+      "note": "No documented maximum lifetime for a running (non-idle) sandbox or Cloud Agent — both run until explicitly destroyed/deleted or, for sandboxes, until the idle timeout (5-120 min of no activity, separate from active session length) fires. Cloud Agents have no idle timeout at all and bill while awake indefinitely until manually slept.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.railway.com/cloud-agents.md",
+      "quote": "The disk lasts for the life of the agent. Closing a connection keeps the VM running. Sleeping stops its processes and compute billing while retaining files; deleting the agent removes its disk.",
+      "note": "Contradiction confirmed and corrected: Cloud Agents (VM mode) keep the filesystem across sleep/wake (pause/resume). Default behaviour: files persist until the agent is explicitly deleted; sleep only stops compute billing, not the disk. Sandboxes proper are different: idle timeout DESTROYS the sandbox (no pause) so no persistent disk in that mode, but checkpoints (disk-only snapshots) let you re-create from saved state on demand. Card's mode-level cloud-agent.features.persistent_disk was already true; only the top-level features.persistent_disk was wrongly false.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.railway.com/cloud-agents/manage.md",
+      "quote": "Disconnecting leaves the cloud agent running. There is no idle timeout. Stop compute explicitly when you no longer need the machine awake. ... 's' / 'w' / 'd' | Sleep, wake, or delete an agent",
+      "note": "Cloud Agents support explicit sleep (stop compute, keep disk) and wake (resume) via CLI/TUI ('railway ca sleep <agent-name>', 'railway ca' 's'/'w' keys). That is a first-party pause/resume mechanism. Sandboxes proper have no pause, only destroy-on-idle-timeout or explicit destroy, so pause/resume is specific to the cloud-agent product but real.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "a sandbox created from a checkpoint boots fresh from a copy of the disk: files are preserved, running processes are not",
+      "note": "Checkpoints/forks copy disk state only; no memory/process-state snapshot-and-resume is offered for sandboxes or cloud agents. Confirms existing 'false'.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.railway.com/cloud-agents.md",
+      "quote": "Launch a coding agent directly on the Railway machine and work with it through your terminal. ... Coding tools execute and edit files on that machine.",
+      "note": "Railway's compute products (Sandboxes, Cloud Agents, Services) are headless Linux VMs/containers accessed via CLI/SSH/API/dashboard. No streamed GUI desktop (VNC/RDP-style) is offered anywhere in the docs. Product is plainly terminal/API-first, so 'no desktop' fits what the product is.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "Sandboxes are isolated Linux VMs you create on demand, run commands in, and destroy. Use them for coding agents, dependency installs, test runs, builds, and isolated code execution.",
+      "note": "No GUI-automation/computer-use API (mouse/keyboard/screen control) is documented; the sandbox surface is exec/files/checkpoint/fork only, plus preinstalled CLI coding agents. Consistent with there being no desktop to drive.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.railway.com/platform/railway-metal.md",
+      "quote": "Unlocks More Features: With Railway's own hardware and networking stack, we can power more advanced features that were not possible before, such as Static Inbound IPs, Anycast Edge Network, High-Availability Volumes, etc.",
+      "note": "Static/dedicated inbound IPv4 is listed only as a feature Railway Metal 'unlocks' going forward, not something currently available. All current inbound access is via Railway-generated domains (HTTPS edge domains, or TCP Proxy 'domain:port', e.g. docs.railway.com/networking/tcp-proxy: 'Railway will generate a proxy domain and port') rather than a dedicated public IPv4 assigned to a service or sandbox. Confirms 'false'.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.railway.com/guides/ai-agent-workers.md",
+      "quote": "Run AI agent workflows on Railway with an API service, async workers via Redis queue, and Postgres for state persistence. Covers CPU-based agent patterns without GPU.",
+      "note": "No GPU instance type, GPU pricing line, or GPU flag appears anywhere in docs.railway.com/pricing/plans, railway.com/pricing, or the sandboxes/cloud-agents docs; the only docs mention of GPU is this guide explicitly scoping itself to 'without GPU'. Confirms 'false'.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "Sandboxes are isolated Linux VMs you create on demand",
+      "note": "Sandboxes, Cloud Agents ('Ubuntu development image'), and Services all run on Linux only; no Windows OS option exists on any Railway compute product. Confirms 'false'.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "Sandboxes are isolated Linux VMs you create on demand",
+      "note": "Same as windows: all compute products are Linux VMs/containers; no macOS runtime is offered. Confirms 'false'.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Docs never name the CPU architecture (no explicit 'x86-64'/'amd64' or 'arm64'/'ARM' string found on pricing, sandboxes, cloud-agents, or Railway Metal pages), and no arch selection option is exposed to users. Historical/community knowledge is that Railway Metal runs on AMD x86-64 hardware, but no official page states this explicitly, so kept as the existing 'false' with low confidence rather than a sourced correction.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.railway.com/platform/railway-metal.md",
+      "quote": "It is built on hardware that we own and operate in datacenters around the world.",
+      "note": "Railway is a managed platform running on Railway-owned/operated Metal infrastructure (or its predecessor GCP infra); there is no distributable Railway server/control-plane a customer can install on their own hardware. BYOC (features.byoc: true) lets Enterprise customers point Railway's control plane at their own cloud account, which is a different thing from self-hosting the platform itself. Plainly outside what this hosted product is.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "The SDK is the primary interface for working with sandboxes programmatically. It's open source on GitHub (github.com/railwayapp/railway-ts-sdk).",
+      "note": "Only the client-side TypeScript SDK is explicitly called out as open source; the Railway platform itself (dashboard, API, scheduler, Metal infra) is closed-source SaaS with no published source repo for the platform. Confirms platform-level 'false' (client SDK open-sourceness is a separate, narrower fact).",
+      "checked": "2026-09-30"
     }
   }
 }

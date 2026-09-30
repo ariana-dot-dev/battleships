@@ -115,11 +115,11 @@
     "agent_harnesses": true,
     "ssh": false,
     "public_ipv4": false,
-    "inbound_https": false,
+    "inbound_https": true,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": false,
     "private_network": false,
     "self_host": true,
     "byoc": true,
@@ -128,24 +128,24 @@
       "us"
     ],
     "soc2": true,
-    "hipaa": null,
-    "sso": null,
+    "hipaa": false,
+    "sso": false,
     "lang_python": true,
-    "lang_node": null,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -156,7 +156,16 @@
     "harness_api": false,
     "ingress_rules": true,
     "guest_firewall": true,
-    "secret_proxy": false
+    "secret_proxy": false,
+    "isolation": "qemu-kvm",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "volume_attach": false,
+    "volume_shared": false,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -224,6 +233,238 @@
       "quote": "Pass task-specific credentials from the host into a sandbox at runtime.",
       "note": "Secrets are passed as env vars in shell.run() commands, or via pool `claim_secrets` = claim-scoped secret delivery as files at /run/cua (Terraform pool docs). Real values enter the VM; no injecting proxy.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "qemu-kvm",
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/configure-pool-with-terraform.md",
+      "quote": "This example creates a KubeVirt Linux pool and exposes SSH. ... runtime = \"kubevirt\"",
+      "note": "Fleet's Windows pool uses the same runtime=\"kubevirt\" template (firmware=\"efi\"); KubeVirt runs guests as QEMU/KVM VMMs, matching the docs' description of Windows sandboxes booting a full VM with its own kernel from a containerDisk artifact.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/prepare-and-reference-a-fleet-image.md",
+      "quote": "The Sandbox SDK's Fleet VM template references a containerDisk artifact, with a guest disk at `/disk/disk.img`; an ordinary application container is not a substitute.",
+      "note": "Fleet does not boot arbitrary Docker/OCI application images: it requires a prebuilt raw VM disk (qcow2) wrapped as a KubeVirt containerDisk, published before pool creation. SDK image layers (apt_install/pip_install/run/copy/env) are rejected for Fleet ('Rejected' in the runtime-support table), so this is not the standard 'bring your own Docker/OCI image' capability.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://cua.ai/pricing",
+      "quote": "Scale Linux, Windows, macOS, and Android computer fleets for computer-use agents with one open-source MCP/CLI driver.",
+      "note": "not offered: outside the product's scope. Cua Fleet is a computer-use VM/desktop platform (screenshot+click driver, sandboxes); no stealth/fingerprint anti-bot feature is documented anywhere in the docs or trust pages.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://cua.ai/pricing",
+      "quote": "Scale Linux, Windows, macOS, and Android computer fleets for computer-use agents with one open-source MCP/CLI driver.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving service is documented; Cua only ships a computer-use driver/desktop, not a browser-automation/scraping product with built-in CAPTCHA solving.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/prepare-and-reference-a-fleet-image.md",
+      "quote": "The image-based `Sandbox.ephemeral()` path in `cua-sandbox` 0.7.0 accepts only the default region, `us-east-1`.",
+      "note": "derived: Fleet runs on AWS-hosted KubeVirt capacity (registry at public.ecr.aws, region us-east-1). No residential/mobile egress proxying is documented anywhere, so outbound traffic is ordinary cloud-datacenter NAT egress.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/configure-pool-with-terraform.md",
+      "quote": "resource \"fleets_pool\" \"windows\" { name = ... cpu_cores = 4 memory = \"4Gi\" container_disk_image = ... runtime = \"kubevirt\" firmware = \"efi\" ... service { ... } autoscaling { ... } }",
+      "note": "not offered: the full documented pool configuration surface (Terraform `fleets_pool` resource and the Sandbox SDK Pool/ClaimSpec) has no field for attaching an extra persistent volume/disk to a sandbox.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/configure-pool-with-terraform.md",
+      "quote": "resource \"fleets_pool\" \"windows\" { ... container_disk_image = ... }",
+      "note": "not offered: no shared/multi-attach volume primitive appears in the pool or claim schema; each replica boots its own containerDisk with a disposable overlay.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/configure-pool-with-terraform.md",
+      "quote": "Use a lowercase DNS label of at most 63 characters for `name`. Changing it replaces the pool because it also owns its namespace.",
+      "note": "not offered: cpu_cores/memory are fixed pool-template fields; there is no documented API to change a running sandbox's CPU/RAM in place, only creating new replicas from a (re)applied pool spec.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://cua.ai/docs/llms-full.txt",
+      "quote": "Harnesses own the agent loop and invoke Cua Driver. Some are tied to a model provider; others let you choose the model separately.",
+      "note": "Cua ships a low-level driver/API (computer-server, Cua Driver MCP) to control the screen, but the task-agent loop itself is owned by third-party coding/computer-use harnesses (Claude Code, Codex, OpenAI Agents API, etc.), not a first-party Cua task agent driven via its own API.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://cua.ai/docs/llms-full.txt",
+      "quote": "The TypeScript Fleet SDK provides separate Node.js and browser entry points. ... You need Node.js 20 or newer.",
+      "note": "First-party TypeScript/Node.js Fleet SDK to provision, claim, and control Fleet sandboxes (create-fleet-capacity, claim-a-sandbox how-tos ship Node/TypeScript examples alongside Python).",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/configure-pool-with-terraform.md",
+      "quote": "resource \"fleets_pool\" \"windows\" { name = ... cpu_cores = ... memory = ... container_disk_image = ... runtime = ... firmware = ... readiness_probe_json = ... service { ... } autoscaling { ... } }",
+      "note": "not offered: the documented pool/claim configuration surface has no egress firewall, allowlist, or no-internet-mode field; outbound network policy is not mentioned anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/configure-pool-with-terraform.md",
+      "quote": "resource \"fleets_pool\" \"windows\" { ... service { name = \"computer-server\" target_port = 8000 protocol = \"TCP\" } ... }",
+      "note": "not offered: only inbound named services are declared in the schema; there is no HTTP method/path-level egress rule mechanism documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/configure-pool-with-terraform.md",
+      "quote": "resource \"fleets_pool\" \"windows\" { name = ... cpu_cores = ... memory = ... container_disk_image = ... runtime = ... firmware = ... }",
+      "note": "not offered: no fixed/static outbound IP option appears anywhere in the pool schema or docs; egress is ordinary cluster NAT.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://cua.ai/trust",
+      "quote": "Cua has completed its SOC 2 Type I examination. The SOC 2 Type II audit is in progress.",
+      "note": "not offered: the trust/compliance page lists only SOC 2 Type I (done) and Type II (in progress) as current status; no HIPAA/BAA program is mentioned.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://cua.ai/trust",
+      "quote": "Cua has completed its SOC 2 Type I examination. The SOC 2 Type II audit is in progress.",
+      "note": "not offered: no SAML/OIDC single sign-on is mentioned on the trust page, pricing page, or docs; account auth is via Clerk sign-in with no enterprise SSO option documented.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/prepare-and-reference-a-fleet-image.md",
+      "quote": "The image-based `Sandbox.ephemeral()` path in `cua-sandbox` 0.7.0 accepts only the default region, `us-east-1`.",
+      "note": "Fleet capacity/regions documented are US (us-east-1) only; no EU region or data-residency option is documented, consistent with the card's regions:[\"us\"].",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/expire-pools-and-claims.md",
+      "quote": "Without this argument, there is no creation-age TTL from this setting.",
+      "note": "There is no platform-imposed maximum session/claim duration; TTL (ttl_seconds_after_created) is an optional, user-set cleanup backstop on pools/claims, not a mandatory cap, so a claim can in principle run indefinitely until released or the pool is deleted.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/run-openai-agents-api-on-cloud-fleet.md",
+      "quote": "releasing the Fleet claim, which returns the VM to its pool and resets its disposable disk overlay ... a replacement VM does not restore files unless you use provider storage or snapshots",
+      "note": "Fleet claims boot from a disposable containerDisk overlay; release/rotation resets it and no persistent volume or disk mechanism is documented (snapshots are also unimplemented). Applies equally to the Windows Server 2022 pool template.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://cua.ai/docs/reference/sandbox-sdk/runtime-support.md",
+      "quote": "`Sandbox.snapshot()` | Not implemented | Not implemented; snapshot-derived image inputs are also rejected",
+      "note": "Confirmed in cua-sandbox 0.8.0 docs for both local and Fleet (pool-backed) execution, including Windows Server 2022 Fleet pools. Marketing copy ('fork from snapshots') is contradicted by the versioned SDK reference.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://cua.ai/docs/concepts/sandbox-lifecycle.md",
+      "quote": "On Fleet, `disconnect()` drops the connection without releasing the claim. Exiting a `pool.claim()` context releases the claim, but the pool can keep warm capacity available and incur cloud usage charges.",
+      "note": "Fleet's only claim-level lifecycle operations are bind/release/delete (and TTL-based deletion); there is no suspend-and-resume operation that preserves guest memory/CPU state for a Windows Fleet VM. The CLI's 'preserving memory state' suspend applies to local/legacy sandboxes, not Fleet.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://cua.ai/docs/reference/sandbox-sdk/runtime-support.md",
+      "quote": "`Sandbox.snapshot()` | Not implemented | Not implemented; snapshot-derived image inputs are also rejected",
+      "note": "Forking (cloning a running/paused sandbox) is not offered anywhere in the Fleet SDK; the only building block that could support it (snapshots) is explicitly unimplemented, and Fleet rejects snapshot-derived image inputs outright.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://cua.ai/docs/reference/sandbox-sdk/runtime-support.md",
+      "quote": "Not implemented; snapshot-derived image inputs are also rejected",
+      "note": "No API to fork a running Windows Fleet VM into a second live instance; only new claims from a pool's static image are possible.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://cua.ai/docs/reference/sandbox-sdk/runtime-support.md",
+      "quote": "Not implemented; snapshot-derived image inputs are also rejected",
+      "note": "No memory-state snapshot/fork mechanism exists for Fleet; snapshotting is unimplemented and snapshot-derived boot images are rejected.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/configure-pool-with-terraform.md",
+      "quote": "Use a distinct name for Windows. The Windows computer-server image requires UEFI, so this example sets `firmware = \"efi\"` and waits for the service on port `8000`. ... service { name = \"computer-server\" target_port = 8000 protocol = \"TCP\" }",
+      "note": "The Windows pool template example declares only the `computer-server` service; unlike the Linux example (which explicitly declares `service { name = \"ssh\" target_port = 22 }`), no SSH service or sshd is documented for the Windows Server 2022 Fleet image. The only Windows+SSH doc ('Drive a Windows app over SSH') is about driving the customer's own separately-provisioned Windows machine, not Cua's Fleet VM.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/expire-pools-and-claims.md",
+      "quote": "Use a TTL as a cleanup backstop for interrupted jobs, and still release claims when work finishes. It is not an inactivity timeout or an automatic heartbeat.",
+      "note": "Fleet has no stop/sleep + wake-on-request model. Pools/claims only support explicit release/delete or creation-age TTL deletion; autoscaling `min_pool_size=0` removes idle warm capacity but does not resume a specific stopped machine on an incoming request.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/expire-pools-and-claims.md",
+      "quote": "Pools and claims accept an optional creation-age TTL. ... It is not an inactivity timeout or an automatic heartbeat.",
+      "note": "The only automatic lifecycle timer documented is a creation-age TTL (deletes regardless of activity), not an idle-based stop. No idle-detection/auto-stop feature is documented for Fleet claims or the Windows pool template.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/configure-pool-with-terraform.md",
+      "quote": "resource \"fleets_pool\" \"windows\" { name = ... cpu_cores = 4 memory = \"4Gi\" container_disk_image = ... runtime = \"kubevirt\" firmware = \"efi\" ... service { name = \"computer-server\" target_port = 8000 protocol = \"TCP\" } }",
+      "note": "The Fleet pool schema (Terraform provider and SDK Pool/Image reference) exposes only cpu_cores, memory, the boot containerDisk image, firmware, services, and autoscaling -- no attachable extra volume/disk resource for Windows or Linux pools.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/share-service-with-signed-url.md",
+      "quote": "Use a signed service URL when a person or external system needs temporary access to a service running inside a Fleet sandbox. The URL is public, time-limited, and revocable. Requests still route only to the named service on the bound sandbox.",
+      "note": "Fleet issues public, revocable time-limited HTTPS URLs (60s-24h) to reach a named service/port inside any claimed sandbox, and unsigned authenticated HTTPS requests via `sandbox.services.request()`/`sb.services.request()` are also documented. This mechanism is generic to Fleet pools (both the Python/TS SDK and Terraform provider examples cover Linux and Windows pools identically) and is not restricted to Linux, so the Windows card's `inbound_https:false` is incorrect.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/sandbox/share-service-with-signed-url.md",
+      "quote": "Requests still route only to the named service on the bound sandbox.",
+      "note": "All documented inbound access (service requests, signed URLs) is proxied through Fleet's own endpoint (run.cua.ai) to a named service; no Fleet doc anywhere assigns a dedicated public IPv4 address to an individual Windows (or Linux) sandbox VM.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://cua.ai/docs/how-to-guides/recipes/minecraft.md",
+      "quote": "The sandbox GPU is the *Microsoft Basic Display Adapter*, which offers OpenGL 1.1. Minecraft 1.17 and later need OpenGL 3.2, so the game needs Mesa3D's `opengl32.dll` (llvmpipe), which implements OpenGL in software.",
+      "note": "Explicit first-party confirmation that the Windows Fleet VM has no real/passthrough GPU: it exposes only the software Basic Display Adapter, requiring a software OpenGL implementation for 3D apps.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://cua.ai/docs/reference/sandbox-sdk/os-image-catalog.md",
+      "quote": "macOS | Sequoia 15 | Native macOS desktop | Local Lume VM | `ghcr.io/trycua/macos-sequoia-cua:latest` | Compatible Apple silicon host required; mutable tag; no built-in Fleet mapping.",
+      "note": "This card is the Windows Server 2022 Fleet product; macOS is explicitly local-only (Lume on an Apple Silicon Mac) with 'no built-in Fleet mapping', so macOS is plainly outside what this hosted Windows product offers.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://cua.ai/docs/reference/sandbox-sdk/os-image-catalog.md",
+      "quote": "Windows | Server 2022; artifact architecture not established by SDK mapping | Native Windows desktop | Fleet containerDisk; local Hyper-V or QEMU | `public.ecr.aws/k5j5w0x5/cua-windows-2022:main-bac7daa3` | `Image.windows()` mapping in `cua-sandbox` 0.8.0; Fleet selects EFI.",
+      "note": "Only one Windows Fleet image exists (Server 2022, EFI/x64 container disk); no ARM64 Windows build, size, or image is offered by Fleet. ARM64 appears elsewhere in the docs only for local Apple-Silicon Lume VMs (unrelated product), consistent with arm64=false for this Windows Fleet product.",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": false,
+      "source": "https://cua.ai/docs/concepts/pools-claims-and-guest-services.md",
+      "quote": "A service declaration gives Fleet a named route to a port in the guest. It does not install the application, start a listener, or prove that the service is ready.",
+      "note": "Fleet's networking model is limited to declaring named per-port services routed through Fleet's own proxy/auth layer; no VPC, private peering, or private network between sandboxes/pools is documented anywhere in the Sandbox SDK, Terraform provider, or Fleet concept docs.",
+      "checked": "2026-09-30"
     }
   }
 }

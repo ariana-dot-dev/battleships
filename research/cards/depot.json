@@ -445,15 +445,15 @@
     "windows": true,
     "macos": true,
     "arm64": true,
-    "gpu": false,
+    "gpu": true,
     "gpu_types": [],
-    "snapshot": "none",
+    "snapshot": "fs",
     "pause_resume": false,
     "fork": false,
     "persistent_disk": true,
-    "volumes": false,
+    "volumes": true,
     "auto_stop_idle": true,
-    "max_session_h": null,
+    "max_session_h": 24,
     "custom_image": true,
     "docker_inside": true,
     "nested_virt": true,
@@ -463,15 +463,15 @@
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
-    "agent_harnesses": false,
-    "ssh": false,
+    "agent_harnesses": true,
+    "ssh": true,
     "public_ipv4": false,
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
-    "private_network": false,
+    "static_egress_ip": true,
+    "private_network": true,
     "self_host": false,
     "byoc": true,
     "open_source": false,
@@ -479,36 +479,43 @@
       "us",
       "eu"
     ],
-    "soc2": null,
+    "soc2": true,
     "hipaa": null,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": false,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
     "harness_api": true,
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "dedicated-vm",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "ingress_rules": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -597,6 +604,244 @@
       "quote": "Multiple parallel workflows can mount, read from, and write to the same disk at once.",
       "note": "Read-write concurrent across jobs/repos in the org (Depot CI only, beta); docs recommend one writer / partitioned directories.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "dedicated-vm",
+      "source": "https://depot.dev/docs/security",
+      "quote": "Each GitHub Actions job runs on a new EC2 instance that has never been used before, ensuring complete isolation at the hardware level.",
+      "note": "Applies to GHA runners (the card's primary product); Depot itself doesn't run a custom hypervisor, it provisions dedicated single-tenant AWS EC2 instances per job/sandbox.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://depot.dev/docs/ci/how-to-guides/custom-images.md",
+      "quote": "The custom image is in the Depot registry (`registry.depot.dev`). Images from external registries aren't supported.",
+      "note": "No product lets you boot a machine from an arbitrary externally-built Docker/OCI image today: Depot CI custom images must be built via Depot's own snapshot action into Depot's registry; GHA runner custom images are AMIs (Business plan only, not OCI); the Sandbox SDK docs list 'arbitrary OCI image reference' custom runtimes under 'Coming soon' / not yet part of the SDK surface.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://depot.dev/pricing",
+      "quote": "Depot is a build infrastructure platform offering: (1) Depot container builds ... (2) Depot GitHub Actions runners ... (6) Depot Managed ... and (7) Depot agent sandboxes - secure cloud sandboxes for AI coding tools.",
+      "note": "not offered: outside the product's scope (CI/build infrastructure and coding-agent sandboxes, not browser automation/scraping).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://depot.dev/pricing",
+      "quote": "Depot is a build infrastructure platform offering: (1) Depot container builds ... (2) Depot GitHub Actions runners ... (6) Depot Managed ... and (7) Depot agent sandboxes - secure cloud sandboxes for AI coding tools.",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://depot.dev/docs/github-actions/how-to-guides/access-private-resources",
+      "quote": "By default, each Depot runner launches with a unique public IP address from the AWS (Amazon Web Services) address pool.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://depot.dev/docs/github-actions/overview",
+      "quote": "GitHub Actions runners launch on-demand in response to webhook events from your organization.",
+      "note": "GHA runners/CI jobs launch fresh on job trigger (not a sleeping machine woken by an inbound network request); no documented wake-on-request behavior for a persistent sandbox/service. Sandbox SDK / agent sandboxes require an explicit create/resume API call, not an incoming request.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference",
+      "quote": "resources: the compute to request, as {vcpus?, memoryMb?, diskGb?} ... Sandboxes support 2 to 64 vCPUs.",
+      "note": "Resources are fixed at sandbox creation; only `setTimeout` (lifetime extension) is documented for a running sandbox, no API to change vCPU/RAM of a running machine.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://depot.dev/docs/agents/overview",
+      "quote": "Depot's remote agent sandboxes provide a secure, isolated environment for running AI coding agents like Claude Code in the cloud. Current agent sandboxes support Claude Code, with more agents coming soon.",
+      "note": "not offered: Depot's agent API drives a third-party coding harness (Claude Code) inside a sandbox (already modeled as harness_api), not a first-party Depot browser/computer-use/research agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://depot.dev/docs/ai-at-depot",
+      "quote": "Depot skills give AI coding agents the product context they need to use Depot from a shell. ... The key is `depot ci run`",
+      "note": "Depot's documented agent-facing surfaces are a CLI, REST/protobuf API, and an installable 'skills' package (github.com/depot/skills); no MCP server is documented on depot.dev or listed among the depot GitHub org's public repos (checked via GitHub API).",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://depot.dev/docs/agents/overview",
+      "quote": "Agent sandboxes come pre-installed with popular programming languages, package managers, and development tools.",
+      "note": "Not itemized by name, but 'popular programming languages' for a coding-agent sandbox implies Python/Node; GHA runner labels (e.g. depot-ubuntu-24.04) are a drop-in replacement mirroring GitHub-hosted Ubuntu runner images, which ship Python by default.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://depot.dev/docs/agents/overview",
+      "quote": "Agent sandboxes come pre-installed with popular programming languages, package managers, and development tools.",
+      "note": "Same reasoning as lang_python; Claude Code itself (the harness Depot runs) is a Node.js CLI, and GHA runner images mirror GitHub-hosted images which ship Node.js by default.",
+      "checked": "2026-09-30"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://depot.dev/docs/github-actions/overview",
+      "quote": "Depot GitHub Actions runners are a drop-in replacement for your existing runners in any GitHub Actions job.",
+      "note": "not offered: outside the product's scope. Depot's runners/sandboxes don't expose inbound ports/URLs for external traffic (card already has public_ipv4 and inbound_https as false), so there is nothing to apply per-request ingress access control to.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://depot.dev/docs/github-actions/how-to-guides/egress-filtering",
+      "quote": "You can add more rules to allow or deny connections to specific IPs, CIDRs, or hostnames.",
+      "note": "Egress filtering operates at the network layer (iptables, by IP/CIDR/hostname); no HTTP method/path-level egress rules are documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://depot.dev/docs/github-actions/how-to-guides/access-private-resources",
+      "quote": "All runners either peer with your AWS account or are configured to use a NAT gateway for static outbound IP addresses. These IPs can then be allowlisted in your firewall or security policies.",
+      "note": "Only via a Business-plan custom/dedicated deployment; the default runner fleet uses per-job dynamic AWS IPs (network.ipv4_available is false for the default product).",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": true,
+      "source": "https://depot.dev/blog/depot-soc-2",
+      "quote": "We're very excited to announce that Depot is now SOC 2 Type I compliant",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": 24,
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference",
+      "quote": "Defaults to 120 minutes. The maximum sandbox lifetime is 24 hours.",
+      "note": "Stated explicitly for the Sandbox SDK (beta) product. GitHub Actions runner jobs and remote agent (Claude Code) sandboxes have no documented hard session-length cap other than the job/session simply running until it finishes or is stopped.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "fs",
+      "corrected_from": "none",
+      "source": "https://depot.dev/docs/ci/how-to-guides/custom-images.md",
+      "quote": "Add depot/snapshot-action as a step (after your setup steps). It captures the full state of the sandbox environment and pushes it to the Depot registry as a reusable image.",
+      "note": "Contradiction confirmed as described: card said snapshot='none' but feature_evidence already recorded snapshot_on_demand=true for the same on-demand disk/filesystem snapshot (Depot CI only, not the priced GHA runners; no memory/process state, so 'fs' not 'mem').",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://depot.dev/docs/ci/how-to-guides/cache-disks.md",
+      "quote": "Mount a durable disk into your Depot CI jobs to persist data between runs and share a directory across multiple workflows. ... Multiple parallel workflows can mount, read from, and write to the same disk at once.",
+      "note": "Contradiction confirmed: card said volumes=false while volume_attach/volume_shared were already true in feature_evidence for the same Depot CI cache-disks beta feature (durable attach + shared mount).",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+      "quote": "sandbox.stop stops the sandbox gracefully. The sandbox ends in the finished status. ... sandbox.kill cancels the sandbox immediately. The sandbox ends in the cancelled status.",
+      "note": "Sandbox SDK lifecycle only has create/stop/kill/setTimeout; no pause or resume API. GHA runners and Depot CI jobs are single-use ephemeral VMs with no pause concept either.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+      "quote": "A Sandbox represents one sandbox running on the server. You don't construct it directly: use the static Sandbox.create, Sandbox.get, Sandbox.list, or Sandbox.listAll entry points",
+      "note": "No fork/clone API in the Sandbox SDK, CI, or Remote Agents docs (only Git repo cloning, which is unrelated to machine forking).",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+      "quote": "Sandbox.create provisions a new sandbox. Every option is optional; the server fills in defaults for anything you leave unset.",
+      "note": "Same as fork: no clone/fork mechanism exists at all, so cloning a running machine is not offered.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://depot.dev/docs/ci/how-to-guides/custom-images.md",
+      "quote": "Snapshots capture only the sandbox filesystem. Environment variables exist only in the running process (not the filesystem) so they aren't included in the snapshot.",
+      "note": "Depot's only snapshot mechanism explicitly excludes running process/memory state, and there is no fork feature to combine it with.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://depot.dev/docs/ci/how-to-guides/debug-with-ssh.md",
+      "quote": "Direct SSH connects you to the Depot sandbox environment over exec.depot.dev using your Depot API token. This gives you a shell on the sandbox... Use depot ci ssh <run-id> --job <job> to connect to a job that's already in progress.",
+      "note": "Depot CI jobs support direct interactive SSH access (and a tmate-based flow) into the running sandbox. Card wrongly had ssh=false.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://depot.dev/docs.md",
+      "quote": "Depot accelerates your CI, container builds, and GitHub Actions.",
+      "note": "Product is CI/build/agent-sandbox compute (Linux/Windows/macOS runners, sandboxes); no graphical desktop/VNC/RDP offering is documented anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://depot.dev/docs.md",
+      "quote": "Depot accelerates your CI, container builds, and GitHub Actions.",
+      "note": "No screenshot/click-driving API exists; product is CI runners, container builds, and coding-agent sandboxes, not a browser/desktop-automation product.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+      "quote": "networkUsage: bytes sent and received, as {ingressBytes, egressBytes}.",
+      "note": "The Sandbox SDK only reports network byte counters; no documented way to expose an HTTPS URL to a port on the sandbox/runner. Egress-filtering docs describe outbound-only controls.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://depot.dev/docs/github-actions/how-to-guides/egress-filtering.md",
+      "quote": "Configure egress filtering to control which external services your GitHub Actions runners can connect to by blocking or allowing connections at the network level.",
+      "note": "Docs describe outbound network control (egress allowlists, Tailscale) only; no mention of a per-machine public inbound IPv4 address.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://depot.dev/docs/agents/overview.md",
+      "quote": "Depot's remote agent sandboxes provide a secure, isolated environment for running AI coding agents like Claude Code in the cloud. ... Current agent sandboxes support Claude Code, with more agents coming soon.",
+      "note": "Claude Code is a preinstalled/offered coding-agent harness in Depot's remote agent sandboxes; `depot claude` starts it directly. Card wrongly had agent_harnesses=false even though its own feature_evidence already documents harness_api=true for this same Claude Code integration.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://depot.dev/docs/managed/using-gpus.md",
+      "quote": "Depot Managed allows you to leverage your own GPU resources on AWS to accelerate AI/ML and GPU-intensive GitHub Actions workflows. ... the Depot team will build and deploy a custom AMI to your Depot Managed environment.",
+      "note": "GPU runner support exists, but only for Depot Managed (Business plan, deployed into the customer's own AWS account) with a custom GPU AMI built on request — not a self-serve GPU size on the standard GHA runner catalog priced on the card.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://depot.dev/docs/managed/overview.md",
+      "quote": "Depot Managed is still a fully managed service and comes with the full support and SLA of the Depot Business plan. The Depot team is on-call for any issues that arise with the Depot Managed deployment.",
+      "note": "Even Depot's 'run in your own AWS account' offering (Depot Managed / byoc) remains operated by Depot; there is no mode where the customer runs the Depot software themselves.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://depot.dev/blog/depot-docs-now-open-source.md",
+      "quote": "We have made all of our documentation open source so that you can contribute to it if you'd like... it's available at depot/docs on GitHub.",
+      "note": "Only the documentation (and the thin @depot/sandbox client SDK) is open source; the core CI/runner/sandbox platform itself has no published OSI license and is a commercial managed/BYOC service.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://depot.dev/docs/security.md",
+      "quote": "Today, Depot operates cloud infrastructure in regions that are geographically located inside the United States of America as well as the European Union (if a project chooses the EU as its region).",
+      "note": "Per-project EU region selection is documented, matching the card's own regions: [\"us\",\"eu\"]. Card wrongly had eu_data_residency=false.",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://depot.dev/docs/integrations/tailscale.md",
+      "quote": "By connecting Depot to your Tailscale network, you can enable secure access to private services, such as databases, within your tailnet without opening up those services to the public internet... Depot GitHub Actions runners, container builders, and CI jobs join your tailnet as ephemeral nodes.",
+      "note": "First-party Tailscale integration lets runners/sandboxes join the customer's private network (not supported on Windows runners). Card wrongly had private_network=false.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -142,19 +142,19 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
-    "gpu": null,
+    "windows": false,
+    "macos": false,
+    "arm64": false,
+    "gpu": false,
     "snapshot": "fs",
-    "pause_resume": null,
+    "pause_resume": false,
     "fork": true,
-    "persistent_disk": null,
+    "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
-    "max_session_h": null,
+    "auto_stop_idle": false,
+    "max_session_h": 5,
     "custom_image": null,
-    "docker_inside": null,
+    "docker_inside": false,
     "nested_virt": false,
     "root": false,
     "systemd": null,
@@ -164,18 +164,18 @@
     "code_interpreter": null,
     "agent_harnesses": true,
     "ssh": false,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "public_ipv4": false,
+    "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": true,
     "self_host": true,
-    "byoc": null,
-    "open_source": null,
+    "byoc": false,
+    "open_source": false,
     "soc2": true,
-    "hipaa": null,
+    "hipaa": false,
     "sso": true,
     "gpu_types": [],
     "regions": [],
@@ -186,21 +186,21 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": true,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
-    "memory_snapshot_fork": null,
+    "memory_snapshot_fork": false,
     "webhooks": true,
     "scheduled_wakeups": null,
     "audit_logs": true,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": false,
     "isolation": "gvisor",
-    "image_oci": null,
+    "image_oci": false,
     "agent_sessions": true,
     "snapshot_auto": true,
     "snapshot_on_demand": true,
@@ -208,7 +208,13 @@
     "egress_allowlist_level": "both",
     "ingress_rules": true,
     "guest_firewall": false,
-    "secret_proxy": "ai-only"
+    "secret_proxy": "ai-only",
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "volume_attach": false,
+    "volume_shared": false,
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -303,6 +309,251 @@
       "quote": "The controller decrypts the org's API key secret and injects it into the outbound request, so the API key never enters the sandbox.",
       "note": "Inference proxy POST /sandbox/:id/inference for LLM providers only (provider + path + body), called with the StateSet API key through the control plane. General secrets are org secrets injected into the sandbox as env vars (injectSecrets ... as_env_vars: true), i.e. visible to the agent. No arbitrary-host / non-HTTP credential proxy.",
       "checked": "2026-09-29"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://www.npmjs.com/package/@stateset/sandbox-sdk",
+      "quote": "Sandbox template. Determines the container image and pre-installed tools. - 'base' - 'claude-code' - 'browser' - 'rust' - 'go'",
+      "note": "Docs/SDK only expose fixed named templates (base/claude-code/browser/rust/go/...). The published TypeScript SDK types include an undocumented `image?: string` override field on create(), but it is not described on any docs/pricing page as a supported bring-your-own-OCI-image feature, so treated as not offered.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/docs/production-guide",
+      "quote": "Non-root user execution",
+      "note": "Sandboxes run as non-root, read-only-root-filesystem gVisor Kubernetes pods; no docs mention a container runtime (Docker/Podman) available inside the sandbox. SDK isolation enum also lists 'microvm'/'kata' but these aren't documented as running nested Docker.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/",
+      "quote": "Run agent workflows in isolated Kubernetes environments. Execute code, read and write files, and store artifacts — all securely.",
+      "note": "not offered: outside the product's scope — this is a code-execution/agent sandbox product, not a scraping/browser-stealth product; no anti-bot or fingerprinting feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/",
+      "quote": "Run agent workflows in isolated Kubernetes environments. Execute code, read and write files, and store artifacts — all securely.",
+      "note": "not offered: outside the product's scope — no CAPTCHA-solving capability is documented anywhere on the site, docs, or SDK.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://sandbox.stateset.app/",
+      "quote": "gVisor runtime, non-root containers, and strict network policies.",
+      "note": "derived: sandboxes are multi-tenant Kubernetes pods with shared cluster egress; no static, residential, or mobile egress IP is documented, so outbound traffic is ordinary shared datacenter IP space.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/docs/checkpoints",
+      "quote": "Process state is not captured (only filesystem)",
+      "note": "Checkpoints/forks (forkSandbox, promoteSandbox) are built on filesystem+env checkpoints only; running processes are not restored, so forks do not carry memory state.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "Pausing stops the rotation timer but keeps the sandbox running. The session can be resumed later.",
+      "note": "pauseAgentSession/resumeAgentSession only pause the Agent Session's rotation/budget logic; the underlying sandbox keeps running (and billing) the whole time, so there is no true pause of the machine itself.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/faq",
+      "quote": "Each sandbox has a timeout (default and plan-based). You can set a custom timeout per sandbox within your plan limits.",
+      "note": "Sandboxes are created via explicit API call and auto-terminate at a fixed timeout; no docs describe a stopped/sleeping sandbox being woken automatically by an inbound request.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "Persistent workspaces use a sandbox-scoped Kubernetes PVC and can participate in CSI snapshot branching when enabled.",
+      "note": "CreateSandboxOptions.workspace.persistence can be 'ephemeral' or 'persistent'; persistent mode backs the /workspace directory with a real PVC rather than pod-local storage. Not documented on the public docs pages, only in the SDK's TypeScript types.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "workspace?: { persistence: 'ephemeral' | 'persistent'; size?: string; }",
+      "note": "Only a single per-sandbox workspace volume is exposed in the API/SDK; there is no separate API to attach additional named persistent volumes to a running sandbox.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "Persistent workspaces use a sandbox-scoped Kubernetes PVC",
+      "note": "The workspace PVC is explicitly sandbox-scoped (one PVC per sandbox), not shareable/mountable by multiple concurrently running sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/pricing",
+      "quote": "Limits Max runtime: 45 minutes Max concurrent sandboxes: 10",
+      "note": "Sandboxes stop on a fixed max-runtime timeout set at creation, not on idle-activity detection; no idle-based auto-stop is documented.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "extend(sandboxId, additionalSeconds) — Extend a sandbox lifetime by additional seconds",
+      "note": "The SDK exposes an API to extend a sandbox's remaining lifetime, but no API to change a running sandbox's CPU/memory allocation without recreating it.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/",
+      "quote": "Run agent workflows in isolated Kubernetes environments. Execute code, read and write files, and store artifacts — all securely.",
+      "note": "not offered: outside the product's scope — StateSet Sandbox's own first-party API drives coding-harness workflows (Claude Code via AgentRunner) and preinstalls a domain-specific `stateset` commerce CLI, but there is no first-party API for a browser/computer-use/research task agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "startMCPServer(sandboxId, config): Promise<{ name, pid, port, status }>",
+      "note": "The SDK's MCP feature lets a caller start/stop/list arbitrary MCP servers running as processes inside a sandbox (the opposite direction). A separate 'stateset-mcp-server' GitHub repo is an MCP server for StateSet's e-commerce API (orders/inventory/customers), unrelated to controlling this sandbox product. No MCP server is shipped to control the sandbox platform itself.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "pod_ip?: string — Pod IP address for direct connections.",
+      "note": "Sandboxes only expose an internal Kubernetes pod IP; there is no documented dedicated/public IPv4 address per sandbox. Inbound access is via HTTPS tunnels instead.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": true,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "Create a tunnel for a sandbox port",
+      "note": "createTunnel(sandboxId, {port, protocol: 'http'|'https', expires_in, public}) returns a URL to reach a sandbox port over HTTP/HTTPS; SDK-only, not documented on the public docs pages.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "EgressPolicy: mode: 'allow_all' | 'allowed_domains' | 'denied_domains' | 'allowed_ports'",
+      "note": "Egress control granularity is at the domain/port level (allowed_domains, denied_domains, allowed_ports), not at the HTTP method/path level.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/",
+      "quote": "Isolated network namespaces",
+      "note": "No fixed/static outbound IP is documented anywhere; egress goes through shared multi-tenant cluster networking with org-wide allow/deny policies, not a dedicated egress IP.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/pricing",
+      "quote": "Usage rates Simple metering across compute, memory, network, and creations. CPU $0.128 per vCPU-hour Memory $0.0106 per GB-hour Network $0.15 per GB Creations $0.60 per 1M",
+      "note": "Pricing page meters CPU/memory/network/creates only; no GPU tier or price is published. The SDK's TypeScript types include an unused/undocumented `gpu?: GpuRequest` field on create(), but it is not marketed, priced, or documented as an available option.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "Desktop OS (linux, windows, macos). Only linux is currently supported.",
+      "note": "SDK typings explicitly state only Linux is currently supported for desktop_os.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
+      "quote": "Desktop OS (linux, windows, macos). Only linux is currently supported.",
+      "note": "Same field as windows: macOS is a listed enum value but explicitly not currently supported.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/docs/production-guide",
+      "quote": "StateSet Sandbox is a secure, isolated execution environment for running code on behalf of AI agents. It provides containerized sandboxes with full lifecycle management, checkpointing, artifact storage, and usage tracking.",
+      "note": "not offered: outside documented scope — no architecture selection or ARM machine type is mentioned anywhere in the docs, pricing, or SDK.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/launch",
+      "quote": "Self-hosted Bring it to your cluster Deploy the controller on your Kubernetes cluster to control networking and data.",
+      "note": "This is customer-run self-hosting (self_host=true), where the customer deploys and operates the controller themselves — not a StateSet-managed service deployed and operated inside the customer's own cloud account (BYOC).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://api.github.com/repos/stateset/stateset-sandbox",
+      "quote": "Not Found",
+      "note": "The sandbox controller/product source repo (stateset/stateset-sandbox, the SDK's declared 'repository') is not publicly accessible via the GitHub API. The npm client SDK is MIT-licensed, but that is only a thin API client, not the core sandbox product, so the core product is treated as not open source.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/",
+      "quote": "SOC 2 Type II compliant",
+      "note": "not offered: outside documented scope — only SOC 2 Type II is claimed; no HIPAA/BAA mention appears anywhere on the marketing site, docs, FAQ, or pricing pages.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/pricing",
+      "quote": "Team add-ons Private networking and custom VPC peering SSO/SAML and advanced audit logs Dedicated support and SLAs",
+      "note": "No regions or EU data-residency option is published anywhere (card's fleet.regions is empty); the Team add-ons list covers VPC peering/SSO/audit logs but not region choice.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": 5,
+      "source": "https://sandbox.stateset.app/pricing",
+      "quote": "Pro ... Limits Max runtime: 5 hours ... Team ... Limits Max runtime: 5 hours",
+      "note": "Hobby plan max runtime is 45 minutes (0.75h); Pro and Team both cap at 5 hours, which is the longest available across any plan. No 'none'/unlimited option exists — every sandbox has a fixed timeout.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/docs/checkpoints",
+      "quote": "Checkpoints allow you to save and restore sandbox state. They capture the filesystem, environment variables, and metadata at a point in time, enabling you to: Save work in progress / Restore a sandbox to a known good state / Clone sandbox configurations for new runs",
+      "note": "The full endpoint list (production-guide) only exposes POST /sandbox/:id/checkpoints (create), POST /sandbox/:id/checkpoints/restore (restore into that same sandbox), and POST /checkpoints/:id/clone (duplicate the checkpoint record). There is no endpoint that forks/duplicates a *running* sandbox instantly — all forking/cloning goes through a saved checkpoint first, then a restore into a sandbox. This matches the card's fork:true (checkpoint-based) / fork_running:false split, but no page states 'no live fork' explicitly, so medium confidence.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/",
+      "quote": "Every sandbox runs in complete isolation with gVisor, non-root containers, and strict network policies.",
+      "note": "Isolation is gVisor-sandboxed Kubernetes pods (also stated in production-guide: 'Sandboxes\tKubernetes Pods\tIsolated execution' and 'Read-only root filesystem' / 'Non-root user execution'). gVisor intercepts syscalls in userspace and does not expose /dev/kvm or hardware virtualization to the guest, so KVM-based nested VMs are not possible. No page explicitly says 'no nested virtualization', hence medium confidence rather than a direct quote settling it.",
+      "checked": "2026-09-30"
+    },
+    "root": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/docs/production-guide",
+      "quote": "Read-only root filesystem\nNon-root user execution",
+      "note": "Production guide's Security > Sandbox Isolation section explicitly lists non-root execution and a read-only root filesystem as security properties of every sandbox pod; homepage repeats 'Non-root container execution'.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/docs/production-guide",
+      "quote": "Method\tEndpoint\tDescription\nPOST\t/api/v1/sandbox/create\tCreate sandbox\nGET\t/api/v1/sandbox/:id\tGet sandbox details\nGET\t/api/v1/sandbox/:id/status\tGet sandbox status (lightweight)\nPOST\t/api/v1/sandbox/:id/execute\tExecute command\nPOST\t/api/v1/sandbox/:id/files\tWrite files\nGET\t/api/v1/sandbox/:id/files?path=...\tRead file\nPOST\t/api/v1/sandbox/:id/stop\tStop sandbox\nDELETE\t/api/v1/sandbox/:id\tDelete sandbox\nGET\t/api/v1/sandboxes\tList sandboxes",
+      "note": "The production guide's complete API reference (sandbox, checkpoints, artifacts, webhooks) has no SSH/terminal-access endpoint; the homepage also says 'Five endpoints. That's all you need.' (Create, Execute, Write, Read, Store) — access is exec-over-HTTP only.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/",
+      "quote": "Simple, powerful API\n\nFive endpoints. That's all you need.\n1 Create / 2 Execute / 3 Write / 4 Read / 5 Store",
+      "note": "The full API reference in the production guide (sandbox, checkpoints, artifacts, webhooks endpoints) contains no VNC/remote-desktop/GUI endpoint or dashboard feature for viewing a sandbox desktop; product is headless code-execution only.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/",
+      "quote": "Simple, powerful API\n\nFive endpoints. That's all you need.\n1 Create / 2 Execute / 3 Write / 4 Read / 5 Store",
+      "note": "No browser-automation/Chromium-in-sandbox endpoint anywhere in the docs (production-guide's full endpoint list covers sandbox/checkpoints/artifacts/webhooks only); the only 'browser' mention on the site is 'useful for browser downloads' about signed artifact URLs opened in the user's own local browser, unrelated to an in-sandbox browser feature.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://sandbox.stateset.app/",
+      "quote": "Simple, powerful API\n\nFive endpoints. That's all you need.\n1 Create / 2 Execute / 3 Write / 4 Read / 5 Store",
+      "note": "No computer-use / GUI-control tool or API is mentioned anywhere in docs; the product's own agent tooling (AgentRunner / Claude Code CLI) is limited to shell exec + file I/O, consistent with the exec-only 'five endpoints' positioning.",
+      "checked": "2026-09-30"
     }
   }
 }

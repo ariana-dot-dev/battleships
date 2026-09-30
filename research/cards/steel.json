@@ -216,7 +216,7 @@
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": false,
     "auto_stop_idle": true,
     "max_session_h": 24,
@@ -235,11 +235,11 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": true,
     "private_network": null,
     "self_host": true,
-    "byoc": null,
+    "byoc": false,
     "open_source": true,
     "regions": [
       "us"
@@ -247,16 +247,16 @@
     "soc2": null,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
@@ -266,7 +266,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": true,
     "browser_control": true,
     "desktop_control": true,
     "anti_bot": true,
@@ -278,7 +278,12 @@
     "harness_api": false,
     "ingress_rules": false,
     "guest_firewall": false,
-    "secret_proxy": false
+    "secret_proxy": false,
+    "isolation": "dedicated-vm",
+    "image_oci": false,
+    "volume_attach": false,
+    "volume_shared": false,
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -441,6 +446,238 @@
       "quote": "The clear-text credentials are placed directly into the in-memory session and sent to the target service over our private WireGuard backbone ensuring end-to-end encryption and safe keeping of your credentials.",
       "note": "Not a proxy. Credentials API (beta, free) stores username/password/TOTP per origin+namespace (KMS envelope encryption) and a Steel script injected into each page fills the login form (autoSubmit, blurFields, exactOrigin). The plaintext does enter the browser session/DOM; Steel only hides it from the agent ('Isolation mechanisms to prevent agents from extracting secrets post-injection'; fields blurred against vision agents). Covers web login forms only (username/password/OTP fields), not API headers, databases, SSH or git. proxyUrl with user:pass is a normal session parameter.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "dedicated-vm",
+      "source": "https://docs.steel.dev/cookbook/claude-computer-use",
+      "quote": "A Steel session is a headful Chromium in a VM reachable over HTTPS",
+      "note": "Multiple cookbook pages (Python/Go/Rust/TS Claude computer-use recipes) independently describe each session as a headful Chromium running 'in a VM'. Exact hypervisor (firecracker/qemu/etc.) is not named, and self-hosted steel-browser runs as a plain Docker container, so this is medium confidence for the managed cloud product specifically.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/pricinglimits",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "not offered: outside the product's scope — Steel sessions launch a fixed managed Chromium browser; there is no API to boot a session from a customer-supplied Docker/OCI image. (Self-hosting the open-source steel-browser image is a separate, unrelated deployment path.)",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "not offered: outside the product's scope — there is no stopped/sleeping machine that auto-wakes on an incoming request; every session is explicitly created via a create-session API call and billed from creation until release/timeout.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/pricinglimits",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "not offered: outside the product's scope — sessions expose a scoped per-session filesystem (Files API) and Profiles for persisted browser state, but there is no API to attach extra general-purpose persistent volumes to a session.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/pricinglimits",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "not offered: outside the product's scope — no concept of a volume mounted by multiple concurrently-running sessions; each session's filesystem is private to that session.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/pricinglimits",
+      "quote": "Browser hours are billed by the minute, rounded up.",
+      "note": "not offered: outside the product's scope — Steel sells fixed browser sessions billed per browser-hour; vCPU/RAM per session are not even published, and there is no API to change a running session's CPU/RAM.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.steel.dev/cookbook/claude-computer-use",
+      "quote": "Steel supplies the screen. A Steel session is a headful Chromium in a VM reachable over HTTPS, and the Input API (`sessions.computer`) executes mouse and keyboard actions and returns a PNG in the same call.",
+      "note": "not offered: outside the product's scope — sessions.computer is a low-level screenshot+click/type primitive that a caller's own agent (e.g. Claude/OpenAI computer-use loop) drives; Steel does not run its own autonomous browser/research task agent that you invoke with a goal.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://github.com/steel-dev/steel-mcp-server",
+      "quote": "Steel MCP Server ... Give Claude, Cursor, or any MCP client a real Chrome in the cloud. Read pages that block a plain fetch, fill forms, take screenshots, and hand the browser to a person when a login or a CAPTCHA needs one. The browser is run by Steel.",
+      "note": "First-party official MCP server (steel-dev/steel-mcp-server, MIT) that exposes tools to create/control/release Steel cloud browser sessions.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://github.com/steel-dev/steel-python",
+      "quote": "steel-python",
+      "note": "Official first-party Python SDK (steel-dev/steel-python) for creating and controlling Steel sessions; used throughout docs.steel.dev cookbook Python recipes.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://github.com/steel-dev/steel-node",
+      "quote": "steel-node",
+      "note": "Official first-party Node.js/TypeScript SDK (steel-dev/steel-node) for creating and controlling Steel sessions; used throughout docs.steel.dev cookbook TypeScript recipes.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/stealth/proxies",
+      "quote": "To maintain a high-quality and compliant network, Steel and its partners may restrict access to certain websites. We do this to ensure the long-term health and reputation of our IP pool. Blocklists are typically maintained for: Gambling and betting websites, Government and restricted institutional sites, Ticketing websites, Other categories flagged for compliance reasons",
+      "note": "not offered: outside the product's scope — the only documented outbound restriction is Steel's own compliance blocklist protecting its shared IP pool; there is no customer-configurable allow/deny list, no-internet mode, or security-group-style egress rule for a session.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/stealth/proxies",
+      "quote": "To maintain a high-quality and compliant network, Steel and its partners may restrict access to certain websites.",
+      "note": "not offered: outside the product's scope — no documented method/path-level egress control; Steel's own compliance blocklist operates at the domain level and is not customer-configurable.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/pricinglimits",
+      "quote": "Enterprise plans offer custom pricing, limits, and infrastructure for high-volume or specialized workloads.",
+      "note": "not offered: outside the product's scope — no page (pricing, docs, Enterprise) mentions deploying the managed service into a customer's own cloud account; Enterprise custom infra refers to reserved pools/limits within Steel's own cloud, and self-hosting is a fully separate open-source deployment, not a managed BYOC offering.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.steel.dev/overview/profiles-api/overview",
+      "quote": "persistProfile: true tells Steel to snapshot the browser data directory when the session ends. ... On a fresh run, Session #1 launches with persistProfile: true and no profileId. ... Session #1 releases; Steel writes the profile snapshot.",
+      "note": "Contradiction confirmed real: the browser's userDataDir (cookies, local storage, extensions, auth) survives a session release/stop and is reloaded into a later session via profileId. Off by default: you must opt in with persistProfile: true; without it the data dir is discarded when the session ends. Disk-only persistence (no running processes/memory).",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.steel.dev/overview/sessions-api/reusing-auth-context",
+      "quote": "Extract browser state data through the GET /v1/sessions/{id}/context endpoint. This endpoint returns a context object containing browser state information such as cookies and local storage.",
+      "note": "reviewed: proposed correction rejected (Steel has both an automatic disk snapshot (Profiles: userDataDir saved at release when persistProfile is set) and an on-demand one (session context endpoint / manual Profile upload of a userDataDir zip). Neither captures memory or running processes, so the correct enum is 'fs', not 'none'.)",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.steel.dev/llms-full.txt",
+      "quote": "Always release sessions when done: client.sessions.release(sessionId) ... Skipping it keeps browsers running until the 5-minute default timeout.",
+      "note": "There is no pause/unpause of a live session; a session either runs (billed) or is released/timed out (terminated, not paused). State carries to a new session only via the Profiles/session-context snapshot mechanism, which is a separate feature (see snapshot/persistent_disk) — it re-hydrates a NEW browser instance rather than resuming the same one, and billing is not merely reduced, it stops and a fresh session is created and billed from zero.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "No API clones a machine/session into new ones; every session.create() starts a fresh incognito-style browser. Restoring a Profile or sessionContext seeds cookies/storage into that fresh browser but does not duplicate a live instance.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "No documented way to clone a currently-running session without stopping it; sessions are created new and optionally seeded from a saved profile/context, never branched live.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/profiles-api/overview",
+      "quote": "Profiles work by storing a snapshot of the browser's User Data Directory. This includes all the data that is stored in the browser, such as cookies, extensions, credentials, and browser settings.",
+      "note": "Snapshots/restores are disk-only (userDataDir contents); no memory, open tabs, or running-process state is captured or forked, so memory-snapshot forking is not offered.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "You get a Chrome session reachable over CDP/API only, not a shell; there is no way to run Docker containers inside a session. (Steel's own Docker guide at /overview/self-hosting/docker is about self-hosting the Steel Browser server itself, not about running Docker inside a hosted session.)",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "No shell/exec surface is exposed at all (CDP + REST API only), so there is no /dev/kvm or nested-VM capability inside a session.",
+      "checked": "2026-09-30"
+    },
+    "root": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "No shell access of any kind is documented (no root, no sudo); the only surfaces are the CDP websocket and the REST/SDK API.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "No SSH access is documented or mentioned anywhere in the docs; access is via CDP/Playwright/Puppeteer/Selenium/REST only.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/embed-sessions/live-sessions",
+      "quote": "the tool returns liveViewUrl (session.sessionViewerUrl), and the Next.js recipe embeds Steel's Live View iframe alongside the chat so users watch the browser as the agent works.",
+      "note": "Steel offers a browser-only Live View (a viewer/embeddable iframe of the browser tab, with optional interactive control), not a general graphical desktop (no VNC/RDP of a full OS, no window manager, no other apps) — matches the product being a managed-Chrome API, not a VM desktop.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "Sessions always boot Steel's managed Chrome; there is no way to launch a session from your own Docker/OCI image. (Self-hosting the open-source steel-browser image replaces the whole service on your own infra — a different thing from starting a hosted session from a custom image.)",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/profiles-api/overview",
+      "quote": "Profiles work by storing a snapshot of the browser's User Data Directory.",
+      "note": "The only persistence primitive is the Profiles snapshot/restore mechanism (capped at 300 MB, auto-deleted after 30 days unused); there is no attachable/mountable persistent volume for a running session. (The 'volumes:' block in the self-hosting docker-compose file mounts the self-hosted server's own .cache dir on your infra — not a user-facing session volume feature.)",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/embed-sessions/live-sessions",
+      "quote": "For security reasons, debug URLs are unauthenticated. Anyone with the debug URL can view or interact with that session.",
+      "note": "Steel exposes only a CDP websocket and a capability-URL live viewer for the browser it runs; there is no concept of exposing an inbound HTTPS port on the session's own host, since the session isn't a general machine with your own listening services — plainly outside what a managed-browser API offers.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/dedicated-ips",
+      "quote": "dedicated static egress IPs: $5/IP/month on Scale (up to 25 self-serve); their traffic is still metered as proxy bandwidth.",
+      "note": "Steel sells dedicated OUTBOUND (egress) IPs for the browser's own traffic; there is no public inbound IPv4 assigned to a session, and none is offered — consistent with the product being a browser-automation API, not general VM hosting.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/integrations/claude-code",
+      "quote": "The Claude Code integration gives Claude Code a real cloud browser through the Steel CLI. From a Claude Code session, you can start and control Steel sessions, scrape rendered pages, run computer-use actions...",
+      "note": "This is the inverse of the field: Steel gives external coding-agent harnesses (Claude Code, Codex, OpenCode) a browser tool via its CLI/skills; it does not preinstall or offer those harnesses running inside its own sandbox.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/sessions-api/overview",
+      "quote": "A session is an isolated cloud browser instance your agent spins up on demand, like opening a fresh incognito window but running in Steel's cloud and controlled through code.",
+      "note": "No GPU, GPU type, or GPU-accelerated rendering is mentioned anywhere in pricing/limits or docs; sessions are billed purely per browser-hour with no compute-size dimension. Plainly outside what a managed-browser API offers.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/pricinglimits",
+      "quote": "Browser hours are billed by the minute, rounded up",
+      "note": "Steel runs a managed Chrome browser in its own cloud (card's own os:['linux']); there is no Windows guest OS offered as the sandboxed environment. Only mention of 'Windows' in the docs is inside an example User-Agent string for a Profile, not an actual Windows machine.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.steel.dev/overview/pricinglimits",
+      "quote": "Browser hours are billed by the minute, rounded up",
+      "note": "No macOS guest/runtime is offered or mentioned anywhere in the docs; the product runs managed Chrome on Steel's own cloud infra (os: linux per the card).",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://docs.steel.dev/llms-full.txt",
+      "quote": "Steel runs browsers in one region, us-east. The region parameter is still accepted, and any other value is rejected. Proxy geolocation, not region, selects the public IP location that the site receives.",
+      "note": "All browser sessions run in a single US region regardless of the region parameter; only the outbound proxy's exit IP can be geolocated elsewhere. No EU data residency option exists.",
+      "checked": "2026-09-30"
     }
   }
 }

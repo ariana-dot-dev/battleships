@@ -361,9 +361,9 @@
     "fork": true,
     "persistent_disk": true,
     "volumes": true,
-    "auto_stop_idle": false,
+    "auto_stop_idle": true,
     "max_session_h": 24,
-    "custom_image": false,
+    "custom_image": true,
     "docker_inside": null,
     "nested_virt": false,
     "root": true,
@@ -374,7 +374,7 @@
     "code_interpreter": false,
     "agent_harnesses": true,
     "ssh": true,
-    "public_ipv4": null,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": null,
@@ -387,8 +387,8 @@
     "regions": [
       "us"
     ],
-    "soc2": null,
-    "hipaa": null,
+    "soc2": false,
+    "hipaa": false,
     "sso": false,
     "lang_python": true,
     "lang_node": true,
@@ -398,9 +398,9 @@
     "gpu_desktop": false,
     "credential_injection": true,
     "egress_http_rules": true,
-    "wake_on_request": null,
+    "wake_on_request": false,
     "live_resize": false,
-    "fork_running": null,
+    "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": true,
     "scheduled_wakeups": null,
@@ -411,7 +411,7 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "firecracker",
-    "image_oci": null,
+    "image_oci": true,
     "snapshot_auto": true,
     "snapshot_on_demand": true,
     "harness_api": true,
@@ -419,7 +419,12 @@
     "ingress_rules": true,
     "guest_firewall": true,
     "secret_proxy": "any-http",
-    "volume_attach": true
+    "volume_attach": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "volume_shared": false,
+    "own_agent_api": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -538,6 +543,169 @@
       "quote": "Create a persistent block device, attach it to a compatible computer on the same host, and preserve writes independently of the computer lifecycle.",
       "note": "Computers (and App Engine runtime instances); local-backend ext4, max 500 GB, 10 per project, host-bound ('Cross-host attach returns a clear error'). /docs/known-limitations still labels Volumes 'Beta'. Not documented for Sandboxes.",
       "checked": "2026-09-29"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://miosa.ai/docs/develop/templates",
+      "quote": "When the built-in catalog does not fit - proprietary toolchains, specific CUDA/GPU stacks, pre-loaded datasets - you can build and register your own template. 1. Write a Dockerfile for your image. 2. Build it using the custom sandbox template API...",
+      "note": "MIOSA builds a custom template FROM a Dockerfile you supply (not a direct pull of an existing pre-built OCI image/registry ref); once registered, sandboxes/computers boot from that image via template_id. Docker/BuildKit OCI-rootfs build path in the standard runtime is still 'hardening' per known-limitations.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://miosa.ai/docs/computers/overview",
+      "quote": "Create a Computer, wait until it is ready, connect to its desktop, complete browser work, and preserve evidence.",
+      "note": "not offered: outside the product's scope. MIOSA ships a generic Xfce desktop/browser for computer-use agents; no stealth/fingerprinting-evasion feature against bot detection is documented anywhere in the docs or llms-full.txt.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://miosa.ai/llms-full.txt",
+      "quote": "Use them for any task that benefits from a real GUI: browser automation, scraping JS-heavy sites, working behind logins, OCR/CAPTCHA loops, or operating desktop apps.",
+      "note": "not offered: outside the product's scope. CAPTCHA handling is presented as something YOU build with your own agent driving the desktop (OCR/CAPTCHA loops), not a built-in CAPTCHA-solving service/API.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://miosa.ai/docs/api-reference/egress",
+      "quote": "Egress policies per Computer/Sandbox with mode audit_only/enforce ... enforced by the host-side proxy.",
+      "note": "derived: MIOSA sandboxes/computers are standard cloud-hosted firecracker microVMs (US regions us-west-la/us-east-ny/us-mia) behind a host-side egress proxy; no residential/mobile IP product is offered or documented.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://miosa.ai/docs/api-reference/sandboxes",
+      "quote": "POST /sandboxes/{id}/fork creates a new sandbox from a copy-on-write snapshot of a running sandbox.",
+      "note": "Fork operates on a running sandbox without stopping it (copy-on-write snapshot of the live sandbox); memory_snapshot_fork is already true in the card.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://miosa.ai/docs/develop/previews",
+      "quote": "A Preview is a URL that routes to a port inside a running Sandbox.",
+      "note": "Previews/ingress route only to an already-running sandbox/computer; idle auto-stop (opt-in, off by default) pauses machines but no documented mechanism auto-wakes a paused/stopped sandbox or computer when an inbound request arrives (contrast with the explicit manual POST /databases/{id}/wake for databases).",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://miosa.ai/docs/data/volumes",
+      "quote": "Shared state across multiple replicas - volumes are typically attached to ONE runtime instance.",
+      "note": "Volumes are explicitly host-bound and single-attach; cross-host attach to another machine returns an error rather than sharing.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://miosa.ai/docs/api-reference/agent-runs",
+      "quote": "Agent Runs are the prompt-dispatch interface for MIOSA sandboxes and computers. Use them when your product needs to send a natural-language task into a device, run it through OSA, Codex, Claude Code, Pi, Hermes, or a custom runtime, and receive a stable run response your UI can render.",
+      "note": "MIOSA's own 'OSA' task/browser/computer-use agent is one of the selectable providers driven through this first-party Agent Runs API (alongside coding harnesses like Codex/Claude Code); this is distinct from harness_api which covers the coding-harness case.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://miosa.ai/docs/develop/previews",
+      "quote": "A Preview is a URL that routes to a port inside a running Sandbox.",
+      "note": "Ingress is via proxied preview URLs (port-slug.sandbox.miosa.ai) and egress via a host-side proxy, not a raw public IPv4 per machine; card's network.ipv4_available is also false. MIOSA's own comparison page (docs/integrations/comparison) lists 'Dedicated IPv4: per machine' for itself, which conflicts with the proxy-based architecture documented elsewhere and could not be corroborated with a concrete API field, so treated as unconfirmed marketing shorthand.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://miosa.ai/docs/security",
+      "quote": "Every MIOSA Sandbox and Computer ships with a built-in security boundary. No setup. No add-on SKU. Free on every plan. Three things you can use whenever you need them: Secrets, Connect Accounts, Network Allowlist, Audit Log.",
+      "note": "The full security overview page lists only credential/network/audit features; no SOC 2 attestation, trust page, or report is mentioned anywhere in docs or llms-full.txt, and /trust returns 404.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://miosa.ai/docs/security",
+      "quote": "Every MIOSA Sandbox and Computer ships with a built-in security boundary. No setup. No add-on SKU. Free on every plan.",
+      "note": "No HIPAA-eligibility or BAA offering is mentioned anywhere in the docs, pricing, or Enterprise plan description (which only calls out SSO/SCIM).",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://miosa.ai/docs/known-limitations",
+      "quote": "No nested virtualization. KVM and QEMU cannot run inside a sandbox.",
+      "note": "Explicit, unambiguous known-limitation for the Firecracker sandbox product.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://miosa.ai/docs/develop/templates",
+      "quote": "When the built-in catalog does not fit — proprietary toolchains, specific CUDA/GPU stacks, pre-loaded datasets — you can build and register your own template. 1. Write a Dockerfile for your image. 2. Build it using the custom sandbox template API (or the CLI: `miosa sandbox-templates create`). 3. Verify the image boots correctly. 4. Register the slug so it is selectable in `template_id`.",
+      "note": "Documented Dockerfile-based custom template workflow. Caveat: the API reference (docs/api-reference/sandboxes) says 'Standalone custom-template build and promotion operations are not part of canonical public V1... Contact MIOSA for preview access', so this is a real but gated/preview capability, not a self-serve public V1 feature. Card should record true with that gating caveat rather than a flat false.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://miosa.ai/docs/api-reference/sandboxes",
+      "quote": "Set `idle_timeout_sec` to stop an abandoned persistent session after a period of inactivity. ... `idle_timeout_sec` | 0 (disabled) | 0-86400",
+      "note": "Idle auto-stop is a real, documented, configurable field (default off, opt-in up to 86400s), matching the card's own note/caveat text. The feature exists, so false is wrong; correct value is true (off by default).",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://miosa.ai/docs/known-limitations",
+      "quote": "No GPU sandboxes yet. GPU is available on Computers (Desktop) only via BYOC. Native GPU sandboxes are targeted for early 2027.",
+      "note": "MIOSA does not itself sell/provision GPU machines; the only GPU path is a customer's own GPU hardware connected via BYOC/OpenComputers, and even that is plan-dependent/gated. No managed GPU sandbox or Computer exists today.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://miosa.ai/llms-full.txt",
+      "quote": "Boot a Debian 12 microVM (Python + Node). ... computer = client.computers.create(template=\"ubuntu-desktop\")",
+      "note": "Managed Sandboxes are Debian 12 microVMs and managed Computers boot Ubuntu desktop templates; Windows only appears via OpenComputers (bring-your-own hardware you already own), not as a MIOSA-provisioned OS.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://miosa.ai/docs/computers/byoc",
+      "quote": "It can be a workstation, a GPU machine, an on-premises server, or a supported existing server at a hosting provider. ... miosa opencomputers connect my-mac --platform macos",
+      "note": "macOS is only reachable by connecting a customer-owned Mac as an OpenComputer; MIOSA does not provision macOS machines itself. Managed Sandboxes/Computers are Linux-only (Debian/Ubuntu).",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://miosa.ai/docs/infrastructure/connect-server",
+      "quote": "The OSA prebuilt Linux target is x86-64. For Linux ARM64, follow the OSA source installation instructions rather than assuming the prebuilt installer supports it.",
+      "note": "Managed Sandboxes/Computers are x86_64 (perf benchmark note in card also says '8 vCPU / 15.6 GiB x86_64 env'). ARM64 is only mentioned for a customer's own OpenComputer host running the agent from source, not a MIOSA-provisioned ARM machine.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://miosa.ai/docs/computers/byoc",
+      "quote": "OpenComputers connects your machine to the MIOSA control plane. It is not an air-gapped deployment or a self-hosted copy of the complete MIOSA platform.",
+      "note": "Explicit denial that any customer-run mode is a self-hosted copy of MIOSA; the control plane is always MIOSA-operated SaaS.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/Miosa-osa/OSA",
+      "quote": "Apache License, Version 2.0",
+      "note": "The OSA on-host agent binary is Apache-2.0 open source, and BusinessOS is an open-source reference app, but the core MIOSA platform (control plane/API/sandbox orchestration that this card prices) is closed SaaS — confirmed by the self_host quote above. false is correct for the core product; OSA-the-agent being OSS is a narrower fact.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://miosa.ai/llms-full.txt",
+      "quote": "Enterprise SSO (SAML, OIDC) | Coming soon",
+      "note": "Also: 'Auth-as-a-Service Beta ... Refresh tokens, magic links, OAuth providers, MFA, passkeys, and enterprise SSO are still planned.' Note this conflicts with the card's own Enterprise plan note claiming 'SSO/SCIM' for Enterprise — that plan note appears to be aspirational/incorrect per the docs; sso should stay false.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://miosa.ai/docs/api-reference/regions",
+      "quote": "3 regions are live today. ... us-west-la | US West | Los Angeles, CA | Live; us-east-ny | US East | New York, NY | Live; us-mia | US East 2 | Miami | Live",
+      "note": "Only 3 US regions exist; no EU region is offered, so EU data residency is not possible.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://miosa.ai/docs/api-reference/computers",
+      "quote": "POST /api/v1/computers/{id}/resize — Changes the vCPU and memory allocation. The computer must be stopped first.",
+      "note": "Resize exists but explicitly requires stopping the machine first, i.e. it is not a live/hot resize of a running instance.",
+      "checked": "2026-09-30"
     }
   }
 }

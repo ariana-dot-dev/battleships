@@ -123,13 +123,13 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
-    "gpu": null,
+    "arm64": true,
+    "gpu": true,
     "gpu_types": [],
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -404,10 +404,11 @@
       "checked": "2026-09-30"
     },
     "persistent_disk": {
-      "value": false,
-      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/e2bcompat/README.md",
-      "quote": "a sandbox is a claimed Pod, not a microVM, so there is no memory image",
-      "note": "A sandbox's own filesystem does not survive stop/reclaim (Pod is recycled onto the idle image); only env-level shared PersistentVolumeClaims persist across sandboxes, not a given sandbox's own disk state.",
+      "value": true,
+      "corrected_from": false,
+      "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/envs",
+      "quote": "overrides.volumes | PersistentVolumeClaims mounted into every sandbox",
+      "note": "Card had persistent_disk: null, but volume_attach/volume_shared were already true, contradicting a 'no persistent disk' reading. Correct value is true, opt-in and env-level, not per-sandbox: an env can bind PersistentVolumeClaims (overrides.volumes) that are mounted into every sandbox claimed from that env, so files on that PVC survive a sandbox being killed/idle-reclaimed and a new sandbox from the same env re-mounts it. This is distinct from the sandbox's own ephemeral container filesystem: per the e2bcompat README, 'pause / resume / snapshots / fork' are architectural non-features ('a sandbox is a claimed Pod, not a microVM, so there is no memory image') and 'per-sandbox volumes' (E2B volumeMounts) are refused (HTTP 400/501) - so there is no memory-snapshot pause/resume and no per-sandbox disk, but there IS a first-party persistent disk mechanism (env-scoped shared PVCs) whose contents outlive any individual sandbox's stop/restart. Default (no overrides.volumes configured) is no persistent disk at all - it's opt-in.",
       "checked": "2026-09-30"
     },
     "auto_stop_idle": {
@@ -506,6 +507,20 @@
       "source": "https://scitix.github.io/Agent-Sandbox/docs/concepts/pools",
       "quote": "**Idle** | from the last activity to the sandbox being reclaimed | `timeout=` on the create, `sbx.set_timeout(…)` to extend, the env's default otherwise",
       "note": "Only an idle timeout (extendable indefinitely via set_timeout) is documented; no absolute maximum session length/ceiling is stated, so a continuously active sandbox has no documented cap.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": true,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/pkg/openapi/native/openapi.yaml",
+      "quote": "Resource accounting for a single quota, keyed by resource name (e.g. cpu, memory, nvidia.com/gpu, sci.c22-2). ... Pod resource requirements at multiplier=1. Numeric keys (cpu, memory, nvidia.com/gpu, ...) scale linearly with the multiplier.",
+      "note": "Since sandboxes are plain Kubernetes Pods, GPU is requested via the standard nvidia.com/gpu resource key on the InstanceType/Pool spec; the API docs' own worked examples include a pool literally named 'gpu-pool' and an instancetype extension field 'gpu-type'. GPU availability depends on the operator's cluster having GPU nodes (self-hosted product), but the feature is natively supported and documented.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": true,
+      "source": "https://github.com/scitix/Agent-Sandbox/blob/develop/Makefile",
+      "quote": "PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le",
+      "note": "All first-party sandbox-facing images (envd, idle image, controller/sandbox binary) are built and published for linux/arm64 as well as linux/amd64 (see build-envd.yml, build-idleimage.yml, and build-controller.yml which cross-compiles GOARCH=arm64 and pushes platforms linux/amd64,linux/arm64). The abx CLI release tooling (hack/build-abx.sh, cli/src/update.ts) also ships linux-arm64 and darwin-arm64 binaries. This confirms ARM64 nodes/sandboxes are a first-class supported target of the self-hosted Kubernetes-based product.",
       "checked": "2026-09-30"
     }
   }

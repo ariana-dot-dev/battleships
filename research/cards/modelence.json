@@ -203,7 +203,7 @@
     "linux": null,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "snapshot": "none",
     "pause_resume": true,
@@ -233,9 +233,9 @@
     "self_host": false,
     "byoc": false,
     "open_source": true,
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
     "gpu_types": [],
     "regions": null,
     "lang_python": false,
@@ -253,7 +253,7 @@
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -271,7 +271,8 @@
     "own_agent_api": false,
     "ingress_rules": false,
     "guest_firewall": false,
-    "max_session_unlimited": true
+    "max_session_unlimited": true,
+    "egress_ip_type": "datacenter"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -444,9 +445,9 @@
     },
     "persistent_disk": {
       "value": false,
-      "source": "https://docs.modelence.com/files",
-      "quote": "Upload and manage files with Modelence Cloud storage",
-      "note": "A separate managed file-storage feature exists precisely because the running container's local filesystem is not documented as persistent across restarts/redeploys; app state is expected to live in MongoDB or the Files service.",
+      "source": "https://docs.modelence.com/deploy/setup.md",
+      "quote": "What Modelence Cloud runs: A Docker image built from the repository ... Environment variables injected at start: MONGODB_URI and MONGO_URL — a MongoDB Atlas database provisioned for this environment",
+      "note": "Modelence Cloud runs the app as a stateless container rebuilt from a Docker image on every deploy; the only stateful pieces are an external managed MongoDB Atlas database (injected via MONGODB_URI) and Modelence Cloud's separate presigned-URL file storage (docs.modelence.com/files.md) — neither is a container-local disk. No docs page, pricing page, or llms-full.txt mentions pause/resume, environment freezing, snapshots, or attachable volumes for the compute container itself; the 'Snapshots / GiB-month' and 'Retained disk / GiB-month' rows in the regime file are generic unverified placeholder billing categories, not evidence of an actual feature. Searched llms-full.txt (14.8k lines) for pause/resume/snapshot/volume/persist/disk/sleep/idle/storage and found nothing describing container-level persistence beyond the external database/file-storage services. Verdict could not be fully proven negative (docs don't explicitly say 'no persistent disk'), hence medium confidence, but no positive evidence for pause/resume-preserved-filesystem, snapshots, or volumes exists to justify the contradiction.",
       "checked": "2026-09-30"
     },
     "volume_attach": {
@@ -601,6 +602,55 @@
       "source": "https://modelence.com/pricing",
       "quote": "There is no commitment - you only accrue charges while your deployment is running, on an hourly basis. You can immediately stop or adjust your environment at any time.",
       "note": "Production instances/containers run continuously until the user stops them; no maximum session duration is imposed.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://modelence.com/dpa/subprocessors",
+      "quote": "Amazon Web Services | Compute, storage and networking that run your applications | Region selected for your environment; United States by default",
+      "note": "Modelence Cloud runs app containers on AWS infrastructure; no static, residential, or mobile egress IP product is documented anywhere on the site or docs, so outbound traffic is ordinary shared AWS datacenter IP space.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.modelence.com/deploy/setup.md",
+      "quote": "A Docker image built from the repository on an official Node.js image, 18 or newer (default node-22-slim, set with image).",
+      "note": "not offered: deploy docs describe only a Node.js base image built and run by the platform with no architecture selection (no ARM64/Apple-silicon/Graviton option is mentioned anywhere in the docs, pricing, or blog).",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://modelence.com/security",
+      "quote": "If you believe you have found a security vulnerability in Modelence, email ... We do not operate a bug bounty program and do not pay rewards, fees, or compensation of any kind for vulnerability reports.",
+      "note": "not offered: the security page only covers vulnerability disclosure, and the DPA's 'Security measures' section (encryption, backups, tenant isolation, access control) lists no SOC 2 attestation or trust/compliance report anywhere on the site.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://modelence.com/dpa",
+      "quote": "Special category data | Not required by the Services. If your application collects it, you remain responsible for the additional obligations that attach to it.",
+      "note": "not offered: the DPA explicitly disclaims responsibility for special-category data obligations and no BAA/HIPAA-eligibility offering is mentioned anywhere on the site.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.modelence.com/authentication/index.md",
+      "quote": "Modelence authentication includes: Email/Password Authentication ... Google Sign-In - OAuth authentication with Google accounts, GitHub Sign-In - OAuth authentication with GitHub accounts",
+      "note": "not offered: documented auth options for end-user apps are email/password plus Google/GitHub OAuth; no SAML/OIDC enterprise SSO is documented for either the built apps or the Modelence dashboard itself.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://modelence.com/dpa",
+      "quote": "Customer Application Data is stored in the cloud region selected for your environment, which is the United States unless you have chosen another region.",
+      "note": "Region is selectable per environment; the same page's SCC clauses are included specifically for EEA/UK/Switzerland transfers, confirming non-US (including EU) regions are selectable.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://docs.modelence.com/deploy/setup.md",
+      "quote": "A Docker image built from the repository on an official Node.js image, 18 or newer (default `node-22-slim`, set with `image`). ... Report the project as not compatible with Modelence Cloud, and say why, when: ... It needs Docker Compose or a custom Dockerfile to run.",
+      "note": "Modelence Cloud only builds its own Docker image from an official Node.js base (chosen from a fixed `node-<version>-<variant>` naming scheme via the `image` config key); a project that requires its own Dockerfile or Docker Compose is explicitly listed as incompatible. There is no way to supply an arbitrary custom container image.",
       "checked": "2026-09-30"
     }
   }

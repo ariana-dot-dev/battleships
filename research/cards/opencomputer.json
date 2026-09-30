@@ -201,13 +201,13 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": true,
     "desktop": false,
-    "computer_use": null,
+    "computer_use": false,
     "code_interpreter": null,
     "agent_harnesses": false,
     "ssh": false,
@@ -216,7 +216,7 @@
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
@@ -225,8 +225,8 @@
     "soc2": null,
     "hipaa": null,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -235,8 +235,8 @@
     "egress_http_rules": true,
     "wake_on_request": true,
     "live_resize": true,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "fork_running": true,
+    "memory_snapshot_fork": true,
     "webhooks": true,
     "scheduled_wakeups": true,
     "audit_logs": true,
@@ -248,8 +248,8 @@
     "browser_control": true,
     "desktop_control": false,
     "anti_bot": true,
-    "captcha_solving": null,
-    "egress_ip_type": null,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
     "ip_note": "Browser Sessions (CDP URL, stealth flag, profiles, live view) are invite-only preview; sandbox egress goes through OpenComputer's secrets proxy; no residential/proxy product documented.",
     "isolation": "microvm",
     "image_oci": false,
@@ -261,7 +261,8 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": false,
-    "volume_shared": true
+    "volume_shared": true,
+    "own_agent_api": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -424,6 +425,146 @@
       "quote": "Mount remote filesystems directly into your sandbox so your code reads and",
       "note": "Preview Mounts API (sandbox.mounts.add) runs rclone FUSE mounts of your own S3/GCS/Azure Blob/SFTP/WebDAV/Dropbox remote; read-write; the same bucket can be mounted by many sandboxes at once (no provider-hosted shared FS; no cross-mount consistency guarantees). Credentials live in VM tmpfs, not via the secret proxy.",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs-v1.opencomputer.dev/introduction.md",
+      "quote": "Not a container. Real VM with its own kernel, memory, and disk. Hardware-level isolation via KVM.",
+      "note": "Not explicitly documented for customer workloads (docs only show `sudo docker run ...` for OpenComputer's own self-hosted control-plane host, not inside a customer sandbox). Derived: each sandbox is a full Linux VM with its own kernel and root/sudo access (guides use `sudo apt-get install ...`), so a standard Docker Engine install should run like on any Linux box; not vendor-confirmed for guest use.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs-v1.opencomputer.dev/introduction.md",
+      "quote": "Not a container. Real VM with its own kernel, memory, and disk. Hardware-level isolation via KVM.",
+      "note": "Not offered/documented: the only KVM/nested-virtualization content in the docs describes OpenComputer's own host infrastructure (self-hosting guides on GCP with nested-KVM Compute Engine instances), not a /dev/kvm passthrough exposed inside customer sandboxes. No mention of nested virtualization as a guest capability.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs-v1.opencomputer.dev/guides/browser-automation.md",
+      "quote": "OpenComputer sandboxes are full Linux VMs, which means you can run a real Chromium browser inside them the same way you would on a laptop.",
+      "note": "not offered: outside the product's scope. Browser automation is via CDP/Playwright (browser_control) or a raw VNC iframe for humans to click into; there is no first-party API that takes screenshots and issues click/type coordinates to drive a desktop on the agent's behalf.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs-v1.opencomputer.dev/guides/browser-automation.md",
+      "quote": "If the site has a good API, use the API. A browser is slower, heavier, and flakier. But when you need it, OpenComputer gives you real VMs — not containers — so you can run full Chromium with no Docker-flavored limitations.",
+      "note": "not offered: outside the product's scope. The browser-automation and browser-sessions docs cover launching/connecting Chromium (headless/headful, stealth flag, profiles) but never mention CAPTCHA-solving; no such service is documented.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/secrets.md",
+      "quote": "full outbound internet access via a TAP device with NAT",
+      "note": "Sandbox egress is plain datacenter NAT through OpenComputer's own host proxy (also used for secret injection); no residential/mobile/proxy IP product is documented anywhere in the sandbox, browser-sessions, or pricing docs.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/checkpoints.md",
+      "quote": "Checkpoint | Original sandbox Keeps running | Can fork Yes — unlimited new sandboxes",
+      "note": "Checkpointing (needed to fork) explicitly does not stop the source sandbox, unlike hibernation which does; `Sandbox.createFromCheckpoint()` can be called any number of times while the original keeps running.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": true,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/checkpoints.md",
+      "quote": "Full checkpoint | Disk, memory, and CPU state | You want the fastest fork or restore path from an exact running VM state.",
+      "note": "Full checkpoints (the default) capture memory + CPU state and forks are created from them, but the same page also cautions: 'the platform attempts warm restore when possible, but may fall back to a cold boot. Don't assume running processes carry over' — so it's best-effort, not a hard guarantee.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://docs.opencomputer.dev/agents/api.md",
+      "quote": "Create sessions, send turns, read the event log and manage projects over HTTP with an API key.",
+      "note": "OpenComputer's Serverless Agents Management API creates sessions and drives OpenComputer's own managed agent loop (models via useModel/managed inference or BYOK, tools, MCP servers) on a provider-run computer — this superseded/deprecated the earlier Claude-Agent-SDK-specific harness_api. It's a general task-agent API rather than one scoped only to browser/computer-use, but it is the provider's own agent loop, not a bring-your-own coding harness.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs-v1.opencomputer.dev/introduction.md",
+      "quote": "pip install opencomputer-sdk",
+      "note": "First-party Python SDK (async), shown alongside the TypeScript SDK in every quickstart/example.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs-v1.opencomputer.dev/introduction.md",
+      "quote": "npm install @opencomputer/sdk",
+      "note": "First-party TypeScript/Node SDK; the Serverless Agents product is defined as TypeScript functions run with the OpenComputer CLI/SDK.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/secrets.md",
+      "quote": "full outbound internet access via a TAP device with NAT",
+      "note": "not offered: no static/fixed/dedicated outbound IP is documented anywhere; outbound traffic goes through a shared host-side NAT/TAP device and secrets proxy with no mention of a per-sandbox fixed egress IP.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/interactive-terminals.md",
+      "quote": "A PTY session is a full interactive terminal inside the sandbox — like SSH but over WebSocket.",
+      "note": "No SSH server/keys; interactive access is a proprietary PTY-over-WebSocket API (`sandbox.pty.create`) and `oc shell`, explicitly described as an SSH substitute, not SSH itself.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs-v1.opencomputer.dev/llms-full.txt",
+      "quote": "For workflows where the user needs to log in themselves, you can render the browser to a virtual display and expose it via VNC. ... Install the VNC stack at runtime (same no-rebuild pattern as per-boot setup): sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb x11vnc novnc websockify",
+      "note": "No managed graphical desktop/VNC/RDP/stream product. The docs' 'headed browser' recipe has the user apt-get install Xvfb/x11vnc/noVNC/websockify themselves inside a plain Linux VM and wire it through a preview URL — this is a DIY guide on generic compute, not a first-party desktop feature.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/templates.md",
+      "quote": "Declarative images are cached by content hash ... const image = Image.base().aptInstall(['curl', 'jq']).pipInstall(['requests', 'pandas']).env({ PROJECT_ROOT: '/workspace' }).workdir('/workspace');",
+      "note": "custom_image is true via OpenComputer's own declarative Image-builder DSL (apt/pip/run-command steps layered on their base template) and named Snapshots, not by pulling an arbitrary Docker/OCI image; no registry-pull or 'FROM <image>' mechanism found anywhere in the sandbox docs.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/preview-urls.md",
+      "quote": "A preview URL is a public HTTPS endpoint that routes traffic to a port inside your sandbox. ... Every sandbox has a built-in `domain` property that gives you instant access to port 80 without creating a preview URL explicitly",
+      "note": "Inbound access is exclusively via HTTPS reverse-proxy preview URLs (sb-<id>-p<port>.workers.opencomputer.dev); no public IPv4/raw-TCP address is assigned to sandboxes anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.opencomputer.dev/llms-full.txt",
+      "quote": "OpenComputer owns the agent harness. For each step it: ... Managed harness",
+      "note": "OpenComputer runs its own proprietary managed agent loop ('harness') for Serverless Agents; there is no preinstalled Claude Code / Codex CLI / OpenCode etc. offered as sandbox templates. (The older, now-deprecated Python SDK `sandbox.agent` wrapper only drove the Claude Agent SDK programmatically, again not a preinstalled CLI harness template.)",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://opencomputer.dev/sandboxes",
+      "quote": "(no occurrence of the string 'gpu' anywhere on the page)",
+      "note": "No GPU offering is mentioned on the pricing/marketing page or in the sandbox docs (which describe only CPU-based QEMU/KVM microVMs); no GPU instance sizes, gpu_types, or GPU pricing anywhere.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/overview.md",
+      "quote": "A sandbox is a full Linux virtual machine in the cloud.",
+      "note": "Sandboxes are explicitly defined as Linux VMs only; no Windows machine option exists anywhere in the docs, marketing pages, or SDK reference.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs-v1.opencomputer.dev/sandboxes/overview.md",
+      "quote": "A sandbox is a full Linux virtual machine in the cloud.",
+      "note": "Product is QEMU/KVM Linux virtualization on Linux hosts; no macOS guest offering exists (macOS only appears as a host platform for the `oc` CLI download, not as a sandbox OS).",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://opencomputer.dev/guides/qemu-vs-kvm/",
+      "quote": "QEMU on KVM",
+      "note": "Sandboxes run as x86_64 QEMU/KVM guests; the only 'arm64' hits in the docs are the `oc` CLI's own darwin-arm64/linux-arm64 download binaries for the operator's host machine, not a sandbox VM architecture option. No ARM guest sizes/pricing published anywhere.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -84,39 +84,39 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
+    "windows": false,
+    "macos": false,
     "arm64": null,
     "gpu": false,
     "gpu_types": [],
     "snapshot": "mem",
     "pause_resume": true,
     "fork": true,
-    "persistent_disk": null,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": 1,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": false,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": true,
     "desktop": true,
     "computer_use": true,
     "code_interpreter": true,
-    "agent_harnesses": null,
+    "agent_harnesses": true,
     "ssh": true,
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": true,
     "private_network": null,
-    "self_host": null,
-    "byoc": null,
-    "open_source": null,
+    "self_host": false,
+    "byoc": false,
+    "open_source": false,
     "regions": [
       "asia"
     ],
@@ -130,10 +130,10 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": true,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
+    "egress_http_rules": false,
+    "wake_on_request": true,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
@@ -142,7 +142,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": true,
     "isolation": "firecracker",
     "image_oci": true,
     "snapshot_auto": true,
@@ -153,7 +153,11 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -275,6 +279,160 @@
       "quote": "**跨沙箱共享**:同团队的多个沙箱可以挂载同一个 Volume,复用数据集、模型缓存、构建产物等",
       "note": "read-write (Volume described as '独立存在,可读写'); concurrency semantics not documented",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/sandbox-template.md",
+      "quote": "Template 在概念上与容器镜像非常接近: 它可以始于一个 Docker 镜像、Dockerfile 或已有 Template。",
+      "note": "Docker/Dockerfile is only used to BUILD the sandbox's rootfs/template (outside, at build time); no docs describe installing/running a Docker daemon or docker CLI inside a running sandbox to launch containers. Not offered: outside documented scope.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/overview.md",
+      "quote": "每个 Sandbox 都拥有自己的文件系统和运行时",
+      "note": "Sandboxes are Firecracker microVMs (per card isolation=firecracker); no docs mention /dev/kvm or nested virtualization support inside the guest. Derived, not offered: outside documented scope.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/integrate-browser-use.md",
+      "quote": "本文档使用 PPIO 发布的 `browser-chromium` Sandbox Template ... 从 Sandbox 获取 Chrome 调试端口地址",
+      "note": "The browser offering is a plain Chromium instance exposed via a CDP debug port for automation frameworks (Browser Use); no stealth/fingerprint-evasion feature is documented. not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/overview.md",
+      "quote": "PPIO Sandbox 提供为 AI Agent 设计的隔离、有状态的执行环境。它支持运行代码、安装依赖、访问文件、使用浏览器,并能跨会话保留状态,而无需管理基础设施。",
+      "note": "Product is a general-purpose code/browser execution sandbox; no CAPTCHA-solving capability is documented anywhere in the sandbox docs. not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://ppio.com/docs/sandbox/archive/faq.md",
+      "quote": "无独立公网 IP：Sandbox 通过 NAT 网关访问公网 出口 IP：124.220.213.124（所有 Sandbox 共享此出口 IP）",
+      "note": "Outbound traffic leaves via a shared NAT gateway datacenter IP in China; no residential/mobile IP option documented.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/archive/sandbox-clone.md",
+      "quote": "克隆运行中（Running）状态的沙箱 ... 在克隆执行期间，原始沙箱会被短暂挂起；挂起期间该沙箱实例不可用；挂起时长接近一次暂停（pause）操作所需的时间。 克隆完成后：原始沙箱：状态恢复为运行中（running）",
+      "note": "A running sandbox can be cloned into new running sandboxes without being killed; the original is only briefly suspended (~1 pause-op duration) then automatically returns to running.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/sandbox-auto-persistence.md",
+      "quote": "如果希望 Sandbox 在超时后自动暂停,并在检测到活动时(可选)自动恢复,可以使用生命周期设置。... Sandbox 暂停后，再次执行命令会触发自动恢复",
+      "note": "auto_resume lifecycle option: a paused sandbox automatically wakes/resumes when an SDK/CLI call (e.g. commands.exec) targets it.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/sandbox-auto-persistence.md",
+      "quote": "当 Sandbox 被暂停时: Sandbox 中创建的文件会被保留。内存状态会被保留,包括正在运行的进程和变量。",
+      "note": "PPIO sandboxes don't have a separate 'stop' state distinct from pause/kill; pausing (the stop-equivalent) preserves the filesystem (and memory) until resume (start-equivalent). Data is only lost on explicit kill.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/sandbox-template-customize-cpu-ram.md",
+      "quote": "您可以通过 PPIO 沙箱命令行工具来自定义沙箱模板的 CPU 和 RAM 规格。... 以下命令将创建一个具有 2 vCPU、2GB RAM 的沙箱模板。",
+      "note": "vCPU/RAM is fixed at Template build time (cpu_count/memory_mb); no documented API to change CPU/RAM of a running sandbox without recreating it.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/codex.md",
+      "quote": "`codex` 模板预装了 Codex,因此只需几行代码即可启动 Sandbox 并驱动 Codex。",
+      "note": "First-party 'codex' template preinstalls OpenAI Codex CLI, driven via generic commands.run exec.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/openai-agents-api.md",
+      "quote": "OpenAI Agents API 让应用通过 OpenAI 托管的接口调用 Codex harness。OpenAI 负责管理会话、任务编排以及上下文压缩和恢复",
+      "note": "The agent orchestration API documented (OpenAI Agents API) is OpenAI's own hosted agent API using a PPIO sandbox merely as the self-hosted executor; PPIO itself does not ship a first-party API that drives its own browser/computer-use/research task agent. Archived Agent Runtime is a generic HTTP wrapper for the USER's own agent code, not PPIO's own agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://ppio.com/docs/ai/mcp-server.md",
+      "quote": "PPIO MCP Server 通过 Model Context Protocol 将 PPIO 平台 OpenAPI 暴露给 AI Agent 工具，让 Claude、Cursor 等 AI Agent 能够直接查询和操作你的 PPIO 资源。",
+      "note": "Hosted MCP endpoint (mcp.ppio.com) exposes generic 'search'/'execute' tools over PPIO's full account OpenAPI (auth scopes explicitly include the cloud_sandbox resource group), so it can drive Sandbox APIs, though the page's example use-cases focus on GPU/storage/billing rather than Sandbox specifically.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/cli-network.md",
+      "quote": "`allow-out` 和 `deny-out` 仅支持 CIDR 的配置方式，不支持域名。",
+      "note": "Egress control is at IP/CIDR level only; no HTTP method/path-level egress rules are documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://ppio.com/docs/sandbox/archive/faq.md",
+      "quote": "出口 IP：124.220.213.124（所有 Sandbox 共享此出口 IP） 该 IP 可能变化，如有变化客服会提前通知。",
+      "note": "There is a fixed (though shared, not per-customer dedicated) outbound IP that all sandboxes use; it can change but customers are notified in advance.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/overview.md",
+      "quote": "PPIO Sandbox 是一个面向 AI Agent 的托管执行环境,适用于需要运行代码、使用浏览器、处理文件并跨会话保留状态的场景。",
+      "note": "not offered: outside the product's scope — sandboxes are Firecracker microVMs (Linux-guest only per card isolation=firecracker); no Windows OS/template option is documented anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/overview.md",
+      "quote": "PPIO Sandbox 是一个面向 AI Agent 的托管执行环境,适用于需要运行代码、使用浏览器、处理文件并跨会话保留状态的场景。",
+      "note": "not offered: outside the product's scope — Firecracker microVMs cannot run macOS guests; no macOS option is documented.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/pricing.md",
+      "quote": "Agent沙箱采用资源分项计费模式，每个实例根据实际占用的 vCPU 和内存资源按秒计费",
+      "note": "not offered: outside the product's scope — PPIO Sandbox is exclusively a metered managed cloud service; no self-hosted deployment package is offered.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/pricing.md",
+      "quote": "Agent沙箱采用资源分项计费模式，每个实例根据实际占用的 vCPU 和内存资源按秒计费",
+      "note": "not offered: outside the product's scope — no bring-your-own-cloud-account deployment model is documented; sandboxes run only in PPIO's own cn-shanghai-1/cn-beijing-1 regions.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/orgs/PPIO/repositories",
+      "quote": "ppio-skills (Skill.md wrapper), openai-agents-api-executor, ppclaw-config, ppio-agent-sandbox-samples, agent-runtime-example — none is the core Sandbox platform itself",
+      "note": "The PPIO GitHub org publishes only client-side skills/samples/config repos; the Sandbox execution platform itself is closed-source and only exposed via API (E2B-API-compatible, not open-sourced).",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/sandbox-internet-access.md",
+      "quote": "sandbox = ppio.sandbox.create()\nhost = sandbox.get_host(3000)\nprint(f'https://{host}')",
+      "note": "Sandboxes are only reachable via an assigned HTTPS hostname/URL (get_host(port), optionally gated by an access token unless --public-traffic is set); the docs never expose a dedicated/static public IPv4 address for a sandbox, and the pricing page lists no IP line item. No first-party 'public IP' feature exists.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/pricing.md",
+      "quote": "vCPU | 按照使用的 vCPU 核心数和运行时长计费... | 内存 (RAM) | 按照分配的内存容量和使用时长计费...",
+      "note": "Sandbox pricing/billing items are only vCPU, RAM, local storage, and persistent storage (Template/Snapshot) — no GPU line item, no GPU parameter in sandbox.create(), and no GPU sandbox docs page exists in the full sandbox doc index (checked https://ppio.com/docs/llms.txt sandbox section). PPIO's separate 'GPU 容器服务' (GPU container service) is a different, non-sandbox product line.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://ppio.com/docs/sandbox/overview.md",
+      "quote": "PPIO 目前提供两个区域的访问方式：\n名称 | 版本 | 域名 | 说明\ncn-shanghai-1 | v1 | sandbox.ppio.cn | 默认区域\ncn-beijing-1 | v2 | cn-beijing-1.sandbox.ppio.com | 需通过环境变量指定",
+      "note": "Only two China regions (Shanghai v1 default, Beijing v2) are offered for the Sandbox product; no EU/international region exists. ppinfra.com redirects to ppio.com and there is no separate international sandbox site (Novita is the legally distinct international sibling, a different card).",
+      "checked": "2026-09-30"
     }
   }
 }

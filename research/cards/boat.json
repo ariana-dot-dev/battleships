@@ -251,7 +251,7 @@
     "custom_domain": null,
     "raw_tcp_inbound": true,
     "egress_allowlist": false,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": false,
     "self_host": false,
     "byoc": false,
@@ -270,9 +270,9 @@
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
+    "wake_on_request": false,
     "live_resize": false,
-    "fork_running": null,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": true,
     "scheduled_wakeups": null,
@@ -285,7 +285,7 @@
     "browser_control": true,
     "desktop_control": true,
     "anti_bot": true,
-    "captcha_solving": null,
+    "captcha_solving": false,
     "egress_ip_type": "datacenter",
     "ip_note": "Default datacenter IPs; a custom Chromium fork keeps X, LinkedIn and most sites working (owner-reported)",
     "snapshot_auto": true,
@@ -295,7 +295,9 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": 26.69,
@@ -451,6 +453,174 @@
       "quote": "\"Disk\" is what your own files can grow to; the operating system and pre-installed tools sit outside it.",
       "note": "No volumes or shared filesystem at all; sharing only by copy (fork, named snapshot, snapshot download).",
       "checked": "2026-09-29"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.boat.dev/machines.md",
+      "quote": "Every sandbox is a Linux VM with a curated set of tools available from the moment you SSH in.",
+      "note": "not offered: outside the product's scope. Boat.dev is a general-purpose Linux sandbox/VM with SSH, desktop and browser access; nothing in its docs, API reference, or integrations pages mentions CAPTCHA solving as a feature.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://docs.boat.dev/snapshots.md",
+      "quote": "They are taken every minute while the sandbox is ready or idle, and a final one when it stops.",
+      "note": "Fork requires only a completed snapshot, not a stopped sandbox: 'boat fork <id> ... Requires the source sandbox to have a completed snapshot. Forking copies the snapshotted filesystem into a new Sandbox ... The source sandbox is never modified' (https://docs.boat.dev/llms-full.txt, fork-sandbox / CLI reference). Since running sandboxes are auto-snapshotted every minute, a running sandbox always has a recent completed snapshot to fork from, and the source keeps running unaffected.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.boat.dev/long-running-tasks.md",
+      "quote": "Sandboxes have an auto-stop timer. ... Resuming a stopped sandbox restarts the timer.",
+      "note": "No mechanism documented for a stopped/archived sandbox to wake automatically when an inbound request (e.g. a hosted HTTPS URL) arrives; every doc path to bring a stopped sandbox back is an explicit `boat resume` / POST /sandboxes/{id}/resume call. Hosting docs describe the proxy routing to a running sandbox but never mention auto-resuming an archived one on request.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.boat.dev/api/reference/agent/prompt-sandbox-agent.md",
+      "quote": "Queue a natural-language work item for an agent harness (Codex, Claude Code, pi, OpenCode, or Prime Agent) inside the sandbox.",
+      "note": "not offered: outside the product's scope. Boat's `/prompt` (harness_api) drives third-party CODING harnesses (Claude Code, Codex, pi, OpenCode, Prime Intellect's Prime Agent, Kimi Code) inside the VM. There is no first-party Boat-branded browser/computer-use/research task agent product distinct from these installed coding harnesses.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.boat.dev/faq.md",
+      "quote": "every sandbox has a dedicated IPv6 or IPv4, and egress is included up to 2 TB per sandbox per month",
+      "note": "The dedicated IP is tied to the sandbox's current machine, not fixed for the sandbox's lifetime: per the card's own research the IP changes on resume (a resume/fork lands on a different underlying machine), so there is no fixed/static outbound IP across stop-start cycles.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.boat.dev/long-running-tasks.md",
+      "quote": "For work that should keep running until you stop it yourself, disable auto-stop when you create the sandbox or update an existing sandbox's TTL to `null`: boat new --no-auto-stop",
+      "note": "Default auto-stop TTL is 1 hour from creation/resume, and a numeric TTL caps at 30 days (2592000s), but `--no-auto-stop` (paid accounts only; unavailable on the free trial, capped at 2h) removes the timer entirely so the sandbox runs until explicitly stopped, matching the field's 'none' definition.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.boat.dev/sandbox-cli.md",
+      "quote": "Resume behaves like a server reboot: systemd services you enabled start again automatically. Processes you ran by hand (dev servers, background jobs, tunnels, desktop sessions) do not survive; restart them, or make them a systemd service.",
+      "note": "Same reboot semantics apply to fork (fork copies the filesystem snapshot, not running memory); snapshots/forks are filesystem-only, so no running process/memory state carries over.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://docs.boat.dev/integrations/harbor.md",
+      "quote": "Boat runs a ready image; it doesn't build Docker images. ... The Dockerfile is read only for its final-stage WORKDIR; build steps (RUN / COPY / …) are not executed",
+      "note": "Sandboxes start from Boat's own Ubuntu 24.04 base or from named snapshots (`boat snapshot save` / `boat new --from <name>`), never from a user-supplied image; install steps must run as commands after boot.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.boat.dev/integrations/harbor.md",
+      "quote": "Boat runs a ready image; it doesn't build Docker images. Some Harbor features don't map to Boat today and raise a clear error: network policies (no-network / allow-lists), Docker image builds / Compose, and GPUs / TPUs / Windows.",
+      "note": "No way to start a machine from your own Docker/OCI image; Docker runs *inside* the sandbox (docker_inside=true) but the sandbox itself is always Boat's fixed Ubuntu 24.04 base.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.boat.dev/llms-full.txt",
+      "quote": "Boat has no idle timer. The auto-stop TTL counts from creation or resume, never from last activity, so run your own countdown and call `boat stop` a few seconds to a couple of minutes after the agent finishes.",
+      "note": "Auto-stop is a fixed TTL from creation/resume/fork (default 1h, max 30d, or disabled with --no-auto-stop), not idle-detection; a busy sandbox is stopped exactly the same as an idle one at TTL expiry.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.boat.dev/machines.md",
+      "quote": "\"Disk\" is what your own files can grow to; the operating system and pre-installed tools sit outside it.",
+      "note": "Disk is a fixed per-size preset (12/50/125/251 GB baked into small/default/large/xlarge); no separate volume product, attach API, or extra-disk purchase exists anywhere in the docs or API reference.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.boat.dev/llms-full.txt",
+      "quote": "The tools come from the Cua Driver, preinstalled on every sandbox and registered as an MCP server named `computer` for all six harnesses",
+      "note": "The only MCP server involved is `computer` (Cua Driver desktop-control tools) *inside* the sandbox for coding harnesses to use; Boat does not ship an MCP server that lets an external client control Boat's own sandbox-management API (create/list/stop/etc.) – that surface is CLI/REST/SDK only.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.boat.dev/machines.md",
+      "quote": "GPU | None. Graphics run on the CPU (the desktop and headless Chrome work)",
+      "note": "Confirmed again in the Harbor integration page: \"Some Harbor features don't map to Boat today ... GPUs / TPUs / Windows.\"",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.boat.dev/integrations/harbor.md",
+      "quote": "Some Harbor features don't map to Boat today and raise a clear error: network policies (no-network / allow-lists), Docker image builds / Compose, and GPUs / TPUs / Windows.",
+      "note": "Also machines.md: every sandbox is Ubuntu 24.04 LTS, Linux 6.8, x86_64 – Linux-only, no Windows machine option.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.boat.dev/machines.md",
+      "quote": "OS | Ubuntu 24.04 LTS, Linux 6.8, x86_64",
+      "note": "Product is a Linux VM sandbox platform; no macOS machine type is offered or mentioned anywhere in the docs. macOS is plainly outside what this product is.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.boat.dev/machines.md",
+      "quote": "OS | Ubuntu 24.04 LTS, Linux 6.8, x86_64",
+      "note": "Only x86_64 machines are documented (Ryzen 9 9950X standard hosts, older AMD Hetzner fallback); no ARM/aarch64 option anywhere in docs or API.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.boat.dev/llms-full.txt",
+      "quote": "Your plan, environment, sandboxes and settings live on your account, not on the machine.",
+      "note": "Boat is a hosted multi-tenant SaaS (account/plan/dashboard/billing model); no self-hosted/on-prem deployment option, binary, or Helm chart is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.boat.dev/llms-full.txt",
+      "quote": "In the EU: Germany, Finland, and France. Your data and snapshots stay there.",
+      "note": "Only Boat-operated EU regions are offered as a fixed choice; there is no bring-your-own-cloud-account deployment mentioned in pricing, FAQ, or API docs.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.boat.dev/llms-full.txt",
+      "quote": "boat is the user's own product.",
+      "note": "No OSI-licensed core-product repository is published; the only open-source component mentioned is the third-party Cua Driver dependency (github.com/trycua/cua) used for computer-use tooling, not the Boat sandbox platform itself.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://docs.boat.dev/llms-full.txt",
+      "quote": "Do you have compliance certifications? Not yet. SOC 2 is in progress. Sandboxes are full VMs with sudo, so you can add any controls you need inside them (firewall rules, proxies, encryption).",
+      "note": "SOC 2 explicitly not yet attested (in progress).",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://docs.boat.dev/llms-full.txt",
+      "quote": "Do you have compliance certifications? Not yet. SOC 2 is in progress.",
+      "note": "No HIPAA eligibility or BAA is mentioned anywhere in the docs; the compliance FAQ names only SOC 2 (in progress) and nothing else.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.boat.dev/account.md",
+      "quote": "GitHub, Google and an emailed 6-digit code are three ways in, on both the CLI and the dashboard.",
+      "note": "Only GitHub/Google OAuth and email-code login are documented; no SAML/OIDC enterprise SSO option is mentioned anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": false,
+      "source": "https://docs.boat.dev/llms-full.txt",
+      "quote": "Boat does not yet enforce Eve's fine-grained network policies. The backend accepts \"allow-all\" and throws EveSandboxUnsupportedError for stricter policies (\"deny-all\", allow-lists, subnet rules)",
+      "note": "No VPC/private-networking product exists; also confirmed by the Harbor integration note that \"network policies (no-network / allow-lists)\" are unsupported. Sandboxes only get a public IPv4/IPv6.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.boat.dev/llms-full.txt",
+      "quote": "Can I resize a sandbox? Yes. Pass `--type` to `resume` or `fork` to move a sandbox between `small`, `default`, and `large`.",
+      "note": "Resizing only happens via `resume` (a stop/restart cycle) or `fork` (a new machine); a running sandbox's CPU/RAM cannot be changed in place without recreating/restarting it, so live_resize is correctly false.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -843,10 +843,10 @@
       "H100",
       "H200"
     ],
-    "snapshot": "none",
-    "pause_resume": false,
+    "snapshot": "fs",
+    "pause_resume": true,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -855,13 +855,13 @@
     "nested_virt": true,
     "root": true,
     "systemd": null,
-    "browser": null,
+    "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
     "ssh": true,
-    "public_ipv4": false,
+    "public_ipv4": true,
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
@@ -877,9 +877,9 @@
       "asia",
       "other"
     ],
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
     "lang_python": true,
     "lang_node": true,
     "lang_go": null,
@@ -887,15 +887,15 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": false,
+    "egress_http_rules": false,
+    "wake_on_request": true,
     "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -906,7 +906,16 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "qemu-kvm",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "snapshot_on_demand": false,
+    "harness_api": false,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -980,10 +989,10 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No credential-injecting proxy. Secrets are GitHub Actions secrets (env) or AWS instance-profile credentials inside the runner (Bedrock via instance role, \"no long-lived API keys\" but the temporary creds are on the machine); GitHub App credentials sit in AWS Secrets Manager for the control plane.",
-      "checked": "2026-09-29"
+      "source": "https://runs-on.com/docs/runners/capabilities/ai-agents/",
+      "quote": "Because the runner runs in your own AWS account, jobs call Bedrock through the instance role, with no long-lived API keys to manage.",
+      "note": "Credential exposure is via the AWS instance-profile role (temporary AWS creds present on the machine) or plain GitHub Actions secrets as env vars, not a first-party proxy that injects credentials for arbitrary HTTP APIs so the secret never enters the machine.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": true,
@@ -998,6 +1007,228 @@
       "quote": "Since v2.8.2, you can configure RunsOn to automatically create an Elastic File System (EFS), which can be used for storing artefacts across workflow jobs.",
       "note": "Read-write NFS (EFS) mounted at /mnt/efs by all runners that set extras=efs; stack parameter EnableEfs (default false); Linux Flex runners only (not Windows, not Fleet yet). One EFS per stack. EFS billed by AWS.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "qemu-kvm",
+      "source": "https://runs-on.com/docs/control-plane/networking/",
+      "quote": "Both products spawn a fresh EC2 instance for every job. Neither runs your workflow on shared infrastructure.",
+      "note": "RunsOn launches a dedicated AWS EC2 instance per job in the customer's own AWS account (Flex/Fleet), destroyed after. AWS EC2 isolation is provided by the Nitro hypervisor, which is KVM-derived; mapped to the closest enum value (full VM, not a shared-kernel container).",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://runs-on.com/docs/guides/building-custom-ami/",
+      "quote": "RunsOn provides base images (AMIs) ... you might want to generate a new AMI from one of those base images, and use it in your workflows.",
+      "note": "Runners boot from AWS AMIs (built via Packer), not from a customer-supplied Docker/OCI image. docker_inside is supported (containers run inside the VM), but that is different from booting the machine itself from an OCI image.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://runs-on.com/pricing/",
+      "quote": "runs-on: self-hosted github actions runners, in your own aws account.",
+      "note": "not offered: outside the product's scope (a GitHub Actions CI runner replacement, not a managed browser/sandbox product).",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://runs-on.com/pricing/",
+      "quote": "runs-on: self-hosted github actions runners, in your own aws account.",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://runs-on.com/pricing/",
+      "quote": "runs-on: self-hosted github actions runners, in your own aws account.",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://runs-on.com/docs/runners/capabilities/static-ips/",
+      "quote": "RunsOn supports static egress IPs by launching runners in private subnets and routing outbound internet traffic through NAT gateways with Elastic IPs.",
+      "note": "Runners are plain AWS EC2 instances (datacenter IP space); a fixed outbound IP is available via NAT Gateway + Elastic IP when Private mode is enabled.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://runs-on.com/docs/runners/capabilities/sticky-disks/",
+      "quote": "RunsOn restores the latest compatible snapshot before a job, mounts the volume on the runner, and snapshots it again after a clean unmount.",
+      "note": "Sticky-disk EBS snapshots are automatic (taken at job end / restored at next job start) rather than something you trigger on demand via an API/CLI call whenever you want.",
+      "checked": "2026-09-30"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://runs-on.com/docs/runners/capabilities/ai-agents/",
+      "quote": "steps: - uses: runs-on/action@v2 - run: | aws bedrock-runtime converse --region us-east-1 --model-id us.anthropic.claude-sonnet-4-6 ...",
+      "note": "The 'AI agents' capability wires AWS IAM credentials (e.g. Bedrock) into the runner for a workflow step to call model APIs; there is no first-party RunsOn API that drives a coding agent/harness (prompt, stream events, follow-ups) inside the sandbox.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://runs-on.com/pricing/",
+      "quote": "runs-on: self-hosted github actions runners, in your own aws account.",
+      "note": "not offered: outside the product's scope. RunsOn has no first-party browser/computer-use/research task agent of its own.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://runs-on.com/docs/maintenance/configuration/flex/cloudformation/",
+      "quote": "Optional ARN of an AWS Network Firewall policy used for IPv4 egress filtering ... Security groups should be treated as product boundaries.",
+      "note": "Egress control is at the IP/port level via a customer-managed AWS Network Firewall policy or security groups, not HTTP method/path-level rules.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://runs-on.com/security/",
+      "quote": "The RunsOn control plane runs in your AWS account with a limited IAM role. RunsOn-side data flows are limited to license validation, product telemetry sent to runs-on.com, and normal commercial or support communications.",
+      "note": "No SOC 2 attestation is mentioned anywhere on the site (pricing, security, docs); the footer describes RunsOn as 'bootstrapped & self-funded', and the product itself never touches customer code/data (that stays in the customer's own AWS account), so there is little customer-data surface for a SOC 2 report to cover.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://runs-on.com/security/",
+      "quote": "What stays in your AWS account: Runner VMs and workflow execution data ... Private GitHub App credentials ... stored in AWS Secrets Manager.",
+      "note": "No HIPAA/BAA mention anywhere on the site; workload data stays entirely inside the customer's own AWS account (subject to the customer's own AWS BAA), and RunsOn itself only sees license/telemetry data.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://runs-on.com/pricing/",
+      "quote": "Checkout supports EUR and USD, and Enterprise can procure through AWS Marketplace so the license lands on your existing AWS invoice and draws down committed spend.",
+      "note": "No SAML/OIDC SSO is documented anywhere; RunsOn is delivered as a self-hosted CloudFormation/Terraform stack plus an annual license key, not a hosted web dashboard/account system that a customer's users log into.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://runs-on.com/tips/multi-regional-failover/",
+      "quote": "Setup RunsOn in another AWS region, keep the same environment name, and just suspend the other GitHub App installation ... Deploy new stack in another region.",
+      "note": "The entire RunsOn stack (control plane + runners) is deployed into the customer's own AWS region of choice, including any EU AWS region (e.g. eu-west-1); the region is a plain CloudFormation/Terraform parameter.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://runs-on.com/security/",
+      "quote": "Runner VMs are ephemeral EC2 instances and isolated by default — destroyed when the job finishes.",
+      "note": "Runners live for exactly the duration of the GitHub Actions job; RunsOn itself imposes no separate maximum session length (unlike GitHub-hosted runners' fixed 6h hard cap) — the only limit is whatever job/workflow timeout-minutes the customer configures, so treated as no provider-imposed ceiling.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://runs-on.com/docs/runners/capabilities/sticky-disks/",
+      "quote": "Sticky disks keep a cache on a dedicated EBS volume instead of packing it into an archive after every job. RunsOn restores the latest compatible snapshot before a job, mounts the volume on the runner, and snapshots it again after a clean unmount.",
+      "note": "Opt-in first-party persistent EBS volume (sticky disk) survives across ephemeral job runners; also warm-pool 'stopped' instances keep their root EBS volume across stop/start (see performance/warm-pools). Default is still an ephemeral, deleted-on-exit root disk per job; persistence requires the sticky= label or a stopped pool.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "fs",
+      "corrected_from": "none",
+      "source": "https://runs-on.com/docs/runners/capabilities/sticky-disks/",
+      "quote": "RunsOn restores the latest compatible snapshot before a job, mounts the volume on the runner, and snapshots it again after a clean unmount.",
+      "note": "Automatic EBS (disk-only) snapshot/restore of the sticky cache volume, scoped by repo/lineage/ref/OS/arch. No memory or process-state capture (not 'mem'): the runner VM itself is always a fresh EC2 instance destroyed after the job.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://runs-on.com/docs/performance/warm-pools/",
+      "quote": "Stopped instances are pre-provisioned, warmed up, and then stopped to minimize costs. When a job arrives, they start quickly (EBS volume is already warmed, dependencies installed). You only pay for EBS storage while stopped, making them a good balance between cost and performance.",
+      "note": "Opt-in 'stopped' warm-pool capacity: an EC2 instance is stopped (root EBS volume persists) and later started to serve a job, with billing dropping to EBS storage only while stopped -- matches the pause/resume + reduced-billing definition. Default behaviour (no pool configured) is a fresh cold-start instance per job, no pause/resume.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://github.com/runs-on/runs-on",
+      "quote": "RunsOn is the self-hosted GitHub Actions control plane for AWS. It launches an isolated EC2 runner for every job with full GitHub Linux runner-image compatibility.",
+      "note": "not offered: outside the product's scope. RunsOn launches an independent fresh EC2 instance per job from an AMI/image; there is no API to clone an existing machine into new ones.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://github.com/runs-on/runs-on",
+      "quote": "RunsOn launches a fresh runner for every job and scales back to zero.",
+      "note": "not offered: outside the product's scope. No mechanism to clone a running instance without stopping it; each job gets its own freshly launched EC2 runner.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://github.com/runs-on/runs-on",
+      "quote": "RunsOn launches a fresh runner for every job and scales back to zero.",
+      "note": "not offered: outside the product's scope. Follows directly from the absence of any fork/fork_running capability; no memory-preserving clone feature exists.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://runs-on.com/docs/runners/capabilities/remote-access/",
+      "quote": "RunsOn provides SSM access to runner instances, plus optional SSH access when you explicitly enable it.",
+      "note": "not offered: outside the product's scope. RunsOn runners are headless CI EC2 instances; documented remote access is SSM/SSH console access only, no VNC/RDP/streamed desktop.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://runs-on.com/docs/runners/capabilities/remote-access/",
+      "quote": "RunsOn provides SSM access to runner instances, plus optional SSH access when you explicitly enable it.",
+      "note": "not offered: outside the product's scope. No desktop exists to drive by screenshots/clicks; access is terminal-based (SSM/SSH) only.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://runs-on.com/docs/performance/warm-pools/",
+      "quote": "Stopped instances are pre-provisioned, warmed up, and then stopped to minimize costs. When a job arrives, they start quickly (EBS volume is already warmed, dependencies installed).",
+      "note": "Opt-in 'stopped' warm pool: a stopped runner instance automatically starts when a job (request) arrives. Default cold-start mode launches a brand-new instance instead, so this is opt-in, not universal.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://runs-on.com/docs/runners/capabilities/remote-access/",
+      "quote": "RunsOn provides SSM access to runner instances, plus optional SSH access when you explicitly enable it. SSM is the preferred troubleshooting path because it avoids opening inbound SSH access.",
+      "note": "No HTTPS ingress/preview-URL mechanism is documented anywhere; the only inbound access paths to a runner are SSM and optional SSH (port 22), not HTTP(S).",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://runs-on.com/docs/control-plane/networking/",
+      "quote": "Public runners are simpler and usually cheaper because they do not need NAT for outbound internet access.",
+      "note": "Default stack mode is public subnets (Private=false); combined with SSH remote-access defaults of ssh_allowed=true / ssh_cidr_range=\"0.0.0.0/0\" (docs/runners/capabilities/remote-access/), this implies runners in the default (public) mode carry an AWS-assigned public IPv4, reachable directly rather than only via NAT egress. Private mode (opt-in) removes the public IP and routes egress through a NAT gateway instead.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://runs-on.com/docs/runners/capabilities/ai-agents/",
+      "quote": "There are two complementary ways to power those workloads: Amazon Bedrock access -- grant runners IAM permission to invoke Bedrock models (Anthropic Claude and others) with no long-lived API keys. GitHub Copilot coding agent -- point Copilot's coding agent at a RunsOn runner as its execution environment.",
+      "note": "RunsOn offers IAM access to Bedrock models and lets GitHub's own Copilot coding agent use a RunsOn runner as its execution environment; it does not preinstall or offer templates for third-party coding-agent harnesses (Claude Code, Codex, OpenCode, etc.).",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://runs-on.com/docs/observability/cli/",
+      "quote": "roc connect <JOB_URL>",
+      "note": "RunsOn ships a CLI (roc) for connecting to runners and a GitHub Actions action, but no MCP server is documented anywhere in the docs sitemap; no page or mention of the Model Context Protocol exists on the site.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://runs-on.com/docs/runners/platforms/",
+      "quote": "macOS runners are not yet supported by RunsOn, due to licensing constraints enforced by Apple. Neither Flex nor Fleet can launch macOS capacity today.",
+      "note": "Explicitly and currently unsupported (Apple's 24-hour EC2 Mac minimum allocation period is incompatible with RunsOn's shared-nothing per-job model).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/runs-on/runs-on",
+      "quote": "This public repository contains MIT-licensed CloudFormation assets and supporting files. The RunsOn server and agent are commercially licensed.",
+      "note": "Only the CloudFormation/Terraform glue is MIT-licensed; the core RunsOn control-plane server and runner agent are proprietary/commercially licensed, so the product as a whole is not open source.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://runs-on.com/docs/runners/platforms/",
+      "quote": "RunsOn gives every workflow the full range of AWS EC2 instances as self-hosted GitHub Actions runners, on any GitHub plan (including free plans).",
+      "note": "not offered: outside the product's scope. A runner's CPU/RAM (EC2 instance type) is fixed by the job's labels/AMI at launch; no documented API changes vCPU/RAM of an already-running runner without recreating it.",
+      "checked": "2026-09-30"
     }
   }
 }

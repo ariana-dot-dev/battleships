@@ -445,13 +445,13 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": false,
-    "docker_inside": null,
+    "docker_inside": false,
     "nested_virt": false,
     "root": false,
     "systemd": null,
-    "browser": false,
-    "desktop": false,
-    "computer_use": false,
+    "browser": true,
+    "desktop": true,
+    "computer_use": true,
     "code_interpreter": true,
     "agent_harnesses": false,
     "ssh": false,
@@ -460,18 +460,18 @@
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": false,
-    "self_host": false,
+    "self_host": true,
     "byoc": false,
     "open_source": false,
     "regions": [
       "us",
       "eu"
     ],
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": true,
+    "hipaa": true,
+    "sso": true,
     "lang_python": true,
     "lang_node": true,
     "lang_go": true,
@@ -502,7 +502,10 @@
     "guest_firewall": false,
     "secret_proxy": "any-http",
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -658,6 +661,262 @@
       "quote": "Each session has a separate workspace. Files persist across turns while its sandbox exists.",
       "note": "No shared filesystem between containers/sessions; files must be copied in per container (file_ids).",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "Hosted shell commands don't run with sudo.",
+      "note": "No root/sudo inside the container and no Docker/OCI runtime, /dev/kvm, or nested-container capability is documented anywhere in the Containers API, tools-shell, or tools-code-interpreter guides; the runtime is described only as a fixed Debian 12 environment with preinstalled language runtimes.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-code-interpreter",
+      "quote": "Code Interpreter allows models to write and run Python code in a sandboxed execution environment... Hosted Shell and Code Interpreter | 1 GB $0.03, 4 GB $0.12, 16 GB $0.48, 64 GB $1.92 per 20-minute session per container.",
+      "note": "not offered: outside the product's scope. This mode is a code-execution/shell container (no browser, no anti-fingerprinting or stealth capability documented anywhere in the Containers API).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-code-interpreter",
+      "quote": "Code Interpreter allows models to write and run Python code in a sandboxed execution environment... Hosted Shell and Code Interpreter | 1 GB $0.03, 4 GB $0.12, 16 GB $0.48, 64 GB $1.92 per 20-minute session per container.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving capability is documented for the Containers API code/shell environment; it has no inbound browser surface and outbound network is disabled by default.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://learn.chatgpt.com/docs/enterprise/chatgpt-work-cloud-security",
+      "quote": "Work uses its own browser, running on a separate computer in the cloud.",
+      "note": "OpenAI's own browser/computer-use task agent is ChatGPT agent mode / Work, which has no public API (consumer/enterprise-only, per-message credits). The Agents API's computer_use tool drives the same managed Codex coding harness (already captured by harness_api), not a separate first-party 'own task agent' API distinct from the coding harness.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "You must explicitly set network_policy on the container environment in your request.",
+      "note": "Only a domain allowlist mechanism is documented (network_policy.allowed_domains / org allow list); no fixed/static outbound IP address is offered or mentioned anywhere in the Containers or Agents API docs.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": true,
+      "source": "https://openai.com/enterprise-privacy",
+      "quote": "Our API Platform has been audited and certified for SOC 2 Type 2 compliance. Read more in our Trust Portal",
+      "note": "Applies to the API Platform, which is what the Containers API (Responses API containers) and Agents API run on.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": true,
+      "source": "https://openai.com/enterprise-privacy",
+      "quote": "We are able to sign Business Associate Agreements (BAA) in support of customers' compliance with the Health Insurance Portability and Accountability Act (HIPAA). Please reach out if you require a BAA.",
+      "note": "BAA available on request for API/enterprise customers; not automatic/default for every account.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": true,
+      "source": "https://openai.com/enterprise-privacy",
+      "quote": "Enterprise-level authentication through SAML SSO",
+      "note": "SAML SSO is offered for OpenAI's enterprise-tier platform/workspace access (organization admin console), covering the org that owns the API Platform containers.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "Hosted containers used by Hosted Shell and Code Interpreter may write temporary application state to the container filesystem (backed by ephemeral block storage) while the container is active. Container data is deleted when the container expires or is explicitly deleted.",
+      "note": "No persistent volume/disk option in the Containers API or Agents API hosted sandbox; Agents API workspace files exist only 'while its sandbox exists' (deleted after ~1h idle). Default on expiry is full delete, no opt-in persistence.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://developers.openai.com/api/docs/guides/tools-code-interpreter",
+      "quote": "You'll still be able to see a snapshot of the container's metadata at its expiry, but all data associated with the container will be discarded from our systems and not recoverable.",
+      "note": "Only container metadata survives expiry, not filesystem/memory. No create/list/retrieve/delete snapshot endpoint anywhere in the Containers or Agents API.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-code-interpreter",
+      "quote": "You can't move a container from an expired state to an active one. Instead, create a new container and upload files again. Note that any state in the old container's memory (like python objects) will be lost.",
+      "note": "No pause/resume API for containers or Agents API sandboxes; they expire and are deleted, not paused.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://developers.openai.com/api/reference/resources/containers/methods/create",
+      "quote": "Body Parameters: name, expires_after, file_ids, memory_limit, network_policy, skills",
+      "note": "No clone/fork parameter or endpoint on containers or Agents API environments; environment_template_id only reuses configuration, not a running instance ('Templates save configuration, not a running workspace').",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://developers.openai.com/api/reference/resources/containers/methods/create",
+      "quote": "Body Parameters: name, expires_after, file_ids, memory_limit, network_policy, skills",
+      "note": "Same as fork: no clone-from-running-instance capability documented anywhere in the Containers or Agents API.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-code-interpreter",
+      "quote": "any state in the old container's memory (like python objects) will be lost.",
+      "note": "In-memory state is explicitly lost on expiry/recreate; no memory-snapshot cloning feature exists.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "Hosted shell commands don't run with sudo.",
+      "note": "No root/sudo and no /dev/kvm or nested-virtualization documented; commands run unprivileged inside the managed sandbox, so nested virtualization is outside what the product offers. Derived, not directly stated.",
+      "checked": "2026-09-30"
+    },
+    "root": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "Hosted shell commands don't run with sudo.",
+      "note": "Direct statement: no root/sudo inside hosted containers or the Agents API hosted sandbox.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://developers.openai.com/api/reference/resources/containers/methods/create",
+      "quote": "Body Parameters: name, expires_after, file_ids, memory_limit, network_policy, skills",
+      "note": "No SSH-related parameter anywhere in the Containers or Agents API; interaction is only through API calls (shell tool, files endpoints, session events) plus for self-hosted sandboxes an outbound WebSocket executor - never inbound SSH.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://developers.openai.com/api/docs/guides/agents-api/tools/computer-use",
+      "quote": "Set environment.type to openai_hosted and environment.desktop.enabled to true. ... Each browser operation returns its last emitted screenshot in output ... { \"type\": \"computer_screenshot\", \"image_url\": \"data:image/jpeg;base64,...\" }",
+      "note": "The Agents API's OpenAI-hosted sandbox offers a real screenshot-streamed graphical desktop (environment.desktop.enabled) for the computer_use tool - a VNC/RDP-style stream, just scoped to the hosted browser rather than a general-purpose GUI. Card's top-level features had this false even though its own agents-api-hosted mode lists browser/computer_use as true; correcting to true (browser-scoped desktop) rather than the plain container-session/Code-Interpreter mode, which indeed has no desktop.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://developers.openai.com/api/docs/guides/agents-api/tools/computer-use",
+      "quote": "Let an agent complete tasks in an OpenAI-hosted browser. ... The Agents API runs the browser in an OpenAI-hosted environment.",
+      "note": "OpenAI provides a first-party managed hosted browser via the Agents API computer_use tool (public beta, not an 'alt' mode). Top-level features:false contradicts the card's own agents-api-hosted mode (browser:true); correcting to true.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://developers.openai.com/api/docs/guides/agents-api/tools/computer-use",
+      "quote": "Add { \"type\": \"computer_use\" } to agent.tools. Set environment.type to openai_hosted and environment.desktop.enabled to true.",
+      "note": "computer_use is a documented first-party tool type that drives the hosted browser by screenshots/actions. Contradicts top-level features:false vs. the card's own agents-api-hosted mode (computer_use:true); correcting to true.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://developers.openai.com/api/reference/resources/containers/methods/create",
+      "quote": "Body Parameters: name, expires_after, file_ids, memory_limit, network_policy, skills",
+      "note": "Only memory_limit selects an enum size (1g/4g/16g/64g); no image/base-image parameter for Containers API or Agents API openai_hosted environment. Self-hosted Agents API environments run wherever you host them, but that's your own compute image, not an OpenAI custom-image feature.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://developers.openai.com/api/reference/resources/containers/methods/create",
+      "quote": "Body Parameters: name, expires_after, file_ids, memory_limit, network_policy, skills",
+      "note": "No Docker/OCI image reference parameter anywhere in the container/environment creation APIs.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-code-interpreter",
+      "quote": "A container expires if it is not used for 20 minutes. When this happens, using the container in `v1/responses` will fail.",
+      "note": "Expired containers fail hard and must be recreated; there is no sleep+auto-wake behaviour, only expire-and-delete.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "Hosted containers used by Hosted Shell and Code Interpreter may write temporary application state to the container filesystem (backed by ephemeral block storage) while the container is active.",
+      "note": "Only ephemeral block storage; no attachable/mountable volume parameter in the Containers or Agents API.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://developers.openai.com/api/reference/resources/containers/methods/create",
+      "quote": "Body Parameters: name, expires_after, file_ids, memory_limit, network_policy, skills",
+      "note": "No port-exposure, preview-URL, or ingress parameter for containers, hosted shell, or Agents API hosted/self-hosted sandboxes; all interaction is via outbound API calls only.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://developers.openai.com/api/reference/resources/containers/methods/create",
+      "quote": "Body Parameters: name, expires_after, file_ids, memory_limit, network_policy, skills",
+      "note": "No IP address is exposed to containers or sandboxes; network_policy only controls outbound egress, and self-hosted sandboxes connect outbound only over WebSocket.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/agents-api/overview",
+      "quote": "The managed Codex harness supports: Running commands and code in a sandbox. ... The Agents API gives your application access to the Codex harness through an OpenAI-managed API.",
+      "note": "The Codex harness runs OpenAI-side and drives the sandbox from outside ('the harness runs commands in the sandbox directly'); it is not a preinstalled coding-agent template (Claude Code/Codex CLI/OpenCode) that you invoke inside the box yourself - that capability is tracked separately as harness_api (already true on the card). agent_harnesses:false stands.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/agents-api/overview",
+      "quote": "Agents can operate in a sandbox where they can execute code, edit files, connect to MCP servers, and produce artifacts.",
+      "note": "OpenAI's containers/Agents API let the agent CONNECT OUT to third-party MCP servers as a tool; OpenAI does not ship its own MCP server for controlling containers/sandboxes (no such endpoint documented).",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "Current preinstalled languages include: Python 3.11, Node.js 22.16, Java 17.0, PHP 8.2, Ruby 3.1, Go 1.23",
+      "note": "No GPU tier is offered or priced for containers/hosted shell/Agents API sandboxes; product is a small CPU sandbox for code execution and browser/shell tools, not accelerated compute. Outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "Runtime is currently based on Debian 12 and may change over time.",
+      "note": "Linux-only runtime (Debian 12); no Windows machine option.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "Runtime is currently based on Debian 12 and may change over time.",
+      "note": "Linux-only runtime; no macOS option documented anywhere in Containers/Agents API.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://developers.openai.com/api/docs/guides/agents-api/environments/self-hosted",
+      "quote": "Connect your own environment when you want more control over the agent's environment or want to use compute you trust. The environment can be a laptop, a container, or a remote sandbox. ... OpenAI runs the agent harness. You run codex exec-server, the executor, inside your environment.",
+      "note": "The Agents API explicitly supports self-hosted sandboxes: you run the compute (laptop/container/your own cloud sandbox) and OpenAI only supplies the managed harness over an outbound WebSocket. That is exactly 'run it on your own infrastructure'; top-level self_host:false is wrong for this product line and should be true (Agents API self_hosted environment.type).",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/agents-api/environments/self-hosted",
+      "quote": "The executor registers with the API using an environment ID and a restricted API key. It then connects over WebSocket to receive commands and return results. All connections are outbound.",
+      "note": "This is bring-your-own-compute connecting outbound to OpenAI's control plane (closer to self_host, already corrected to true), not OpenAI's managed service being deployed inside the customer's own cloud account (BYOC). No BYOC deployment model is offered.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/pricing",
+      "quote": "Containers | Hosted Shell and Code Interpreter | 1 GB $0.03, 4 GB $0.12, 16 GB $0.48, 64 GB $1.92 per 20-minute session per container.",
+      "note": "Commercial hosted API product with per-usage pricing; the container runtime and Agents API service are closed-source (only the codex CLI executor for self-hosted mode and SDK client libraries are open source, not the sandbox/container service itself).",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "Hosted containers don't have outbound network access by default. To enable it: 1. An admin must configure your org allow list in the dashboard. 2. You must explicitly set `network_policy` on the container environment in your request.",
+      "note": "Networking is domain-allowlist based only (no VPC/VPN/private-peering into a customer network) for the OpenAI-hosted container/sandbox product; the unrelated 'alt' Codex Cloud ChatGPT product's Tailscale VPN option doesn't apply here.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://developers.openai.com/api/reference/resources/containers/methods/create",
+      "quote": "Body Parameters: name, expires_after, file_ids, memory_limit, network_policy, skills",
+      "note": "memory_limit (or container_size for Agents API) is fixed at creation; no API to change CPU/RAM of a running container/sandbox without recreating it.",
+      "checked": "2026-09-30"
     }
   }
 }

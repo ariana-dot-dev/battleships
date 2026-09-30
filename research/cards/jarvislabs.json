@@ -550,14 +550,14 @@
     "fork": false,
     "persistent_disk": true,
     "volumes": true,
-    "auto_stop_idle": false,
+    "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
     "nested_virt": null,
     "root": true,
     "systemd": null,
-    "browser": null,
+    "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": true,
@@ -577,25 +577,25 @@
       "asia",
       "eu"
     ],
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
     "lang_python": true,
-    "lang_node": null,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": false,
+    "wake_on_request": true,
     "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
@@ -608,7 +608,14 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "qemu-kvm",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -689,10 +696,10 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No secret store or credential-injecting proxy; credentials are handled inside the instance (e.g. `--env HF_TOKEN=...` on serverless deploys, kaggle.json uploads, S3 keys configured with aws configure). No non-HTTP coverage.",
-      "checked": "2026-09-29"
+      "source": "https://docs.jarvislabs.ai/getting_started/",
+      "quote": "jl create ... --env HF_TOKEN=<token>",
+      "note": "Credentials are passed as plain environment variables at instance creation (or via config files the user uploads, e.g. kaggle.json, AWS credentials) -- no first-party proxy that injects secrets into outbound HTTP calls without the secret entering the machine. No mention of any secret-proxy feature anywhere on the site.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": true,
@@ -707,6 +714,218 @@
       "quote": "The same persistent filesystem can be attached to multiple instances, enabling data sharing.",
       "note": "Read-write distributed filesystem shared by multiple instances in the same region (docs advise avoiding 'intensive file operations on multiple instances simultaneously'); read-only mode not documented. Separate S3-compatible Object Storage exists (not a mount).",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "qemu-kvm",
+      "source": "https://jarvislabs.ai/products/vm",
+      "quote": "A Jarvislabs GPU container compared with a KVM VM using direct GPU passthrough.",
+      "note": "GPU VMs are full KVM virtual machines with GPU passthrough (root/SSH access, own kernel); Templates are containers on the same hosts, not the isolation unit this field models per the card's modes (VM products).",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.jarvislabs.ai/cli/",
+      "quote": "--template  -t  pytorch  Framework template for containers (not used with --vm)",
+      "note": "Instances launch from a fixed catalog of provider templates (pytorch, tensorflow, jax, fastai, comfyui, etc.) or as a plain VM; no flag/API to boot from a user-supplied Docker/OCI image. Docker can be installed and run inside a GPU VM, but that is not launching the machine from an OCI image.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": "Jarvislabs is the AI cloud for builders: train on GPU VMs, Templates and multi-node clusters, then serve open models on Managed Endpoints or Serverless.",
+      "note": "not offered: outside the product's scope. Browser-based access refers to JupyterLab/VS Code-in-browser for the dev environment, not a managed real browser inside the sandbox for automation.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": "Jarvislabs is the AI cloud for builders: train on GPU VMs, Templates and multi-node clusters, then serve open models on Managed Endpoints or Serverless.",
+      "note": "not offered: outside the product's scope (GPU compute cloud, not a browser/bot-automation product).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": "Jarvislabs is the AI cloud for builders: train on GPU VMs, Templates and multi-node clusters, then serve open models on Managed Endpoints or Serverless.",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://docs.jarvislabs.ai/vm/",
+      "quote": "By default your VM's public IP can change on resume. If you need it to stay fixed across pause/resume ... see Reserved IP.",
+      "note": "Servers run in Jarvislabs-owned tier3/tier4 datacenters (India, per FAQs); Reserved IP gives a fixed (static) outbound/public IPv4, matching the card's static_egress_ip: true.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/jarvislabsai/jarvislabs/main/jarvislabs/skills/SKILL.md",
+      "quote": "Machine commands (`jl create/list/get/pause/resume/destroy/rename/ssh/exec/upload/download`) = GPU instance lifecycle and access.",
+      "note": "The jl CLI/SDK is a generic GPU-instance lifecycle/job-exec API for coding agents to drive, not a first-party API that drives Jarvislabs' own browser/computer-use/research agent; no such agent product exists.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.jarvislabs.ai/templates/",
+      "quote": "Currently, we offer vanilla templates like PyTorch and TensorFlow and customized templates like automatic 1111, Ollama, etc.",
+      "note": "not offered: outside the product's scope. All templates and the Python SDK/CLI target Python ML workflows; no Node.js runtime or first-party Node SDK is offered out of the box (a plain Ubuntu GPU VM could have Node installed manually, but that's not out-of-the-box).",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://jarvislabs.ai/sitemap-0.xml",
+      "quote": "https://jarvislabs.ai/termsandservice",
+      "note": "No SOC 2 / trust / compliance / security page exists on the site (sitemap has no security/compliance/trust URL) and no SOC2 mention in the Terms of Service; treated as not offered.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://jarvislabs.ai/termsandservice",
+      "quote": "Please do not send sensitive data (e.g., Social Security, bank account, or credit card numbers) by email or web form unless necessary.",
+      "note": "No HIPAA/BAA mention anywhere on the site or ToS; the ToS instead asks customers not to send sensitive personal data, implying no HIPAA program exists.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://jarvislabs.ai/pricing",
+      "quote": "clerk.jarvislabs.ai",
+      "note": "Account auth is handled by Clerk (consumer-style email/social sign-in); no SAML/OIDC enterprise SSO is documented anywhere on the site.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://docs.jarvislabs.ai/cli/",
+      "quote": "The EU1 region no longer accepts new instances. Instances that already live there can still be paused, resumed and destroyed, and keep their EU1 region code.",
+      "note": "The only EU region (EU1) is deprecated for new instances; current active regions for new instances are IN1 and IN2 (India) only, so EU data residency cannot be chosen today.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.jarvislabs.ai/faqs/",
+      "quote": "Instances automatically pause when balance reaches zero.",
+      "note": "No documented maximum session length; instances (VMs and Templates) run until the user pauses/destroys them or the account balance is exhausted, per llms.txt: 'Autopause triggers on a set duration or account balance, not on idle detection.'",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://raw.githubusercontent.com/jarvislabsai/jarvislabs/main/jarvislabs/skills/SKILL.md",
+      "quote": "Machine commands (`jl create/list/get/pause/resume/destroy/rename/ssh/exec/upload/download`) = GPU instance lifecycle and access.",
+      "note": "No snapshot/checkpoint/image/clone command anywhere in the CLI, SDK, docs or llms.txt (word 'snapshot' does not appear on the docs site). Only pause/resume (keeps disk, drops compute/memory) and startup scripts/Templates exist. Confirms card's existing 'none'.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/jarvislabsai/jarvislabs/main/jarvislabs/skills/SKILL.md",
+      "quote": "Machine commands (`jl create/list/get/pause/resume/destroy/rename/ssh/exec/upload/download`) = GPU instance lifecycle and access.",
+      "note": "No clone/fork/duplicate-instance command or docs entry anywhere on the site.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/jarvislabsai/jarvislabs/main/jarvislabs/skills/SKILL.md",
+      "quote": "Machine commands (`jl create/list/get/pause/resume/destroy/rename/ssh/exec/upload/download`) = GPU instance lifecycle and access.",
+      "note": "No fork capability at all, so cloning a running machine without stopping it is not possible.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.jarvislabs.ai/getting_started/",
+      "quote": "Always store the data under /home, any data stored outside /home will be lost when you pause and resume the instance.",
+      "note": "Pause/resume is disk-only (and only /home for containers) and creates a fresh instance on resume; no memory/process-state capture, let alone a memory-including fork.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": "Templates are managed GPU containers with a preinstalled framework ... JupyterLab, VS Code in the browser or SSH.",
+      "note": "Access methods offered are JupyterLab, browser VS Code and SSH; no VNC/RDP graphical desktop is offered anywhere (docs site has zero hits for 'desktop', 'VNC', 'RDP').",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": "Jarvislabs is the AI cloud for builders: train on GPU VMs, Templates and multi-node clusters, then serve open models on Managed Endpoints or Serverless.",
+      "note": "Product is GPU compute rental (training/inference), not a browser/desktop automation product; no computer-use API exists (zero hits for 'computer use' on docs site).",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://jarvislabs.ai/products/serverless",
+      "quote": "What happens after the deployment scales to zero? A new request needs a worker to start and load the model. The request waits up to your configured wait time and fails if no worker becomes ready.",
+      "note": "Serverless (vLLM/SGLang/Ollama endpoints) scales its worker pool to zero and a new incoming request triggers a cold start of a worker automatically. GPU VMs/Templates, by contrast, only pause on a manual action, a set duration, or zero balance -- they do not wake on an inbound request. Feature is true at the product level via Serverless.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://jarvislabs.ai/products/serverless",
+      "quote": "Stop idle workers An idle timeout controls when workers stop. Set minimum workers to zero to allow the entire pool to stop; future requests may wait for a cold start.",
+      "note": "Serverless workers stop automatically after a configurable idle timeout (0s-24h). Note this is specific to Serverless; VMs/Templates instead use llms.txt's 'Autopause triggers on a set duration or account balance, not on idle detection.' Since Serverless is part of the product lineup, auto_stop_idle should be true overall.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": "Templates are managed GPU containers with a preinstalled framework (PyTorch, TensorFlow, ComfyUI, Ollama and more)",
+      "note": "Template catalog is ML frameworks/apps, not coding-agent harnesses (Claude Code, Codex, OpenCode). The jl CLI/SDK is explicitly a tool that runs on the user's own machine to drive Jarvislabs GPUs from within an agent, not a harness shipped inside the sandbox.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": "The `jl` command line and Python SDK for creating instances, running training jobs, streaming logs and deploying endpoints from a terminal or a coding agent.",
+      "note": "Control surfaces are CLI, Python SDK, REST-style dashboard/API and a SKILL.md file for agents to call the CLI -- no MCP server is mentioned or published (zero hits for 'mcp' on jarvislabs.ai, docs.jarvislabs.ai, or the SKILL.md).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://jarvislabs.ai/products/vm",
+      "quote": "It is a virtual machine, not a namespace on somebody else's host ... Do I actually get root? Yes. SSH in and take root with sudo",
+      "note": "All GPU VM/Template/CPU VM modes list os: linux only and are accessed via SSH/root sudo; no Windows machine option is offered. (Note: docs.jarvislabs.ai/cli/ says the jl CLI tool itself runs on 'Linux and macOS ... Windows is experimental' -- that is the client tool platform, not a Windows guest OS offering, so it doesn't change this answer.)",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://jarvislabs.ai/products/vm",
+      "quote": "NVIDIA H200, H100, RTX Pro 6000 Blackwell, A100 and L4 GPUs are available on demand",
+      "note": "Product is NVIDIA GPU Linux VMs/containers for ML; no macOS guest instances are offered (Apple doesn't license macOS on this class of hardware, and it's outside this product's scope).",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://jarvislabs.ai/pricing",
+      "quote": "H200 SXM ... 28 vCPU / 300 GB RAM per GPU",
+      "note": "All GPU VM/Template and CPU VM sizes are x86 vCPU counts paired with NVIDIA GPUs (x86 hosts for GPU passthrough); no ARM/Graviton-style option is listed anywhere on the pricing page or docs.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": "Jarvislabs was founded in 2021 and has served 27,000+ AI developers and 50M+ GPU hours.",
+      "note": "Jarvislabs is a managed multi-tenant cloud you rent from (dashboard + prepaid wallet, primarily India + a Europe region); there is no offering to run the Jarvislabs platform on your own infrastructure. Only the `jl` CLI/SDK client is open on GitHub/PyPI, not the platform.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": "Regions: primary infrastructure is in India, with a smaller Europe region.",
+      "note": "Compute runs on Jarvislabs-operated regions/infrastructure; no bring-your-own-cloud-account deployment model is documented anywhere on the site.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://jarvislabs.ai/llms.txt",
+      "quote": "Source on GitHub: CLI and SDK source, published to PyPI as `jarvislabs`.",
+      "note": "Only the client-side CLI/Python SDK is open source; the core platform (dashboard, scheduler, billing, GPU orchestration) is closed/proprietary -- 'the core product' is not open source.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.jarvislabs.ai/filestorage/",
+      "quote": "When launching a new instance, create or attach a filesystem during instance configuration.",
+      "note": "Storage/filesystem attach and root/home disk expansion happen only at instance create or resume time (per card caveats/evidence), and Serverless docs state 'Changing the model, GPU or worker configuration requires recreating the deployment.' No CPU/RAM/GPU resize of a running machine without recreating it is documented.",
+      "checked": "2026-09-30"
     }
   }
 }

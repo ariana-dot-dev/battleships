@@ -258,8 +258,8 @@
     "credential_injection": true,
     "egress_http_rules": true,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": null,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": true,
@@ -271,8 +271,8 @@
     "mcp_server": true,
     "browser_control": true,
     "desktop_control": true,
-    "anti_bot": null,
-    "captcha_solving": null,
+    "anti_bot": false,
+    "captcha_solving": false,
     "egress_ip_type": "datacenter",
     "ip_note": "Shared Blaxel public IPs by default; dedicated egress IPs (private preview, on request) and outbound proxy with header/body injection; no residential proxies documented.",
     "isolation": "firecracker",
@@ -285,7 +285,9 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "extras": [
     {
@@ -458,6 +460,111 @@
       "quote": "Drives support concurrent read-write access (RWX) from multiple sandboxes simultaneously, with built-in replication for durability.",
       "note": "Agent Drive: private preview, us-was-1 only; FUSE distributed FS, hot-mount on running sandboxes, read-write or read-only mounts, label-based ACLs, S3-compatible endpoint. Block Volumes themselves are single-attach.",
       "checked": "2026-09-29"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Overview",
+      "quote": "Blaxel documentation: cloud sandboxes, AI agent hosting, MCP servers, batch jobs, and model gateway for building and deploying AI-powered applications.",
+      "note": "not offered: outside the product's scope. Blaxel gives you generic microVM sandboxes with a browser/desktop hub image and outbound proxy (domain allow/deny lists, secret injection), but nowhere documents stealth/fingerprint-evasion features against bot detection. No mention of anti-bot, stealth, or fingerprinting anywhere in the full docs corpus (llms-full.txt) or pricing/blog pages found.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Overview",
+      "quote": "Blaxel documentation: cloud sandboxes, AI agent hosting, MCP servers, batch jobs, and model gateway for building and deploying AI-powered applications.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature or integration is documented anywhere in the docs, pricing page, or blog; Blaxel's browser/desktop offering is generic sandbox infrastructure, not a scraping/anti-bot product.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://docs.blaxel.ai/Sandboxes/Fork",
+      "quote": "Forking creates a new sandbox from an existing one, forking its entire memory state (files + running processes)... Calling fork() automatically snapshots the source sandbox's current state and forks from it. You don't need to create a snapshot first.",
+      "note": "fork() operates on the live/current sandbox (auto-snapshots it in the background) without requiring the source sandbox to be stopped first; the source sandbox keeps running throughout. Private preview (Carbon generation).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Sandboxes/Environment-variables",
+      "quote": "On the new sandbox generation, you can update environment variables on a running sandbox... Other parts of the runtime spec, such as memory, cannot be changed on a running sandbox.",
+      "note": "Confirmed elsewhere: \"certain changes (like image or memory) may reset the sandbox state\" (api-reference/compute/update-sandbox) — changing memory/CPU redeploys (restarts) the sandbox rather than resizing it live.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Overview",
+      "quote": "Agents Hosting (sync mode) | Agent API that answers fast | a few seconds (maximum 100 s) | ~25ms | Custom API endpoints",
+      "note": "not offered: outside the product's scope. \"Agents Hosting\" and \"harness_api\"-style features let you deploy and expose YOUR OWN agent code (or a coding-harness hub image like Claude Code/Codex) behind a Blaxel-managed endpoint; Blaxel does not ship a first-party browser/computer-use/research task agent of its own that you call via API. computer_use/browser/desktop_control are infrastructure primitives for driving agents you bring, not a Blaxel-operated agent.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.blaxel.ai/Overview",
+      "quote": "Sandboxes resume from standby in under 25 milliseconds and automatically scale to zero after a few seconds of inactivity... your sandboxes wait on standby indefinitely when not used, eliminating cold starts without complex orchestration.",
+      "note": "The core Sandbox mode has no forced maximum active-session duration by default; sandboxes persist/standby indefinitely unless the user sets a TTL/lifecycle policy. Lower account tiers force a maximum lifetime for persistence (Tier 0: 7 days, Tier 1: 30 days, per docs.blaxel.ai/Sandboxes/Expiration and blaxel.ai/pricing quota tiers) but this caps how long a sandbox+its data may exist, not how long a single connected/active session can run. The separate Batch Jobs mode is capped at 24h max per task (docs.blaxel.ai/Overview, Agents Hosting/Batch Jobs comparison table), which does not apply to the interactive Sandbox mode this field targets.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://blaxel.ai/blog/soc-2-compliant-sandbox-providers",
+      "quote": "Each sandbox runs in a dedicated Firecracker microVM with its own kernel",
+      "note": "Firecracker microVMs do not expose nested virtualization; the upstream Firecracker security test suite (test_nv.py) asserts guests have no /dev/kvm. Blaxel docs never mention KVM/nested-virt passthrough for sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/cli-reference/commands/bl_connect_sandbox",
+      "quote": "This command opens a direct terminal connection to your sandbox, similar to SSH.",
+      "note": "No native SSH server/port on sandboxes; interactive access is via `bl connect sandbox` (CLI terminal, explicitly described as SSH-like, not SSH) or WebSocket process API. Real SSH access requires installing and running the third-party Tailscale add-on/tutorial inside the sandbox, which is not first-party SSH support.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Infrastructure/Regions",
+      "quote": "If you need to whitelist traffic from your Blaxel deployments, you can retrieve the current list of public IP addresses used by Blaxel through the Blaxel API.",
+      "note": "Those \"public IP addresses\" are Blaxel's own shared/dedicated egress (outbound) IP ranges to whitelist downstream, not a dedicated inbound public IPv4 assigned to a sandbox. Inbound access is only via per-port preview URLs (docs.blaxel.ai/Sandboxes/Preview-url), never a raw public IPv4/TCP.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Sandboxes/Overview",
+      "quote": "You are charged for memory (based on how much you allocated at sandbox creation) and storage while a sandbox is in active mode. CPU resources are allocated accordingly by Blaxel based on your selected memory allocation and are not charged separately.",
+      "note": "Sandbox/Batch Job sizing is purely memory-driven with CPU derived from it (e.g. 8 GB = 4 cores); no GPU size/option exists for sandboxes, jobs, pricing tiers, or fleet limits (default_max_gpus is null). The only GPU mention anywhere in the docs is for HuggingFace Inference Endpoint deployments proxied to Google Cloud Platform, an unrelated external-model-hosting feature, not Blaxel sandbox/VM compute.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Tutorials/Docker",
+      "quote": "If you plan to run the final image on a Blaxel sandbox, add the `--platform linux/amd64` flag when building so the image runs correctly.",
+      "note": "Sandboxes only run Linux (amd64) container images; every \"Windows\" mention in the docs refers to installing the local Blaxel CLI on a Windows workstation (or WSL), not a Windows sandbox guest OS. No Windows sandbox image exists.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Tutorials/Docker",
+      "quote": "If you plan to run the final image on a Blaxel sandbox, add the `--platform linux/amd64` flag when building so the image runs correctly.",
+      "note": "Sandboxes are Linux/amd64 Firecracker microVMs; \"Install on Mac\" sections in the docs are about running the Blaxel CLI on a macOS host machine, not a macOS guest sandbox. No macOS sandbox image is offered.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Tutorials/Docker",
+      "quote": "docker build --platform linux/amd64 -t ttl.sh/my-app:1h .",
+      "note": "Docs explicitly instruct building images with `--platform linux/amd64` for sandboxes to run correctly, and Go version checks in tutorials show `linux/amd64` as the target. No arm64 sandbox/build target is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.blaxel.ai/Infrastructure/Regions",
+      "quote": "Blaxel is a fully managed cloud platform. For regulated or enterprise customers who require \"self-hosted\" options: private network connectivity and bring-your-own-server arrangements are available; contact us to discuss your requirements.",
+      "note": "Confirms no standard/self-serve self-hosting; only a sales-negotiated BYOC/private-network arrangement for enterprise customers, matching the card's separate byoc:true, self_host:false split.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/blaxel-ai/sandbox/main/README.md",
+      "quote": "Sandbox Hub is a collection of development environment templates for creating secure, isolated micro VM environments for various application types.",
+      "note": "The MIT-licensed github.com/blaxel-ai/sandbox repo is only the Dockerfile template hub (base image, py-app, ts-app, expo, omnigent-host) for images run inside sandboxes; the Firecracker orchestration control plane, billing, proxy, and scheduler that make up the actual Blaxel platform are closed-source. SDKs/CLI/templates being open source does not make the platform itself open source.",
+      "checked": "2026-09-30"
     }
   }
 }

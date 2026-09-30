@@ -445,48 +445,48 @@
     "persistent_disk": false,
     "volumes": false,
     "auto_stop_idle": true,
-    "max_session_h": null,
+    "max_session_h": 120,
     "custom_image": true,
     "docker_inside": true,
     "nested_virt": true,
     "root": true,
     "systemd": null,
-    "browser": null,
+    "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
-    "agent_harnesses": false,
+    "agent_harnesses": true,
     "ssh": true,
     "public_ipv4": false,
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": false,
+    "static_egress_ip": true,
     "private_network": true,
     "self_host": false,
     "byoc": true,
     "open_source": false,
     "regions": null,
     "soc2": true,
-    "hipaa": null,
+    "hipaa": false,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": true,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": null,
@@ -498,7 +498,14 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "qemu-kvm",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "harness_api": false,
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -601,6 +608,225 @@
       "quote": "Each runner has its own encrypted storage volume that is created on demand and destroyed after each build.",
       "note": "No shared FS; shared state across runners only via cache API / Docker builder cache.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "qemu-kvm",
+      "source": "https://www.warpbuild.com/docs/ci/security",
+      "quote": "Each runner runs in its own virtual machine. The virtual machines are created on demand and destroyed after each build, and they are not reused.",
+      "note": "WarpBuild describes only 'virtual machine' isolation on its own bare-metal fleet (per its uptime/reliability blog post, primarily bare-metal servers with hyperscaler fallback), not a named microVM technology like Firecracker (that is a competitor, Blacksmith). Nested-virtualization docs expose /dev/kvm to Linux x64 jobs, implying a KVM-based hypervisor for the guest VMs, so 'qemu-kvm' (full VM) is the closest documented fit rather than firecracker/cloud-hypervisor, which WarpBuild never claims for itself.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://www.warpbuild.com/answers/does-byoc-support-custom-vm-images",
+      "quote": "Yes. WarpBuild BYOC runs your own VM images on AWS, GCP, and Azure once they meet the documented requirements, and a custom runner selects the image.",
+      "note": "Custom images are cloud VM images (AMI/GCE image/Azure image) selected for BYOC custom runners, not Docker/OCI images used to start the machine itself; the hosted (non-BYOC) fleet does not accept any customer-supplied image at all.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://www.warpbuild.com/pricing",
+      "quote": "CI runners are billed on a per-minute basis.",
+      "note": "not offered: outside the product's scope. WarpBuild sells ephemeral GitHub Actions CI runner VMs; a managed/real browser is not part of the product (users may install/cache Playwright browsers themselves inside a job, but WarpBuild does not provide or manage one).",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.warpbuild.com/pricing",
+      "quote": "CI runners are billed on a per-minute basis.",
+      "note": "not offered: outside the product's scope. This is a GitHub Actions CI runner product, not a browsing/scraping agent product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.warpbuild.com/pricing",
+      "quote": "CI runners are billed on a per-minute basis.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving capability is documented anywhere on warpbuild.com; the product is CI compute, not a browser/agent automation service.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://www.warpbuild.com/blog/uptime-reliability",
+      "quote": "We prioritize bare metal servers for runners whenever possible... Hyperscalers: Windows runners, ARM64 Linux runners, and Docker builders run on hyperscalers... we primarily use AWS with passive backup stacks on GCP and Azure.",
+      "note": "Runner outbound IPs come from WarpBuild's own colocation bare-metal fleet or AWS/GCP/Azure hyperscaler ranges (or the customer's own cloud account on BYOC) — ordinary datacenter/cloud IP space, not residential or mobile.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://www.warpbuild.com/docs/ci/byoc/standby-disks",
+      "quote": "A standby disk is a VM of the runner's instance type, booted once so networking and machine setup complete, then shut down. When GitHub requests a runner, WarpBuild boots one from the pool, which puts job start at roughly 15 seconds.",
+      "note": "BYOC-only feature: a pool of pre-warmed, shut-down standby VMs is automatically powered back on when a job request arrives, rather than booting cold. Not available on the hosted/non-BYOC fleet, on Windows/macOS labels, or with Spot instances.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/security",
+      "quote": "Each runner runs in its own virtual machine. The virtual machines are created on demand and destroyed after each build, and they are not reused.",
+      "note": "not offered: outside the product's scope. Runners are ephemeral, one VM per job; there is no long-running machine whose CPU/RAM could be changed live — resizing means picking a different runner label/instance type for the next job.",
+      "checked": "2026-09-30"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/mcp",
+      "quote": "WarpBuild hosts a Model Context Protocol server at https://mcp.warpbuild.com/mcp, and an MCP host connected to it can interact with the WarpBuild API to create runners, create runner images, and read what already exists.",
+      "note": "not offered: outside the product's scope. WarpBuild's MCP server/API manages CI runner infrastructure (create runners/images, read job/cost data), not a first-party API that prompts/streams/follow-ups a coding agent harness inside the sandbox. The 'agent-runner' mode only runs Anthropic's own Claude Managed Agents harness on stock runner labels; WarpBuild provides no API of its own to drive that harness.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://www.warpbuild.com/pricing",
+      "quote": "CI runners are billed on a per-minute basis.",
+      "note": "not offered: outside the product's scope. WarpBuild has no first-party browser/computer-use/research task agent of its own; it only sells GitHub Actions CI compute plus an MCP server/API for managing that CI infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://www.warpbuild.com/docs/ci/preinstalled-software",
+      "quote": "The Linux x86-64 runner images have the same tooling installed as GitHub-hosted runners, which is why actions/setup-node, actions/setup-python, actions/setup-go, and the rest resolve against preinstalled versions instead of downloading a toolchain on every job.",
+      "note": "Python ships preinstalled on Linux/macOS/Windows runner images, matching GitHub-hosted runner images.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://www.warpbuild.com/docs/ci/preinstalled-software",
+      "quote": "Node, Python, Go, Rust, Docker, the AWS CLI, and the rest of the standard inventory are present, so actions/setup-* steps resolve against preinstalled versions instead of downloading them.",
+      "note": "Node.js ships preinstalled on the runner images.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/byoc/aws/security",
+      "quote": "While runners need outbound internet access, you can tighten egress rules.",
+      "note": "Egress control is at IP/CIDR/port level via AWS security groups and Network ACLs in the customer's own BYOC VPC (card's own feature_evidence records egress_allowlist_level as 'ip'); no HTTP method/path-level egress rule engine is documented, and the hosted (non-BYOC) fleet has no documented egress controls at all.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://trust.warpbuild.com/",
+      "quote": "SOC 2 Type 2 with three Trust Services Criteria: Security, Availability, and Confidentiality.",
+      "note": "WarpBuild's own trust center, security docs, and enterprise pages advertise only SOC 2 Type 2 (plus SAML/OIDC SSO); no HIPAA-eligibility or BAA claim appears anywhere on warpbuild.com, unlike some direct competitors (e.g. Blacksmith states GDPR/HIPAA-in-progress) that the provider's own comparison pages explicitly contrast against WarpBuild's SOC-2-only posture.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://www.warpbuild.com/enterprise/data-residency-eu",
+      "quote": "WarpBuild places GitHub Actions runners in the EU two ways: a hosted EU region on the enterprise tier, or BYOC runners in your own AWS or GCP account.",
+      "note": "EU region availability is on the enterprise tier for the hosted fleet, or via BYOC in the customer's own EU cloud region; the runner instance, its disk, and the cache/artifact bucket all stay in the EU region.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": 120,
+      "source": "https://www.warpbuild.com/llms-full.txt",
+      "quote": "GitHub's own fleet stops a job at 6 hours. Registered runners get 5 days, and WarpBuild registers itself as a self-hosted runner in the Default runner group (id 1) of your organization... so a WarpBuild job runs under the 5 day ceiling rather than the 6 hour one.",
+      "note": "WarpBuild runners register with GitHub as self-hosted runners, which GitHub caps at 5 days (120 hours) of job execution, versus the 6-hour cap on GitHub-hosted runners. This is GitHub's platform ceiling that WarpBuild's registration mechanism runs under, not a WarpBuild-published SLA number of its own.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/security",
+      "quote": "Each runner has its own encrypted storage volume that is created on demand and destroyed after each build.",
+      "note": "Runners are per-job ephemeral VMs; disk does not survive job end. Only persistence primitives are the cache API (S3-backed) and on-demand snapshots (a new runner boots from a saved image, but the original disk is still destroyed).",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/security",
+      "quote": "Each runner has its own encrypted storage volume that is created on demand and destroyed after each build.",
+      "note": "No pause/resume API is documented anywhere in the docs or pricing pages; runners are created for one job and destroyed after it (job-scoped lifecycle, not pausable/resumable).",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/features/snapshot-runners",
+      "quote": "The runner always boots from the base image. Use `snapshot-save` action to capture a snapshot at the desired point in your workflow.",
+      "note": "Snapshot-runners only let a NEW runner boot from a previously saved disk image later; there is no operation that clones an existing machine into siblings.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/features/snapshot-runners",
+      "quote": "WarpBuild allows you to take snapshots of your runner VMs at any point during your workflow, enabling faster consecutive runs by reusing these snapshots.",
+      "note": "Snapshot-save happens inside the job that keeps running to completion and is then destroyed; a later, separate runner boots from the saved disk (45-60s cold boot) - not a clone of the still-running machine.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/features/snapshot-runners",
+      "quote": "The `/tmp` directory will not persist state since this directory is cleaned on reboots",
+      "note": "Snapshots documented as disk-image only; no memory/process-state capture or restore, and no fork API at all.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://www.warpbuild.com",
+      "quote": "High-performance CI/CD runners that are 2x faster and 50% cheaper than standard GitHub Actions runners.",
+      "note": "Product is GitHub Actions CI runners (job-scoped VMs), not an interactive sandbox; no VNC/RDP/streamed desktop is offered anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://www.warpbuild.com",
+      "quote": "High-performance CI/CD runners that are 2x faster and 50% cheaper than standard GitHub Actions runners.",
+      "note": "No screenshot+click driving API; product is a CI-runner fleet, outside the scope of a computer-use API.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://www.warpbuild.com/docs/ci/security",
+      "quote": "Each runner has its own encrypted storage volume that is created on demand and destroyed after each build.",
+      "note": "No attachable/shared persistent volume product; matches the existing feature_evidence for volume_attach/volume_shared already on the card.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://www.warpbuild.com/byoc/aws/networking",
+      "quote": "a security group attached to every runner instance that blocks all inbound traffic ... Inbound can be blocked entirely, because the runner agent polls outbound.",
+      "note": "Both WarpBuild Cloud and BYOC runners are documented as no-inbound by design; the only inbound path is an outbound-initiated SSH debug tunnel (Action Debugger), not an HTTPS URL to reach an app port.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://www.warpbuild.com/byoc/aws/security-checklist",
+      "quote": "Block all inbound connections. Runner agents open outbound connections and hold them, so no inbound rule is required for a job to run. Remove every inbound rule from the runner security group.",
+      "note": "Even where a BYOC runner sits in a public subnet, no public IPv4 is exposed/documented as a reachable, user-facing address - inbound is uniformly blocked, so there is no supported 'public IPv4 per machine' feature.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://www.warpbuild.com/guides/static-ip-github-actions-runners",
+      "quote": "Static egress IPs for GitHub Actions runners are a BYOC capability on AWS, GCP, and Azure. ... On WarpBuild, static IPs are a BYOC capability on AWS, GCP, and Azure, switched on per custom runner",
+      "note": "CORRECTION: this is a documented first-party feature (opt-in per BYOC custom runner; addresses are the NAT gateway/Cloud NAT elastic IPs). Unavailable on WarpBuild Cloud (non-BYOC) runners, but available overall via BYOC, so the provider-level flag should be true.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://www.warpbuild.com/blog/claude-managed-agents",
+      "quote": "WarpBuild's Linux and macOS runners can now be the self-hosted execution environment for Claude Managed Agents. ... These same runners can now be the execution environment for Claude Managed Agents.",
+      "note": "CORRECTION: WarpBuild ships a dedicated 'Agent Runners' dashboard/product that runs Anthropic's Claude Managed Agents coding-agent harness on stock WarpBuild runner VMs (any stock Linux/macOS runner is selectable for a session) - a first-party offered integration for a coding agent, matching the card's own 'agent-runner' mode.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://www.warpbuild.com/llms.txt",
+      "quote": "High-performance CI/CD runners that are 2x faster and 50% cheaper than standard GitHub Actions runners.",
+      "note": "No 'gpu' mention anywhere across the full docs/blog/guides sitemap (llms.txt, ~830 pages) or the pricing page; only CPU runner sizes (2-32 vCPU) are sold.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://www.warpbuild.com/products/enterprise",
+      "quote": "Enterprise-grade GitHub Actions runners with SOC2 compliance, BYOC deployment, SSO, and 99.9% SLA. 40% cheaper than self-hosting on Kubernetes.",
+      "note": "WarpBuild positions itself as a managed alternative TO self-hosting (BYOC still means WarpBuild's control plane manages runners in your cloud account); there is no downloadable/self-hostable WarpBuild runner-control-plane software.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://www.warpbuild.com/pricing",
+      "quote": "Pricing - GitHub Actions Runners | WarpBuild",
+      "note": "Core product is a paid, metered SaaS (per-minute billed runners, paid plans, Enterprise sales) with no published OSI license for the runner platform/control-plane; only a small support utility (\"open-source Action Debugger\") is separately called out as open source, not the core product.",
+      "checked": "2026-09-30"
     }
   }
 }

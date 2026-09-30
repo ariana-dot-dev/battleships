@@ -574,16 +574,16 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
@@ -593,7 +593,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": true,
     "isolation": "gvisor",
     "image_oci": true,
     "sandboxes_in_instance": true,
@@ -604,7 +604,12 @@
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "guest_firewall": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -726,6 +731,216 @@
       "quote": "Cloud Storage FUSE does not provide concurrency control for multiple writes (file locking) to the same file. When multiple writes try to replace a file, the last write wins and all previous writes are lost.",
       "note": "Same bucket / NFS share mounted by all instances of a service and by other services concurrently; read-write or read-only (READ_ONLY flag). NFS mounted in no-lock mode.",
       "checked": "2026-09-29"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://cloud.google.com/run/pricing",
+      "quote": "Cloud Run is a fully managed platform that lets you run your code directly on top of Google's scalable infrastructure.",
+      "note": "not offered: outside the product's scope (Cloud Run is a generic serverless container/VM hosting platform, not a browser/scraping product; no stealth/fingerprint-evasion feature is documented)",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://cloud.google.com/run/pricing",
+      "quote": "Cloud Run is a fully managed platform that lets you run your code directly on top of Google's scalable infrastructure.",
+      "note": "not offered: outside the product's scope (generic compute hosting, no CAPTCHA-solving capability documented)",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://cloud.google.com/run/docs/configuring/static-outbound-ip",
+      "quote": "By default, a Cloud Run service connects to external endpoints on the internet using a dynamic IP address pool. ... configure your Cloud Run service to route requests using a static IP address.",
+      "note": "Default egress is a dynamic pool of Google datacenter IPs; a static datacenter IP is obtainable via Direct VPC egress/Serverless VPC Access + Cloud NAT (matches the card's static_egress_ip:true).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://cloud.google.com/run/docs/configuring/services/cpu",
+      "quote": "Any configuration change leads to the creation of a new revision.",
+      "note": "Changing vCPU/RAM limits deploys a new revision; existing running instances are not resized in place, they are replaced by new instances of the new revision.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://cloud.google.com/run/docs/ai-agents",
+      "quote": "Examples of agent frameworks include Agent Development Kit (ADK) , Dify , LangGraph , and n8n .",
+      "note": "not offered: outside the product's scope. Cloud Run hosts agents you build (ADK, A2A, n8n, etc.) and adds Agent Identity/Registry, but has no first-party API that drives Google's own browser/computer-use/research agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://github.com/GoogleCloudPlatform/cloud-run-mcp",
+      "quote": "Cloud Run MCP server and Gemini CLI extension",
+      "note": "Google (GoogleCloudPlatform org) ships an official MCP server that deploys and manages Cloud Run services (deploy from source/container, list services/projects, get logs) via Node.js or Docker, usable as a local or remote MCP server.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://cloud.google.com/run/docs/deploying-source-code",
+      "quote": "In addition to sources with a Dockerfile, deploying from source supports the following languages using Google Cloud's buildpacks: ... Python | Deploy a Python service | Configure Python buildpacks",
+      "note": "First-party buildpacks auto-detect and run Python source with no Dockerfile required.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://cloud.google.com/run/docs/deploying-source-code",
+      "quote": "In addition to sources with a Dockerfile, deploying from source supports the following languages using Google Cloud's buildpacks: ... Node.js | Deploy a Node.js service | Configure Node.js buildpacks",
+      "note": "First-party buildpacks auto-detect and run Node.js source with no Dockerfile required.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc",
+      "quote": "You can also add network tags directly on Cloud Run service revisions for more granular network security, such as applying VPC firewall rules.",
+      "note": "Outbound restriction via Direct VPC egress is limited to VPC firewall egress rules (IP/CIDR/protocol/port, targeted by network tag); no documented HTTP method/path-level egress rule capability.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://cloud.google.com/run/pricing",
+      "quote": "isolation: gvisor",
+      "note": "derived: the modeled isolation is gVisor (application-kernel sandbox intercepting syscalls), not a full VM/microVM, so in-guest nftables/iptables (which need netfilter/netlink kernel support) are not expected to work reliably even though root is available inside the container.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/container-contract",
+      "quote": "It is an in-memory file system, so writing to it uses the instance's memory. Data written to the file system doesn't persist when the instance stops.",
+      "note": "No contradiction: the pause/resume-like feature is actually stop/start of Cloud Run instances, and its own docs say 'Stopping an instance terminates the active container runtime, deleting all in-memory files and unpersisted system state.' Volumes (Cloud Storage FUSE, NFS/Filestore, in-memory) are external network mounts, not a local persistent disk attached to the machine.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.cloud.google.com/run/docs/instances/create-and-manage-instances",
+      "quote": "Stopping an instance terminates the active container runtime, deleting all in-memory files and unpersisted system state.",
+      "note": "No filesystem or memory snapshot/checkpoint mechanism for Cloud Run services, jobs, worker pools or instances; card's own feature_evidence already found snapshot_auto=false and snapshot_on_demand=false with equivalent quotes from the same docs plus /run/docs/code-execution (nested 'sandbox tar' export is a container-internal dev tool, not a platform snapshot feature).",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/instances/create-and-manage-instances",
+      "quote": "Caution: Stopping an instance terminates the active container runtime, deleting all in-memory files and unpersisted system state. If you need to preserve your files and data, save them to an external storage before stopping.",
+      "note": "Cloud Run instances support stop/start, but stop wipes in-memory files and process state rather than pausing and later resuming it, so it does not meet the 'pause/resume keeps the filesystem/state' definition. Services/jobs/worker pools only scale to zero, with no pause concept at all.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/instances/create-and-manage-instances",
+      "quote": "Stopping an instance terminates the active container runtime, deleting all in-memory files and unpersisted system state.",
+      "note": "No API/CLI to clone a Cloud Run service, job, worker pool or instance into a new running machine with its state; new revisions/instances always start from the container image, not a copy of another machine's live state.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/instances/create-and-manage-instances",
+      "quote": "Stopping an instance terminates the active container runtime, deleting all in-memory files and unpersisted system state.",
+      "note": "Same as fork: there is no clone-while-running capability documented anywhere for Cloud Run.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/instances/create-and-manage-instances",
+      "quote": "Stopping an instance terminates the active container runtime, deleting all in-memory files and unpersisted system state.",
+      "note": "No memory snapshotting at all (see snapshot=none), so a memory-including fork is impossible.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/container-contract",
+      "quote": "Cloud Run doesn't support privileged containers . Consequently, Cloud Run doesn't support binaries that use setuid flags for non-root users, such as gcsfuse or sudo, and might fail due to insufficient permissions.",
+      "note": "Running a Docker/container daemon inside the gVisor-sandboxed container needs privileged mode (or setuid helpers), which the docs explicitly say is unsupported.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/container-contract",
+      "quote": "You do not have write access to most of the files and directories in /dev , /proc , and /sys . There is no Cloud Run equivalent to Docker's --privileged mode.",
+      "note": "No /dev/kvm access is documented or possible without privileged mode, so nested virtualization is not available; consistent with the gVisor sandbox isolation model.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/overview/what-is-cloud-run",
+      "quote": "Cloud Run is a fully managed application platform for running your code, function, or container on top of Google's highly scalable infrastructure.",
+      "note": "not offered: outside the product's scope. Cloud Run is a fully managed serverless platform (deploy container images, no machine access); /run/docs/ssh does not exist (404) and no SSH-into-instance feature is documented anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/browser-automation",
+      "quote": "Build automation tools or run a full desktop operating system (OS) in your Cloud Run container to allow AI agents to browse and extract information from the web ... Implement a full desktop OS in your Cloud Run container for complex processes ... install the standard Chromium browser on this desktop.",
+      "note": "Cloud Run gives generic WebSocket streaming support and a how-to guide for customers to build their own desktop-OS container image; it does not itself provide a managed desktop/VNC product, so this is a DIY recipe rather than a first-party desktop feature.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/browser-automation",
+      "quote": "To let your AI agent navigate the web, install Chromium in your Cloud Run container, and grant the necessary permissions for the agent to access Chromium.",
+      "note": "No browser is preinstalled/managed by Cloud Run; the docs explicitly instruct the customer to install Chromium themselves inside their own container image.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/browser-automation",
+      "quote": "The agent controls actions like mouse clicks and retrieves the results as text or pixel data in the form of a screenshot.",
+      "note": "This describes a pattern the customer implements themselves via the Chrome DevTools Protocol inside their own container; Cloud Run does not offer a first-party screenshot+click computer-use API.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/securing/ingress",
+      "quote": "Default run.app URLs, which you can disable Any configured domain mapping Any configured External Application Load Balancer or Internal Application Load Balancer",
+      "note": "Cloud Run services/instances are reached only via Google-managed run.app HTTPS URLs, custom domains, or a load balancer -- never a dedicated public IPv4 address on the instance itself.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/ai-agents",
+      "quote": "Examples of agent frameworks include Agent Development Kit (ADK) , Dify , LangGraph , and n8n .",
+      "note": "Cloud Run documents frameworks you can deploy yourself (ADK, Dify, LangGraph, n8n) but ships no preinstalled coding-agent-harness templates (Claude Code, Codex, OpenCode, etc.).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/container-contract",
+      "quote": "Executables in the container image must be compiled for Linux 64-bit. Cloud Run specifically supports the Linux x86_64 ABI format.",
+      "note": "not offered: outside the product's scope. Cloud Run only runs Linux containers.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/container-contract",
+      "quote": "Executables in the container image must be compiled for Linux 64-bit. Cloud Run specifically supports the Linux x86_64 ABI format.",
+      "note": "not offered: outside the product's scope. Linux-container-only platform.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/container-contract",
+      "quote": "If deploying a multi-architecture image , the manifest list must include linux/amd64 .",
+      "note": "Cloud Run requires an amd64 (x86_64) image; no arm64 instance type is offered.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/overview/what-is-cloud-run",
+      "quote": "Cloud Run is a fully managed application platform for running your code, function, or container on top of Google's highly scalable infrastructure.",
+      "note": "not offered: outside the product's scope. Cloud Run is a fully managed GCP service; there is no way to run the Cloud Run control plane on your own infrastructure (the open-source Knative project it is based on is a separate thing you'd self-host yourself, not 'Cloud Run').",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/overview/what-is-cloud-run",
+      "quote": "Cloud Run is a fully managed application platform for running your code, function, or container on top of Google's highly scalable infrastructure.",
+      "note": "not offered: outside the product's scope. Cloud Run only runs inside Google Cloud projects/regions; it is not deployed into a customer's own AWS/Azure/on-prem account.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.cloud.google.com/run/docs/overview/what-is-cloud-run",
+      "quote": "Cloud Run is a fully managed application platform for running your code, function, or container on top of Google's highly scalable infrastructure.",
+      "note": "not offered: outside the product's scope. Cloud Run is a proprietary managed GCP service, not an OSI-licensed product (distinct from the Knative OSS project it builds on).",
+      "checked": "2026-09-30"
     }
   }
 }

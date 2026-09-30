@@ -250,7 +250,7 @@
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": false,
-    "docker_inside": null,
+    "docker_inside": true,
     "nested_virt": true,
     "root": true,
     "systemd": false,
@@ -273,11 +273,11 @@
     "regions": [
       "eu"
     ],
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
-    "lang_python": null,
-    "lang_node": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": true,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -285,7 +285,7 @@
     "credential_injection": false,
     "egress_http_rules": false,
     "wake_on_request": false,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": false,
@@ -295,7 +295,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
     "harness_api": false,
@@ -303,7 +303,14 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "bare-metal",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -402,10 +409,10 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
+      "source": "https://www.scaleway.com/en/developers/api/apple-silicon/",
       "quote": null,
-      "note": "No credential-injecting proxy for Mac minis. Secrets live on the machine (Scaleway Secret Manager exists as a separate store you fetch from, not a proxy).",
-      "checked": "2026-09-29"
+      "note": "No credential-injecting proxy for Mac minis; Scaleway Secret Manager is a separate store you fetch from yourself, not an injecting proxy in front of the sandbox.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": false,
@@ -420,6 +427,230 @@
       "quote": "Scaleway File Storage is designed to be used in conjunction with Scaleway Instances and Kubernetes Kapsule.",
       "note": "No first-party shared filesystem for Mac minis; DIY via Object Storage / SMB / macFUSE.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "bare-metal",
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "You don't have access to the physical machine, thus no access to macOS recovery.",
+      "note": "Each server is a whole physical Mac mini assigned to one customer account (not a shared/virtualized macOS instance); the API's own docs describe creating/deleting a physical server.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/quickstart/",
+      "quote": "Select an operating system version. If you choose a macOS version different from the default one, expect a delay of approximately 1 hour before the Mac mini becomes available.",
+      "note": "not offered: outside the product's scope. Only Scaleway/Apple-provided OS choices (macOS versions, Dev OS, Asahi Linux) can be selected at creation; there is no custom Docker/OCI image or BYOI mechanism (API has no image endpoint, only reinstall with a chosen OS version).",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/how-to/setup-vm-with-utm/",
+      "quote": "UTM is a free and open-source software that leverages Apple's Hypervisor framework and QEMU to provide virtualization capabilities.",
+      "note": "derived: root/sudo access plus working nested virtualization (Apple's Hypervisor framework, used for UTM VMs) on bare-metal Apple silicon lets a user install Docker Desktop or Colima (both use the same Virtualization framework) via Homebrew; not separately documented by Scaleway.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/quickstart/",
+      "quote": "Apple silicon as-a-Service is tailored for developing, building, testing, and signing applications for Apple devices such as iPhones, iPads, Mac computers, and more.",
+      "note": "not offered: outside the product's scope. This is a bare-metal Mac mini for building/CI, not a browser-automation or scraping product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/quickstart/",
+      "quote": "Apple silicon as-a-Service is tailored for developing, building, testing, and signing applications for Apple devices such as iPhones, iPads, Mac computers, and more.",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "Each Mac mini can have one IPv4 address and one IPv6 subnet (/128).",
+      "note": "Datacenter IP in a Scaleway facility (Paris), fixed to the machine for as long as it is leased (card already marks static_egress_ip=true).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/pricing/apple-silicon/",
+      "quote": "Whole physical Mac mini per server.",
+      "note": "Each server is one physical Mac mini of a fixed shape (M1-M, M2-M, M4-S, etc.); changing CPU/RAM requires deleting and recreating the server with a different type, not a live resize of a running machine.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/developers/api/apple-silicon/",
+      "quote": "curl -X POST ... \"https://api.scaleway.com/apple-silicon/v1alpha1/zones/$ZONE/servers\"",
+      "note": "The Apple silicon API only manages server lifecycle (create/delete/reboot/reinstall/private-network); there is no first-party agent (browser/computer-use/research) API of any kind.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/developers/api/apple-silicon/",
+      "quote": "curl -X POST ... \"https://api.scaleway.com/apple-silicon/v1alpha1/zones/$ZONE/servers\"",
+      "note": "No MCP server is documented for Apple silicon / Bare Metal server management; Scaleway's public docs and API reference for this product only expose a REST API and CLI/Terraform wrappers.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/reference-content/scaleway-dev-os/",
+      "quote": "Open-source licenses (MIT, GPL, Apache, etc.) for tools such as Homebrew, Node.js, and Python",
+      "note": "A default Standard macOS install ships bare (Xcode, MacPorts, fail2ban, scw-agent only, per the FAQ) and does not include Python/Node out of the box; but Scaleway's own selectable Dev OS image (mirroring the GitHub Actions macOS-15 runner) comes pre-installed with Python and multiple language runtimes.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/reference-content/scaleway-dev-os/",
+      "quote": "Open-source licenses (MIT, GPL, Apache, etc.) for tools such as Homebrew, Node.js, and Python",
+      "note": "Same as lang_python: not in the bare Standard macOS install, but included in Scaleway's selectable Dev OS image (GitHub Actions macOS-15 runner parity, which ships Node.js).",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://security.scaleway.com/",
+      "quote": "Compliance GDPR HDS ISO/IEC 27001 ISO/IEC 27001 SoA CSA STAR Level 1",
+      "note": "Scaleway's own Trust Center lists its compliance certifications explicitly (GDPR, HDS, ISO/IEC 27001, ISO/IEC 27001 SoA, CSA STAR Level 1); SOC 2 is not among them.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://security.scaleway.com/",
+      "quote": "Compliance GDPR HDS ISO/IEC 27001 ISO/IEC 27001 SoA CSA STAR Level 1",
+      "note": "not offered: outside the product's scope. HIPAA/BAA is not listed among Scaleway's compliance certifications; Scaleway is a French/EU-based provider whose health-data certification is the French HDS scheme, not the US HIPAA framework.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": true,
+      "source": "https://www.scaleway.com/en/docs/iam/user-provisioning/set-up-identity-federation/",
+      "quote": "Scaleway supports Identity Federation to provide your teams with secure access to their accounts via Single Sign-On (SSO). Depending on your organization's requirements, you can use either built-in OAuth2 providers or configure SAML for centralized identity management.",
+      "note": "Account/organization-level SSO (OAuth2 by default, SAML with setup) applies across all Scaleway products including Apple silicon.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "Yes, you pay for your Mac mini as long as it is assigned to your account. You must explicitly delete it in the console or via the CLI to stop charges.",
+      "note": "A Mac mini runs indefinitely until the customer deletes it; the only limit is a 24-hour *minimum* lease before deletion is allowed, not a maximum session length.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "You can back up your Mac mini using a backup solution of your choice. Examples include: Restic for command-line backups. Arq Backup for graphical interface backups. Both solutions allow you to store backups on our Object Storage.",
+      "note": "No provider-side snapshot/image endpoint for Apple silicon (Go SDK applesilicon v1alpha1 has only create/update/delete/reboot/reinstall/private-network/runner); backup is DIY guest-side software to Object Storage.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "Yes, you pay for your Mac mini as long as it is assigned to your account. You must explicitly delete it in the console or via the CLI to stop charges.",
+      "note": "No stop/pause state exists: billing continues regardless of power state, only full deletion stops charges. Apple silicon API exposes no pause/suspend action.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/developers/api/apple-silicon/",
+      "quote": null,
+      "note": "API manages only the bare-metal Mac lifecycle (create/update/delete/reboot/reinstall/private-network/runner). No fork/clone-from-running or image-based instantiation endpoint exists; each server is a dedicated physical Mac.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/developers/api/apple-silicon/",
+      "quote": null,
+      "note": "Same API surface as fork: no live-fork-from-running-instance capability; whole physical Mac minis cannot be forked.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/developers/api/apple-silicon/",
+      "quote": null,
+      "note": "No memory-snapshot or VM-fork feature for bare-metal Apple silicon; the product has no snapshot/image endpoint at all.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "The pre-installed tools on MacOS include: The latest Xcode version compatible with the OS, MacPorts for package management, fail2ban for VNC access filtering, scw-agent...",
+      "note": "Access is plain VNC/SSH to a bare Mac mini; there is no first-party computer-use/agent-control API (screenshot+click action loop) offered on top of it.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "To reinstall your Mac mini... you will be prompted to choose the macOS version for the reinstallation process... Switching between OS families during reinstallation is not supported. You cannot reinstall macOS over Asahi Linux, or Asahi Linux over macOS.",
+      "note": "Reinstall only lets you pick a stock macOS version or Asahi Linux; there is no upload-your-own-image / custom OS image mechanism.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "Yes, you pay for your Mac mini as long as it is assigned to your account. You must explicitly delete it in the console or via the CLI to stop charges.",
+      "note": "No serverless/wake-on-request model; the Mac stays allocated (and billed) whether powered on or off until explicitly deleted.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "Yes, you pay for your Mac mini as long as it is assigned to your account. You must explicitly delete it in the console or via the CLI to stop charges.",
+      "note": "No idle auto-stop/auto-delete feature; billing runs continuously until manual deletion regardless of activity.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/block-storage/faq/",
+      "quote": "Block Storage volumes are compatible with Scaleway Instances, Managed Dabatase for PostgreSQL and MySQL, and Kubernetes Kapsule clusters.",
+      "note": "Block Storage explicitly lists compatible products and Apple silicon is not one of them; storage is the Mac mini's fixed internal SSD only.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/ipam/reference-content/public-connectivity-best-practices/",
+      "quote": "For some products, e.g. Apple silicon, public connectivity cannot be disabled at any stage",
+      "note": "The Mac mini gets a raw public IPv4/IPv6 with no managed ingress/load-balancer/HTTPS-termination layer; any HTTPS endpoint would have to be self-run on the guest OS, so there is no first-party inbound_https feature.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/developers/api/apple-silicon/",
+      "quote": null,
+      "note": "API manages the bare-metal Mac lifecycle only (servers, OS, commitment, bandwidth, Private Networks, CI runners via Dev OS); no agent-harness or exec/action API.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/pricing/apple-silicon/",
+      "quote": "M1-M: M1 8-core, 8 GB, 256 GB (EUR 0.11/h) ... M4-XL: M4 Pro 14-core, 64 GB, 2.05 TB (EUR 0.49/h)",
+      "note": "Product is a fixed lineup of Mac mini shapes (Apple M1/M2/M4 SoC only); no discrete/add-on GPU option is sold or documented for this product, unlike Scaleway's separate NVIDIA GPU Instances line.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/docs/apple-silicon/faq/",
+      "quote": "you will be prompted to choose the macOS version for the reinstallation process... You cannot reinstall macOS over Asahi Linux, or Asahi Linux over macOS.",
+      "note": "Reinstall OS choices are limited to macOS versions or Asahi Linux; Windows is not an offered OS for Apple silicon Mac minis (Apple hardware/licensing does not support Windows on Apple Silicon here).",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/pricing/apple-silicon/",
+      "quote": "M1-M: M1 8-core, 8 GB, 256 GB (EUR 0.11/h)",
+      "note": "This is a hosted rental of Scaleway-owned physical Mac minis in Scaleway's own datacenter (Paris); there is no self-hosted/on-prem deployment option for this product.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/pricing/apple-silicon/",
+      "quote": "M1-M: M1 8-core, 8 GB, 256 GB (EUR 0.11/h)",
+      "note": "Bare-metal Mac minis are rented only in Scaleway's own facilities (Paris AZs); there is no bring-your-own-cloud/deploy-in-your-account model.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://www.scaleway.com/en/developers/api/apple-silicon/",
+      "quote": null,
+      "note": "Apple silicon is a proprietary managed cloud offering (closed API/console for a commercial rental service); no open-source release of the platform itself.",
+      "checked": "2026-09-30"
     }
   }
 }

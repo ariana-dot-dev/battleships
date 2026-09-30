@@ -98,14 +98,14 @@
     "linux": null,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "snapshot": "fs",
     "pause_resume": true,
     "fork": false,
     "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": false,
     "docker_inside": false,
@@ -128,9 +128,9 @@
     "self_host": false,
     "byoc": false,
     "open_source": false,
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
     "gpu_types": [],
     "regions": [],
     "lang_python": true,
@@ -148,12 +148,12 @@
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
     "mcp_server": false,
-    "snapshot_on_demand": false,
+    "snapshot_on_demand": true,
     "harness_api": false,
     "secret_proxy": false,
     "volume_attach": false,
@@ -164,7 +164,8 @@
     "snapshot_auto": false,
     "own_agent_api": false,
     "ingress_rules": false,
-    "guest_firewall": false
+    "guest_firewall": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -209,11 +210,12 @@
   },
   "feature_evidence": {
     "snapshot_on_demand": {
-      "value": false,
-      "source": "https://www.tryisle.com/docs/rest",
-      "quote": "Save in the desktop application before checkpointing. KiCad expects /home/user/work/project.kicad_pro with its saved schematic/PCB and local assets in that workspace. FreeCAD expects /home/user/work/project.FCStd. In-memory edits are not captured.",
-      "note": "Only application-artifact checkpoints exist (sandbox.checkpoint(): zip of the saved project workspace, max 256 MiB; recover() restores it into the same environment and restarts the app; downloadable). No machine/VM snapshot, no memory, no booting new environments from a checkpoint in the full REST reference.",
-      "checked": "2026-09-29"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://www.tryisle.com/llms-full.txt",
+      "quote": "POST /sandboxes/{id}/checkpoints, JSON {\"action\":\"checkpoint\"} or {}: local checkpoint metadata plus persisted and persistence_reason.",
+      "note": "sandbox.checkpoint() / POST .../checkpoints lets the caller trigger a checkpoint of the current application state via API at any time, which is exactly an on-demand snapshot (scoped to the saved project workspace, not a full VM memory snapshot, but still on-demand). This resolves the card's own flagged contradiction: snapshot type is 'fs' and pause_resume is true, yet snapshot_on_demand was false. Correct value is true.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": false,
@@ -437,6 +439,76 @@
       "source": "https://www.tryisle.com/",
       "quote": "arc-cua",
       "note": "The only public GitHub link from the site (github.com/shhivv/arc-cua) is a linked project/example repo, not the core Isle sandbox product; no OSI license is claimed for the core service.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://www.tryisle.com/",
+      "quote": "5 environment-hours/month 30 minute environment runtime 1 concurrent environment ... 100 environment-hours/month No per-session runtime cap 5 concurrent environments",
+      "note": "Only a hard per-session runtime cap (Free plan, 30 min) and an explicit sandbox.stop()/resume() API are documented; no idle-detection auto-stop behavior is described for any plan.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://www.tryisle.com/",
+      "quote": "Managed desktop environments for computer-use agents, with guardrails, application monitoring, and artifact checkpoints built in.",
+      "note": "not offered: outside the product's scope. Isle offers only two fixed application environments (KiCad, FreeCAD) with no customer-selectable machine/CPU architecture anywhere in the docs, SDK, or pricing pages.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://www.tryisle.com/",
+      "quote": "ENTERPRISE Custom tailored to your workload Unlimited environment-hours Unlimited concurrency Custom application environments Dedicated support SLA and uptime guarantees",
+      "note": "No SOC 2 attestation is mentioned anywhere on the site, docs, or the Enterprise tier's feature list (which does list 'SLA and uptime guarantees' but nothing about compliance certifications). No trust/security/compliance page exists (tryisle.com/security, /trust, /compliance all 404).",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://www.tryisle.com/",
+      "quote": "ENTERPRISE Custom tailored to your workload Unlimited environment-hours Unlimited concurrency Custom application environments Dedicated support SLA and uptime guarantees",
+      "note": "No HIPAA/BAA mention anywhere on the site, docs, or Enterprise tier feature list; no security/compliance page exists (404s at /security, /trust, /compliance).",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://www.tryisle.com/docs",
+      "quote": "Set your API key: export ISLE_API_KEY=isle_...",
+      "note": "Authentication throughout the docs and REST reference is a single bearer API key created at tryisle.com/api-keys; no SAML/OIDC or team SSO login is documented anywhere, including on the Enterprise tier's feature list.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://www.tryisle.com/",
+      "quote": "ENTERPRISE Custom tailored to your workload Unlimited environment-hours Unlimited concurrency Custom application environments Dedicated support SLA and uptime guarantees",
+      "note": "No regions or region selection are mentioned anywhere on the site, docs, or REST reference (card's own features.regions is empty); there is no documented way to choose or pin a region, EU or otherwise.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://www.tryisle.com/",
+      "quote": "100 environment-hours/month No per-session runtime cap 5 concurrent environments KiCad and FreeCAD Priority support",
+      "note": "Free plan is capped at 30 minutes/session, but the paid Developer plan (and by extension Enterprise) explicitly has 'No per-session runtime cap', so a session can run until stopped or the monthly environment-hour allowance is exhausted.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://www.tryisle.com/llms-full.txt",
+      "quote": "Isle provides managed sandbox environments running real desktop applications (KiCad and FreeCAD) that AI agents can control via screenshots, mouse, keyboard, and file transfer.",
+      "note": "Environment types are only 'kicad' and 'freecad' (isle.sandboxes.create(environment) accepts only those two); there is no browser environment or managed browser product. 'use your own backend for browser integrations' confirms no first-party browser is offered.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://www.tryisle.com/llms-full.txt",
+      "quote": "`environment` (str): Environment type (`\"kicad\"` or `\"freecad\"`).",
+      "note": "Sandbox creation only accepts the two fixed native application environments (KiCad, FreeCAD); there is no way to supply a custom Docker/OCI or other custom image.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://www.tryisle.com/llms-full.txt",
+      "quote": "An Isle MCP connector is not included.",
+      "note": "Explicit statement that Isle does not ship an MCP server/connector for controlling its sandboxes.",
       "checked": "2026-09-30"
     }
   }

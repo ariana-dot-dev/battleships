@@ -322,8 +322,8 @@
     "auto_stop_idle": true,
     "max_session_h": 2,
     "custom_image": false,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": true,
     "root": null,
     "systemd": false,
     "browser": true,
@@ -336,26 +336,26 @@
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": true,
     "private_network": false,
     "self_host": false,
     "byoc": false,
     "open_source": false,
     "regions": null,
     "soc2": true,
-    "hipaa": null,
+    "hipaa": false,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
@@ -365,7 +365,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
     "harness_api": false,
@@ -373,7 +373,13 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "apple-vm",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -473,6 +479,244 @@
       "quote": "Each workflow has its own cache.",
       "note": "No shared filesystem between concurrent build VMs.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "apple-vm",
+      "source": "https://docs.codemagic.io/knowledge-testing/testing-android/",
+      "quote": "Due to limitations by Apple silicon, the Apple Virtualization API doesn't support nested virtualization required for Android emulators.",
+      "note": "Card model is macOS CI (category: macos). macOS build machines are Apple silicon Mac minis/Studios isolated via Apple's Virtualization Framework (apple-vm); Linux/Windows minutes run on standard cloud VMs.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://codemagic.io/pricing/",
+      "quote": "special requirements such as an NDA, DPA, dedicated hosts, custom base images, or other account management services",
+      "note": "Custom base images exist only as a bespoke Enterprise/sales negotiation, not a self-serve Docker/OCI image feature; format is not documented as OCI.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.codemagic.io/specs/versions-linux/",
+      "quote": "docker `29.2.1`",
+      "note": "Docker is pre-installed and usable inside Linux build machines (not listed on macOS/Windows tool lists).",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": true,
+      "source": "https://docs.codemagic.io/knowledge-testing/testing-android/",
+      "quote": "If you are planning to run instrumentation tests with Android emulators, it is advised to use Linux instances. Please note that Android emulators are not available on macOS M2 VMs due to the Apple Virtualization Framework not supporting nested virtualization.",
+      "note": "derived: Android emulators (hardware-accelerated) run on Linux build machines, implying KVM/nested virtualization is available there, unlike Apple silicon macOS machines which explicitly lack it.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://codemagic.io/pricing/",
+      "quote": "Boost your mobile app development with continuous integration and delivery. Replace manual intervention and build, test and deliver mobile apps 20% faster with CI/CD for mobile",
+      "note": "not offered: outside the product's scope (mobile CI/CD build platform, not a browser/scraping product)",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://codemagic.io/pricing/",
+      "quote": "Boost your mobile app development with continuous integration and delivery. Replace manual intervention and build, test and deliver mobile apps 20% faster with CI/CD for mobile",
+      "note": "not offered: outside the product's scope (mobile CI/CD build platform, not a browser automation product)",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://codemagic.io/api/v3/meta",
+      "quote": "address_prefixes: 34.74.234.56/32, 35.185.76.207/32, 38.22.7.112/29, 66.185.17.80/29, 66.185.18.0/29, 162.253.134.16/29, 207.254.42.240/29",
+      "note": "Codemagic publishes a fixed, documented set of datacenter IP ranges that build machines use to reach customer git repos, for firewall allowlisting; shared across customers, not dedicated per-account.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "At the beginning of each build, your source code is cloned to a new virtual machine instance where the build is run.",
+      "note": "not offered: outside the product's scope. Codemagic provisions a fresh ephemeral VM per triggered build rather than waking a stopped/sleeping persistent machine.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.codemagic.io/knowledge-codemagic/machine-type/",
+      "quote": "To switch between build machines, instance_type needs to be configured when working with codemagic.yaml",
+      "note": "Machine/instance type is chosen before a build starts via config; no documented API to change CPU/RAM of a running build machine.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.codemagic.io/troubleshooting/codemagic-init/",
+      "quote": "codemagic-init is a CLI tool that brings Codemagic knowledge directly into AI agents running locally on a developer's machine.",
+      "note": "Codemagic's AI tooling only equips third-party local coding agents with Codemagic knowledge/skills; there is no first-party API driving a Codemagic-owned browser/computer-use/research agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://github.com/orgs/codemagic-ci-cd/repositories",
+      "quote": "codemagic-init, codemagic-skills, codemagic-docs, cli-tools … (repository list)",
+      "note": "No MCP server repo/product found in Codemagic's docs, site, or GitHub org (codemagic-ci-cd).",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.codemagic.io/specs/versions-linux/",
+      "quote": "python `3.12.5`",
+      "note": "Python is preinstalled on Linux, macOS (python/python3 3.12.7), and Windows (python 3.9.6 via pyenv-win) build machines.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.codemagic.io/specs/versions-linux/",
+      "quote": "node `22.14.0`",
+      "note": "Node.js is preinstalled on Linux, macOS (node 24.21.0), and Windows (node 20.12.2) build machines.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://codemagic.io/pricing/",
+      "quote": "A Virtual Private Cloud (VPC) of dedicated Mac mini M4 or Mac Studio M4 Max hosts can be set up for your organization.",
+      "note": "No self-serve outbound allow/deny-list or no-internet-mode feature is documented; only a bespoke Enterprise dedicated-host VPC option exists, with no published egress-control API.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://codemagic.io/pricing/",
+      "quote": "A Virtual Private Cloud (VPC) of dedicated Mac mini M4 or Mac Studio M4 Max hosts can be set up for your organization.",
+      "note": "not offered: no HTTP method/path-level egress rules documented anywhere in Codemagic's docs.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://docs.codemagic.io/getting-started/adding-apps/",
+      "quote": "The following IP addresses must be allowed through the firewall (whitelisted)",
+      "note": "Codemagic publishes a fixed set of IP address ranges (via https://codemagic.io/api/v3/meta) that its build machines use for outbound repo access, for customers to allowlist on their private repos/firewalls; shared pool rather than a per-account dedicated IP.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://codemagic.io/pricing/",
+      "quote": "Codemagic is SOC 2 Type II audited and the report is available on request.",
+      "note": "not offered: no HIPAA-eligibility or BAA is mentioned anywhere in Codemagic's docs/pricing/security pages; only SOC 2 Type II is documented.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "At the beginning of each build, your source code is cloned to a new virtual machine instance where the build is run. It is destroyed immediately after the build has completed, leaving no trace of your source code or secret variables.",
+      "note": "Build VM is fresh per build and destroyed after; only per-workflow dependency caches (not a persistent disk) survive between builds. Default is delete-on-completion, no opt-in persistent disk exists.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "It is destroyed immediately after the build has completed, leaving no trace of your source code or secret variables.",
+      "note": "No snapshot/checkpoint or custom-image-from-VM feature documented anywhere in the docs; only a dependency cache API (Caches API) exists, which is not a machine snapshot.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "It is destroyed immediately after the build has completed",
+      "note": "Build VMs are ephemeral per-build; there is no pause/resume of a build machine documented. SSH/VNC debug access stays open only 10 minutes after a build finishes, then the machine is gone.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "At the beginning of each build, your source code is cloned to a new virtual machine instance where the build is run.",
+      "note": "New builds start from a fresh stock VM image, not a clone of a user's existing running/stopped machine. No fork feature documented.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "It is destroyed immediately after the build has completed, leaving no trace of your source code or secret variables.",
+      "note": "No mechanism to clone a running build machine; machines are single-use and destroyed after the build.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "It is destroyed immediately after the build has completed",
+      "note": "No memory-state snapshot/fork capability documented anywhere in Codemagic's docs; consistent with an ephemeral CI build VM product.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "Codemagic is a cloud-based Continuous Integration/Continuous Delivery (CI/CD) product specifically designed for mobile developers building apps with Flutter, React Native, native iOS, native Android, Unity, Kotlin Multiplatform Mobile, .NET MAUI and Ionic.",
+      "note": "Codemagic is a mobile CI/CD build service. It offers VNC/RDP for human debugging of build VMs, but there is no screenshot+click driving API for an AI agent (\"computer use\"); plainly outside what the product is.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "All the virtual machines come preloaded with the most common software you would need for building mobile apps such as Xcode, Android Studio, and a variety of CLI tools and frameworks.",
+      "note": "Machines run Codemagic's own fixed images (Linux/macOS/Windows specs pages); no user-supplied custom VM/container image feature is documented for standard plans.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.codemagic.io/yaml-basic-configuration/yaml-getting-started/",
+      "quote": "cache: defines the paths to be cached and stored on Codemagic.",
+      "note": "Only per-workflow build caches (3 GB Free / 10 GB paid) exist; no attachable/persistent volume feature documented.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.codemagic.io/troubleshooting/accessing-builder-machine-via-ssh/",
+      "quote": "All virtual machines are located within the private network. In order to allow users to connect to the virtual machine, Codemagic allows a temporary SSH or VNC/RDP access through the public gateway using a unique SSH key or user credentials that are generated before each build.",
+      "note": "Only temporary SSH/VNC/RDP debug access through a gateway is offered, manually enabled per build and revoked afterward; no HTTPS ingress to ports on the build machine is documented.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.codemagic.io/troubleshooting/accessing-builder-machine-via-ssh/",
+      "quote": "All virtual machines are located within the private network.",
+      "note": "Build VMs sit in a private network behind a gateway; no dedicated/public IPv4 per machine is documented (SSH/VNC access uses a gateway host/port, not the VM's own public IP).",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.codemagic.io/troubleshooting/codemagic-init/",
+      "quote": "codemagic-init is a CLI tool that brings Codemagic knowledge directly into AI agents running locally on a developer's machine.",
+      "note": "Codemagic's AI tooling helps a locally-run coding agent write codemagic.yaml; it does not preinstall/offer coding-agent harnesses (Claude Code, Codex, OpenCode, etc.) inside the build sandbox itself.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.codemagic.io/specs/machine-type/",
+      "quote": "Codemagic's infrastructure is centered around the powerful Apple silicon M2 (arm64) machines... Linux and Windows machines are also available for all customers.",
+      "note": "Only CPU-based Mac mini (Apple silicon), Linux, and Windows build machines are listed across the specs pages; no GPU instance type is offered anywhere in the docs or pricing.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "Codemagic's engineers continuously monitor system availability and take care of updating software like Xcode and checking everything works when building with new versions so you don't have to worry about running and maintaining your own systems.",
+      "note": "Codemagic is explicitly positioned as a hosted service run by Codemagic (\"so you don't have to worry about running and maintaining your own systems\"); no self-hosted/on-prem deployment option is documented.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "Codemagic's infrastructure is centered around the powerful Apple silicon M2 (arm64) machines allowing for faster builds than the previous generation of macOS machines.",
+      "note": "All plans, including Enterprise, run on Codemagic-owned infrastructure/data centers (\"Our data centers are located in the US\"); no bring-your-own-cloud-account deployment option is documented.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.codemagic.io/getting-started/about-codemagic/",
+      "quote": "Configurations can be easily extended with Bash or Python scripts in addition to Codemagic's open-source CLI tools that make tasks such as build versioning, publishing, and code signing much simpler.",
+      "note": "Only auxiliary CLI helper tools (e.g. codemagic-cli-tools) are open source; the core CI/CD build platform itself is closed-source SaaS/Enterprise software, not released under an OSI license.",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": false,
+      "source": "https://docs.codemagic.io/troubleshooting/accessing-builder-machine-via-ssh/",
+      "quote": "All virtual machines are located within the private network.",
+      "note": "This describes Codemagic's own internal network isolation of build VMs, not a user-facing feature to place multiple machines on a shared private network the customer controls; no such customer-facing private networking feature is documented.",
+      "checked": "2026-09-30"
     }
   }
 }

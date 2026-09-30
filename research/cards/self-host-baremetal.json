@@ -858,7 +858,7 @@
     "fork": true,
     "persistent_disk": true,
     "volumes": true,
-    "auto_stop_idle": null,
+    "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
@@ -885,29 +885,29 @@
       "eu",
       "us"
     ],
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
-    "lang_python": null,
-    "lang_node": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
     "harness_api": false,
@@ -916,7 +916,14 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "firecracker",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -975,24 +982,24 @@
   "feature_evidence": {
     "snapshot_auto": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No provider product: Hetzner/OVH/Latitude rent bare metal; nothing checkpoints your guests. Self-built: an idle-stop hook calling the Firecracker snapshot API (memory + disk) is possible but is your own code.",
-      "checked": "2026-09-29"
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "Rescue-System VNC installation Image installer Traffic statistics Reverse DNS administration Domain Registration Robot DDoS protection Firewall",
+      "note": "Hetzner/OVH/Latitude dedicated-server product pages list no automatic guest state save-on-stop/idle/timeout feature; nothing in their basic/optional feature lists mentions checkpoint-and-restore. An idle-stop hook calling Firecracker's snapshot API would be code the operator writes themselves, not a provider feature.",
+      "checked": "2026-09-30"
     },
     "snapshot_on_demand": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No first-party server snapshot for Hetzner dedicated/OVH/Latitude bare metal (Hetzner Storage Box has its own snapshots of the box, not of servers). Self-built: Firecracker full/diff snapshots include guest memory and can be resumed on other hosts / used to fork ('the guest memory,' listed in snapshot contents in firecracker docs/snapshotting/snapshot-support.md); the card's snapshot='mem'/fork=true model this self-built layer.",
-      "checked": "2026-09-29"
+      "source": "https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/snapshot-support.md",
+      "quote": "In order to make restoring possible, Firecracker snapshots save the full state of the following resources: the guest memory, the emulated HW state (both KVM and Firecracker emulated HW).",
+      "note": "Not a contradiction once the card's own model is read: Hetzner/OVH/Latitude/AWS bare-metal rentals have no first-party server snapshot product at all (the card explicitly notes this). snapshot='mem' and fork=true describe the *self-built* layer this DIY reference architecture assumes you would code yourself by calling the Firecracker VMM's own snapshot API (which does support on-demand full/diff snapshots of guest memory+disk) - but that API call is your own automation, not something Hetzner/OVH/Latitude/AWS sell as a managed on-demand-snapshot feature. So snapshot_on_demand=false is correct for 'is this offered to you by the provider', consistent with snapshot='mem' describing what the self-built layer is capable of.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No product; any agent-harness API is self-built.",
-      "checked": "2026-09-29"
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "Full root access",
+      "note": "Hetzner/OVH/Latitude/AWS sell bare compute (root access to a server) with no coding-agent-harness product whatsoever; any harness API would be entirely self-built.",
+      "checked": "2026-09-30"
     },
     "egress_allowlist": {
       "value": true,
@@ -1026,10 +1033,10 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No provider product; a credential-injecting egress proxy on the host would be self-built.",
-      "checked": "2026-09-29"
+      "source": "https://docs.hetzner.com/robot/dedicated-server/firewall/",
+      "quote": "With our stateless firewall, or static firewall, data packets are not unpacked; rather, the head of each individual packet is inspected",
+      "note": "Provider network features are plain L3/L4 packet firewalls; there is no credential-injecting egress proxy product. A secret proxy for the guests would have to be self-built on the host.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": true,
@@ -1044,6 +1051,209 @@
       "quote": "File storage gives you persistent filesystems that several servers can mount at the same time.",
       "note": "Latitude file storage = NFSv3/v4, read-write, private preview. Hetzner Storage Box: SMB/CIFS mountable read-write from several hosts ('Up to 10 simultaneous connections per Storage Box account'), on a single shared host server, not mirrored. Shared between hosts; exposing to guests (virtiofs/NFS re-export) is self-built.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "firecracker",
+      "source": "https://github.com/firecracker-microvm/firecracker",
+      "quote": "Firecracker is an open source virtualization technology that is purpose-built for creating and managing secure, multi-tenant container and function-based services.",
+      "note": "Card models a DIY Firecracker-on-bare-metal fleet (Hetzner/OVH/Latitude/AWS metal), matching the card's own top-level isolation field.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/firecracker-microvm/firecracker/main/docs/snapshotting/snapshot-support.md",
+      "quote": "A Firecracker microVM snapshot can be used for loading it later in a different Firecracker process, and the original guest workload is being simply resumed.",
+      "note": "Firecracker boots a kernel + raw rootfs image via its own boot-source/drives API, not a Docker/OCI image directly; converting an OCI image into a bootable rootfs (e.g. via firecracker-containerd/ignite tooling) would be self-built.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "not offered: outside the product's scope (this is a DIY bare-metal/microVM hardware fleet, not a browser/stealth product)",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "not offered: outside the product's scope (bare-metal hardware rental, no browser/CAPTCHA product)",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "Available Locations HEL 1 FSN 1",
+      "note": "Rented datacenter hardware (Hetzner/OVH/Latitude/AWS metal) with datacenter-assigned IPv4/IPv6; no residential/mobile IP option.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/firecracker-microvm/firecracker/main/docs/snapshotting/snapshot-support.md",
+      "quote": "To create a snapshot, first you have to pause the running microVM and its vCPUs ... all vCPU threads are paused, and all device emulation stops.",
+      "note": "Firecracker requires pausing the microVM before a snapshot (fork) can be taken; there is no clone-while-running path.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/firecracker-microvm/firecracker/main/docs/snapshotting/snapshot-support.md",
+      "quote": "A Firecracker microVM snapshot can be used for loading it later in a different Firecracker process, and the original guest workload is being simply resumed.",
+      "note": "Full snapshots capture guest memory plus device/vCPU state, so a fork resumed from one keeps processes running; this is a self-built capability on top of the Firecracker API, not a managed provider feature (derived).",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "No provider product wakes a stopped guest on incoming request; a wake-on-request proxy would be self-built on top of the host/Firecracker API.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "Rented dedicated hardware and self-run microVMs are not stopped by the provider on idleness; an idle-stop hook would be self-built.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/firecracker-microvm/firecracker/main/src/firecracker/swagger/firecracker.yaml",
+      "quote": "operationId: putMachineConfiguration ... Machine Configuration Parameters",
+      "note": "PutMachineConfiguration (vCPU count / mem_size_mib) is a pre-boot configuration call; Firecracker does not support changing CPU/RAM of a running microVM.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "not offered: outside the product's scope (bare hardware/microVM fleet, no first-party task/browser/computer-use agent)",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "not offered: outside the product's scope; no MCP server is shipped for this DIY hardware/Firecracker fleet",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "not offered: outside the product's scope. This is bare hardware / a self-built rootfs image, with no provider-supplied language runtime preinstalled; you must build your own guest image.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "not offered: outside the product's scope. No provider-supplied Node.js runtime; you must build your own guest image.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "not offered: outside the product's scope. This card models DIY hardware rental (Hetzner/OVH/Latitude/AWS metal); no SOC 2 attestation for this self-built sandbox layer was found, and compliance of the guest environment is the operator's own responsibility.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "not offered: outside the product's scope. No BAA/HIPAA-eligible offering found for bare-metal rental; HIPAA compliance of the self-built sandbox stack is the operator's own responsibility.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "not offered: outside the product's scope. No SAML/OIDC SSO found for the Hetzner Robot/console account used to rent this hardware, and there is no managed sandbox platform login to apply SSO to.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "Available Locations HEL 1 FSN 1",
+      "note": "AX42 hardware is only offered in Hetzner's EU datacenters (Falkenstein, Germany and Helsinki, Finland), so machines/data can be kept in the EU by construction.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AX42 ... Dedicated Root Server",
+      "note": "Rented dedicated/bare-metal server billed monthly/hourly until cancelled; there is no provider-imposed maximum session length, matching the card's own max_session_h: null (unbounded) for a DIY fleet you control.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://github.com/firecracker-microvm/firecracker/blob/main/FAQ.md",
+      "quote": "Firecracker supports Linux host and guest operating systems as well as OSv guests.",
+      "note": "Firecracker's own docs describe only Linux/OSv guest support with a minimal 6-device virtio model; there is no mention of exposing /dev/kvm or nested-virtualization support to the guest, and Firecracker microVMs are not designed to run a second layer of virtualization inside them. The card's own caveats state this directly: 'Firecracker guest nested virtualization not offered by this model.'",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "Full root access 1 Dedicated IPv4 address optional IPv6 subnet (/64) Administration software Webmin available for LAMP 24h reset service via web interface Rescue-System VNC installation Image installer",
+      "note": "The product is bare dedicated hardware/DIY sandbox fleet: you get root SSH access and an OS installer; there is no managed graphical desktop/VNC-to-your-sandbox product (the 'VNC' listed is only for the Rescue-System OS installer, not a per-guest desktop feature). A desktop would have to be self-built (e.g. installing a VNC server yourself inside a guest).",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "Available operating systems Debian Ubuntu Linux AlmaLinux Arch Linux Open SUSE Cent OS Windows",
+      "note": "The product ships bare OS images only (Debian/Ubuntu/etc.); there is no managed/pre-installed browser offered as part of the server or the Firecracker microVM tooling. Installing and managing a browser inside a guest would be self-built.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://github.com/firecracker-microvm/firecracker/blob/main/docs/design.md",
+      "quote": "Firecracker is a new virtualization technology that enables customers to deploy lightweight micro Virtual Machines or microVMs... They provide a secure, trusted environment for multi-tenant services, while maintaining minimal overhead.",
+      "note": "Firecracker (the isolation layer this card models) and the underlying bare-metal renters offer only a VM/API surface for compute isolation, not any computer-use/browser-driving API. No product; entirely self-built.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "1 Dedicated IPv4 address optional IPv6 subnet (/64)",
+      "note": "The host itself gets one dedicated IPv4 (and optional IPv6), but there is no first-party per-sandbox HTTPS ingress/routing product for the individual Firecracker guests - the card's own caveat states 'Primary host IPv4 included once in hardware model, NOT one IP per sandbox. Guests need NAT/proxy/IPv6 or paid IP allocations.' Exposing a guest over HTTPS requires self-built NAT/reverse-proxy/TLS termination on the host.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "1 Dedicated IPv4 address",
+      "note": "Confirmed at host level (each Hetzner/OVH/Latitude server includes one IPv4), but that IP belongs to the physical host, not to individual Firecracker guest sandboxes; the card models a fleet of many guests per host, so per-sandbox public IPv4 is not included and would require the operator to build NAT/proxying or purchase extra IP blocks (Hetzner's 'Additional Single IP'/'Additional IP subnet' add-ons). public_ipv4=false is correct at the guest/sandbox scope this card evaluates.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "Available operating systems Debian Ubuntu Linux AlmaLinux Arch Linux Open SUSE Cent OS Windows",
+      "note": "Only base OS images are offered; no coding-agent harness (Claude Code, Codex, OpenCode, etc.) is preinstalled or offered as a template by Hetzner/OVH/Latitude/AWS.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AMD Ryzen™ 7 PRO 8700GE Simultaneous Multithreading RAM: 64 GB up to 64 GB DDR5 ECC Disk: 2x 512 GB NVMe",
+      "note": "The specific SKUs priced in this card's modes (Hetzner AX42/EX44/AX102/AX162, OVH RISE-1, Latitude c3/m4, AWS c7i/m7i/c6g/m7g metal) are all CPU-only bare metal with no GPU in the spec sheet; Hetzner's separate GPU-Line was deliberately not selected as a mode, matching features.gpu_types=[] and gpu:{} on every mode.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://github.com/firecracker-microvm/firecracker/blob/main/FAQ.md",
+      "quote": "Firecracker supports Linux host and guest operating systems as well as OSv guests.",
+      "note": "Although Hetzner's own AX42 order page does list 'Windows' as a selectable host OS for the bare-metal server itself, this card explicitly models a Firecracker-based sandbox fleet running on top of that hardware (isolation='firecracker', caveat 'Only Linux KVM-capable hardware assumed'), and Firecracker's own docs state it only supports Linux (and OSv) guest operating systems - no Windows guest support. So windows=false is correct for the sandboxed-guest product this card evaluates, even though the underlying bare-metal host could itself boot Windows.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/ax42/",
+      "quote": "AMD Ryzen™ 7 PRO 8700GE Simultaneous Multithreading",
+      "note": "All priced hardware (Hetzner, OVH, Latitude, AWS metal instances) is x86_64 (or Arm Neoverse for the arm64 AWS modes); none of it is Apple hardware, and Firecracker/KVM cannot run macOS guests on non-Apple silicon. macOS is plainly outside what this product is.",
+      "checked": "2026-09-30"
     }
   }
 }

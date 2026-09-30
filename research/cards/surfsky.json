@@ -287,66 +287,66 @@
   },
   "features": {
     "linux": null,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
-    "gpu": null,
-    "snapshot": null,
-    "pause_resume": null,
-    "fork": null,
-    "persistent_disk": null,
+    "windows": false,
+    "macos": false,
+    "arm64": false,
+    "gpu": false,
+    "snapshot": "fs",
+    "pause_resume": false,
+    "fork": false,
+    "persistent_disk": false,
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": null,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": false,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": true,
-    "desktop": null,
+    "desktop": false,
     "computer_use": true,
     "code_interpreter": null,
-    "agent_harnesses": null,
-    "ssh": null,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "agent_harnesses": false,
+    "ssh": false,
+    "public_ipv4": false,
+    "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
-    "self_host": null,
-    "byoc": null,
-    "open_source": null,
+    "self_host": false,
+    "byoc": false,
+    "open_source": false,
     "soc2": null,
     "hipaa": null,
-    "sso": null,
+    "sso": false,
     "gpu_types": [],
     "regions": [
       "us",
       "eu"
     ],
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "browser_control": true,
     "desktop_control": null,
     "anti_bot": true,
@@ -358,7 +358,14 @@
     "egress_allowlist_level": "domain",
     "guest_firewall": false,
     "secret_proxy": false,
-    "volume_attach": false
+    "volume_attach": false,
+    "isolation": "container",
+    "image_oci": false,
+    "snapshot_on_demand": false,
+    "volume_shared": false,
+    "own_agent_api": false,
+    "ingress_rules": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -412,10 +419,10 @@
     },
     "harness_api": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "Browser-as-a-service driven over CDP/Playwright/Puppeteer/Selenium plus a Scrape page REST endpoint and Human.* input commands; no agent/LLM harness API or MCP server in the docs (llms-full.txt has no agent product).",
-      "checked": "2026-09-29"
+      "source": "https://docs.surfsky.io/llms-full.txt",
+      "quote": "Use the REST API to start and stop browsers, manage saved profiles, and configure proxies and extensions. A start request returns the WebSocket URL used by your automation framework.",
+      "note": "Product is a hosted antidetect browser controlled via CDP/Playwright/Puppeteer/ChromeDriver or Surfsky's own SDK, plus REST endpoints for profiles/proxies/scrape. Searched the full llms-full.txt dump for 'agent', 'harness', 'mcp', 'langchain', 'llm' — zero matches. No agent/LLM-harness API or MCP server exists. Confirms existing 'no' with direct evidence.",
+      "checked": "2026-09-30"
     },
     "egress_allowlist": {
       "value": true,
@@ -434,17 +441,269 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No credential-injection proxy. Logins persist via profile storage (cookies, browser-saved passwords), which live inside the browser profile. Upstream proxy credentials are supplied by you in the start request.",
-      "checked": "2026-09-29"
+      "source": "https://docs.surfsky.io/llms-full.txt",
+      "quote": "Export a stopped saved profile's cookies as JSON or Netscape text. Cookies must be enabled in its storage settings. The response contains data.cookies.",
+      "note": "Login persistence is via profile cookie/storage export-import, not a secret-injection proxy. Docs explicitly tell callers to keep their own API tokens and any typed secrets out of logs ('Keep tokens in server-side environment variables or your secret store... Avoid logging typed secrets.') — the caller manages credentials themselves; Surfsky provides no vault/credential-injection feature for site logins. Confirms existing 'no' with direct evidence.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No volumes/filesystem concept; state is profile storage only.",
-      "checked": "2026-09-29"
+      "source": "https://docs.surfsky.io/llms-full.txt",
+      "quote": "A one-time session starts without a saved profile. Its profile state is discarded when it stops. A persistent profile saves the storage types you enable and can be started again.",
+      "note": "Full API surface (sessions, persistent profiles, cookies export/import, extensions upload, scrape) has no volume/disk/filesystem-attach concept anywhere in the docs; the only durable state is browser-profile storage (cookies, localStorage, etc.), not a mountable/attachable disk. Confirms existing 'no' with direct evidence.",
+      "checked": "2026-09-30"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://docs.surfsky.io/intro-to-surfsky",
+      "quote": "Surfsky connects your proxy or VPN, or a proxy from a Surfsky pool, inside the container's network namespace.",
+      "note": "Surfsky is a hosted-browser service, not a VM/sandbox provider; each browser session runs in a container-scoped network namespace.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.surfsky.io/index",
+      "quote": "Start a browser with an API request, connect Playwright, Puppeteer, Selenium, or a Surfsky SDK to it, and stop it when the run is done. Surfsky hosts the browsers and the proxies.",
+      "note": "not offered: outside the product's scope (a managed Chromium browser, not a general-purpose machine that boots from a container image)",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.surfsky.io/index",
+      "quote": "Start a browser with an API request, connect Playwright, Puppeteer, Selenium, or a Surfsky SDK to it, and stop it when the run is done. Surfsky hosts the browsers and the proxies.",
+      "note": "not offered: outside the product's scope. There is no shell/root access to run Docker; you get a browser reachable over CDP/WebDriver.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.surfsky.io/index",
+      "quote": "Start a browser with an API request, connect Playwright, Puppeteer, Selenium, or a Surfsky SDK to it, and stop it when the run is done. Surfsky hosts the browsers and the proxies.",
+      "note": "not offered: outside the product's scope, no /dev/kvm or general compute access is exposed.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.surfsky.io/screencast",
+      "quote": "Screencast streams a page's screen over WebSocket. It is view-only. Use DevTools when you need to inspect elements or interact with the browser.",
+      "note": "Only the single browser tab is streamed view-only (JPEG frames) for observing runs; there is no VNC/RDP graphical desktop of a full machine.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.surfsky.io/proxies",
+      "quote": "You can also supply an HTTP, HTTPS, SOCKS5, SSH, Shadowsocks, OpenVPN, or WireGuard connection.",
+      "note": "not offered: 'SSH' here is a supported upstream proxy protocol for outbound traffic, not SSH access into the Surfsky machine itself; there is no shell access to the browser host.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "fs",
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "For persistent profiles, a normal stop saves the selected browser state.",
+      "note": "A persistent profile saves selected browser storage (cookies, passwords, bookmarks, optionally localStorage/extensions/history/service workers) on stop and restores it on next start; this is profile-storage persistence, not a running-process memory snapshot, so treated like a filesystem-level snapshot rather than 'mem'.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "For persistent profiles, a normal stop saves the selected browser state.",
+      "note": "Profile state is saved automatically on a normal stop; there is no API/CLI call to take a snapshot/checkpoint at an arbitrary point while the browser keeps running.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "A persistent profile runs one browser at a time. Starting it again returns the running session and ignores the settings sent with that request... Use a separate profile for work that runs in parallel.",
+      "note": "not offered: outside the product's scope. There is no clone-a-machine operation; parallel work requires creating a separate profile from scratch, not forking an existing one.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "A persistent profile runs one browser at a time.",
+      "note": "not offered: outside the product's scope (no fork concept at all, so cloning a running machine is not possible).",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "For persistent profiles, a normal stop saves the selected browser state.",
+      "note": "not offered: outside the product's scope. Saved state is profile storage (cookies/passwords/etc.), not a memory image, and there is no fork operation at all.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "Explicit stop. For persistent profiles, a normal stop saves the selected browser state. Wait for completion before starting the next run.",
+      "note": "Only stop (which discards the running browser and its concurrency slot, saving profile storage) and start (which spins up a fresh browser process) are offered; there is no pause that keeps a suspended process resident at reduced billing.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "Creation does not start a browser. Each start restores saved profile state.",
+      "note": "not offered: outside the product's scope. A stopped profile requires an explicit POST /profiles/{uuid}/start call; there is no mechanism where an incoming request to a URL automatically wakes a stopped browser.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "storage_options selects the data saved with the profile: Website cookies, Browser-saved passwords, Bookmarks, Local storage...",
+      "note": "not offered: outside the product's scope. What persists is selected browser profile storage, not a general filesystem/disk you can write arbitrary files to.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "A persistent profile runs one browser at a time.",
+      "note": "not offered: outside the product's scope; there is no volumes/filesystem concept at all (per feature_evidence.volume_attach in the card), so a volume shared across running machines does not exist.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://surfsky.io/pricing",
+      "quote": "PAYG / Starter / Base / Advanced browser-hour plans priced per hour with fixed concurrency tiers.",
+      "note": "not offered: outside the product's scope. No CPU/RAM is exposed to resize; plans/tiers only change price-per-hour and concurrency limits, chosen at start time, not live-resized mid-session.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://surfsky.io/agent-browser",
+      "quote": "Headless cloud browsers with real device fingerprints; CDP connection from Playwright, Puppeteer and Selenium; REST request-response mode without a browser session.",
+      "note": "not offered: outside the product's scope. Surfsky offers a browser reachable via CDP/WebDriver/REST for you to drive with your own code or agent; it does not preinstall/offer coding-agent harnesses (Claude Code, Codex, OpenCode, etc.) as templates.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://surfsky.io/agent-browser",
+      "quote": "Agent Browser — Give your AI agents reliable web access at scale. CDP connection from Playwright, Puppeteer and Selenium.",
+      "note": "not offered: outside the product's scope. 'Agent Browser' is marketing of the same CDP/API browser product for use by external AI agents; Surfsky does not run its own browsing/computer-use/research agent that you call via API.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.surfsky.io/llms-full.txt",
+      "quote": "Use the Python and TypeScript SDKs to manage browser sessions and automate web pages.",
+      "note": "No MCP server is mentioned anywhere in the docs (llms-full.txt); only REST API + Python/TypeScript SDKs are offered to control sessions.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.surfsky.io/llms-full.txt",
+      "quote": "The Python (/sdk/python#process-items-concurrently) and TypeScript (/sdk/typescript#process-items-concurrently) SDKs provide map() and browser pools with a concurrency setting and managed cleanup.",
+      "note": "First-party Python SDK for driving the browser/API.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.surfsky.io/llms-full.txt",
+      "quote": "The Python (/sdk/python#process-items-concurrently) and TypeScript (/sdk/typescript#process-items-concurrently) SDKs provide map() and browser pools with a concurrency setting and managed cleanup.",
+      "note": "First-party TypeScript/JavaScript (Node.js) SDK for driving the browser/API.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.surfsky.io/index",
+      "quote": "Start a browser with an API request, connect Playwright, Puppeteer, Selenium, or a Surfsky SDK to it, and stop it when the run is done.",
+      "note": "not offered: outside the product's scope. There is no machine with an assignable public IPv4; the browser is reached via a Surfsky-issued CDP/WebSocket/API URL, and outbound traffic uses proxy exit IPs, not an IP owned by the customer machine.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.surfsky.io/debugging",
+      "quote": "GET https://YOUR_API_HOST/proxy/{internal_uuid}/inspector",
+      "note": "not offered: outside the product's scope. The only HTTPS/WSS endpoints are Surfsky's own gateway paths (CDP/DevTools/ChromeDriver/screencast) into the browser protocol; there is no way to expose an arbitrary port/service running inside the machine via an HTTPS URL.",
+      "checked": "2026-09-30"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.surfsky.io/api-reference",
+      "quote": "Calling a host that does not serve your account returns 403 namespace_not_allowed.",
+      "note": "not offered: outside the product's scope. Access control is account/token-based for Surfsky's own API/CDP gateway; there is no concept of provider-side ingress rules (allowlists/security groups) for ports on a customer machine, since no customer-exposed ports exist.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.surfsky.io/proxies",
+      "quote": "Block domains with proxy_blacklist in the start request... IP/CIDR entries are NOT blocked (they bypass the tunnel); ignored on OpenVPN sessions.",
+      "note": "Egress control is domain-level only (proxy_blacklist deny-list plus domain_routes), not HTTP method/path-level rules.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "When you save a pool selection, the profile stores one proxy from that pool and reuses it on every run. The exit IP behind a residential or mobile proxy still changes between sessions; use session control when the IP must stay the same.",
+      "note": "Sticky/session-scoped IP is available for the duration of a session (session_minutes / keep_ip) but the exit IP is a pooled residential/mobile proxy IP, not a fixed IP dedicated to the account across sessions.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://surfsky.io/pricing",
+      "quote": "PAYG / Starter / Base / Advanced browser-hour plans; Reserved dedicated fleet from-rate.",
+      "note": "not offered: outside the product's scope. Surfsky sells hosted browser sessions billed per browser-hour, not GPU compute; fingerprint 'renderer'/GPU fields only spoof a browser's reported GPU identity.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.surfsky.io/fingerprints",
+      "quote": "A one-time profile can omit fingerprint entirely; the default OS is Windows.",
+      "note": "not offered: outside the product's scope. 'Windows' here is a spoofed browser fingerprint OS value, not an actual Windows machine/VM; the host runs a Linux-side Chromium engine per the card's os convention.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.surfsky.io/fingerprints",
+      "quote": "A fingerprint is the set of browser and device properties a website can observe... GPU and WebGL parameters, OS-specific screens and fonts...",
+      "note": "not offered: outside the product's scope. macOS only appears as a possible spoofed fingerprint identity, not an actual macOS guest machine.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.surfsky.io/fingerprints",
+      "quote": "os_arch: Architecture, such as x86 or arm",
+      "note": "not offered: outside the product's scope. 'arm' is a spoofed fingerprint field for the emulated device identity, not the actual CPU architecture of the underlying host machine (host arch is not published).",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.surfsky.io/index",
+      "quote": "Surfsky hosts the browsers and the proxies.",
+      "note": "not offered: outside the product's scope. Surfsky is a fully hosted SaaS; no self-hosted/on-prem deployment option is documented.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.surfsky.io/index",
+      "quote": "Surfsky hosts the browsers and the proxies.",
+      "note": "not offered: outside the product's scope. No bring-your-own-cloud deployment is documented; Surfsky runs the infrastructure itself in its own two regions (Germany, US).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://surfsky.io/agent-browser",
+      "quote": "Cloud antidetect browser that runs browsers in the cloud and passes the web's toughest anti-bot challenges over API and CDP.",
+      "note": "not offered: outside the product's scope. The core hosted-browser/anti-detect product is closed-source; only client SDKs are public, not the core service.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.surfsky.io/api-reference",
+      "quote": "The shell examples use SURFSKY_API_BASE_URL and SURFSKY_API_TOKEN; set them as shown in credentials.",
+      "note": "Authentication is a single API token per account (X-Cloud-Api-Token); no SAML/OIDC SSO login is documented for the dashboard.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://docs.surfsky.io/llms-full.txt",
+      "quote": "Surfsky runs in two regions, Germany and the United States. Choose the one closest to your automation worker in the dashboard.",
+      "note": "An account's whole browser workload can be run in the Germany (EU) region.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "The browser stops after browser_settings.inactive_kill_timeout seconds without a CDP command, ChromeDriver request, or scrape. The default is 30 seconds; an open but idle connection does not count.",
+      "note": "No documented hard maximum session duration was found; a session ends only via explicit stop or a configurable inactivity timeout (default 30s, raisable), so an actively-used session can in principle run indefinitely.",
+      "checked": "2026-09-30"
     }
   }
 }

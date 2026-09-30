@@ -3,7 +3,7 @@
   "name": "Hyperbrowser",
   "url": "https://www.hyperbrowser.ai/pricing",
   "category": "browser",
-  "isolation": null,
+  "isolation": "firecracker",
   "modes": [
     {
       "key": "on-demand",
@@ -178,20 +178,20 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": false,
+    "arm64": null,
     "gpu": false,
     "gpu_types": [],
-    "snapshot": "none",
+    "snapshot": "mem",
     "pause_resume": false,
-    "fork": false,
+    "fork": true,
     "persistent_disk": false,
-    "volumes": false,
+    "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": 12,
-    "custom_image": false,
+    "custom_image": true,
     "docker_inside": false,
     "nested_virt": false,
-    "root": false,
+    "root": true,
     "systemd": false,
     "browser": true,
     "desktop": false,
@@ -200,7 +200,7 @@
     "agent_harnesses": true,
     "ssh": false,
     "public_ipv4": false,
-    "inbound_https": false,
+    "inbound_https": true,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
@@ -213,14 +213,14 @@
       "us",
       "eu"
     ],
-    "soc2": null,
+    "soc2": false,
     "hipaa": true,
-    "sso": null,
+    "sso": false,
     "browser_control": true,
     "desktop_control": true,
     "anti_bot": true,
     "captcha_solving": true,
-    "egress_ip_type": null,
+    "egress_ip_type": "residential+datacenter",
     "ip_note": "Managed proxy network (100+ countries, IP type not stated in docs) at $10/GB, static IPs available; proxies and CAPTCHA solving need a paid plan; BYO proxy and Ultra Stealth are Enterprise-only.",
     "snapshot_auto": false,
     "snapshot_on_demand": true,
@@ -232,7 +232,17 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "firecracker",
+    "image_oci": true,
+    "fork_running": true,
+    "memory_snapshot_fork": true,
+    "wake_on_request": false,
+    "live_resize": false,
+    "mcp_server": true,
+    "lang_python": true,
+    "lang_node": true,
+    "eu_data_residency": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -383,6 +393,242 @@
       "quote": "You can attach a volume to multiple sandboxes, and a volume is synced across writes.",
       "note": "Read-write or read-only per mount (type rw|ro); a third mode `shared` is listed as 'currently reserved'. Consistency semantics beyond 'synced across writes' not documented.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "firecracker",
+      "source": "https://hyperbrowser.ai/docs/sandboxes/custom-images.md",
+      "quote": "The CLI packages a local Docker image, uploads it, and dispatches the remote Firecracker image build.",
+      "note": "Applies to the Sandbox product (the VM/compute mode this card models); base browser-session isolation tech is not documented (only 'isolated cookies, storage, cache').",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/custom-images.md",
+      "quote": "Use a custom image when the built-in base images are close, but not enough. The CLI packages a local Docker image, uploads it, and dispatches the remote Firecracker image build.",
+      "note": "`hx vm image build <docker-image> <name>` exports and uploads a local Docker/OCI image, which is then launched as a sandbox via imageName.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "residential+datacenter",
+      "source": "https://www.hyperbrowser.ai/pricing",
+      "quote": "Residential Proxies ... Premium Residential Proxies ... Premium residential proxies included. Pay for data used.",
+      "note": "Default outbound (no useProxy) is Hyperbrowser's own cloud/datacenter IPs (sandboxes have no proxy at all, plain cloud egress); enabling useProxy on browser sessions routes through a managed 'residential proxy' network across 100+ countries (paid plans), plus optional dedicated Static IPs. Exact carrier/type of the base (non-proxy) egress IP is not documented.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/snapshots.md",
+      "quote": "Create a snapshot from a running sandbox. ... Starting a sandbox from a snapshot is instant and you can start a new sandbox from the same snapshot multiple times.",
+      "note": "createMemorySnapshot is called on a running sandbox and the docs do not say the source sandbox is stopped or interrupted; the resulting snapshot can spawn multiple new (forked) sandboxes while the original keeps running.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/snapshots.md",
+      "quote": "When you take a snapshot, you are freezing the sandbox's memory, processes, and filesystem at that point in time. Starting a sandbox from a snapshot is instant and you can start a new sandbox from the same snapshot multiple times.",
+      "note": "Sandbox product only; memory snapshots restore running processes, and new sandboxes booted from the same snapshot act as forks. Not available for browser sessions.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/lifecycle.md",
+      "quote": "When a sandbox is created, it is always running until you stop it or it times out.",
+      "note": "No sleep/hibernate + auto-wake-on-request mechanism is documented; sandboxes/sessions run continuously from create until explicit stop or timeout, with no idle-suspend-then-wake behavior described anywhere in the API/lifecycle docs.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/llms.txt",
+      "quote": "Create new sandbox / Get sandbox by ID / Get list of sandboxes / Stop a sandbox / Expose a sandbox port / Remove an exposed sandbox port / Create a sandbox memory snapshot / Update sandbox network policy / Get list of sandbox images / Delete sandbox image / Get list of sandbox snapshots / Get sandbox snapshot / Delete sandbox snapshot",
+      "note": "The full Sandbox API surface (per the docs index) has no resize/update-resources endpoint; vcpus/memMiB/diskSizeMiB are set only at create time. No CPU/RAM live-resize capability is documented.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/integrations/model-context-protocol.md",
+      "quote": "The Hyperbrowser MCP server provides a standardized interface for AI models to access powerful web automation capabilities like scraping, structured extraction, and crawling. You can find the server implementation on GitHub: hyperbrowserai/mcp.",
+      "note": "First-party MCP server (npx hyperbrowser-mcp / github.com/hyperbrowserai/mcp) exposing scrape/extract/crawl tools that drive Hyperbrowser sessions.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/create.md",
+      "quote": "sandbox = client.sandboxes.create({\"image_name\": \"python\"})",
+      "note": "First-party Python SDK (hyperbrowser package) plus a built-in 'python' base sandbox image.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/create.md",
+      "quote": "const sandbox = await client.sandboxes.create({ imageName: \"node\" });",
+      "note": "First-party Node.js SDK (@hyperbrowser/sdk) plus a built-in 'node' base sandbox image.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://www.hyperbrowser.ai/security",
+      "quote": "We maintain an Information Security Program that is communicated throughout the organization. The program is aligned with the SOC 2 Trust Services Criteria, a widely recognized framework for security, availability, and confidentiality controls.",
+      "note": "The security page only claims alignment with SOC 2 criteria and generic 'independent third-party assessments', not an actual SOC 2 Type I/II attestation/report; the pricing page lists 'HIPAA/SOC 2' only under the sales-only Enterprise tier with no report or auditor named, so a completed attestation is not confirmed.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://www.hyperbrowser.ai/security",
+      "quote": "Where available, we use single sign-on, two-factor authentication, and strong password policies to protect access.",
+      "note": "The only SSO mention is Hyperbrowser's own internal/employee access control, not a customer-facing SAML/OIDC SSO offering; no SSO feature appears on the pricing page (including Enterprise) or elsewhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://hyperbrowser.ai/docs/sessions/regions.md",
+      "quote": "europe-west | Europe (West) | Optimal for European users",
+      "note": "Sessions and Sandboxes share the same SessionRegion enum, so sandbox/browser compute can be pinned to europe-west on any plan. However, the security page states 'Production data is hosted in managed cloud databases located in the United States unless otherwise agreed in writing', so account/control-plane data defaults to the US even when the workload region is EU.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/lifecycle.md",
+      "quote": "When a sandbox is created, it is always running until you stop it or it times out.",
+      "note": "The sandbox's own root/data disk does not survive stop/timeout - there is no pause/resume or stop-then-restart-same-disk mechanism, only start-a-new-sandbox-from-image or from-a-memory-snapshot. Persistence is opt-in via a separate 'Volume' (see volumes.md: 'A volume persists even after all sandboxes are stopped') or a memory snapshot (which captures filesystem+memory but must be explicitly created and restored into a new sandbox instance, not the same one). Not a contradiction with volumes/snapshot/fork - those are the mechanisms by which you get persistence, not evidence the default disk itself persists.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "mem",
+      "corrected_from": "none",
+      "source": "https://hyperbrowser.ai/docs/sandboxes/snapshots.md",
+      "quote": "Memory snapshots let you capture a running sandbox and start new sandboxes from that saved state. When you take a snapshot, you are freezing the sandbox's memory, processes, and filesystem at that point in time. Starting a sandbox from a snapshot is instant and you can start a new sandbox from the same snapshot multiple times.",
+      "note": "Top-level features.snapshot='none' contradicts the card's own sandbox-mode features (snapshot:'mem', snapshot_on_demand:true). On-demand memory snapshots exist via POST /api/sandbox/{id}/snapshot for the Sandbox product (not for browser sessions); correct value is 'mem' (on-demand only, no snapshot_auto).",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/volumes.md",
+      "quote": "Volumes are persistent, team scoped filesystems that you can attach to a sandbox at launch. You can attach a volume to multiple sandboxes, and a volume is synced across writes.",
+      "note": "Contradicts the card's own sandbox-mode features (volumes:true, volume_attach:true, volume_shared:true) and feature_evidence. Volumes API (create/list/get/delete) exists and mounts are attached at sandbox create time. Correct top-level value is true (Sandbox product only; not available for browser sessions).",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/lifecycle.md",
+      "quote": "When a sandbox is created, it is always running until you stop it or it times out.",
+      "note": "No pause/suspend/resume endpoint is documented for sandboxes or browser sessions - only create, stop, and (for sandboxes) create-from-snapshot. Confirmed false.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/snapshots.md",
+      "quote": "Starting a sandbox from a snapshot is instant and you can start a new sandbox from the same snapshot multiple times.",
+      "note": "Contradicts the card's own sandbox-mode features (fork:true, memory_snapshot_fork:true). Multiple independent sandboxes can be started from one memory snapshot, which is a fork capability. Correct top-level value is true (Sandbox product only).",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/custom-images.md",
+      "quote": "Custom image builds are currently CLI-first. You need Docker available on the machine running `hx vm image build`.",
+      "note": "Docker is required on the developer's own machine to build a custom sandbox image (exported to a Firecracker image); no docs describe a Docker daemon or dockerd running inside a live sandbox, and the base-image list (node/python/openclaw/claude-code/codex/node-chromium) has no Docker entry.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/create.md",
+      "quote": "Sandboxes are isolated cloud environments built to scale with your agentic needs.",
+      "note": "Sandboxes run as Firecracker microVMs (per the card's own isolation:'firecracker'); no docs mention nested virtualization/KVM being exposed inside a sandbox, and the CreateSandboxParams API schema exposes only vcpus/memMiB/diskSizeMiB/network/mounts, nothing virtualization-related.",
+      "checked": "2026-09-30"
+    },
+    "root": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/base-images.md",
+      "quote": "A default `ubuntu` sudo user with home directory at `/home/ubuntu`.",
+      "note": "Contradicts the card's own sandbox-mode features (root:true). Every base image ships a sudo-capable default user, i.e. root access via sudo. Correct top-level value is true (Sandbox product only; not applicable to browser sessions, which have no shell).",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/terminal.md",
+      "quote": "Sandboxes have PTY session support for interactive terminal sessions. SDK is available for Node.js and Python to build your own terminal client.",
+      "note": "Terminal access is via the SDK/websocket PTY API and exec/process endpoints, not a standard SSH server/port; no SSH is documented anywhere in the docs index (llms.txt) or API reference.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/base-images.md",
+      "quote": "`node-chromium` | Browser automation, desktop-style flows, and Playwright Chromium workloads | Node.js, Playwright Chromium, desktop session tooling",
+      "note": "'desktop session tooling' here refers to headless/headed browser automation (Playwright/Chromium), not a full remote-desktop/VNC GUI environment; no VNC or GUI-desktop feature is documented for sandboxes (only exec/process/terminal APIs) or for browser sessions (which are just a controllable browser, not a full OS desktop).",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/custom-images.md",
+      "quote": "The CLI packages a local Docker image, uploads it, and dispatches the remote Firecracker image build... After the image build completes, use the registered image name in normal sandbox creation flows.",
+      "note": "Contradicts the card's own sandbox-mode features (custom_image:true, image_oci:true). Custom images are explicitly supported (CLI-first, via `hx vm image build`) for the Sandbox product. Correct top-level value is true.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/runtime.md",
+      "quote": "Start a simple HTTP server inside the sandbox, expose port `3000`, and call it from outside the sandbox... console.log(\"Service URL:\", exposure.url);",
+      "note": "Contradicts the card's own sandbox-mode features (inbound_https:true) and feature_evidence (ingress_rules:true). Any process inside a sandbox can be exposed via POST expose-a-sandbox-port and reached over a public HTTPS URL, optionally token-authenticated. Correct top-level value is true (Sandbox product only).",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/lifecycle.md",
+      "quote": "\"runtime\": {\n    \"transport\": \"regional_proxy\",\n    \"host\": \"https://<regional-runtime-host>\",\n    \"baseUrl\": \"https://<regional-runtime-host>/sandbox/<sandbox-id>\"\n  }",
+      "note": "Sandbox runtime and exposed-port URLs are served through a shared regional reverse-proxy hostname, not a dedicated public IPv4 assigned to the instance; network.ipv4_available is already false on the card. Inbound access is HTTPS-by-hostname (inbound_https), not raw IPv4.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/api-reference/create-new-sandbox.md",
+      "quote": "vcpus: ... memMiB: ... diskSizeMiB: ... timeoutMinutes: ... allowInternetAccess: ...",
+      "note": "The full CreateSandboxParams schema (vcpus, memMiB, diskSizeMiB, region, mounts, network, exposedPorts, timeoutMinutes) has no GPU-related field, and no GPU option is mentioned anywhere on the pricing page or sandbox docs.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/base-images.md",
+      "quote": "Ubuntu 24.04 as the base OS.",
+      "note": "All base images and the browser product run on Linux (Ubuntu 24.04); no Windows image or OS option exists in the CreateSandboxParams schema.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/base-images.md",
+      "quote": "Ubuntu 24.04 as the base OS.",
+      "note": "Same as windows: this is a Linux-only (Ubuntu) Firecracker sandbox / cloud-browser product; no macOS option is offered or documented.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: No CPU-architecture parameter exists anywhere in the sandbox creation schema or docs; only x86-oriented base images are advertised and no ARM image/tier is mentioned. Absence isn't exhaustively provable from docs alone, hence low confidence.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://www.hyperbrowser.ai/pricing",
+      "quote": "Free, Startup, Scale, Enterprise",
+      "note": "Hyperbrowser is offered only as a hosted, credit-metered SaaS (Free/Startup/Scale/Enterprise plans billed through Hyperbrowser's own cloud); no self-hosted/on-prem package, Helm chart, or downloadable server is documented anywhere in the docs or pricing page.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://www.hyperbrowser.ai/pricing",
+      "quote": "Enterprise ... custom proxies, asia-south, HIPAA/SOC 2, 180+ day retention, volume discounts",
+      "note": "Even the Enterprise tier's custom features (custom proxies, extra region, compliance, custom rate limits) are all delivered inside Hyperbrowser's own multi-tenant infrastructure; no bring-your-own-cloud/VPC deployment option is mentioned anywhere in docs, pricing, or security pages.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://hyperbrowser.ai/docs/agents/hyperagent.md",
+      "quote": "HyperAgent: Execute AI agent tasks using HyperAgent, our open-source Playwright-powered framework",
+      "note": "Only the client-side HyperAgent automation framework is open source; the core product being rated here - the hosted browser/sandbox service itself (API, runtime, billing) - is closed-source and reachable only via API key against Hyperbrowser's proprietary cloud (github.com/hyperbrowser hosts SDKs/tools, not the service backend).",
+      "checked": "2026-09-30"
     }
   }
 }

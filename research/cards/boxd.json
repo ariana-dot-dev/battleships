@@ -132,12 +132,12 @@
     "code_interpreter": false,
     "agent_harnesses": true,
     "ssh": true,
-    "public_ipv4": false,
+    "public_ipv4": null,
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": true,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": true,
     "private_network": true,
     "self_host": true,
     "byoc": true,
@@ -145,8 +145,8 @@
     "regions": [
       "eu"
     ],
-    "soc2": null,
-    "hipaa": null,
+    "soc2": false,
+    "hipaa": false,
     "sso": true,
     "lang_python": true,
     "lang_node": true,
@@ -157,7 +157,7 @@
     "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": false,
@@ -169,7 +169,7 @@
     "spend_limits": null,
     "mcp_server": true,
     "isolation": "vm",
-    "image_oci": null,
+    "image_oci": false,
     "snapshot_auto": true,
     "snapshot_on_demand": true,
     "harness_api": false,
@@ -178,7 +178,12 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": true,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -342,6 +347,124 @@
       "quote": "For now a disk can only be attached to one VM at a time (regardless of mode) — its backing file lives on one specific worker, not shared/networked storage, so this request is rejected if the disk already has any attachment.",
       "note": "Local worker-backed disk, one VM at a time even read-only. Forks get CoW copies, not a shared mount.",
       "checked": "2026-09-29"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.boxd.sh/use-cases/sandboxes",
+      "quote": "These boot the default Ubuntu image. To start every sandbox with your own toolchain, dependencies, and services already in place, create them from a snapshot instead, with `fromSnapshot: \"my-toolchain\"` / `from_snapshot=\"my-toolchain\"`",
+      "note": "Machines start from boxd's own default Ubuntu image, a fork, or a boxd snapshot (`--from-snapshot`); there is no documented way to boot a machine directly from a Docker/OCI image. Docker runs fine inside the VM (docker_inside), but that is not the same as booting the VM's own root image from an OCI artifact.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": true,
+      "source": "https://docs.boxd.sh/guides/launch-a-browser",
+      "quote": "Stealth by default. The machine ships a Chromium build with anti-bot fingerprinting, and every launch gets a fresh fingerprint.",
+      "note": "First-party `agent-browser` on every machine ships stealth/anti-fingerprinting Chromium, on by default, toggleable per launch.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.boxd.sh/use-cases/coding-agents",
+      "quote": "The desktop is brought up automatically. ... click into it to help (type a password, solve a captcha).",
+      "note": "No automated CAPTCHA-solving service. CAPTCHAs are handled by a human opening the machine's Desktop and solving them manually mid-task, not by a built-in solver.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://boxd.sh/faq/",
+      "quote": "Where are boxd machines hosted? In the EU by default, on European hardware, with no US cloud dependency.",
+      "note": "Machines are KVM VMs on the provider's own EU datacenter hardware; egress is from that datacenter infrastructure, not residential/mobile IPs.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.boxd.sh/reference/grpc-proto",
+      "quote": "RPC ChangeShape removed (shape retired, rc/0.2) — it only ever returned UNIMPLEMENTED in prod. Do not reuse the method name with new semantics.",
+      "note": "A ChangeShape RPC existed but never worked and was removed; changing vCPU/RAM requires creating a new machine (different shape) or requesting a different shape via contact@boxd.sh, not a live resize of a running machine.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://boxd.sh/llms.txt",
+      "quote": "boxd gives developers and AI agents their own persistent Linux machines accessible via SSH. No SDK required — if it can open an SSH connection, it can use boxd.",
+      "note": "not offered: outside the product's scope. boxd is infrastructure (VMs/sandboxes) for running your own or third-party coding/browser agents (Claude Code, Codex, agent-browser); it does not ship its own first-party browser/computer-use/research task agent with a driving API.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://docs.boxd.sh/guides/automations/scripts",
+      "quote": "Cloud accounts | The provider's SDK (`@aws-sdk/*`, `@google-cloud/*`, `@azure/*`) with credentials from `process.env`. The machine's outbound IP is fixed per cluster if you need to allow-list it",
+      "note": "Outbound IP is fixed per cluster (shared among machines on that cluster), not a unique static IP per machine, but it is stable/allow-listable rather than rotating.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://boxd.sh/pricing",
+      "quote": "Custom: ... SSO + audit logs ✓ Dedicated support",
+      "note": "No SOC 2 attestation mentioned anywhere on the pricing, FAQ, terms, or privacy pages; the Custom/enterprise plan lists SSO + audit logs + EU data residency but never SOC 2.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://boxd.sh/terms/",
+      "quote": "Our Services do not comply with industry-specific regulations such as HIPAA or FISMA. Users subject to such laws may not use the platform.",
+      "note": "Explicitly stated in the Terms of Service.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.boxd.sh/use-cases/sandboxes",
+      "quote": "A sandbox lives as long as you keep it, disk and all... boxd machines are natively persistent.",
+      "note": "No maximum session/runtime duration is documented; machines run indefinitely until the owner stops/removes them (subject to idle auto-suspend/hibernate, which is configurable including disabled).",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.boxd.sh/guides/desktop",
+      "quote": "Desktop opens it in a separate browser window: a real desktop you can watch and control - launch a browser, a terminal, a file manager or any GUI app installed on the machine; type and click into whatever's running... Drive it from code: `browser.launch()` in an automation opens a Playwright-controlled browser on this same desktop.",
+      "note": "Desktop is a human-operated remote-viewer (mouse/keyboard for a person, or Playwright for browser automation), not a screenshot+click agent API. No documented API to drive the desktop by screenshots/coordinates.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Contradiction inside boxd's own site: boxd.sh/faq's 'What is boxd?' answer says machines have 'a public IPv4', but the docs resource table and the proxy proto ('Primary public IPv4' belongs to the proxy node, not the VM) describe one shared proxy IP with a per-machine SSH port and 3 raw TCP/UDP forwards. The more technical/authoritative docs page is followed, keeping public_ipv4=false; the FAQ wording looks like marketing shorthand for 'reachable over IPv4', not a dedicated address per machine.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://boxd.sh/faq/",
+      "quote": "Composable computers: persistent, forkable Linux VMs with their own kernel, a public IPv4, and an automatic HTTPS domain, reachable over SSH. Each machine is a real KVM virtual machine running Ubuntu 24.04 with 2 vCPU, 8 GiB RAM, and 100 GiB persistent disk.",
+      "note": "No GPU shape, GPU pricing, or GPU flag anywhere in the docs, pricing page, or FAQ; the only 'GPU' mention in the docs is about a customer's own external GPUs staying busy during RL rollouts, not boxd-supplied GPUs.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://boxd.sh/faq/",
+      "quote": "Each machine is a real KVM virtual machine running Ubuntu 24.04 with 2 vCPU, 8 GiB RAM, and 100 GiB persistent disk.",
+      "note": "Product is Linux-only KVM microVMs (Ubuntu 24.04 image); no Windows guest image or option is documented anywhere. Outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://boxd.sh/faq/",
+      "quote": "Each machine is a real KVM virtual machine running Ubuntu 24.04 with 2 vCPU, 8 GiB RAM, and 100 GiB persistent disk.",
+      "note": "Only the CLI/client binary runs on macOS (Apple Silicon) as a laptop tool; the actual boxd machines are Linux KVM VMs. No macOS guest machine offering. Outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.boxd.sh/reference/grpc-proto",
+      "quote": "message VmConfig {\n  uint32        vcpu         = 1;  // 0 = user quota or 2\n  uint64        memory_bytes = 2;  // 0 = user quota or 8 GiB\n  uint64        disk_bytes   = 3;  // 0 = 100 GiB\n  SrfConfig     srf          = 4;\n  NetworkConfig network      = 5;\n  repeated VolumeMount volumes = 6;\n}",
+      "note": "VM creation config exposes no architecture/platform field, and no page advertises an arm64 guest machine option. 'The installer puts the boxd binary in ~/.local/bin/boxd. It supports macOS (Apple Silicon) and Linux (x86_64 and arm64)' (docs.boxd.sh/cli/authentication-adjacent quickstart) describes only the CLI client host, not the VM guest architecture.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://boxd.sh/faq/",
+      "quote": "Can boxd run inside my own cloud account (BYOC)? Yes — self-host the binary in your VPC, datacenter, or region. The open-source microVM engine underneath (Ignition) lives at github.com/lttle-cloud/ignition.",
+      "note": "Only the underlying microVM engine (Ignition, AGPL-3.0 on GitHub) is open source; boxd itself (the API/control-plane/CLI/console product being priced) is a closed, signed binary distributed under a paid self-host/BYOC annual licence, not released under an OSI license.",
+      "checked": "2026-09-30"
     }
   }
 }

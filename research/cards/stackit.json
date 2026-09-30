@@ -2162,7 +2162,7 @@
   "features": {
     "linux": true,
     "windows": true,
-    "macos": null,
+    "macos": false,
     "arm64": true,
     "gpu": true,
     "gpu_types": [
@@ -2172,50 +2172,50 @@
     ],
     "snapshot": "fs",
     "pause_resume": true,
-    "fork": null,
+    "fork": true,
     "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
+    "docker_inside": true,
     "nested_virt": null,
     "root": true,
     "systemd": null,
-    "browser": null,
-    "desktop": null,
-    "computer_use": null,
+    "browser": false,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
+    "agent_harnesses": false,
     "ssh": true,
     "public_ipv4": true,
-    "inbound_https": null,
+    "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": true,
     "private_network": true,
-    "self_host": null,
-    "byoc": null,
-    "open_source": null,
+    "self_host": false,
+    "byoc": false,
+    "open_source": false,
     "regions": [
       "eu"
     ],
     "soc2": true,
-    "hipaa": null,
-    "sso": null,
-    "lang_python": null,
-    "lang_node": null,
+    "hipaa": false,
+    "sso": true,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": true,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
@@ -2223,7 +2223,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
     "harness_api": false,
@@ -2232,7 +2232,14 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "qemu-kvm",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -2267,10 +2274,10 @@
   "feature_evidence": {
     "snapshot_auto": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No stop-triggered snapshot documented: stop keeps the volumes (persistent disk); 'shelve' (future name 'deallocation') offloads the VM and stops compute billing but keeps its volumes. Scheduled crash-consistent backups via the Server Backup Management service ('advanced custom backup schedules enable automated backups') and SFS Snapshot Schedules are time-based, not stop-triggered. No memory state.",
-      "checked": "2026-09-29"
+      "source": "https://docs.stackit.cloud/products/compute-engine/server/basics/introduction-to-server/",
+      "quote": "Stopping the STACKIT Server won't remove the allocation and keep all its resources reserved for faster startup. Deallocating corresponds to stopping the STACKIT Server and removing its allocation... Deallocating doesn't delete the STACKIT Server or its resources.",
+      "note": "Stop/deallocate just leaves the persistent volume attached (or reserved) - there is no automatic memory/disk snapshot taken on stop/timeout and restored on start. Snapshots exist only as a separate, explicitly-triggered feature (on-demand or scheduled backups via Server Backup Management), never tied to the stop action itself. Confirms the card's 'no'.",
+      "checked": "2026-09-30"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -2281,10 +2288,10 @@
     },
     "harness_api": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "Plain IaaS. STACKIT Run Command (via Server Agent) runs shell/PowerShell scripts on VMs from Portal/CLI/API: an exec API, not a harness API. No agent-harness endpoints in the IaaS API.",
-      "checked": "2026-09-29"
+      "source": "https://docs.stackit.cloud/products/compute-engine/server-agent/basics/introduction-to-server-agent/",
+      "quote": "With the Server Agent, you can run custom Shell and PowerShell scripts directly on your STACKIT servers. This lets you perform individual tasks, automate workflows, or handle bulk operations without manual intervention.",
+      "note": "STACKIT Compute Engine is plain IaaS (KVM/OpenStack VMs). Its only exec-style API is the Server Agent, a generic remote shell/PowerShell script runner (an exec API) - there is no API to prompt/stream/follow-up with a coding agent harness (Claude Code, Codex, etc.) running inside the VM. Outside the scope of a bare VM product; confirms the card's 'no'.",
+      "checked": "2026-09-30"
     },
     "egress_allowlist": {
       "value": true,
@@ -2310,10 +2317,10 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No credential-injecting proxy. Secrets reach the VM via cloud-init user data, service accounts attached to servers, or the separate STACKIT Secrets Manager (read from inside the VM).",
-      "checked": "2026-09-29"
+      "source": "https://docs.stackit.cloud/products/security/secrets-manager/basics/features-use-cases-and-service-plans/",
+      "quote": "Store secrets like passwords, configuration files and text separated from your code ... Automation and integrations via API",
+      "note": "STACKIT Secrets Manager is a Vault-based secret store that applications/workloads read from (via API/AppRole) - the secret still reaches the caller/VM, it is not a first-party HTTP-injecting proxy that keeps credentials out of the machine. On a plain IaaS VM product, secrets otherwise arrive as cloud-init user data or attached service accounts (env/files). Confirms the card's 'no'.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": true,
@@ -2328,6 +2335,216 @@
       "quote": "A Share Export Policy is a set of rules that control client access to the data storied in the NFS Shares. This is where you can define which IPs can mount the NFS Shares and which type of access these IPs have.",
       "note": "STACKIT File Storage (SFS): NFS Resource Pools (500 GB-20 TB, mountable read-only) containing NFS Shares mountable read-write by any client IPs allowed by the Share Export Policy ('NFS Shares can be mounted in read and write mode'); requires a STACKIT Network Area with routing tables. Separate paid product. Block volumes themselves are single-attach.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "qemu-kvm",
+      "source": "https://docs.stackit.cloud/products/iaas-api/how-tos/use-custom-images-with-the-iaas-api/",
+      "quote": "If you have an image in a format that is not accepted by STACKIT, you can convert it to the raw format using QEMU.",
+      "note": "derived: STACKIT Compute Engine is an OpenStack-style IaaS (server/volume/network-area API) that accepts raw/qcow2/iso QEMU disk images for custom VMs; this is standard for OpenStack Nova compute running libvirt+KVM. Hypervisor is never explicitly named 'KVM' in public STACKIT docs.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.stackit.cloud/products/iaas-api/how-tos/use-custom-images-with-the-iaas-api/",
+      "quote": "should be replaced with the format of your image (possible formats: “raw”,“qcow2”,“iso”)",
+      "note": "not offered: outside the product's scope. Custom images are VM disk images (raw/qcow2/iso), not Docker/OCI container images; Compute Engine is an IaaS VM product, not a container runtime.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/products/security/security-hardening/security-in-compute-engine/",
+      "quote": "Use a firewall, for example with iptables or firewalld, and allow only necessary ports.",
+      "note": "derived: full KVM/OpenStack-style VM with root access (root: true); Docker/containers run inside like on any Linux VM. Not explicitly documented by STACKIT as a supported use case.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.stackit.cloud/products/compute-engine/linux-server/how-tos/access-server-using-web-console/",
+      "quote": "The web console is an emulated console access to the VM. For this reason, the copy/paste function, for example, is not available.",
+      "note": "not offered: outside the product's scope. The Portal 'web console' is an emergency emulated text/serial console for troubleshooting, not a graphical desktop (VNC/RDP/stream).",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "not offered: outside the product's scope. Plain IaaS VM/server product; no managed browser is provided or documented.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "not offered: outside the product's scope. No screenshot/click-driving API exists for an IaaS VM product.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "not offered: outside the product's scope. STACKIT sells VMs/infrastructure, not a browser-automation/stealth product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "not offered: outside the product's scope. Plain IaaS VM; no CAPTCHA-solving service documented.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.stackit.cloud/products/network/core-networking/virtual-network/basics/concepts/",
+      "quote": "Technically this is done by source NAT (SNAT) in combination with masquerading. When creating the first network in a public project, STACKIT automatically creates and assigns a public IP for all Virtual Networks.",
+      "note": "Outbound traffic uses STACKIT-owned datacenter IP ranges (SNAT gateway IP or an attached STACKIT Public IP Address), not residential/mobile IPs.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/products/iaas-api/how-tos/clone-a-vm-via-cli/",
+      "quote": "Create a new volume which uses the old volume as its source, this creates a clone. ... Create a new VM using the cloned drive",
+      "note": "Documented clone workflow: clone the boot volume of an existing server, then create a new server booting from the cloned volume.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/products/iaas-api/how-tos/clone-a-vm-via-cli/",
+      "quote": "STATE\tACTIVE\nPOWER STATUS\tRUNNING ... stackit volume create --availability-zone eu01-1 --source-type volume --source-id b4c68c72-6130-443e-8cb2-d5db753280d6 --name clone-volume",
+      "note": "The documented clone tutorial clones the boot volume of a server shown as STATE ACTIVE / POWER STATUS RUNNING without any step to stop the source VM first.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.stackit.cloud/products/iaas-api/how-tos/clone-a-vm-via-cli/",
+      "quote": "Clone the Boot Volume ... Create a new VM using the cloned drive",
+      "note": "Cloning only duplicates the boot volume (disk); the new VM boots fresh from that disk. No memory/process state is captured or restored.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "not offered: outside the product's scope. Plain always-on/stoppable IaaS VMs; no request-triggered auto-wake mechanism is documented.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "No idle-detection auto-stop/auto-sleep feature documented for Compute Engine servers; VMs run until explicitly stopped (pause_resume is manual).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.stackit.cloud/products/iaas-api/how-tos/resize-a-server-via-the-iaas-api/",
+      "quote": "By changing the machine-type the server will have a short downtime.",
+      "note": "Changing CPU/RAM (machine-type) requires the documented resize operation, which causes a short downtime -- not a live/hot resize.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.stackit.cloud/products/compute-engine/server-agent/basics/introduction-to-server-agent/",
+      "quote": "STACKIT Compute Engine",
+      "note": "not offered: outside the product's scope. Server Agent/Run Command only executes arbitrary shell/PowerShell scripts; no coding-agent (Claude Code, Codex, etc.) templates or preinstalls are offered.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "not offered: outside the product's scope. STACKIT has no first-party browser/computer-use/research task agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://api.github.com/orgs/stackitcloud/repos?per_page=100",
+      "quote": "total_count: 0 (search for an 'mcp' named repo under the stackitcloud GitHub org)",
+      "note": "No MCP server repository found under the stackitcloud GitHub org; none documented on docs.stackit.cloud either.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://docs.stackit.cloud/products/compute-engine/linux-server/basics/introduction-to-linux/",
+      "quote": "The STACKIT Linux Server is built on the STACKIT Compute Engine and provides virtual machines (VMs) for running Linux-based operating systems.",
+      "note": "not offered: outside the product's scope. Bare OS VM images (RHEL/Ubuntu/Windows/etc.); no managed Python runtime layer -- the customer installs whatever language runtimes they need.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.stackit.cloud/products/compute-engine/linux-server/basics/introduction-to-linux/",
+      "quote": "The STACKIT Linux Server is built on the STACKIT Compute Engine and provides virtual machines (VMs) for running Linux-based operating systems.",
+      "note": "not offered: outside the product's scope. Bare OS VM images; no managed Node.js runtime is preinstalled or offered -- the customer installs it themselves.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.stackit.cloud/products/network/core-networking/virtual-network/basics/concepts/",
+      "quote": "It supports outbound internet access but does not allow traffic initiated from the public internet to reach your resources.",
+      "note": "not offered: outside the product's scope. Reaching a VM requires attaching a raw STACKIT Public IP Address and opening security-group ports yourself; there is no managed HTTPS-URL-to-port feature.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.stackit.cloud/products/network/core-networking/security-groups/basics/concepts/",
+      "quote": "Egress rules control outgoing traffic from your servers. By default there is a rule that allows all egress traffic.",
+      "note": "Security Group egress rules operate at protocol/port/IP-CIDR level only (already recorded as egress_allowlist level: 'ip'); there is no HTTP method/path-level egress control.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/products/network/core-networking/virtual-network/basics/concepts/",
+      "quote": "When creating the first network in a public project, STACKIT automatically creates and assigns a public IP for all Virtual Networks.",
+      "note": "Each Virtual Network gets a fixed bound public (SNAT) IP for outbound traffic, and a dedicated STACKIT Public IP Address can also be attached per VM/NIC; both are static/persistent, not rotating.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "not offered: outside the product's scope. Compute Engine offers Linux and Windows server VMs on standard x86/ARM cloud hardware; no macOS/Apple-silicon VMs are offered.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "not offered: outside the product's scope. STACKIT is a hyperscaler cloud service run in STACKIT's own datacenters; it is not distributed as software you run on your own infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "not offered: outside the product's scope. Compute Engine runs exclusively in STACKIT's own EU datacenters (eu01/eu02); it is not deployed into a customer's own cloud account.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://stackit.com/en/prices",
+      "quote": "STACKIT Compute Engine",
+      "note": "STACKIT Compute Engine is a proprietary managed cloud service operated by Schwarz Digits/STACKIT; the product itself (control plane, portal, billing) is not released under an OSI license, even though it is OpenStack-influenced under the hood.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://stackit.com/en/why-stackit",
+      "quote": "STACKIT - The sovereign cloud for companies",
+      "note": "not offered: outside the product's scope. STACKIT is an EU/German-Austrian sovereign cloud (GDPR/regional focus); no BAA or HIPAA-eligibility program is documented for a US healthcare regulation.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": true,
+      "source": "https://docs.stackit.cloud/platform/access-and-identity/stackit-idp/how-tos/saml-2_0-federation-guide/",
+      "quote": "Set up SAML federation with STACKIT IdP by following these steps. The STACKIT IdP acts as the Service Provider (SP), and your organization’s system acts as the Identity Provider (IdP).",
+      "note": "STACKIT IdP supports both SAML 2.0 federation and Generic OIDC 1.0 federation for customer organizations.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://stackit.com/en/prices",
+      "quote": "The services will be invoiced to the originating cost centers per billing unit or part thereof",
+      "note": "Compute Engine servers are billed hourly and run indefinitely until the customer stops/deletes them; there is no maximum session duration enforced by STACKIT.",
+      "checked": "2026-09-30"
     }
   }
 }

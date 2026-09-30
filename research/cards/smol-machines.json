@@ -129,7 +129,7 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": true,
     "gpu": false,
     "snapshot": "mem",
     "pause_resume": true,
@@ -140,50 +140,50 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": null,
-    "desktop": null,
-    "computer_use": null,
+    "browser": false,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
-    "ssh": null,
-    "public_ipv4": null,
+    "agent_harnesses": true,
+    "ssh": false,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
-    "byoc": null,
+    "byoc": true,
     "open_source": true,
-    "soc2": null,
-    "hipaa": null,
+    "soc2": false,
+    "hipaa": false,
     "sso": true,
     "gpu_types": [],
     "regions": null,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": false,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": true,
     "isolation": "vm",
     "image_oci": true,
     "snapshot_auto": false,
@@ -193,7 +193,13 @@
     "ingress_rules": true,
     "secret_proxy": "any-http",
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "guest_firewall": true,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -296,6 +302,195 @@
       "quote": "those are not a supported part of the API and a machine created with a mounts field comes up without the storage.",
       "note": "No shared volumes in cloud. Local/self-hosted smolvm: 'A remote volume mounts S3-compatible object storage' via the machine agent (FUSE, creds from guest env AWS_*), rw or :ro - several local machines could mount one bucket, but not a cloud feature.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/introduction/concepts/gpu",
+      "quote": "Hosted cloud does not provide GPU machines... The cloud create API has no GPU resource fields, and the SDK does not send resources.gpu, resources.gpuVramMib, or resources.cuda to that backend — setting them for a cloud machine has no effect.",
+      "note": "The cloud CreateMachineRequest schema (openapi.json) only exposes resources.cpus/memoryMb/diskGb, network, source, env, autoStop/ttl — no nested-virtualization field. --nested (running KVM/QEMU inside a machine) is documented only as a local smolvm host flag requiring host nested-KVM/Apple M3+; not exposed on the multi-tenant cloud API. Derived absence, not an explicit denial.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/guides/headless-browser-computer-use",
+      "quote": "SMOLVM_DISPLAY=1280x800 SMOLVM_VNC=127.0.0.1:5900 ... Both variables are read by the process that boots the machine, so exporting them in the shell or prefixing the command both work.",
+      "note": "The VNC/RFB desktop stream is enabled via environment variables passed to the local smolvm boot process, not a field in the smol cloud CreateMachineRequest (which only takes source/resources/network/env/mounts/autoStop/ttl/workdir). Not exposed as a cloud API feature.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/guides/headless-browser-computer-use",
+      "quote": "Put Chromium in a Smolfile entrypoint so it is running when the source machine is frozen... An agent inside the guest can connect to Chromium's DevTools endpoint on 127.0.0.1:9222.",
+      "note": "The guide shows how to run your own Chromium image inside a machine; smol machines does not itself ship/manage a preinstalled browser or a browser-control API. The registry catalog (20 official images) has no browser template.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://smolmachines.com/openapi.json",
+      "quote": "paths: /v1/machines, /v1/machines/{id}/exec, /v1/machines/{id}/sessions, /v1/machines/{id}/files, /v1/machines/{id}/code, /v1/machines/{id}/events ...",
+      "note": "No screenshot/click computer-use endpoint in the cloud API. The VNC desktop stream described in the headless-browser guide is a local-smolvm host-process feature (SMOLVM_DISPLAY/SMOLVM_VNC env vars), not a shipped cloud API capability.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://smolmachines.com/llms.txt",
+      "quote": "Documentation for Smol Machines — isolated Linux microVMs (\"machines\"). ... Reach for smol machines when a workload needs a real Linux VM boundary — its own kernel, not a shared one.",
+      "note": "not offered: outside the product's scope — smol machines is a generic microVM/sandbox runtime, not a browser stealth/anti-fingerprinting product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://smolmachines.com/llms.txt",
+      "quote": "Documentation for Smol Machines — isolated Linux microVMs (\"machines\"). ... Reach for smol machines when a workload needs a real Linux VM boundary — its own kernel, not a shared one.",
+      "note": "not offered: outside the product's scope — no CAPTCHA-solving feature is documented anywhere on the site/docs/API.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+      "quote": "A cloud machine created without a network block gets open outbound access by default; set network explicitly when egress policy matters.",
+      "note": "smol cloud is standard hosted-VM infrastructure; no residential/mobile egress product is mentioned anywhere. Derived as ordinary datacenter egress.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/cloud/api-reference",
+      "quote": "The Cloud API also provides endpoints for: Running Python or JavaScript through /code, Machine events and logs, Per-machine usage and cached images, Sharing a machine through scoped share links, Branching a branchable machine, Exporting a machine to a .smolmachine artifact.",
+      "note": "No SSH route is documented for smol cloud; access is via POST /v1/machines/{id}/exec, sessions, files, or the authenticated /connect/{port}/ WebSocket tunnel to a published guest port. SSH-agent forwarding (--ssh-agent) is a separate, local-smolvm-only flag for outbound git/ssh, not inbound SSH login to the machine.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/local/machine-lifecycle-cli-reference",
+      "quote": "smolvm machine stop --name dev\nsmolvm machine update --name dev --cpus 6 --mem 12288\nsmolvm machine start --name dev\nmachine update changes configuration for the next start. The machine must be stopped first.",
+      "note": "Resizing CPU/RAM requires the machine to be stopped first; not possible on a running machine.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "source": "https://smolmachines.com/registry",
+      "quote": "codex official Coding-agent sandbox — Node.js, Python, git, ripgrep, and build-essential with the OpenAI Codex CLI (`codex`) pre-installed. Bring your own API key at runtime.",
+      "note": "Registry also offers 'harbor' (drives Claude Code, Codex, OpenHands) and a 'pi' template; llms.txt also lists 'codex coding-agent sandbox, harbor, etc.' as pre-built registry environments.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://smolmachines.com/llms.txt",
+      "quote": "smol cloud is the hosted service for managed smolvm-based machines... Fast, reliable, persistent cloud VMs that scale with compute need. Most common: deploying agents / agentic processes.",
+      "note": "not offered: outside the product's scope — smol machines exposes a generic VM/exec API; it does not offer a first-party API that drives its OWN browser/computer-use/research task agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/smol-machines/smol-mcp/main/README.md",
+      "quote": "An MCP server for smol machines: it gives an AI agent a virtual machine to work in. The agent creates a machine from an OCI image, runs commands in it, reads and writes files, branches it, tails its log and deletes it, all through the tools its client already knows how to call.",
+      "note": "First-party repo smol-machines/smol-mcp, supports both local smolvm and smol cloud targets.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://smolmachines.com/registry",
+      "quote": "python official python:3.12-slim — packaged as a smolmachine available: linux/amd64",
+      "note": "Also: cloud API has POST /v1/machines/{id}/code for 'Running Python or JavaScript'; SDK is `pip install smolmachines`.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://smolmachines.com/registry",
+      "quote": "node official Node.js 22 runtime (node:22-slim) — run JavaScript/TypeScript, npm packages, and Node tooling in an isolated microVM. available: linux/amd64 linux/arm64",
+      "note": "Also: cloud API /code endpoint runs JavaScript; SDK is `npm install smolmachines`.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+      "quote": "Each cloud machine can publish up to four guest ports. A published port is a guest port declaration; use the returned URL or authenticated connect route to reach it.",
+      "note": "Machines are reached through a provider-issued URL / authenticated connect route (or public:true HTTPS ingress), not a dedicated public IPv4 address per machine.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+      "quote": "Allow only selected hosts and CIDR ranges: { \"network\": { \"mode\": \"allowCidrs\", \"hosts\": [...], \"cidrs\": [...] } }",
+      "note": "Egress control is hostname/CIDR-level only; no HTTP method/path-level egress rule is documented.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+      "quote": "smol cloud exec takes --user, a name from the image or a numeric uid[:gid], which overrides the image's USER for that command: smol cloud exec -n myapp --user 1000:1000 -- id",
+      "note": "derived: machines are full microVMs with their own guest kernel (isolation: vm) and root-capable exec, so nftables/iptables inside the guest should work; not directly documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://smolmachines.com/pricing",
+      "quote": "plans standard $0 20 machines ... pro $20/month + usage 100 machines ... enterprise custom dedicated nodes and volume rates machine sizes set per contract an SLA, and SSO/SAML",
+      "note": "No fixed/static outbound IP offering is mentioned on pricing, FAQ, or docs pages, including the Enterprise tier's listed extras (dedicated nodes, SLA, SSO/SAML).",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": true,
+      "source": "https://smolmachines.com/docs/cloud/registry",
+      "quote": "Packed artifacts are architecture-specific. Set optional arch to amd64 or arm64 when you need an explicit placement constraint.",
+      "note": "Registry catalog also lists multiple official images available for linux/arm64 (node, python-tools/codex, harbor, claude, pi).",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": true,
+      "source": "https://smolmachines.com/llms.txt",
+      "quote": "Custom deployments (designated-location hosts, uncommon management layers): available from Smol Machines on request — not the default self-serve cloud.",
+      "note": "Described as a request-based custom/managed deployment to a designated location, distinct from the self-serve multi-tenant cloud; closest documented match to BYOC. Not self-serve, and exact 'in your own cloud account' wording is not used.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://smolmachines.com/pricing",
+      "quote": "enterprise custom dedicated nodes and volume rates machine sizes set per contract an SLA, and SSO/SAML",
+      "note": "The Enterprise tier explicitly lists its extras (dedicated nodes, custom rates, SLA, SSO/SAML) with no mention of SOC 2; no security/trust/compliance page exists on the site (smolmachines.com/security and /trust both 404). Early-stage (YC S26) company with no published attestation.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://smolmachines.com/pricing",
+      "quote": "enterprise custom dedicated nodes and volume rates machine sizes set per contract an SLA, and SSO/SAML",
+      "note": "No HIPAA/BAA mention anywhere in docs, pricing, or FAQ; no security/compliance page exists on the site.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/cloud/api-reference",
+      "quote": "CreateMachineRequest properties: autoStopSeconds, env, ephemeral, mounts, name, network, resources, source, ttlSeconds, workdir",
+      "note": "No region/location field exists anywhere in the create-machine schema or docs; the product does not document any region selection, so EU data residency cannot be requested.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+      "quote": "ttlSeconds: hard lifetime limit — the machine is deleted this many seconds after creation regardless of activity, on the same 15-second sweep.",
+      "note": "ttlSeconds is an optional, caller-set hard lifetime (no default and no documented provider-imposed maximum); a persistent machine with no ttl/autoStop can be started and left running (start/stop/exec) indefinitely until the caller stops or deletes it, like an always-on VM.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+      "quote": "Hosted cloud machine resource requests currently expose CPU, memory, and disk fields. They do not expose GPU fields. Local smolvm GPU support does not imply hosted cloud GPU availability.",
+      "note": "GPU (Vulkan/CUDA remoting) exists only in local/self-hosted smolvm, not in the priced smol cloud product; cloud has no GPU field at all.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://smolmachines.com/llms.txt",
+      "quote": "You need Windows or macOS guests. Guests are Linux.",
+      "note": "Listed as an explicit 'not the right tool' case in the official docs index; guest OS is Linux only regardless of host platform.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://smolmachines.com/llms.txt",
+      "quote": "You need Windows or macOS guests. Guests are Linux.",
+      "note": "Same official statement rules out macOS guests; macOS is only supported as a host for running smolvm locally, not as a guest OS.",
+      "checked": "2026-09-30"
     }
   }
 }

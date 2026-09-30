@@ -113,41 +113,41 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "gpu_types": [],
     "snapshot": "fs",
     "pause_resume": true,
     "fork": true,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
     "browser": true,
     "desktop": true,
     "computer_use": true,
     "code_interpreter": true,
-    "agent_harnesses": null,
+    "agent_harnesses": false,
     "ssh": true,
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
-    "self_host": null,
-    "byoc": null,
+    "self_host": false,
+    "byoc": false,
     "open_source": false,
     "regions": null,
     "soc2": true,
-    "hipaa": null,
-    "sso": null,
+    "hipaa": false,
+    "sso": false,
     "lang_python": true,
     "lang_node": true,
     "lang_go": null,
@@ -155,19 +155,19 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
+    "live_resize": true,
     "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": true,
     "scheduled_wakeups": null,
     "audit_logs": true,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "isolation": "firecracker",
     "image_oci": true,
     "snapshot_auto": true,
@@ -177,7 +177,12 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "harness_api": false,
+    "own_agent_api": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -285,6 +290,182 @@
       "quote": "Mount a Volume read-write into one sandbox and\nread-only into many others, so a fleet of agents can work against the same dataset or\nindex in parallel.",
       "note": "One read-write writer plus many read-only readers concurrently (per launch blog). Multi-writer read-write sharing is not documented.",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://instavm.io/docs/concepts/sandboxes",
+      "quote": "Each sandbox gets its own kernel, filesystem, and network stack... Root access inside the sandbox does not grant access to the host",
+      "note": "Not explicitly documented. Derived: each sandbox is a full Firecracker microVM with its own dedicated guest kernel and root access (features.root=true), which is the standard requirement for running a Docker/containerd daemon (cgroups+overlayfs) inside a microVM. No InstaVM page explicitly confirms or denies running Docker inside the guest.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://instavm.io/docs/concepts/sandboxes",
+      "quote": "A sandbox is a lightweight virtual machine that boots in under 200ms... A Linux kernel (based on Firecracker microVMs)",
+      "note": "Not documented. Derived: Firecracker microVMs do not expose /dev/kvm or hardware virtualization extensions to the guest, so nested virtualization (running VMs/emulators inside the sandbox) is not available, matching the same architecture on comparable Firecracker providers (e.g. E2B).",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://instavm.io/docs/guides/browser-automation",
+      "quote": "Control headless browsers on InstaVM for web scraping, testing, and automated workflows.",
+      "note": "not offered: outside the product's scope. The browser automation docs describe a plain headless-browser API (navigate, fill, click, screenshot, extract) with no stealth/fingerprinting/anti-detection features mentioned anywhere in the docs, blog, or OpenAPI spec.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://instavm.io/docs/guides/browser-automation",
+      "quote": "Control headless browsers on InstaVM for web scraping, testing, and automated workflows.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature is mentioned in the browser automation docs, pricing page, or API reference.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://instavm.io/docs/concepts/egress-policies",
+      "quote": "Egress policies control what outbound network connections a sandbox can make.",
+      "note": "Not explicitly named. Derived: InstaVM is a general-purpose code-execution/sandbox cloud running on its own infrastructure with an egress proxy; there is no mention of residential or mobile IP pools anywhere in the docs, so outbound IPs are ordinary datacenter IPs.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": true,
+      "source": "https://api.instavm.io/openapi.json",
+      "quote": "VMUpdateRequest: {\"memory_mb\": {\"anyOf\":[{\"type\":\"integer\"},{\"type\":\"null\"}]}, ...}",
+      "note": "PATCH /v1/vms/{vm_id} accepts a memory_mb field to update an existing VM's RAM allocation; no vcpu_count field is present in VMUpdateRequest, so CPU cannot be live-resized, only RAM. No prose docs describe this endpoint's behavior on a running vs stopped VM, hence medium confidence.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://instavm.io/blog/claude-code-sdk-on-instavm",
+      "quote": "InstaVM's philosophy is different: provide a clean, flexible, and full-featured Linux environment and let the developer build. You don't need a custom template... (No Templates Required)",
+      "note": "not offered: InstaVM's own marketing explicitly contrasts itself with providers that ship pre-configured coding-agent templates, and the base sandbox image (Python, Node.js, common CLI tools) does not include Claude Code, Codex, or OpenCode preinstalled. The instavm/skills GitHub repo instead ships an agent *skill* for driving InstaVM from Claude Code/Codex/Cursor/OpenCode running elsewhere.",
+      "checked": "2026-09-30"
+    },
+    "harness_api": {
+      "value": false,
+      "source": "https://instavm.io/docs/api",
+      "quote": "Sessions Create and manage execution sessions. Execution Execute code synchronously or asynchronously.",
+      "note": "not offered: outside the product's scope. The documented REST API drives raw code execution/VM/browser sessions, not a specific coding harness (Claude Code/Codex/OpenCode) with prompt/stream/follow-up semantics. The undocumented agents-api (agent-builder, environments, invoke) seen in the OpenAPI spec drives InstaVM's own generic agent-builder product, not a coding harness.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://instavm.io/platform",
+      "quote": "Build an agent. Sell it. Describe what your agent should do, refine it with prompts, and publish it as a paid product... instavm — agent builder // prompt \"Crawl a website, audit every page for SEO issues...\"",
+      "note": "InstaVM's 'Agent Builder' platform lets you describe/refine/invoke a first-party InstaVM-hosted agent. Confirmed by undocumented endpoints in https://api.instavm.io/openapi.json: /v1/agents-api/agent-builder/prompt, /agents, /agents/{id}/invoke, /agents/{id}/runs, /environments, /sessions/{id}/events — a first-party API driving InstaVM's own agent product, separate from the code-execution/browser SDK.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/instavm/cookbooks/main/recipe-30-mcp-server-hosting/README.md",
+      "quote": "Minimal SSE + JSON-RPC MCP stub at /mcp for InstaVM-hosted multi-tenant MCP servers.",
+      "note": "not offered: InstaVM does not ship its own MCP server to control its sandboxes. The 'mcp-server-hosting' cookbook is an example of *hosting a third-party MCP server inside* an InstaVM VM, the opposite direction. The instavm/skills repo ships an Agent-Skills-format skill (for Claude Code/Codex/Cursor/OpenCode), not an MCP server.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://instavm.io/docs/concepts/egress-policies",
+      "quote": "allow_http bool Allow outbound HTTP (port 80) allow_https bool Allow outbound HTTPS (port 443) allowed_domains list[str] ... allowed_cidrs list[str]",
+      "note": "not offered: egress policy controls are at the protocol (HTTP vs HTTPS) and domain/CIDR level only; no HTTP method or URL-path level egress rules are documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://instavm.io/docs/concepts/egress-policies",
+      "quote": "Egress policies control what outbound network connections a sandbox can make... Define CIDR-based allow lists for private networks",
+      "note": "not offered: outside the product's scope. Egress policy docs describe domain/CIDR allowlisting through a shared proxy; no fixed/dedicated outbound IP address feature is mentioned anywhere in the docs or pricing page.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://instavm.io/pricing",
+      "quote": "Languages Python, JS, Bash Python, JS, Bash All",
+      "note": "not offered: no ARM/aarch64 architecture option is mentioned anywhere in the pricing, docs, or API reference; sandboxes are described as a single generic Firecracker microVM type with no CPU architecture selector.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://instavm.io/pricing",
+      "quote": "Enterprise ... Everything in Pro, plus: Unlimited executions Dedicated infrastructure 24/7 priority support Custom SLA & contracts SOC 2 Type II compliance Dedicated account manager",
+      "note": "not offered: outside the product's scope. Even the Enterprise tier offers 'Dedicated infrastructure' on InstaVM's own cloud, not a self-hosted/on-prem deployment of the InstaVM platform. (A separate, differently-architected open-source project by the same GitHub org, 'tarit', is a standalone KVM microVM platform, but it is not the Firecracker-based instavm.io SaaS this card models.)",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://instavm.io/pricing",
+      "quote": "Enterprise Custom For large-scale deployments and enterprises. Everything in Pro, plus: ... Dedicated infrastructure ... Dedicated account manager",
+      "note": "not offered: outside the product's scope. No plan or docs page mentions deploying InstaVM into a customer's own cloud account (VPC); Enterprise 'dedicated infrastructure' is on InstaVM's own cloud.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://instavm.io/pricing",
+      "quote": "Enterprise ... SOC 2 Type II compliance Dedicated account manager Contact sales",
+      "note": "not offered: the pricing page's Enterprise feature list names SOC 2 Type II explicitly but does not mention HIPAA eligibility or a BAA anywhere on the pricing, privacy, or docs pages.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://instavm.io/pricing",
+      "quote": "Enterprise ... Custom SLA & contracts SOC 2 Type II compliance Dedicated account manager",
+      "note": "not offered: no SAML/OIDC single sign-on feature is listed on the pricing page (including the Enterprise tier) or anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://instavm.io/privacy",
+      "quote": "For users in the European Economic Area (EEA), United Kingdom, or other regions with data protection laws, we rely on appropriate legal mechanisms to transfer your data, including Standard Contractual Clauses approved by the European Commission.",
+      "note": "not offered: the privacy policy addresses EU data via cross-border transfer safeguards (Standard Contractual Clauses) rather than offering an EU-region hosting/residency option; no regions list or EU-only deployment choice is documented anywhere on the site.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://instavm.io/docs/concepts/volumes",
+      "quote": "Volumes are persistent block storage for VMs. Use them when data must outlive a VM/session lifecycle.",
+      "note": "Contradiction confirmed and resolved in favor of persistence. The card's own feature_evidence already documents it: (1) Volumes are first-party persistent block storage, mountable at create or hot-plugged onto a running VM, billed on allocated GB-hours (10 GB included) — this alone makes 'files survive stop/start' true via an opt-in persistent volume. (2) Explicit suspend/resume (SDK/CLI 0.26+) snapshots a running VM's memory + disk to a managed snapshot and restores it later 'memory and filesystem intact' (SDK README, quoted in feature_evidence.snapshot_auto). Default behavior without volumes/suspend: ephemeral — 'When the session ends, session filesystem state is destroyed' (how-it-works) and lifetime expiry destroys state unless snapshot_on_terminate. So persistent_disk should be true, with the caveat that the default is delete-on-stop; persistence requires opting into volumes and/or suspend/snapshot_on_terminate.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://instavm.io/docs/concepts/snapshots",
+      "quote": "Snapshots capture VM disk state plus snapshot metadata so new VMs can boot from a prebuilt environment in milliseconds.",
+      "note": "On-demand snapshots (the only mechanism that can spawn new/forked VMs, via `instavm create --snapshot snap_...` or `clone`) are disk-only, not memory-inclusive — confirmed by the card's own feature_evidence.snapshot_on_demand note: 'Disk only (no memory). New VMs boot from it... Explicit suspend... is an on-demand memory+disk snapshot, but it only resumes the same VM (new vm_id), not a fork.' No InstaVM doc describes forking a new, independently-running VM from a memory+disk (process-inclusive) snapshot. False is correct.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://instavm.io/docs/concepts/ssh",
+      "quote": "ssh_host = vm . get ( 'ssh_host' ) ssh_user = vm . get ( 'ssh_user' ) ssh_port = vm . get ( 'ssh_port' , 22 )",
+      "note": "VMs are reached via a platform-issued ssh_host/hostname (and via share URLs / custom-domain CNAMEs per docs/concepts/shares), not a dedicated public IPv4 address assigned to the VM. No InstaVM page mentions per-VM public IPv4 addresses or an IPv4 add-on; all inbound access is proxied through InstaVM's gateway (shares, SSH gateway, custom domains). Consistent with the card's network.ipv4_available: false. Confirmed false, medium confidence since the pages describe the access model but don't explicitly say 'no public IPv4'.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://instavm.io/docs/getting-started/how-it-works",
+      "quote": "InstaVM uses Firecracker microVMs. Each sandbox gets: A dedicated Linux kernel, Isolated filesystem, memory, and CPU, Network stack with configurable egress",
+      "note": "Product is explicitly a Firecracker-microVM CPU sandbox platform (code execution, browser/computer-use, volumes); no GPU, GPU type, or GPU pricing is mentioned anywhere on pricing/docs/solutions pages, and the pricing page's compute rates are vCPU/RAM only. Plainly outside current product scope, so confirmed false at medium confidence per the rule for features outside what the product is.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://instavm.io/solutions/computer-use",
+      "quote": "Full Linux desktop for agent automation. Each VM runs a Linux desktop accessible via noVNC viewer URL.",
+      "note": "Sandboxes are Firecracker Linux microVMs (docs/getting-started/how-it-works: 'A dedicated Linux kernel'); the desktop/computer-use product is explicitly a Linux desktop, not Windows. No Windows machine type or OS option is offered anywhere on the site. Confirmed false, medium confidence (feature is outside what the product is).",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://instavm.io/docs/getting-started/how-it-works",
+      "quote": "InstaVM uses Firecracker microVMs. Each sandbox gets: A dedicated Linux kernel",
+      "note": "Firecracker is a Linux-only KVM-based microVM technology; InstaVM's own architecture docs and computer-use page ('Full Linux desktop') describe Linux-only sandboxes. No macOS machine type is offered or mentioned. Confirmed false, medium confidence (outside what the product is).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/instavm",
+      "quote": "Production control plane for AI agents",
+      "note": "InstaVM's GitHub org (github.com/instavm) hosts SDKs, cookbooks and example/demo repos (coderunner, clickclickclick, manim-studio, cookbooks) but not the core sandbox/VM orchestration platform itself, which is a closed proprietary SaaS ('Production control plane for AI agents', InstaVM org description) accessed only via API/dashboard sign-up (dashboard.instavm.io). No OSI license or self-host/source-available offering for the core product is published. Confirmed false, medium confidence.",
+      "checked": "2026-09-30"
     }
   }
 }

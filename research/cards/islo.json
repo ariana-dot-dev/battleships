@@ -129,13 +129,13 @@
     "snapshot": "mem",
     "pause_resume": true,
     "fork": true,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": false,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
     "browser": true,
@@ -144,7 +144,7 @@
     "code_interpreter": false,
     "agent_harnesses": true,
     "ssh": true,
-    "public_ipv4": null,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": false,
@@ -160,8 +160,8 @@
     "soc2": null,
     "hipaa": null,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -169,8 +169,8 @@
     "credential_injection": true,
     "egress_http_rules": true,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": null,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": true,
     "scheduled_wakeups": true,
@@ -190,7 +190,12 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -337,6 +342,168 @@
       "quote": null,
       "note": "No shared volume/filesystem product. Sharing between sandboxes is only via snapshots (copy) or a user-mounted S3 bucket (mount-s3 over the AWS integration, read-write per IAM policy). 'Knowledge' is a versioned document store API, not a filesystem.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://islo.dev/security",
+      "quote": "ISOLATION microVM per agent computer. Stronger boundary than containers alone for untrusted or production-adjacent work.",
+      "note": "Not documented either way. Derived: each sandbox is itself a microVM (Firecracker/cloud-hypervisor-style guest); such guests typically do not expose /dev/kvm for nested virtualization, and no docs mention nested virt, running VMs/emulators, or /dev/kvm inside a sandbox.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://islo.dev/sandboxes",
+      "quote": "An agent sandbox is an isolated computer where a coding agent runs shell commands, opens a browser, starts services, and calls APIs under policy constraints.",
+      "note": "not offered: outside the product's scope. Islo is infrastructure for coding agents (shell/services/APIs plus a generic browser for testing); no stealth/fingerprinting-evasion feature against bot detection is documented anywhere in the docs, marketing, or gateway pages.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://islo.dev/sandboxes",
+      "quote": "An agent sandbox is an isolated computer where a coding agent runs shell commands, opens a browser, starts services, and calls APIs under policy constraints.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature is mentioned anywhere in Islo's docs, product, or gateway pages; the product is coding-agent sandbox infrastructure, not a web-scraping/anti-bot service.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.islo.dev/cli/gateways.md",
+      "quote": "Routes traffic — proxies through Islo's gateway so requests can be audited and rate-limited.",
+      "note": "Islo runs cloud VMs (also sold via AWS Marketplace) with outbound traffic optionally routed through Islo's own gateway/proxy. No residential or mobile IP option is documented anywhere; egress is standard cloud/datacenter IP space. Not explicitly labeled 'datacenter' on any page.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://docs.islo.dev/cli/snapshots.md",
+      "quote": "Snapshots let you capture the complete state of a running sandbox and restore it later... Save a snapshot of a running sandbox: `islo snapshot save my-sandbox`... Create a new sandbox from a snapshot using `--snapshot`: `islo use new-sandbox --snapshot before-refactor`",
+      "note": "Snapshot save operates on a running sandbox without stopping/pausing it, and restoring the snapshot creates a brand-new sandbox (clone). The original keeps running throughout, so this satisfies cloning a running machine without stopping it (filesystem-only clone, not memory/processes).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.islo.dev/api-reference/sandboxes/create-sandbox.md",
+      "quote": "`vcpus` (integer, optional) - `memory_mb` (integer, optional) - `disk_gb` (integer, optional)",
+      "note": "vCPU/memory/disk are set only in the create-sandbox request; no update/resize endpoint or CLI command for changing resources on a running sandbox is documented in the API reference or CLI sandbox-commands page. Resizing appears to require creating a new sandbox (e.g. from a snapshot) with different resources.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://islo.dev/solutions/enterprise",
+      "quote": "Which harnesses and models are supported? Islo is harness-agnostic. Claude Code, Codex, and Cursor run natively, and custom harnesses run on the same infrastructure.",
+      "note": "not offered: outside the product's scope. Islo's API/CLI drives YOUR coding harness (Claude Code, Codex, Cursor, custom) inside its sandboxes (harness_api) — it does not ship its own first-party task/browser/computer-use agent product to drive.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://docs.islo.dev/concepts/setup-scripts.md",
+      "quote": "Setup scripts prepare a sandbox after sources are cloned but before you start using it — installing language runtimes, syncing dependencies, building tools. ... `islo add python 3.12` # Add the Python recipe pinned to 3.12",
+      "note": "Language runtimes are explicitly something you add via setup scripts/recipes (`islo add python <version>`), not something the docs describe as preinstalled in the default `islo-runner` image. No page states Python ships out of the box.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.islo.dev/concepts/setup-scripts.md",
+      "quote": "`islo add node 20` # Add the Node recipe pinned to 20",
+      "note": "Same as lang_python: Node.js is added via a setup-script recipe rather than documented as preinstalled by default in the base sandbox image.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.islo.dev/cli/sharing.md",
+      "quote": "Islo lets you create shareable URLs for HTTP services running inside your sandbox.",
+      "note": "No public IPv4 product is documented or priced anywhere (pricing page only lists CPU/memory/storage). Reaching a sandbox is via HTTPS share URLs, `islo port-forward` (local tunnel), or `islo ssh` (proxied SSH via `<name>.islo`) — not a dedicated public IPv4 address.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://islo.dev/sandboxes",
+      "quote": "How long can a computer stay up? Long enough for jobs measured in hours rather than seconds. Sessions survive disconnects and restarts, which is what makes unattended work possible.",
+      "note": "No published hard ceiling on session length. Lifecycle policy fields (`pause_after`, `delete_after`) are optional and user-set at creation (https://docs.islo.dev/concepts/sandbox-lifecycle.md); without them a running sandbox is not automatically stopped, behaving like a VM that runs until you stop it.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.islo.dev/concepts/sandbox-lifecycle.md",
+      "quote": "When a timer fires, the platform **pauses** the VM: state is snapshotted, compute is released, and the sandbox no longer counts against running-sandbox quotas. Paused sandboxes keep their filesystem and can be resumed.",
+      "note": "Contradiction confirmed: card already lists pause_resume:true and snapshot:mem, and lifecycle docs state paused sandboxes 'keep their filesystem'. islo pause / API pause-sandbox (manual or via pause_after_idle/pause_after policy) preserves the full disk+memory state until islo resume. Default is no lifecycle policy set (manual pause/resume only) - there's no auto-delete-on-stop default; disk persists across pause/resume in all cases. Correcting persistent_disk to true.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.islo.dev/cli/snapshots.md",
+      "quote": "The snapshot captures the entire filesystem state ... Restoring from a snapshot creates a new sandbox",
+      "note": "Named/on-demand snapshots (islo snapshot save, POST /snapshots) are explicitly filesystem-only, not memory - the card's own feature_evidence for snapshot_on_demand confirms this ('Snapshots... are filesystem-only'). The only memory-inclusive state capture is pause/resume of the SAME sandbox (no new sandbox id, no fork). No documented way to fork a running sandbox's live memory state into a new, independent sandbox. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.islo.dev/overview.md",
+      "quote": "Islo gives you persistent, hardware-isolated sandbox environments that stay running... dedicated microVM",
+      "note": "Full docs index (llms.txt) and CLI/API reference cover only exec, files, ports, sessions, SSH, sharing, gateways, snapshots and factory automations - no GUI/VNC/remote-desktop product anywhere. Islo sandboxes are headless Linux microVMs for code/CLI/agent work; no desktop environment is offered. Outside scope of the product.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.islo.dev/llms.txt",
+      "quote": "Sandbox Commands: Islo CLI commands for creating, managing, and executing code in secure sandbox environments.",
+      "note": "No screenshot/mouse/keyboard-control API or computer-use tool documented anywhere in the docs index, CLI reference, or API reference (checked sandbox-commands.md, create-sandbox.md, agent-integration.md). Product surface is exec/files/ports only. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.islo.dev/api-reference/sandboxes/create-sandbox.md",
+      "quote": "disk_gb (integer, optional) ... memory_mb (integer, optional) ... vcpus (integer, optional)",
+      "note": "Create-sandbox schema has only a per-sandbox disk_gb; no volume/mount/attach field anywhere in the API. This matches the card's own feature_evidence for volume_attach/volume_shared (both false: 'no volume concept anywhere in the docs index'; persistence is via pause/resume and snapshots, plus a third-party S3 FUSE mount). Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.islo.dev/overview.md",
+      "quote": "These docs are also available as an MCP server at https://docs.islo.dev/_mcp/server — point your AI agent at it to query Islo docs without leaving the editor.",
+      "note": "The only MCP server Islo publishes is a documentation-search server for querying the docs themselves; there is no first-party MCP server exposing sandbox create/exec/file operations as MCP tools (agent integration is via SDK/CLI/API and islo-labs/skills, not MCP). Confirms false as a sandbox-control MCP server.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.islo.dev/llms.txt",
+      "quote": "Sandbox Lifecycle... Setup Scripts... Gateway Inference... Harbor... CLI Overview... Sandbox Commands...",
+      "note": "GPU is never mentioned in the full documentation index, create-sandbox schema (vcpus/memory_mb/disk_gb only, no gpu field), CLI reference, or changelog. Card's own mode entry already has gpu:{} (empty) and gpu_types:[]. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.islo.dev/overview.md",
+      "quote": "Isolation | Shared kernel | Hardware-level ✓ - dedicated microVM",
+      "note": "Sandboxes are Linux microVMs (images are OCI/Docker images, e.g. ghcr.io/islo-labs/islo-runner:latest); the CLI installer supports macOS/Linux as the *client* machine only, not as a sandbox guest OS. No Windows sandbox guest offered anywhere in docs. Outside scope of a Linux-only microVM sandbox.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.islo.dev/getting-started/installation.md",
+      "quote": "Install Islo CLI on macOS or Linux using the one-liner script.",
+      "note": "macOS/Linux support refers to the local CLI client, not the sandbox guest OS - sandboxes run as Linux microVMs from OCI images. No macOS guest sandbox is offered. Outside scope of a Linux-only microVM sandbox product.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.islo.dev/api-reference/sandboxes/create-sandbox.md",
+      "quote": "POST https://ca.compute.islo.dev/sandboxes",
+      "note": "All sandbox/compute operations go through Islo-operated regional endpoints (ca.compute.islo.dev, api.islo.dev); the only enterprise custom option documented is BYOC (bring-your-own-cloud, still Islo-managed/billed per the card's Enterprise plan note: 'You still pay for compute time'), not a self-hosted/on-prem deployment of the full Islo control plane. No self-hosting docs found. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/islo-labs",
+      "quote": "background-agents: An open-source background agents coding system (fork); skills: islo.dev skills; langchain-islo: Islo (islo.dev) sandbox integration for Deep Agents",
+      "note": "islo-labs' public GitHub repos are SDK integrations, skills, and example/tooling projects (langchain-islo, claude-managed-agents, skills, recipes, reward-hack-bench) - none of them is the core sandbox/VM platform (compute engine, control plane, hypervisor). The platform itself (api.islo.dev / ca.compute.islo.dev) is closed-source SaaS. Confirms false.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://docs.islo.dev/api-reference/tenants/list-tenant-compute-regions.md",
+      "quote": "\"regions\": [ { \"key\": \"us-west\", \"label\": \"US West\", \"api_url\": \"https://ca.compute.islo.dev\", \"ws_url\": \"wss://ca.compute.islo.dev\", \"is_default\": true } ]",
+      "note": "The regions API's own example response lists only a US West region, matching the card's regions:[\"us\"]. No EU region key or EU data-residency claim found on any Islo page. Confirms false.",
+      "checked": "2026-09-30"
     }
   }
 }

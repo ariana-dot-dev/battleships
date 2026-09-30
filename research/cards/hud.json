@@ -197,20 +197,20 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
+    "windows": false,
+    "macos": false,
     "arm64": null,
     "gpu": true,
-    "snapshot": null,
-    "pause_resume": null,
-    "fork": null,
-    "persistent_disk": null,
+    "snapshot": "none",
+    "pause_resume": false,
+    "fork": false,
+    "persistent_disk": false,
     "volumes": null,
-    "auto_stop_idle": null,
-    "max_session_h": null,
+    "auto_stop_idle": false,
+    "max_session_h": 24,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": true,
@@ -218,13 +218,13 @@
     "computer_use": true,
     "code_interpreter": null,
     "agent_harnesses": true,
-    "ssh": null,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "ssh": true,
+    "public_ipv4": false,
+    "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
@@ -238,18 +238,18 @@
       "B200"
     ],
     "regions": null,
-    "lang_python": null,
+    "lang_python": true,
     "lang_node": null,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
@@ -261,7 +261,18 @@
     "harness_api": true,
     "egress_allowlist_level": "domain",
     "ingress_rules": true,
-    "secret_proxy": "ai-only"
+    "secret_proxy": "ai-only",
+    "isolation": "container",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "snapshot_auto": false,
+    "snapshot_on_demand": false,
+    "volume_attach": false,
+    "volume_shared": false,
+    "own_agent_api": false,
+    "guest_firewall": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -331,6 +342,216 @@
       "quote": "# The relay injects the scoped credential; the process never sees it.",
       "note": "Model keys only: in-env CLI harnesses (Claude Code, Codex) get a placeholder credential ('hud-process-bound') and a per-process relay URL; the relay adds the real Authorization header (hud/capabilities/connection.py: 'The process receives :attr:`client_url` instead and never receives the header values'). The Connection class accepts any HTTP(S) URL + headers, but it is only an undocumented rollout(connections=...) parameter, not a registrable secret store; docs.hud.ai does not describe it. Without a connection, the CLI agent's env gets the real HUD_API_KEY / ANTHROPIC_API_KEY. BYOK provider keys stay in the HUD inference gateway (team docs: 'Do not put a provider key in personal secrets when the inference gateway should own and meter the provider call. Use **BYOK** for that path.'). Other secrets (environment variables, personal/member secrets) are injected into the sandbox as env vars ('Personal secrets | One membership, injected into every rollout sandbox it launches'). No non-HTTP coverage.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://docs.hud.ai/platform/rest-api.md",
+      "quote": "An environment is the sandboxed application an agent works in, packaged as a container image that HUD hosts.",
+      "note": "HUD's own machine is a Docker/OCI image; hosted rollouts place that container on an AWS EC2 t3 instance (--runtime hud) or inside a Modal sandbox (--runtime modal), and the in-container agent shell is additionally bwrap-namespaced. No firecracker/qemu/full-VM boundary is documented for HUD's own runtime; 'container' is the best single label across its hosted placements.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://docs.hud.ai/v6/reference/runtime.md",
+      "quote": "`image` | Image to run.",
+      "note": "Environments are built from a Dockerfile (Dockerfile.hud) and deployed as container images (hud deploy); RuntimeConfig.image / ModalRuntime(image=...) also accept arbitrary Docker/registry images, including private ones via registry_secret.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://www.hud.ai/",
+      "quote": "Environments are the sandboxed application an agent works in, packaged as a container image the platform hosts.",
+      "note": "not offered: outside the product's scope — HUD environments are Docker containers (optionally bwrap-namespaced for the SSH workspace); no /dev/kvm or nested-VM capability is documented for the hosted runtimes.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.hud.ai/",
+      "quote": "HUD is an agent evaluation and environment platform for running models against tasks and grading the results.",
+      "note": "not offered: outside the product's scope — HUD provides eval/training sandboxes (browser via CDP, VNC desktop) for grading agents, not a stealth/anti-fingerprinting browsing product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.hud.ai/",
+      "quote": "HUD is an agent evaluation and environment platform for running models against tasks and grading the results.",
+      "note": "not offered: outside the product's scope — no CAPTCHA-solving capability is documented anywhere in HUD's SDK/platform docs.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.hud.ai/platform/environments.md",
+      "quote": "HUD supports EC2 and Modal for hosted environment runs.",
+      "note": "Hosted environments run on AWS EC2 (t3 family) or Modal's cloud, both ordinary cloud/datacenter egress; no residential/mobile/static-IP product is documented.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://docs.hud.ai/v6/reference/capabilities.md",
+      "quote": "| `ssh` | `ssh/2` | Shell commands and file operations in a sandboxed workspace | `Workspace` (built in) |",
+      "note": "Built-in Workspace capability publishes an ssh/2 endpoint (host_pubkey, client_key) that CLI harnesses (e.g. Claude Code) and users connect to for shell access.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.hud.ai/platform/file-tracking.md",
+      "quote": "**Snapshot** | The post-setup path and content-hash baseline.",
+      "note": "HUD's only 'snapshot' concept is a file-tracking content-hash baseline used to diff agent edits during a trace, not a restorable machine disk/memory snapshot. Rollouts are ephemeral containers/instances; no machine-state snapshot/restore API is documented.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://docs.hud.ai/platform/file-tracking.md",
+      "quote": "**Snapshot** | The post-setup path and content-hash baseline.",
+      "note": "No automatic machine-state save-on-stop/restore-on-start is documented; consistent with snapshot=none.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/reference/runtime.md",
+      "quote": "Daytona ... rejects `run_timeout_s` and resource overrides when booting from an already-built snapshot.",
+      "note": "The only on-demand 'snapshot' primitive documented for HUD-run environments is DaytonaRuntime's build-time image snapshot (a container image cache), not an API to checkpoint a running machine's disk/memory on demand.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.hud.ai/llms-full.txt",
+      "quote": "hud models fork Qwen/Qwen3.5-4B --name arith-rl",
+      "note": "'fork' in HUD's docs refers only to forking a trainable model (RL) or a GitHub repo, not cloning a running sandbox machine; no machine-fork API is documented.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.hud.ai/llms-full.txt",
+      "quote": "hud models fork Qwen/Qwen3.5-4B --name arith-rl",
+      "note": "No running-machine clone capability documented; 'fork' only applies to trainable models.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.hud.ai/llms-full.txt",
+      "quote": "hud models fork Qwen/Qwen3.5-4B --name arith-rl",
+      "note": "No memory-preserving machine clone is documented; only model weight forking exists.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/internals/control-channel.md",
+      "quote": "An optional `session_id` resumes a parked session instead of minting a fresh one.",
+      "note": "The 'parked session'/'resume' concept reconnects a control-channel session (short reconnect window), not a stop/pause-billing then resume-machine feature; no such API is documented.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.hud.ai/platform/environments.md",
+      "quote": "HUD creates a job containing one or more traces and opens the job page as soon as the batch is queued.",
+      "note": "Rollouts are explicitly launched per task/run; no sleeping-machine-wakes-on-inbound-request behavior is documented.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/reference/runtime.md",
+      "quote": "`DockerRuntime(image=...)` | A fresh local container per rollout",
+      "note": "Every runtime (Docker, Modal, HUD-hosted EC2) starts a fresh container/sandbox per rollout from the built image; no documented mechanism keeps a machine's disk state across stop/start outside that image baseline.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/reference/runtime.md",
+      "quote": "`resources` | Placement requests: CPU, memory, disk, acceptable GPU types and count, OS, or TPU slice.",
+      "note": "RuntimeConfig only requests ephemeral `storage_mb` sizing for the rollout container; no attachable/persistent extra-volume primitive is documented.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/reference/runtime.md",
+      "quote": "`Shared(provider, width=N)` | One substrate from `provider`, shared by up to N concurrent connections",
+      "note": "`Shared` lets several agent connections share one running environment's compute (e.g. a GPU sim), but this is connection sharing, not a persistent volume mounted by multiple machines; no shared-volume feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/reference/runtime.md",
+      "quote": "`run_timeout_s` bounds the lifetime of the provisioned environment, not the complete rollout.",
+      "note": "Environments are bounded by explicit run/startup timeouts set per task, not an idle-detection auto-stop policy; no idle-based stop/sleep is documented.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/reference/runtime.md",
+      "quote": "Resources (cpu/memory/gpu) are fixed on the snapshot at build time ... without `image`, an already-built snapshot cannot be resized.",
+      "note": "CPU/RAM/GPU are fixed per build/profile (EC2 tier, Modal exact-match profile, or Daytona snapshot); changing them requires a new build/profile, not a live resize of a running machine.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/reference/agents.md",
+      "quote": "`ClaudeSDKAgent` runs the `claude` CLI over an `ssh` capability, against the env's filesystem.",
+      "note": "not offered: outside the product's scope — HUD's Agent classes (ClaudeAgent, OpenAIAgent, GeminiAgent, ClaudeSDKAgent, ToolAgent) are thin wrappers that drive third-party models/CLIs (your harness or a model provider) inside the environment; HUD does not ship its own first-party browser/computer-use/research agent product to drive.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://github.com/hud-evals/hud-python",
+      "quote": "git clone https://github.com/hud-evals/hud-python.git",
+      "note": "The HUD SDK and CLI (hud-python) are themselves Python; environments are authored and served with Python (env.py, @env.initialize/@env.template), and sandboxes routinely run Python task/grading code.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/internals/control-channel.md",
+      "quote": "All external capability traffic therefore follows the control address even when a manifest binding contains a substrate-local or otherwise unreachable address.",
+      "note": "A served environment exposes exactly one control-channel address that the HUD client tunnels through (HUDRuntime leases by name and tunnels); there is no documented per-machine public IPv4 assignment.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/internals/control-channel.md",
+      "quote": "The SDK leases your deployed env by name and tunnels to its control channel",
+      "note": "Access to a running environment's capabilities (ssh/mcp/cdp/rfb) is via HUD's own tunneled control channel and client library, not a public HTTPS URL to reach an arbitrary port.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.hud.ai/v6/reference/capabilities.md",
+      "quote": "| `network` | `bool` | Allow network inside the sandbox. Default `False`. |",
+      "note": "Documented egress control is a single all-or-nothing (or hostname-allowlist) network toggle for the SSH workspace namespace; no HTTP method/path-level egress rule capability is documented.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.hud.ai/platform/rest-api.md",
+      "quote": "An environment is the sandboxed application an agent works in, packaged as a container image that HUD hosts.",
+      "note": "The card's isolation for this product is a container (not a full VM/microVM with a real kernel network stack the tenant fully controls), so the 'derived from root+full VM' rule for guest_firewall doesn't apply; no in-guest nftables/iptables capability is documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.hud.ai/platform/environments.md",
+      "quote": "HUD supports EC2 and Modal for hosted environment runs.",
+      "note": "Rollouts land on fresh EC2/Modal compute per run; no fixed/static outbound IP feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.hud.ai/llms-full.txt",
+      "quote": "The CLI and SDK run on macOS, Windows, and Linux. Two caveats: `ssh` sandbox isolation is **Linux-only** ... Both are fine for local iteration and resolved inside a built Linux image.",
+      "note": "not offered: the sandboxed environment machines themselves are Linux container images; Windows/macOS are only supported as the developer's local client OS, not as a guest OS for the sandbox.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.hud.ai/llms-full.txt",
+      "quote": "The CLI and SDK run on macOS, Windows, and Linux. Two caveats: `ssh` sandbox isolation is **Linux-only** ... Both are fine for local iteration and resolved inside a built Linux image.",
+      "note": "not offered: outside the product's scope — environments are Linux container images; macOS is only a supported client OS for the CLI/SDK, not a guest sandbox OS.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": 24,
+      "source": "https://www.hud.ai/",
+      "quote": "24-hour environment runtime",
+      "note": "This is the Enterprise plan's stated environment runtime ceiling (per the card's plans[]); the pay-as-you-go Cloud plan does not publish an explicit max session length, but RuntimeConfig.limits.run_timeout_s is required per task/run, so an unbounded ('none') session is not offered on this platform.",
+      "checked": "2026-09-30"
     }
   }
 }

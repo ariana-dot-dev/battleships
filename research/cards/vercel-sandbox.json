@@ -921,9 +921,9 @@
     "gpu_desktop": false,
     "credential_injection": true,
     "egress_http_rules": true,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
+    "wake_on_request": false,
+    "live_resize": true,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
@@ -932,7 +932,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": true,
     "isolation": "firecracker",
     "image_oci": true,
     "snapshot_auto": true,
@@ -943,7 +943,11 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": 12.96,
@@ -1106,6 +1110,160 @@
       "quote": "Drives are mounted as read-write by default. Only one sandbox at a time can mount a given drive as read-write: use [snapshots](#snapshots) for shared access.",
       "note": "Read-only sharing only: many sandboxes can concurrently mount point-in-time read-only drive snapshots ('Snapshots allow multiple sandboxes to mount the same drive concurrently'), which don't see later writes. Concurrent read-write sharing is not supported (except via user-run FUSE to an external store like S3).",
       "checked": "2026-09-29"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox",
+      "quote": "Use the Vercel Sandbox JavaScript SDK to create isolated Linux microVMs on demand. Run untrusted code, test full Linux workflows, and manage files, ports, snapshots, drives, sessions, and network policy from Node.js applications.",
+      "note": "not offered: outside the product's scope. Vercel Sandbox is a general-purpose Firecracker microVM code-execution environment (no browser/desktop feature), not a browser-automation/scraping product; no stealth/fingerprinting-evasion feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox",
+      "quote": "Use the Vercel Sandbox JavaScript SDK to create isolated Linux microVMs on demand. Run untrusted code, test full Linux workflows, and manage files, ports, snapshots, drives, sessions, and network policy from Node.js applications.",
+      "note": "not offered: outside the product's scope. Sandbox has no browser/CAPTCHA-solving feature; it is a Linux compute sandbox for running commands/code.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://vercel.com/docs/networking/secure-compute",
+      "quote": "When you enable Secure Compute on your project, your deployments and build container get their own dedicated network with static IP addresses in a region you choose. ... Once created, your network includes: A pair of dedicated IP addresses ... AWS account ID ... AWS region ...",
+      "note": "Default sandboxes egress from shared Vercel datacenter IPs (dynamic, no dedicated IP: public_ipv4/ipv4_available false). Enterprise-only Secure Compute attaches a sandbox to a dedicated network with static IPs inside an AWS VPC ('You can attach a Vercel Sandbox to a Secure Compute network to send its public-internet traffic through static IPs', https://vercel.com/docs/sandbox/concepts/secure-compute) — still datacenter (AWS), not residential/mobile.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://vercel.com/docs/sandbox/sdk-reference",
+      "quote": "Sandbox.fork() creates a new sandbox seeded from the current snapshot of an existing one. ... If the source has no current snapshot, the fork falls back to a fresh create with the source's image plus the copied config.",
+      "note": "Nothing in the fork() reference requires the source sandbox to be stopped first; fork() reads the source's latest saved filesystem snapshot while the source can keep running. It does not carry live memory/process state (that is memory_snapshot_fork=false) - only the source's continued execution, not memory-fork, is what fork_running captures here.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://vercel.com/kb/guide/vercel-sandbox-duration-and-persistence",
+      "quote": "when a session times out, Vercel stops it",
+      "note": "A stopped/timed-out sandbox does not resume itself when an inbound request arrives at its exposed port; resuming requires an explicit SDK/API/CLI call (e.g. Sandbox.get() followed by a new session, or sandbox.update()/resume) from your own backend. There is no serverless-style auto-wake on incoming HTTP traffic.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": true,
+      "source": "https://vercel.com/docs/sandbox/sdk-reference",
+      "quote": "sandbox.update() updates any mutable parameter on the sandbox. ... resources.vcpus | number | No | New vCPU count (memory auto-scales to 2048 MB per vCPU).",
+      "note": "sandbox.update({resources:{vcpus}}) changes vCPU (and auto-scaled memory) on an existing sandbox object. The doc explicitly calls out other fields (networkId, mounts, failoverRegions) as applying only to the sandbox's next session, but gives no such caveat for resources.vcpus, implying it takes effect on the current running session without recreating the sandbox; this isn't stated in so many words, hence medium confidence.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox",
+      "quote": "Use the Vercel Sandbox JavaScript SDK to create isolated Linux microVMs on demand. Run untrusted code, test full Linux workflows, and manage files, ports, snapshots, drives, sessions, and network policy from Node.js applications.",
+      "note": "not offered: outside the product's scope. Sandbox's own SDK/API (Sandbox, Session, Command, FileSystem, etc.) only exposes command execution/file/network management, not a prompt/agent-loop API for a Vercel-run task agent. Vercel's separate 'Vercel Agent' product (code review/observability) and 'eve' framework are not APIs to drive an agent running inside a Sandbox instance.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://vercel.com/docs/agent-resources/vercel-mcp/tools/sandboxes",
+      "quote": "Vercel MCP server ... Sandboxes: create_sandboxes_v2, create_sandboxes_v3, create_sandboxes_v4, list_sandboxes, get_named_sandbox, run_session_command, get_session_command_logs, kill_session_command, stop_session, list_sessions, get_session, create_sandboxes_sessions_by_session_id_snapshot_v3, list_session_snapshots, update_session_network_policy, read_session_file, write_session_files, extend_session_timeout ...",
+      "note": "Vercel ships a first-party MCP server ('Vercel MCP', beta) whose tool catalog includes a dedicated 'Sandboxes' tool group covering create/list/run-command/snapshot/stop for Vercel Sandbox, alongside tools for the rest of the Vercel platform (deployments, domains, etc.).",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/sdk-reference",
+      "quote": "`Sandbox.fork()` creates a new sandbox seeded from the current snapshot of an existing one. ... If the source has no current snapshot, the fork falls back to a fresh create with the source's `image` plus the copied config.",
+      "note": "Fork clones the source's latest filesystem snapshot, not live memory/process state; there is no in-memory/live fork. Confirms memory_snapshot_fork=false.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/concepts",
+      "quote": "Each sandbox runs in its own Firecracker microVM with a dedicated kernel, so you can run processes that require system-level privileges without affecting other sandboxes or the host.",
+      "note": "Firecracker microVMs do not expose /dev/kvm or nested-virtualization support to guests (confirmed by Firecracker's own test_nv.py, which asserts nested virt is absent). No Vercel doc offers KVM-in-sandbox.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox",
+      "quote": "Run untrusted or agent-generated code in isolated Linux microVMs. Use Vercel Sandbox for agent workflows, debugging, and one-off commands.",
+      "note": "Vercel Sandbox is a headless Linux microVM code-execution product (CLI/SDK exec + filesystem + ports); the Features list on the docs/pricing pages has no VNC/RDP/streamed-desktop capability of any kind.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox",
+      "quote": "Run untrusted or agent-generated code in isolated Linux microVMs. Use Vercel Sandbox for agent workflows, debugging, and one-off commands.",
+      "note": "No first-party managed/pre-installed browser is documented as a sandbox feature; the product surface (Features list, SDK reference) covers exec/files/ports/snapshots/drives/network policy only, not a browser.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/sdk-reference",
+      "quote": "Run untrusted code, test full Linux workflows, and manage files, ports, snapshots, drives, sessions, and network policy from Node.js applications.",
+      "note": "The full SDK reference exposes command exec, filesystem, ports, snapshots, drives, sessions and network policy only — no screenshot/click computer-use API, consistent with a headless code-execution product.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://vercel.com/kb/guide/vercel-sandbox-duration-and-persistence",
+      "quote": "The `timeout` option on `Sandbox.create()` sets the duration of a session, defaulting to 5 minutes. You set the value in milliseconds, and when a session times out, Vercel stops it.",
+      "note": "Stopping is driven only by the fixed wall-clock `timeout` (or an explicit `stop()`), not by idle-usage detection; the same page confirms 'A session is billed for the full time it runs, even while idle', so there is no idle-triggered auto-stop.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/concepts/secure-compute",
+      "quote": "Attaching a Vercel Sandbox to a Secure Compute network allows you to route its traffic through your team's dedicated network. Its public-internet traffic then exits through the network's static IPs...",
+      "note": "Static IPs are shared, outbound-only egress IPs for a Secure Compute network (Enterprise), not a dedicated public IPv4 assigned to each sandbox; inbound access is only via sandbox.domain() HTTPS URLs, not an IP.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/pricing",
+      "quote": "Sandboxes run Linux images, with Ubuntu, Arch Linux, or any other Linux distribution you need.",
+      "note": "System specifications and every pricing tier list only vCPU and memory sizing (max 32 vCPU / 64 GiB); no GPU option, GPU pricing row, or GPU type is documented anywhere in the Sandbox docs.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/pricing",
+      "quote": "Sandboxes run Linux images, with Ubuntu, Arch Linux, or any other Linux distribution you need.",
+      "note": "Vercel Sandbox is Linux-only (Firecracker microVMs); no Windows image or OS option is offered.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/pricing",
+      "quote": "Sandboxes run Linux images, with Ubuntu, Arch Linux, or any other Linux distribution you need.",
+      "note": "Vercel Sandbox is Linux-only (Firecracker microVMs); no macOS image or OS option is offered.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/concepts/images",
+      "quote": "VCR only serves an image to Sandbox once it has prepared an optimized `linux/amd64` build. ... `Unoptimized`: The image is pullable from VCR, but it is not `linux/amd64` and cannot be used in Sandbox.",
+      "note": "Custom images must be linux/amd64; non-amd64 (including arm64) images are explicitly rejected ('cannot be used in Sandbox'), confirming no ARM64 sandbox architecture is offered.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/concepts/regions",
+      "quote": "Sandboxes run in a region that you choose when you create them.",
+      "note": "Vercel Sandbox only runs in Vercel's own published list of regions on Vercel's infrastructure; there is no documented option to deploy or run the sandbox runtime on customer-owned/self-managed infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://vercel.com/docs/sandbox/concepts/secure-compute",
+      "quote": "Attaching a Vercel Sandbox to a Secure Compute network allows you to route its traffic through your team's dedicated network. Its public-internet traffic then exits through the network's static IPs, which allows it to reach private resources in your own VPC over VPC peering.",
+      "note": "Secure Compute only lets a Vercel-hosted sandbox reach into your VPC via peering (outbound); it does not deploy the sandbox execution service itself into the customer's own cloud account. No BYOC deployment model is documented.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/vercel/sandbox",
+      "quote": "Vercel Sandbox is an ephemeral compute primitive designed to safely run untrusted or user-generated code.",
+      "note": "The vercel/sandbox GitHub repo (Apache-2.0) contains only the client SDK/CLI; the underlying Firecracker orchestration/execution platform that actually runs sandboxes is Vercel's proprietary hosted service and is not published as open source.",
+      "checked": "2026-09-30"
     }
   }
 }

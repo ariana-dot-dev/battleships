@@ -126,68 +126,68 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
+    "windows": false,
     "macos": true,
-    "arm64": null,
-    "gpu": null,
-    "snapshot": null,
+    "arm64": false,
+    "gpu": false,
+    "snapshot": "fs",
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": null,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": true,
     "desktop": true,
-    "computer_use": null,
+    "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
+    "agent_harnesses": true,
     "ssh": true,
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": false,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
-    "self_host": null,
+    "self_host": false,
     "byoc": null,
-    "open_source": null,
+    "open_source": false,
     "soc2": null,
     "hipaa": null,
     "sso": null,
     "gpu_types": [],
     "regions": [],
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
+    "wake_on_request": false,
     "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": false,
     "browser_control": null,
     "desktop_control": null,
-    "anti_bot": null,
-    "captcha_solving": null,
-    "egress_ip_type": null,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
     "ip_note": "Egress/IP and proxy options not documented.",
     "isolation": "firecracker",
     "image_oci": false,
@@ -197,7 +197,10 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": true
+    "volume_shared": true,
+    "snapshot_auto": false,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -289,6 +292,195 @@
       "quote": "\"summary\": \"Queue a FUSE mount create.\" ... \"kind\": {\"enum\": [\"r2\", \"s3\", \"gcs\", \"webdav\"]",
       "note": "First-party FUSE mount API (POST /v1/computers/{id}/mounts) of your own R2/S3/GCS/WebDAV bucket with read_only flag and vfs_cache_mode; several computers can mount the same bucket (read-write or read-only). Bucket credentials are passed into the mount (not proxied). Only in OpenAPI/SDK (ComputerMountsClient), not in prose docs; Linux only.",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/AgentComputerAI/computer-kernels/main/configs/x86_64/6.1.158.config",
+      "quote": "CONFIG_CGROUPS=y / CONFIG_NAMESPACES=y / CONFIG_USER_NS=y / CONFIG_NET_NS=y / CONFIG_OVERLAY_FS=y / CONFIG_BRIDGE=y / CONFIG_VETH=y / CONFIG_NF_NAT=y",
+      "note": "derived: the Firecracker guest kernel config ships cgroups, namespaces, overlayfs, bridge/veth networking and NAT — everything Docker needs — and the default image gives the 'node' user passwordless sudo/root. Docker itself is not preinstalled in the computer-guest Dockerfile, but nothing in the kernel or exec API blocks installing and running it.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/AgentComputerAI/computer-kernels/main/configs/x86_64/6.1.158.config",
+      "quote": "CONFIG_KVM_GUEST=y (no CONFIG_KVM=y / CONFIG_KVM_INTEL / CONFIG_KVM_AMD entries in the guest kernel config)",
+      "note": "derived: the guest kernel enables paravirtualized KVM-guest support only; it does not build the KVM hypervisor module, so /dev/kvm is not available inside a Linux computer. macOS computers themselves run as a full QEMU/KVM VM on the host, not exposed as nested virt to the guest.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": "Agent Computer runs on computer-host, a Firecracker-based hypervisor... Every computer boots from the computer-guest image ... pre-configured with browser access, SSH",
+      "note": "not offered: the public API/CLI/SDK expose exec, files, ports, VNC/browser connect and snapshots, but no screenshot+click 'computer use' style action API. VNC (computer open --vnc) gives raw remote-desktop pixels/input only, driven by a human or a third-party computer-use agent, not a first-party API.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://agentcomputer.ai/pricing",
+      "quote": "Cloud computer infrastructure for ai agents, provisioned on bare metal hosts.",
+      "note": "not offered: outside the product's scope. Agent Computer is generic VM/desktop infrastructure (Firecracker microVMs plus a browser/desktop image); no stealth/fingerprinting-evasion feature is documented anywhere in the docs, API, or repos.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://agentcomputer.ai/pricing",
+      "quote": "Cloud computer infrastructure for ai agents, provisioned on bare metal hosts.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving endpoint or mention exists in the OpenAPI spec, CLI, or docs.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://agentcomputer.ai/docs",
+      "quote": "Network speeds up to ~1 Gb/s down and ~1.2 Gb/s up over shared NAT.",
+      "note": "Computers share host NAT egress on bare-metal datacenter hosts; no residential/mobile proxy product is offered and no static IP is documented (public_ipv4_available: false).",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "fs",
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": "SnapshotResponse: capture_scope enum [filesystem, computer], runtime_state enum [absent, included]",
+      "note": "The computer-host README calls these 'disk snapshots' and the schema's default/documented path is filesystem capture; runtime_state has an 'included' option suggesting memory/process state can sometimes be captured, but no docs page confirms restoring a snapshot resumes running processes, so this is modelled conservatively as filesystem-only ('fs'), medium confidence. Linux only, not available on macOS computers.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://agentcomputer.ai/docs/computers",
+      "quote": "Use snapshots when you want a saved computer state you can return to later. computer snapshot create my-computer",
+      "note": "not offered: snapshots are explicitly user-triggered via CLI/API (computer snapshot create / POST /v1/computers/<id>/snapshots); no documented automatic snapshot-on-stop/sleep behavior.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": "createSnapshot: 'Queue snapshot creation.' / createComputer: 'Create a computer from an image or snapshot.'",
+      "note": "Cloning a computer goes through create-snapshot-then-restore-from-snapshot, an asynchronous two-step process (snapshot creation is queued, 202 accepted); there is no single-call clone-while-running endpoint, so a running machine is not cloned instantaneously without any pause in its own lifecycle.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": "SnapshotResponse.runtime_state enum [absent, included]",
+      "note": "No docs text confirms that restoring a snapshot resumes running processes/memory state (the modelled 'snapshot' field above is fs-only); forking is therefore not documented to preserve running memory state.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": "POST /v1/computers/<id>/actions/start — Start a stopped computer. POST /v1/computers/<id>/actions/ensure-ready — Start the computer if it isn't already running or starting.",
+      "note": "not offered: starting a stopped computer is an explicit API/CLI action; there is no documented mechanism where an inbound request to a published port automatically wakes a stopped computer.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://agentcomputer.ai/docs",
+      "quote": "Pay only for what you use: runtime CPU/RAM, hot storage, and cold storage are billed separately.",
+      "note": "not offered: computer state transitions (provisioning/starting/running/updating/stopping/stopped) are driven only by explicit start/stop/ensure-ready API calls; no idle-timeout auto-stop is documented.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/AgentComputerAI/computer-guest/main/Dockerfile",
+      "quote": "RUN npm install -g @anthropic-ai/claude-code @openai/codex && npm cache clean --force",
+      "note": "The default computer-guest image ships Claude Code and Codex CLIs preinstalled, and the CLI has dedicated 'computer claude-login' / 'computer codex-login' commands to install credentials for them.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": "paths: /v1/computers, /v1/computers/{id}/exec, /v1/computers/{id}/snapshots, /v1/computers/{id}/mounts, /v1/computers/{id}/ports ... (no agent/task/prompt endpoints)",
+      "note": "not offered: the public API is purely infrastructure (create/exec/files/ports/snapshots/mounts); there is no first-party task/browser/computer-use agent to drive via API.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://api.github.com/orgs/AgentComputerAI/repos",
+      "quote": "computer-guest, torch, computer-host, computer-harness, computer-kernels, computer-nix, computer-cli",
+      "note": "not offered: no MCP-server repo/package is published by AgentComputerAI, and no MCP mention appears anywhere in the docs, llms.txt, or OpenAPI spec.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/AgentComputerAI/computer-guest/main/Dockerfile",
+      "quote": "python3 python3-pip python3-venv pipx",
+      "note": "Preinstalled in the default computer-guest image.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/AgentComputerAI/computer-guest/main/Dockerfile",
+      "quote": "deb.nodesource.com/node_22.x ... apt-get install -y ... nodejs",
+      "note": "Node.js 22 is preinstalled in the default computer-guest image.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://agentcomputer.ai/docs",
+      "quote": "Network speeds up to ~1 Gb/s down and ~1.2 Gb/s up over shared NAT.",
+      "note": "not offered: computers egress through shared host NAT; no static/dedicated egress IP option is documented, and public_ipv4 is explicitly unavailable.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://agentcomputer.ai/pricing",
+      "quote": "Pay-as-you-go pricing based on actual resource usage: CPU Time, Memory, Hot Storage, Cold Storage",
+      "note": "not offered: outside the product's scope. Pricing and the computer-images/size-preset API only cover CPU/RAM/storage on Firecracker microVMs (plus a macOS QEMU/KVM VM); no GPU SKU, image, or size preset exists.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": "CreateComputerRequest.platform enum [linux, macos]; ComputerImageResponse.platform enum [linux, macos]",
+      "note": "The platform enum in the public API only supports linux and macos; there is no Windows option anywhere in the API, CLI, or docs.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/AgentComputerAI/computer-kernels/main/README.md",
+      "quote": "Current bootstrap target: - x86_64 - 6.1.158",
+      "note": "The Firecracker guest kernel build target is x86_64 only; the configs/ directory contains only an x86_64 subfolder.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://agentcomputer.ai/pricing",
+      "quote": "Enterprise ... Private infrastructure options",
+      "note": "not offered as a customer-run product: Agent Computer is sold as a hosted API/CLI service (computer-host/computer-kernels are the provider's own internal infra, not a packaged product customers deploy); Enterprise mentions 'private infrastructure options' via sales, not a documented self-hosting path.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/AgentComputerAI/computer-cli",
+      "quote": "computer-cli - Public mirror of the Agent Computer CLI",
+      "note": "Only the CLI (public mirror), the guest image, host README, kernel configs, and a Nix harness are open-sourced; the core control-plane/API service itself is closed-source, so the product as a whole is not open source.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": "ComputerCapacityCheckRequest/Response have no region field; no /v1/regions endpoint exists",
+      "note": "not offered: the public API has no region parameter or region-listing endpoint anywhere, and no region/EU mention appears in the docs; the product is described only as bare-metal hosts with no location selection.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://agentcomputer.ai/docs/computers",
+      "quote": "computer power-off my-computer  Stop a computer without deleting its stored state. computer power-on my-computer  Recreate a computer runtime against the same stored state.",
+      "note": "Computers are billed by actual runtime and only stop when the user calls stop/power-off (or deletes); no maximum session-length limit is documented anywhere in the docs, pricing, or API.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://agentcomputer.ai/openapi.json",
+      "quote": "CreateComputerRequest.source: {\"kind\": {\"enum\": [\"image\", \"snapshot\"]}, \"image_id\": {\"type\": \"string\"}} ; GET /v1/computer-images -> ListComputerImagesResponse{images: ComputerImageResponse[]}",
+      "note": "Computers can only be created from the provider's own curated computer-images catalog (image_id references a listed ComputerImageResponse, platform enum linux|macos) or from a snapshot of an existing computer. The full OpenAPI spec (additionalProperties:false throughout) has no endpoint to upload/register a custom Docker or OCI image, no registry/tag/digest field, and no 'docker'/'oci' terms anywhere. So bringing your own container/OCI image is not supported; confirms the card's false.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://agentcomputer.ai/docs",
+      "quote": "Network speeds up to ~1 Gb/s down and ~1.2 Gb/s up over shared NAT.",
+      "note": "Docs explicitly describe networking as 'shared NAT', i.e. computers do not get a dedicated public IPv4 address; inbound access is instead via provider-issued hostnames for published ports (docs/computers: 'Ports are public by default: the resulting URL is reachable from the open internet ... derive the final URL from the computer handle and the published port name'), not a raw IP. The complete OpenAPI spec (CreateComputerRequest/ComputerResponse) has no ip/ipv4/address field. Confirms the card's false.",
+      "checked": "2026-09-30"
     }
   }
 }

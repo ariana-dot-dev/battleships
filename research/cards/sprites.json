@@ -247,11 +247,11 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": false,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": null,
+    "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
@@ -262,7 +262,7 @@
     "custom_domain": null,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": false,
     "self_host": false,
     "byoc": false,
@@ -270,7 +270,7 @@
     "regions": null,
     "soc2": true,
     "hipaa": true,
-    "sso": null,
+    "sso": true,
     "lang_python": true,
     "lang_node": true,
     "lang_go": true,
@@ -280,13 +280,13 @@
     "credential_injection": true,
     "egress_http_rules": true,
     "wake_on_request": true,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": false,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -300,7 +300,11 @@
     "ingress_rules": true,
     "secret_proxy": "any-http",
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -435,6 +439,209 @@
       "quote": "It is not an object-storage shim or a network filesystem.",
       "note": "Per-Sprite filesystem only; no shared volume or bucket mount documented (SSHFS from a laptop is DIY).",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.fly.io/sprites/index.md",
+      "quote": "Full Linux ✓ — install any tools",
+      "note": "Not directly confirmed for Docker specifically. Reasoned from: a Sprite is a real Firecracker microVM with its own kernel and root access ('root': true on the card), a full ext4 filesystem, and 'Full Linux — install any tools' (contrasted with a 'Fixed container image' for serverless functions in the same comparison table). No doc states containers are blocked; the Privileges Policy API only lets you further *restrict* capabilities/devices, implying they're unrestricted (root, cgroups, overlayfs) by default.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.fly.io/security/security-at-fly-io.md",
+      "quote": "Compute jobs at Fly.io are virtualized using Firecracker, the virtualization engine developed at AWS as the engine for Lambda and Fargate.",
+      "note": "Not explicitly stated either way. Firecracker microVMs do not pass /dev/kvm through to the guest by default, and no Sprites doc (quickstart, lifecycle, networking, privileges-policy API) mentions KVM, nested virtualization, or running VMs/emulators inside a Sprite. Treated as not offered by default; derived from the Firecracker architecture, not a direct statement.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/index.md",
+      "quote": "Sprites are persistent, hardware-isolated Linux environments for running arbitrary code. It's like having a small, stateful computer you can spin up on demand.",
+      "note": "not offered: outside the product's scope. Sprites is a general-purpose persistent Linux sandbox (AI code execution, dev environments, CI/CD); no managed/preinstalled browser or browser-automation product is documented anywhere in the Sprites docs, quickstart, or integrations pages.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/index.md",
+      "quote": "Sprites are persistent, hardware-isolated Linux environments for running arbitrary code.",
+      "note": "not offered: outside the product's scope. Sprites has no browser product at all, so stealth/anti-fingerprinting against bot detection does not apply.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/index.md",
+      "quote": "Sprites are persistent, hardware-isolated Linux environments for running arbitrary code.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving capability is documented; Sprites is a generic compute sandbox, not a browser/scraping product.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/lifecycle.md",
+      "quote": "You don't set or resize these yourself. The vCPU count and the storage ceiling are fixed; memory is handled automatically.",
+      "note": "vCPU (8) and disk (100 GB) are fixed and not user-resizable; memory autoscales automatically under platform control, not via a user-triggered live-resize API/CLI call.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/index.md",
+      "quote": "Sprites are persistent, hardware-isolated Linux environments for running arbitrary code.",
+      "note": "not offered: outside the product's scope. Sprites is sandbox infrastructure that third-party coding/browser/computer-use agents (Claude Code, Claude Managed Agents, Cursor Cloud Agents, Codex, Gemini CLI) run inside; there is no first-party Fly/Sprites task agent, and the public API (openapi.json) has no endpoint to prompt/drive an own agent.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/networking.md",
+      "quote": "Egress can be tightened with a network policy, a DNS-based allowlist that decides which domains a Sprite is allowed to reach.",
+      "note": "Egress control is domain/DNS-based, not IP-based, and no fixed/static outbound IP is documented or offered anywhere in the Sprites docs (unlike, e.g., a dedicated public IPv4 which the card already marks false/unavailable).",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": true,
+      "source": "https://docs.fly.io/security/sso.md",
+      "quote": "Fly.io supports Google and GitHub as Identity Providers, and you can use one or both. ... You can, and usually should, require members of your organizations to use SSO.",
+      "note": "Org-level SSO via Google (OIDC) or GitHub, configured under org Settings > Single Sign On; applies to the Fly.io organization that owns and manages Sprites. Not SAML-based; Google/GitHub OIDC/OAuth only.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/lifecycle.md",
+      "quote": "You don't set or resize these yourself. The vCPU count and the storage ceiling are fixed; memory is handled automatically.",
+      "note": "Region is not mentioned or selectable anywhere in the Sprites docs (quickstart, lifecycle, networking, index, maintenance) or on fly.io/sprites, unlike Fly Machines which documents an explicit multi-region list (docs.fly.io/reference/regions). No path to choose or guarantee an EU region for a Sprite was found; derived absence, not a direct statement.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.fly.io/sprites/sprite-maintenance.md",
+      "quote": "Sprites are persistent. Everything you leave is there when you come back, including the software. Long-living Sprites still need regular updates.",
+      "note": "No documented maximum duration for a running/active session; Sprites are designed to be long-lived and are only paused by idle detection (~30 s to warm), not by an elapsed-time cap. No forced stop-after-N-hours is mentioned in lifecycle, quickstart, or the plans/pricing docs.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/checkpoints.md",
+      "quote": "Restoring replaces the writable overlay with the saved state and restarts the environment. The base image is untouched.",
+      "note": "Restore is in-place/destructive on the same Sprite, not a clone into a new Sprite; the public API/CLI (checkpoints, exec, fs, policies, services, connectors per openapi.json) has no create-Sprite-from-checkpoint or clone endpoint. A 2026-04-02 release note mentions a 'Fork a Sprite' feature on an admin sprite page for 'Admins', but that's operator tooling absent from the public docs/API, not a customer-facing fork.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/api/openapi.json",
+      "quote": null,
+      "note": "No fork capability exists in the public API at all (see fork), so cloning a running Sprite without stopping it is a fortiori unavailable.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/checkpoints.md",
+      "quote": "It does not touch the base image itself, and it does not capture anything that only lives in memory.",
+      "note": "Checkpoints (the only snapshot mechanism) are filesystem-only, not memory; combined with no fork capability at all, a memory-preserving fork is unavailable.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/working-with-sprites.md",
+      "quote": "Sprites don't expose SSH directly—you'll need to install an SSH server on your Sprite and tunnel the connection through `sprite proxy`.",
+      "note": "No native SSH access; only a DIY workaround (install sshd yourself, tunnel via `sprite proxy -W :22`). `sprite console` is offered as the SSH-like interactive shell instead.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://fly.io/sprites",
+      "quote": "Sprites | Linux computers for agents",
+      "note": "not offered: outside the product's scope. Sprites are headless Linux compute for coding agents (exec/console/fs/services); no VNC/RDP/stream desktop is documented anywhere in the Sprites docs or API.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://fly.io/sprites",
+      "quote": "Sprites | Linux computers for agents",
+      "note": "not offered: outside the product's scope. No desktop exists to drive by screenshots/clicks, and no such API appears in the Sprites OpenAPI or docs.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/checkpoints.md",
+      "quote": "A checkpoint snapshots the writable filesystem overlay: everything you've added on top of the base image. It does not touch the base image itself",
+      "note": "Every Sprite starts from one fixed managed base image; you can only customize the writable overlay on top of it (and checkpoint that), not swap in your own base image at create time. No create-from-custom-image option in the API/CLI docs.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/checkpoints.md",
+      "quote": "A checkpoint snapshots the writable filesystem overlay: everything you've added on top of the base image. It does not touch the base image itself",
+      "note": "Same fixed-base-image constraint as custom_image; no Docker/OCI image import for creating a Sprite is documented (Fly's separate Machines product supports OCI images, but Sprites does not).",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/lifecycle.md",
+      "quote": "Every Sprite starts with 100 GB of storage. It does not autoscale yet, so plan around that ceiling.",
+      "note": "Single fixed ext4 filesystem per Sprite backed by hot NVMe + durable object storage; no separate attachable volume resource or endpoint exists for Sprites (unlike Fly Machines, which does have fly volumes).",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/networking.md",
+      "quote": "Every Sprite has one at `https://<name>-<org>.sprites.app/` (the org ID is a short generated identifier...), and it routes HTTPS to the Sprite's HTTP service.",
+      "note": "Inbound is exclusively via the HTTPS Sprite URL or the local `sprite proxy` tunnel; no per-Sprite public IPv4 address is issued or documented.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://fly.io/sprites",
+      "quote": "Sprites | Linux computers for agents",
+      "note": "not offered: outside the product's scope. Each Sprite is a fixed 8 vCPU / platform-managed-RAM shape (docs.fly.io/sprites/concepts/lifecycle); no GPU option is mentioned anywhere in the Sprites docs, pricing, or FAQ (GPUs exist on Fly's separate Machines product, not Sprites).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://fly.io/sprites",
+      "quote": "Sprites | Linux computers for agents",
+      "note": "The 'macOS / Linux / Windows' toggle on the marketing page selects the *local* OS for installing the Sprites CLI, not the sandbox OS; the product itself is explicitly Linux-only compute.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://fly.io/sprites",
+      "quote": "Sprites | Linux computers for agents",
+      "note": "Same as windows: macOS only appears as a client-OS tab for the CLI installer, not as a sandbox guest OS. Product is Linux-only.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/lifecycle.md",
+      "quote": "Each Sprite runs with: 8 vCPUs, Memory the platform manages for you..., 100 GB of storage. You don't set or resize these yourself.",
+      "note": "Fixed, unconfigurable resource shape with no architecture choice offered anywhere in the docs/pricing; no arm64 option is mentioned.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://fly.io/sprites",
+      "quote": "Full Linux computers designed for agents instead of people.",
+      "note": "not offered: outside the product's scope. Sprites is a hosted Fly.io service (billed per CPU/RAM/storage-hour on Fly's own infrastructure); no self-hosted/on-prem distribution is documented.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://fly.io/sprites",
+      "quote": "Full Linux computers designed for agents instead of people.",
+      "note": "not offered: outside the product's scope. No option to deploy the Sprites control plane into a customer's own cloud account is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://fly.io/sprites",
+      "quote": "Full Linux computers designed for agents instead of people.",
+      "note": "Sprites is a proprietary hosted product on Fly.io's infrastructure; no OSI-licensed core-product repo is published (Fly does open-source some client tooling like flyctl, but not the Sprites runtime/service itself).",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": false,
+      "source": "https://docs.fly.io/sprites/concepts/networking.md",
+      "quote": "By default, a Sprite's outbound is unrestricted... Egress can be tightened with a network policy, a DNS-based allowlist... Private IPs are always blocked, so a Sprite can't reach into private network ranges.",
+      "note": "Networking model is public-internet egress (optionally allowlisted) plus a private-by-default HTTPS URL / local proxy for inbound; there is no VPC/private-network peering or Sprite-to-Sprite private networking documented, and private IP ranges are explicitly always blocked outbound.",
+      "checked": "2026-09-30"
     }
   }
 }

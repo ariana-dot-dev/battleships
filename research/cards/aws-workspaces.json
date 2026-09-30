@@ -470,8 +470,8 @@
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
-    "ssh": false,
-    "public_ipv4": false,
+    "ssh": true,
+    "public_ipv4": true,
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
@@ -490,16 +490,16 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": false,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": true,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": false,
@@ -509,15 +509,23 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": true,
     "snapshot_on_demand": true,
     "harness_api": false,
     "egress_allowlist_level": "both",
     "ingress_rules": true,
     "guest_firewall": true,
-    "secret_proxy": false,
-    "volume_attach": false
+    "secret_proxy": null,
+    "volume_attach": false,
+    "isolation": "dedicated-vm",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "volume_shared": false,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -655,11 +663,10 @@
       "derived": true
     },
     "secret_proxy": {
-      "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No credential-injection proxy in WorkSpaces; credentials live inside the desktop (user/AD login). Not documented either way; false derived from the product scope and API surface.",
-      "checked": "2026-09-29"
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Checked the admin guide, VPC/security-group/networking pages and the API operations index; no credential-injection or secrets-proxy feature is documented anywhere. Absence of any mention in official docs supports 'false' but AWS does not explicitly state WorkSpaces lacks such a feature, so this is an inference from silence rather than a positive quote.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": false,
@@ -667,6 +674,204 @@
       "quote": "WorkSpace root and user volumes come in set groups that can't be changed.",
       "note": "Storage is fixed to one root + one user volume, each resizable up to 2000 GB (increase only). No extra EBS/network volume attach feature.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "dedicated-vm",
+      "source": "https://aws.amazon.com/workspaces/faqs/",
+      "quote": "WorkSpaces Personal is a fully managed virtual desktop service that allows seamless access to applications and resources for knowledge workers, developers, engineers, and other users who need a persistent desktop experience",
+      "note": "derived: each WorkSpace is a persistent, dedicated cloud desktop (EC2-family instance) assigned to one user, not a shared microVM/container runtime; AWS documents dedicated *physical* hardware only for the BYOL case, but the standard product is one full VM per WorkSpace.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/create-custom-bundle.html",
+      "quote": "If you've launched a Windows or Linux WorkSpace and have customized it, you can create a custom image and custom bundles from that WorkSpace.",
+      "note": "not offered: outside the product's scope. Custom images are captured from an existing running WorkSpace through AWS's own imaging pipeline; there is no way to launch a WorkSpace from a user-supplied Docker/OCI image.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://aws.amazon.com/workspaces/personal/pricing/",
+      "quote": "Amazon WorkSpaces Personal is a fully managed, persistent desktop virtualization service",
+      "note": "not offered: outside the product's scope. WorkSpaces is a virtual desktop/DaaS product for human users and admins, not a browser-automation/scraping product with bot-detection stealth features.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://aws.amazon.com/workspaces/personal/pricing/",
+      "quote": "Amazon WorkSpaces Personal is a fully managed, persistent desktop virtualization service",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving capability is documented; this is a persistent Windows/Linux desktop product, not a scraping/automation service.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-internet-access.html",
+      "quote": "you must ensure that the security group for your WorkSpaces allows outbound traffic on ports 80 (HTTP) and 443 (HTTPS) to all destinations (0.0.0.0/0)",
+      "note": "WorkSpaces sit in a customer VPC and egress through standard AWS datacenter IP ranges (NAT gateway/EIP); a fixed (static) outbound IP is achievable via a VPC NAT gateway, matching the card's static_egress_ip:true. No residential/mobile IP option exists.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/running-mode.html",
+      "quote": "When a user reconnects to a stopped WorkSpace, it resumes from where it left off, typically in under 90 seconds.",
+      "note": "AutoStop WorkSpaces automatically resume when a user simply connects/logs in again; no separate StartWorkspaces API call is required to wake it.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/modify-workspaces.html",
+      "quote": "WorkSpace root and user volumes come in set groups that can't be changed.",
+      "note": "Each WorkSpace has its own dedicated root + user volume pair; there is no documented mechanism to mount one volume across multiple running WorkSpaces simultaneously.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/modify-workspaces.html",
+      "quote": "the WorkSpace ... rebooted during the compute type change process.",
+      "note": "Changing compute type (vCPU/RAM bundle) can be requested while AVAILABLE or STOPPED, but the WorkSpace enters a 'Modifying Compute' state and is rebooted to apply the new size, so it is not a resize of a running machine without disruption.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/api/API_Operations.html",
+      "quote": null,
+      "note": "not offered: outside the product's scope. The WorkSpaces API only covers desktop lifecycle, images/bundles, IP groups, directories and pools — there is no first-party browser/computer-use/research agent API.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/api/API_Operations.html",
+      "quote": null,
+      "note": "No MCP server shipped by AWS for controlling Amazon WorkSpaces was found in the WorkSpaces docs, API reference, or GitHub org (aws/aws-sdk / AWS Labs MCP servers cover other services, not WorkSpaces).",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html",
+      "quote": "A WorkSpace bundle is a combination of an operating system, and storage, compute, and software resources.",
+      "note": "not offered: outside the product's scope. Public bundles are plain Windows Server / Amazon Linux / Ubuntu / RHEL / Rocky desktop images; Python is not called out as preinstalled software, and Windows Server bundles ship without it by default.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html",
+      "quote": "A WorkSpace bundle is a combination of an operating system, and storage, compute, and software resources.",
+      "note": "not offered: outside the product's scope. Node.js is not part of the documented public bundle software; it would need to be installed manually or baked into a custom image/bundle.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-internet-access.html",
+      "quote": "you must ensure that the security group for your WorkSpaces allows outbound traffic on ports 80 (HTTP) and 443 (HTTPS) to all destinations (0.0.0.0/0)",
+      "note": "Egress control is at the VPC security-group/NACL (IP+port) level, or via separately billed AWS Network Firewall domain allow/deny lists — not HTTP method/path-level rules on WorkSpaces itself.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/running-mode.html",
+      "quote": "AlwaysOn — Use when paying a fixed monthly fee for unlimited usage of your WorkSpaces.",
+      "note": "No maximum continuous runtime is documented; an AlwaysOn WorkSpace runs indefinitely until the user/admin stops it, and even AutoStop WorkSpaces only stop after idle disconnection, not a hard session-length cap.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html",
+      "quote": "If you've launched a Windows or Linux WorkSpace and have customized it, you can create a custom image from that WorkSpace. A custom image contains only the OS, software, and settings for the WorkSpace.",
+      "note": "The only clone-like mechanism is CreateWorkspaceImage: an offline, disk/OS-only image used to launch brand-new WorkSpaces later, not a live fork/clone of a running desktop that keeps memory state or branches into a new running copy.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html",
+      "quote": "A custom image contains only the OS, software, and settings for the WorkSpace.",
+      "note": "No API or console action forks a currently-running WorkSpace into a second live instance; image capture is disk-only and requires a rebuild/new launch, not an instant running clone.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html",
+      "quote": "A custom image contains only the OS, software, and settings for the WorkSpace.",
+      "note": "Hibernation (AutoStop) snapshots memory to resume the *same* WorkSpace, but there is no feature to fork a new WorkSpace from a saved memory snapshot; custom images explicitly capture disk/OS state only, no memory.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/connect-to-linux-workspaces-with-ssh.html",
+      "quote": "If you or your users want to connect to your Linux WorkSpaces by using the command line, you can enable SSH connections. You can enable SSH connections to all WorkSpaces in a directory or to individual WorkSpaces in a directory. To enable SSH connections, you create a new security group or update an existing security group and add a rule to allow inbound traffic for this purpose.",
+      "note": "CORRECTION: SSH is an official, documented feature for Linux WorkSpaces (Amazon Linux/Ubuntu/RHEL/Rocky), enabled via a security-group inbound rule; users then connect with PuTTY or a Linux/macOS terminal.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://aws.amazon.com/workspaces/",
+      "quote": "WorkSpaces Desktop as a Service (DaaS) — Secure cloud desktops that scale instantly across any device",
+      "note": "WorkSpaces is a human-facing virtual desktop (streamed via PCoIP/DCV to a client app); there is no agent/computer-use API to programmatically observe the screen and drive mouse/keyboard, and the WorkSpaces API (lifecycle, images, bundles, directories, pools) has no such operation.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/modify-workspaces.html",
+      "quote": "WorkSpace root and user volumes come in set groups that can't be changed.",
+      "note": "Storage is fixed to exactly one root volume + one user volume per WorkSpace (each independently resizable up, no shrink); there is no attach/detach of extra block volumes (no EBS-style volume feature).",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-security-groups.html",
+      "quote": "You can add a default WorkSpaces security group to a directory... you assign the new security group to the elastic network interface (ENI) of the WorkSpace... add a rule to allow inbound traffic for this purpose.",
+      "note": "reviewed: proposed correction rejected (CORRECTION: each WorkSpace has a normal EC2-style ENI/security group. AWS documents opening inbound port 22 for SSH this exact way (see ssh claim); the same security-group mechanism lets an admin open inbound 443/HTTPS to a WorkSpace, especially once it has a public/Elastic IP (see public_ipv4). Not a built-in managed HTTPS ingress product feature (no managed TLS/cert service), but inbound HTTPS traffic to the desktop is achievable and documented via security groups, so 'false' undersells it.)",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-vpc.html",
+      "quote": "Alternatively, you can create a VPC with two public subnets for your WorkSpaces and associate a public IP address or Elastic IP address with each WorkSpace... Step 2: Assign public IP addresses to your WorkSpaces. You can assign public IP addresses to your WorkSpaces automatically or manually.",
+      "note": "CORRECTION: AWS explicitly documents assigning a public IPv4/Elastic IP address to a WorkSpace when it's launched in a public subnet, both automatically and manually via the EC2 console.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/api/API_Operations.html",
+      "quote": null,
+      "note": "The WorkSpaces API surface (browsed at this operations index) covers only desktop/directory/bundle/image/pool lifecycle calls; there is no agent-harness registration, execution, or orchestration API, and no first-party CLI-agent integration is documented anywhere in the admin guide.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html",
+      "quote": "WorkSpaces supports several different operating systems (OS)... Windows Server 2016... Windows Server 2019... Windows Server 2022... Windows Server 2025... Windows 10... Windows 11... Amazon Linux 2... Ubuntu 22.04 LTS... Ubuntu 24.04 LTS... Rocky Linux 8... Rocky Linux 9... Red Hat Enterprise Linux 8... Red Hat Enterprise Linux 9",
+      "note": "The full official list of supported WorkSpace operating systems is Windows and several Linux distributions only; macOS is not offered as a WorkSpace guest OS (macOS appears only as a supported *client* OS for connecting, per the networking page).",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html",
+      "quote": "Supported bundles: Value, Standard, Performance, Power, PowerPro, GraphicsPro, Graphics G4dn, GeneralPurpose, Graphics G6, Graphics G7",
+      "note": "None of the officially listed WorkSpaces bundle families are Graviton/ARM-based; all documented bundles map to x86_64 EC2 instance families (the same naming used in the pricing JSON — Value/Standard/Performance/Power/PowerPro/GeneralPurpose/Graphics g4dn/g6/g7 are x86_64-only families). No ARM/Graviton WorkSpaces bundle is documented.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://aws.amazon.com/workspaces/",
+      "quote": "WorkSpaces Desktop as a Service (DaaS) — Secure cloud desktops that scale instantly across any device",
+      "note": "WorkSpaces is a fully-managed AWS service running only in AWS-operated infrastructure/Regions; there is no distributable software or on-prem deployment option (WorkSpaces Core, mentioned in caveats, is BYOL-of-the-guest-OS via a VDI partner, not self-hosting the WorkSpaces control plane itself).",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-vpc.html",
+      "quote": "WorkSpaces launches your WorkSpaces in a virtual private cloud (VPC).",
+      "note": "WorkSpaces only launches into a VPC within the customer's own AWS account/Region (still AWS's cloud), not into another cloud provider or on-prem infrastructure the customer supplies; there is no bring-your-own-cloud/other-cloud deployment target.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://aws.amazon.com/workspaces/",
+      "quote": "WorkSpaces Desktop as a Service (DaaS) — Secure cloud desktops that scale instantly across any device",
+      "note": "WorkSpaces is a proprietary, closed AWS managed service; no source code, client, or server component is published under an open-source license by AWS.",
+      "checked": "2026-09-30"
     }
   }
 }

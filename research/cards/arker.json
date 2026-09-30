@@ -445,7 +445,7 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
+    "docker_inside": true,
     "nested_virt": true,
     "root": true,
     "systemd": true,
@@ -455,12 +455,12 @@
     "code_interpreter": true,
     "agent_harnesses": true,
     "ssh": true,
-    "public_ipv4": null,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": true,
     "self_host": false,
     "byoc": true,
@@ -469,9 +469,9 @@
       "us",
       "eu"
     ],
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": true,
     "lang_python": true,
     "lang_node": true,
     "lang_go": true,
@@ -481,8 +481,8 @@
     "credential_injection": true,
     "egress_http_rules": true,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": null,
+    "live_resize": true,
+    "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
@@ -491,11 +491,11 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "browser_control": true,
     "desktop_control": true,
     "anti_bot": false,
-    "captcha_solving": null,
+    "captcha_solving": false,
     "egress_ip_type": "datacenter",
     "ip_note": "VMs run in AWS regions (e.g. aws-us-west-2), so egress is cloud datacenter IPs; no proxy/residential options documented.",
     "isolation": "vm",
@@ -508,7 +508,9 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -634,6 +636,118 @@
       "quote": "so one filesystem can be mounted into many machines. Reads and writes under the path land in the shared volume.",
       "note": "read-write, object-storage-backed network filesystem; consistency semantics not documented.",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://arker.ai/docs/vms.md",
+      "quote": "Devtools Docker CLI, Git and Git LFS, GitHub CLI, SSH",
+      "note": "Docker CLI is preinstalled on Arker's coding/dev VM images. Machines are full VMs with root, so a container runtime works normally (no nested virtualization required for containers, unlike VMs-in-VM).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://arker.ai/docs/browsers.md",
+      "quote": "There are at least two valid reasons to run browsers on hyper-elastic VMs instead of Browserbase/Kernel/similar: One, the freedom to fork Chromium and optimize... for stealth",
+      "note": "not offered: outside the product's scope. Arker sells general-purpose VMs/hypervisor primitives (fork/run/sync) with a browser-capable base image; it documents anti-bot-style Chromium tuning as something you build yourself, not a built-in CAPTCHA-solving service. No CAPTCHA feature is mentioned anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://arker.ai/docs/api/fork.md",
+      "quote": "State to inherit from a source VM. Omit it or pass [\"disk\", \"memory\"] for a warm fork that resumes the source filesystem and running processes.",
+      "note": "The fork API takes a memory+disk snapshot of the source VM (state can be 'running' per the VM object) and boots a new machine with its processes resumed; nothing in /docs/api/fork or /docs/api/vms requires stopping/idling the source first, and 'hyper-elastic, durable VMs' with fork as a first-class primitive is marketed as a live-branching feature.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": true,
+      "source": "https://arker.ai/docs/api/vms.md",
+      "quote": "Update a machine's resources, SSH keys, or network policy. `resources` Resource changes: { \"vcpu\": 4, \"memory_mib\": 8192, \"disk_mib\": 16384 }.",
+      "note": "PATCH /v1/vms/{id} changes vCPU/RAM/disk on an existing machine in place; POST /v1/vms/{id}/runs also accepts vcpu_count/memory_mib/disk_mib to 'resize the VM before running the command', values persisting after the run.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://arker.ai/docs/api/overview.md",
+      "quote": "The Arker API is a small set of operations over machines and filesystems.",
+      "note": "not offered: outside the product's scope. Arker's API covers fork, vms, run, sync, filesystems, policies, pools — infrastructure primitives — with no first-party browser/computer-use/research agent that Arker itself operates and exposes via API.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://arker.ai/docs/api/overview.md",
+      "quote": "Arker exposes a REST API, a CLI, a web UI, and Python and TypeScript clients.",
+      "note": "No MCP server or MCP mention anywhere in the docs, llms.txt, changelog, or site search; the listed integration surfaces are REST, CLI, web console, and Python/TypeScript SDKs only.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://arker.ai/docs/concepts.md",
+      "quote": "A machine is reached through the `.app` data plane. Guest port `8080` uses the base hostname `<vm>.<provider>-<region>.arker.app`; another port uses `<vm>-<port>.<provider>-<region>.arker.app`.",
+      "note": "Inbound reachability is via Arker's managed relay/hostname system (arker.app), gated by policy auth ('arker' bearer-token or 'open'), not a per-machine public IPv4 address. Matches card's network.ipv4_available: false.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://arker.ai/docs/regions.md",
+      "quote": "Arker operates fleets of compute across many providers... `aws` `us-west-2` `https://aws-us-west-2.arker.ai/` `graviton2, graviton4, icelake`",
+      "note": "VMs run in underlying AWS/GCP/Arker-bare-metal regions with ordinary datacenter egress (card's egress_ip_type: datacenter); no static/dedicated outbound IP option is documented anywhere in the API, policies, or pricing docs.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://arker.ai/dpa",
+      "quote": "Arker's most recent SOC 2 report or, until one is issued, a summary of Arker's security controls and the status of its SOC 2 audit",
+      "note": "The DPA's own wording ('until one is issued') indicates Arker has not yet completed a SOC 2 attestation as of 2026-09-25; it commits to sharing audit status/security-control summaries instead.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://arker.ai/dpa",
+      "quote": "Customer will not submit payment card data subject to [PCI DSS], or protected health information subject to the U.S. Health Insurance Portability and Accountability Act, unless the parties have signed a separate written agreement covering that data.",
+      "note": "No standing BAA / HIPAA-eligibility program is advertised; PHI is disallowed by default and only permitted under a separate bespoke agreement, so there is no generally available HIPAA offering.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": true,
+      "source": "https://arker.ai/terms",
+      "quote": "Accounts may be authenticated using Arker's credentials or any third-party authentication or single sign-on provider that Arker may support from time to time.",
+      "note": "The DPA's subprocessor list also names WorkOS with function 'Authentication and single sign-on'.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://arker.ai/docs/api/vms.md",
+      "quote": "state: \"idle\" | \"running\" — Lifecycle state.",
+      "note": "Arker VMs are persistent machines (fork once, then run/patch/delete at will) with no documented maximum session/run duration; auto_stop_idle governs idling, not a hard session-length cap, and no timeout is mentioned in vms.md, run.md, or pricing docs. Treated like a VM product with no imposed ceiling.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://arker.ai/docs/vms.md",
+      "quote": "Ubuntu 24.04. Git, curl, grep, and tools for networking, disk management, and file mounts.",
+      "note": "All public/base VMs and platforms are Linux (Ubuntu 24.04 guest images on graniterapids/graviton/icelake/sapphirerapids/A100/H100 platforms per regions.md); no Windows platform, image, or option is documented anywhere in the docs. Product is a Linux VM sandbox for agents, so Windows is plainly outside scope.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://arker.ai/docs/regions.md",
+      "quote": "| `arker` | `eu-central` | `https://arker-eu.arker.ai/` | `graniterapids`, `graviton2` |",
+      "note": "Regions page lists every platform Arker runs on (graniterapids, graviton2/4, icelake, sapphirerapids, A100/H100/H200 GPU) - all x86_64/ARM server CPUs with Linux (Ubuntu) guest images; no Apple Silicon / macOS platform or VM is offered. macOS is outside what this Linux VM sandbox product is.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://arker.ai/docs/deployment.md",
+      "quote": "Private regions may be created for a VPC or on-prem hardware cluster. The control plane runs in the cloud and ensures hyper-elastic and durable orchestration while the private region provides raw compute.",
+      "note": "Even the 'private region' / on-prem option keeps the control plane on Arker's own cloud (contact-sales only); customers cannot run the whole Arker service themselves. Confirmed further by deployment.md: 'We don't currently offer a free tier or full open-source version of Arker,' i.e. no self-hostable build exists.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://arker.ai/docs/deployment.md",
+      "quote": "We don't currently offer a free tier or full open-source version of Arker. We _are_ actively developing a version of BLAST for open-source VMs-as-a-service with seamless interop with cloud VMs.",
+      "note": "Explicit statement that Arker itself is not open source; BLAST (a separate, related project) is open source but is not Arker (Arker only plans interop with it, and it is still in development, not shipped).",
+      "checked": "2026-09-30"
     }
   }
 }

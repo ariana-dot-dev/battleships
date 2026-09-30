@@ -143,7 +143,7 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "gpu_types": [],
     "snapshot": "mem",
@@ -155,7 +155,7 @@
     "max_session_h": 24,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": false,
+    "nested_virt": null,
     "root": true,
     "systemd": true,
     "browser": true,
@@ -170,7 +170,7 @@
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
     "static_egress_ip": false,
-    "private_network": false,
+    "private_network": null,
     "self_host": true,
     "byoc": true,
     "open_source": true,
@@ -191,8 +191,8 @@
     "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": false,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": true,
     "scheduled_wakeups": null,
@@ -204,8 +204,8 @@
     "mcp_server": true,
     "browser_control": null,
     "desktop_control": true,
-    "anti_bot": null,
-    "captcha_solving": null,
+    "anti_bot": false,
+    "captcha_solving": false,
     "egress_ip_type": "datacenter",
     "ip_note": "Egress from rotating ephemeral Google Cloud IPs, no static IP on any plan; BYO SOCKS5 proxy / IP tunneling supported. Managed browser (CDP, stealth, CAPTCHA, residential proxies) only via partner Kernel, not E2B itself.",
     "isolation": "firecracker",
@@ -218,7 +218,8 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": 12.61,
@@ -400,6 +401,103 @@
       "source": "https://docs.e2b.dev/sandbox/auto-resume.md",
       "quote": "| | `\"pause\"` | Sandbox is paused (full memory + filesystem snapshot) when timeout is reached |",
       "note": "Reviewed 2026-09-30: files survive via pause/resume (full memory + filesystem snapshot) and via volumes. The default on timeout is kill, so set onTimeout to pause to keep them.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.e2b.dev/use-cases/remote-browser.md",
+      "quote": "Kernel handles CAPTCHA solving, residential proxies, authentication, and observability out of the box.",
+      "note": "not offered: E2B itself is a code/desktop sandbox runtime; stealth/anti-fingerprinting for browsing is only available by pairing with the third-party partner Kernel's cloud browsers, not a feature of E2B's own sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.e2b.dev/use-cases/remote-browser.md",
+      "quote": "Kernel handles CAPTCHA solving, residential proxies, authentication, and observability out of the box.",
+      "note": "not offered: CAPTCHA solving is explicitly documented as a capability of the partner product Kernel's cloud browsers, not of E2B's own sandbox/desktop offering.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.e2b.dev/llms-full.txt",
+      "quote": "You can customize allocated CPU and RAM when building custom templates by specifying `cpuCount` and `memoryMB` in the build configuration.",
+      "note": "CPU/RAM are fixed at template build time (cpuCount/memoryMB) and applied when a sandbox is created from that template; no documented API to change vCPU/RAM of an already-running sandbox without recreating/rebuilding it.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.e2b.dev/use-cases/computer-use.md",
+      "quote": "E2B provides the sandboxed desktop environment where these agents operate safely, with VNC streaming for real-time visual feedback.",
+      "note": "not offered: outside the product's scope. E2B ships the sandbox/VM runtime (desktop, browser, filesystem, terminal APIs) that third-party or customer-built agents (Claude Code, Codex, Surf, OpenAI computer-use, etc.) drive; it does not ship a first-party API for its own browser/computer-use/research agent.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.e2b.dev/migration/template-v2",
+      "quote": "Simply build the Docker image for the `linux/amd64` platform, push it to a registry of your choice and reference the image tag in the `fromImage()` method.",
+      "note": "Docs explicitly require linux/amd64 images for custom base images; no ARM/aarch64 sandbox or template option documented anywhere in the docs (Firecracker microVMs run on E2B's GCP x86_64 fleet).",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.e2b.dev/sandbox/fork",
+      "quote": "The sandbox is snapshotted in place — paused, captured with its full filesystem and memory state, and resumed — and new sandboxes boot from that snapshot... The original sandbox keeps running with its ID and expiration untouched.",
+      "note": "sandbox.fork() (and Sandbox.fork by id, up to count:100) clones a running sandbox into new running sandboxes with memory+filesystem intact, with only a brief pause on the original. fork_running should be true.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Checked the full docs index, template/base-image, template/defining-template, k3s and Docker template pages, and security docs for any mention of /dev/kvm, nested virtualization, or running VMs inside a sandbox: none found. E2B sandboxes are themselves Firecracker microVMs; whether the guest kernel exposes KVM for nested virtualization is not documented either way, so this stays unclear rather than a confirmed 'no'.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.e2b.dev/network/public-url",
+      "quote": "Every sandbox has a public URL that can be used to access running services inside the sandbox.",
+      "note": "Sandboxes are reached only via an HTTPS proxy URL of the form https://<port>-<id>.e2b.app, not a dedicated public IPv4 address; combined with the egress-ip-ranges FAQ ('ephemeral, rotating IPs'), no per-machine public IPv4 exists.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.e2b.dev/faq/egress-ip-ranges",
+      "quote": "E2B does not publish a list of egress CIDRs, and there are no dedicated or static egress IP addresses on any plan (including Enterprise). Sandbox outbound traffic leaves from ephemeral public IPs on E2B's cloud, and those IPs rotate over time.",
+      "note": "Explicitly no static egress IP on any plan; users needing one must run their own proxy (BYOP/IP tunneling).",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.e2b.dev/faq/gpu-support",
+      "quote": "No. E2B sandboxes are CPU-only. A sandbox is sized by vCPU and RAM only. There is no GPU option in the SDKs, the CLI, the API, or a template definition... BYOC does not change this.",
+      "note": "Directly documented, including BYOC.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.e2b.dev/sandbox",
+      "quote": "The sandbox lifecycle: create, connect to, pause, resume, and kill an isolated Linux VM for your agent...",
+      "note": "Not offered: outside the product's scope. E2B sandboxes are Linux-only Firecracker microVMs; template base images are restricted to Debian/Ubuntu, Fedora/RHEL family, Arch, and Alpine (docs.e2b.dev/template/base-image).",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.e2b.dev/sandbox",
+      "quote": "The sandbox lifecycle: create, connect to, pause, resume, and kill an isolated Linux VM for your agent...",
+      "note": "Not offered: outside the product's scope, same as Windows — Linux-only microVM sandboxes, no macOS option anywhere in docs/pricing.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://e2b.dev/enterprise",
+      "quote": "SSO, SCIM, and RBAC are planned. Ask about timelines.",
+      "note": "Enterprise page explicitly lists SSO as a roadmap/planned item, not currently available.",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Checked network docs (internet-access, public-url, restrict-public-access, ip-tunneling, byop, custom-domain) and byoc.md: no standard first-party VPC-peering/private-link feature for reaching a customer's private network from a sandbox. BYOC deploys the whole cluster inside the customer's own VPC (Enterprise-only, different from per-sandbox private networking), so it's ambiguous whether this counts; left unclear rather than a confirmed 'no'.",
       "checked": "2026-09-30"
     }
   }

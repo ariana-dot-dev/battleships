@@ -648,7 +648,7 @@
     "nested_virt": null,
     "root": true,
     "systemd": null,
-    "browser": null,
+    "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": true,
@@ -659,9 +659,9 @@
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": true,
-    "self_host": false,
+    "self_host": true,
     "byoc": true,
     "open_source": false,
     "regions": null,
@@ -676,19 +676,19 @@
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
+    "wake_on_request": true,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": true,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
-    "isolation": null,
+    "mcp_server": false,
+    "isolation": "dedicated-vm",
     "image_oci": true,
     "snapshot_auto": true,
     "snapshot_on_demand": true,
@@ -697,7 +697,13 @@
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "guest_firewall": true,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -819,6 +825,175 @@
       "quote": "All Studios in a teamspace share the same drive. This means any Studio can access the files of the other Studios.",
       "note": "Teamspace Drive is a shared read-write filesystem across Studios, Jobs, Deployments; cloud folders 'any workflow, Studio, or cluster can mount'. Applies to Studios, not documented for Sandbox API.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "dedicated-vm",
+      "source": "https://lightning.ai/docs/platform/build/ai-studio.md",
+      "quote": "Studios differ quite a bit from just renting a GPU VM, here are some key features.",
+      "note": "Lightning does not name a specific hypervisor/microVM technology anywhere in its docs. Studios and GPU Studios run as dedicated cloud instances across AWS/GCP/Lambda/Nebius/etc (per the card's own sources), each with full root/sudo, Docker-inside, and real GPU passthrough — consistent with one dedicated VM per Studio rather than a shared-kernel container or gVisor/Kata sandbox. The separate Sandbox API markets 'strongly isolated' millisecond-start environments but its underlying tech is also unnamed.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/ai-studio.md",
+      "quote": "AI Studio is a persistent, collaborative GPU cloud workspace that feels like a local laptop - with AI copilots that help you debug, train, inference, and ship like a pro.",
+      "note": "not offered: outside the product's scope. Lightning is a dev/ML compute workspace (Studios/Sandbox/GPU cloud) with browser-accessible VSCode/Jupyter IDEs, not a managed real-browser/automation product; the Agents tutorial uses plain `requests`+BeautifulSoup, not a provider-managed browser.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/agents.md",
+      "quote": "these headers make our request look like a regular browser visit, which helps prevent websites from blocking our scraper.",
+      "note": "not offered: outside the product's scope. The only 'anti-bot' technique shown in official docs is a user-supplied User-Agent header in sample scraping code; there is no built-in stealth/fingerprinting product feature.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://lightning.ai/pricing",
+      "quote": "Studios: Collaborative, cloud-based AI development environments.",
+      "note": "not offered: outside the product's scope. Lightning AI is a GPU cloud / dev-environment / sandbox product, not a browser/scraping product; no CAPTCHA-solving capability is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://lightning.ai/docs/platform/security/trusted-platform.md",
+      "quote": "The Lightning AI infrastructure is implemented with multiple cloud providers using industry-leading architectures.",
+      "note": "Studios/Sandboxes/GPU machines run on AWS/GCP/Lambda/Nebius/Voltage Park/NScale cloud capacity (per the card's own pricing-page sourced note), so outbound traffic originates from standard cloud-provider datacenter IP ranges; no residential/mobile egress is offered or implied anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://lightning.ai/docs/platform/build/ai-studio/duplicate-studios.md",
+      "quote": "To duplicate a Studio in a Teamspace, simply press the \"duplicate\" button... expect duplication to happen in <1 minute.",
+      "note": "Duplication is described as a single in-place button press on an existing Studio, with no documented requirement to stop/sleep the source Studio first, implying the running source keeps running while the copy is created. Not explicitly confirmed either way for running vs stopped state.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://lightning.ai/docs/platform/build/host-web-apps.md",
+      "quote": "Auto-start enables apps to run 24/7, but you only pay when the app is being used actively. Under the hood, Lightning AI monitors user traffic to your app and turns it off when no one is using it.",
+      "note": "A sleeping Studio automatically wakes when a new request/URL hit arrives; the doc calls out the resulting few-minutes 'cold-start' delay before the app is reachable again.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/ai-studio/add-gpus.md",
+      "quote": "A Studio can switch hardware to different GPU types. To switch, simply select the type of machine you want, click \"Switch\" and wait until it is ready.",
+      "note": "Switching CPU/RAM/GPU shape is a machine swap ('wait until it is ready') where the Studio always restarts on a CPU machine afterward (per the auto-sleep doc), not a live in-place resize of a running machine without recreating it. The persistent environment/disk survives the swap, but the running process/session does not.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/agents.md",
+      "quote": "Lightning AI Studio is perfect for building agents. Here's an example that shows you how to build and automate an agent that scrapes a website for you and tells you about which stocks to buy or not.",
+      "note": "not offered: outside the product's scope. The 'Agents' page is a tutorial for writing your own LitAI-based agent inside a Studio; there is no first-party API that drives a Lightning-owned browser/computer-use/research agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/sandbox.md",
+      "quote": "CLI and SDKs: Manage sandboxes through the CLI, JS SDK, or Python SDK, and automate sandbox workflows in your application.",
+      "note": "Sandbox/Studio control surfaces documented are the Python SDK, JS SDK, and CLI only; no MCP server is mentioned in any Lightning AI docs page, GitHub org listing, or pricing/docs manifest found.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://lightning.ai/docs/platform/build/sandbox.md",
+      "quote": "Every sandbox has full `sudo` access.",
+      "note": "derived: full root/sudo inside a dedicated VM-style machine implies nftables/iptables work inside, though this is not separately documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/developers/sdk/sandbox/python-sandbox-sdk.md",
+      "quote": "Egress firewall, set at create time only — no runtime mutation. A single `NetworkPolicy` models every mode... allow-all... deny-all... CIDR allowlist; deny everything else.",
+      "note": "The only egress control documented is an allow-all/deny-all/CIDR-allowlist firewall on outbound connections; there is no mention of a fixed/static outbound IP assigned per sandbox or Studio.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://lightning.ai/docs/platform/security/privacy/data-residency.md",
+      "quote": "Lightning AI supports all major US, EU, Asia regions. Additional support can be provided upon request.",
+      "note": "Customers can choose a data-storage region, including EU, when linking a cloud account.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://lightning.ai/pricing",
+      "quote": "On Pro and above the session limit is unlimited.",
+      "note": "Only the single free Default CPU Studio (Free plan) has a hard 4h session limit (after which it converts to paid or restarts); Pro/Teams/Enterprise Studios and paid CPU/GPU usage have no published session-length cap (the Sandbox API's `timeout` param defaults to 0 = no timeout and is extendable indefinitely via extend_timeout()).",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/ai-studio/duplicate-studios.md",
+      "quote": "Duplication in Studios solves this problem by letting users copy everything in a Studio, including the environment, files, packages, dependencies, data, and more.",
+      "note": "Studio 'duplicate' and Sandbox 'snapshot'/'fork' (features.fork=true) are filesystem-level copies of a stopped/at-rest environment, not a fork of a live process's in-memory state. No product page describes cloning a running Studio/sandbox's RAM/process state; sandbox.snapshot() docs explicitly say 'Capture the filesystem (not running processes)'. No memory-snapshot fork exists.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/ai-studio.md",
+      "quote": "Instances come with pre-packaged VSCode and JupyterLab, accessible directly from the browser ... Otherwise, use ssh to connect any local IDE such as VSCode, Cursor, PyCharm and more.",
+      "note": "Access is via browser VSCode/JupyterLab or SSH; no remote-desktop/VNC/GUI streaming is documented anywhere in the Studio, Sandbox, or GPU-cloud docs.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/developers/sdk/sandbox/python-sandbox-sdk.md",
+      "quote": "Use the Lightning Sandbox Python SDK to create ephemeral sandboxes, run commands, manage files, capture snapshots, and open interactive PTY sessions from Python.",
+      "note": "The SDK/CLI surface is limited to commands, files, PTY and snapshots (headless Linux sandbox/dev-env); no mouse/keyboard/screen 'computer use' API or GUI environment exists anywhere in the docs manifest.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/developers/sdk/sandbox/python-sandbox-sdk.md",
+      "quote": "Limitation — no public URL from the SDK. The sandbox API does not currently return an external hostname/URL for an exposed port; there is no url/endpoint property on SandboxInstance ... reaching it from outside requires an endpoint the SDK does not surface today.",
+      "note": "No dedicated/public IPv4 address or SDK-exposed public endpoint for Sandboxes. Studios expose ports via app builder/plugin URLs (a shared hostname/path, not a per-instance public IPv4), consistent with network.ipv4_available=false already on the card.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/ai-studio.md",
+      "quote": "Each Studio comes prebuilt with AI copilots that we've trained to be experts on everything AI/ML... from training models, building inference engines, to debugging CUDA and expert-level PyTorch.",
+      "note": "The only bundled 'AI' feature is Lightning's own in-house AI copilot for ML debugging/training; no pre-installed third-party coding-agent harness (Claude Code, Codex CLI, OpenHands, etc.) or agent-session API is documented anywhere in the docs/CLI/SDK manifest.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/sandbox.md",
+      "quote": "Lightning AI Sandbox gives every workload its own isolated Linux environment, spun up in milliseconds and torn down when you're done.",
+      "note": "Studios and the Sandbox API are both Linux-only (features.linux=true is the only OS documented); no Windows machine option exists on this Linux dev-env/GPU-cloud product.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/sandbox.md",
+      "quote": "Lightning AI Sandbox gives every workload its own isolated Linux environment, spun up in milliseconds and torn down when you're done.",
+      "note": "Product is a Linux Studio/Sandbox/GPU-cloud platform; no macOS machine offering exists anywhere in docs or pricing.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://lightning.ai/docs/platform/build/sandbox.md",
+      "quote": "Run processes that require elevated permissions, with sudo access available in every sandbox.",
+      "note": "No ARM/Graviton/Apple-Silicon instance type appears anywhere in the Sandbox instance types (cpu-1..cpu-16), Studio CPU/GPU shapes, or GPU marketplace docs; every documented shape/GPU pairing is x86_64 (confirmed separately by the ComputeSDK benchmark source noting an x86_64 env).",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://lightning.ai/pricing",
+      "quote": "Lightning on prem",
+      "note": "The live pricing-page plan-comparison table (Security section) lists 'Lightning on prem' as a distinct capability alongside 'Lightning in your VPC' (BYOC) — i.e. Lightning offers running the platform on the customer's own on-prem infrastructure, gated to Enterprise/custom (quote-only) tiers. That is exactly the self_host definition ('you can run it on your own infrastructure'), so false is wrong; correct value is true (Enterprise-only, sales-gated).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://lightning.ai/open-source/",
+      "quote": "Lightning’s open-source ecosystem is for researchers and engineers who need flexibility and performance at scale. From the makers of PyTorch Lightning.",
+      "note": "Lightning's open-source releases are ML libraries (PyTorch Lightning, Fabric, TorchMetrics, etc.), not the Studio/Sandbox/GPU-cloud control-plane product being rated here, which is closed-source SaaS (with an Enterprise on-prem deployment option, not a public source release under an OSI license).",
+      "checked": "2026-09-30"
     }
   }
 }

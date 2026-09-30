@@ -475,16 +475,16 @@
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
-    "agent_harnesses": false,
-    "ssh": false,
+    "agent_harnesses": true,
+    "ssh": true,
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": true,
@@ -492,7 +492,7 @@
     "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
-    "self_host": false,
+    "self_host": true,
     "byoc": true,
     "open_source": false,
     "regions": [
@@ -504,17 +504,17 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
     "live_resize": false,
-    "fork_running": null,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": true,
     "scheduled_wakeups": true,
@@ -523,7 +523,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "isolation": "kata",
     "image_oci": true,
     "snapshot_auto": true,
@@ -533,7 +533,13 @@
     "ingress_rules": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "guest_firewall": true,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -666,6 +672,198 @@
       "quote": "Allows the same volume to be attached to multiple pods simultaneously across different services, jobs, or replicas of the same service.",
       "note": "Multi Read/Write access mode (read-write), chosen at creation. Changelog May/Jun 2026: 'Multi-read-write direct mounts in microVMs'. Product page also mentions mounting S3 buckets.",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/quickstart.md",
+      "quote": "Each sandbox is a Linux environment running against its own kernel rather than the host's.",
+      "note": "derived: Kata microVM sandboxes get a real guest kernel (not a shared-kernel container), which is the standard requirement for running Docker/containerd inside. Not explicitly documented as tested/supported; no privileged/docker-in-docker flag found in the service create API.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/sandboxes-in-your-own-cloud.md",
+      "quote": "MicroVM isolation needs hardware support. On AWS, microVM node pools require bare-metal instances or instance types that support nested virtualisation",
+      "note": "That nested-virtualisation requirement is about the HOST being able to run the Kata microVM itself, not about /dev/kvm being passed through into the guest sandbox. No docs mention exposing KVM inside a sandbox for running further VMs/emulators; not offered as far as documented.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://northflank.com/pricing",
+      "quote": "Sandboxes let you run untrusted code (LLM-generated code, user submissions, AI agents, CI/CD pipelines) in isolated environments.",
+      "note": "not offered: outside the product's scope. Northflank is a general compute/sandbox platform (no browser or desktop product); it ships no stealth/fingerprinting-evasion feature.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://northflank.com/pricing",
+      "quote": "Sandboxes let you run untrusted code (LLM-generated code, user submissions, AI agents, CI/CD pipelines) in isolated environments.",
+      "note": "not offered: outside the product's scope. No browser/CAPTCHA-solving product exists on Northflank.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://northflank.com/docs/v1/application/network/configure-egress-ips.md",
+      "quote": "Egress IPs provide a dedicated, static public IP address for outbound traffic from selected workloads.",
+      "note": "Cloud-provider datacenter IPs (AWS/GCP/Azure infra), provisioned as a dedicated static egress IP; no residential/mobile IP option documented.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://northflank.com/docs/v1/api/project/services/create-container-snapshot.md",
+      "quote": "Schedules a snapshot of a running deployment service pod.",
+      "note": "A snapshot can be taken of a RUNNING pod (the original sandbox keeps running unaffected), then a new service can be created from that snapshot via deployment.containerSnapshot.restoreFrom, i.e. cloning a running machine into a new one.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/sandboxes-on-northflank-cloud",
+      "quote": "Pausing a sandbox scales it to zero instances, which stops compute charges",
+      "note": "No idle auto-pause is documented, and pausing/resuming is a manual API call (scale-to-zero / resume), not something a request automatically wakes; there is no request-triggered autoscale-from-zero for sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/application/ai-agents/agents-on-northflank.md",
+      "quote": "Use AI coding agents on Northflank for code generation, debugging, and development assistance. Run agents in isolated cloud environments without using your local machine.",
+      "note": "not offered: outside the product's scope. Cloud Harness and Agent Skills let you run/authenticate YOUR OWN coding agent (Claude Code, Codex, etc.) in a sandbox; there is no first-party API driving a Northflank-owned browser/computer-use/research agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/application/ai-agents/agent-skills.md",
+      "quote": "Northflank agent skills are markdown files that contain structured knowledge about a platform.",
+      "note": "Northflank's AI-agent integrations are Agent Skills (markdown knowledge files) and Cloud Harness, not an MCP server; no MCP server package found in the northflank GitHub org or docs sidebar.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/quickstart.md",
+      "quote": "pip install northflank",
+      "note": "First-party Python SDK for creating/controlling sandboxes and exec'ing commands.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/quickstart.md",
+      "quote": "npm install @northflank/js-client",
+      "note": "First-party JavaScript/Node SDK for creating/controlling sandboxes and exec'ing commands.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/application/network/configure-network-policies.md",
+      "quote": "Allow traffic to IP/CIDR/FQDN: Add external destinations (IP addresses, CIDR ranges, FQDNs, or hostnames) your workloads can reach",
+      "note": "Egress rules are scoped to IP/CIDR/FQDN, workload tags, and projects; no HTTP method/path-level egress rule granularity is documented.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/sandboxes-on-northflank-cloud.md",
+      "quote": "CPU sandboxes run in microVMs and GPU sandboxes run under gVisor, with no configuration needed either way.",
+      "note": "derived: CPU sandboxes are Kata microVMs with their own guest kernel, so nftables/iptables should work inside like a normal VM; not explicitly documented and not applicable in the same way to the gVisor-isolated GPU mode.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://northflank.com/docs/v1/application/sandboxes/sandboxes-on-northflank-cloud",
+      "quote": "Northflank cloud bills compute per second of runtime",
+      "note": "No maximum session/runtime duration is documented anywhere in the sandbox, pricing, or plan docs (max_session_h is null on every plan); sandboxes run until explicitly paused or deleted, so treated as no limit.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://northflank.com/changelog/august-and-september-2026",
+      "quote": "You can now capture the filesystem of a running or terminating service pod and restore a service from a successful snapshot.",
+      "note": "Northflank's changelog and API docs describe container snapshots as filesystem-only ('capture the filesystem of a running or terminating service pod'); no memory/process-state capture is offered, so a fork/restore never resumes running processes.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://northflank.com/docs/v1/application/run/access-services-with-ssh",
+      "quote": "SSH identities allow you to SSH into running service containers using your SSH keys. ... To SSH directly into a service: `northflank ssh service --projectId my-project --serviceId my-service`",
+      "note": "Northflank has a documented, first-party SSH feature (SSH identities + `northflank ssh service` CLI command, or direct key-based SSH), enabled per-service. The card's 'false' is wrong.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://northflank.com/sandboxes",
+      "quote": "Northflank sandboxes are microVM/gVisor-isolated Linux container workloads; access is via API/CLI, browser terminal, or SSH — no VNC/RDP or graphical desktop is mentioned anywhere on the product, docs, or Harnesses changelog pages.",
+      "note": "No mention of VNC/RDP/streamed desktop on the sandboxes product page, sandbox docs, or the Harnesses changelog (which lists only 'browser terminal or SSH' access). Product is headless Linux containers/microVMs.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://northflank.com/changelog/august-and-september-2026",
+      "quote": "Choose Claude Code, OpenAI Codex, Cursor, OpenCode or Pi, authenticate with your own account or API key, and connect through the browser terminal or SSH.",
+      "note": "The only 'browser' surface Northflank documents is a browser-based terminal (shell UI) for Harnesses/services, not a managed/real browser instance (e.g. Chrome) inside the sandbox for web use. No product page or docs mention a bundled browser.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://northflank.com/sandboxes",
+      "quote": "No screenshot/click-driving API or computer-use offering appears on the sandboxes product page, sandbox docs, or API reference — Northflank's sandbox API is exec/files/ports/snapshots, not GUI automation.",
+      "note": "Northflank sandboxes are headless Linux microVMs/containers; there is no screenshot+click driving API documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/sandboxes-on-northflank-cloud",
+      "quote": "Northflank cloud bills compute per second of runtime. Pausing a sandbox scales it to zero instances, which stops compute charges.",
+      "note": "Pausing (the only way to stop billing) is a manual/API action ('Pause service' / 'northflank ssh'-adjacent scale-to-zero); no idle-timeout auto-pause is documented anywhere in the sandbox docs or changelog.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/application/network/configure-ports",
+      "quote": "Public ports are automatically assigned a Northflank domain name, secured with an automatically-generated TLS certificate. They take the format: `[port-name]--[service-name]--[random-string].code.run`",
+      "note": "Public exposure is via a shared load-balancer domain (code.run / custom domain) terminating TLS, not a dedicated public IPv4 address assigned to the machine. Egress has its own static-IP feature, but no per-machine public IPv4 for inbound.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://northflank.com/changelog/august-and-september-2026",
+      "quote": "Coding agents can now work directly inside a managed Northflank workspace. Choose Claude Code, OpenAI Codex, Cursor, OpenCode or Pi, authenticate with your own account or API key, and connect through the browser terminal or SSH.",
+      "note": "Northflank ships 'Harnesses': preinstalled/first-party-managed coding-agent workspaces (Claude Code, Codex, Cursor, OpenCode, Pi), created via dashboard, API, or template. The card's 'false' is wrong; corrected to true (harness_api stays false, matching existing feature_evidence, since there's no prompt/event-stream API for driving the agent).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/quickstart",
+      "quote": "Each sandbox is a Linux environment running against its own kernel rather than the host's.",
+      "note": "Product is explicitly Linux-only microVM/gVisor sandboxes; no Windows machine option anywhere in docs or pricing.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/quickstart",
+      "quote": "Each sandbox is a Linux environment running against its own kernel rather than the host's.",
+      "note": "Same as windows: Northflank sandboxes are Linux-only (microVM on Northflank cloud, gVisor for GPU); macOS is out of scope for the product entirely.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://northflank.com/enterprise",
+      "quote": "Forward-deployed control plane — Deploy Northflank's control plane in your VPC or data center. Zero egress with air-gap support for classified workloads.",
+      "note": "Beyond BYOC (compute only), Northflank Enterprise explicitly offers deploying its whole control plane into the customer's own VPC/data center (sales-gated, not open-source/self-service). Corrected from false to true (medium confidence: it's an enterprise/sales feature, not a downloadable self-hosted package).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/orgs/northflank/repositories",
+      "quote": "Northflank's GitHub org (github.com/northflank) hosts only SDKs, CLIs, examples, and forks of third-party open-source tools (containerd, loki, coredns, linkerd2-proxy) — no core platform/control-plane repository is published.",
+      "note": "The core Northflank platform (control plane, scheduler, billing, dashboard) is closed-source/proprietary SaaS; nothing in the docs, pricing, or GitHub org indicates an OSI-licensed core product.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://northflank.com/docs/v1/application/sandboxes/sandboxes-on-northflank-cloud",
+      "quote": "Change a plan at any time by scaling the service. The sandbox restarts with the new allocation, and anything held only in ephemeral storage is lost.",
+      "note": "Resizing vCPU/RAM (changing deploymentPlan) explicitly restarts the sandbox and wipes ephemeral storage; it is not a live/in-place resize.",
+      "checked": "2026-09-30"
     }
   }
 }

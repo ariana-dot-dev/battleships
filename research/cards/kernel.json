@@ -229,36 +229,36 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
+    "windows": false,
+    "macos": false,
     "arm64": null,
     "gpu": true,
-    "snapshot": null,
+    "snapshot": "mem",
     "pause_resume": true,
-    "fork": null,
-    "persistent_disk": null,
+    "fork": false,
+    "persistent_disk": false,
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": null,
     "docker_inside": null,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
     "browser": true,
     "desktop": true,
     "computer_use": true,
     "code_interpreter": null,
-    "agent_harnesses": null,
+    "agent_harnesses": true,
     "ssh": true,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "public_ipv4": false,
+    "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": true,
+    "static_egress_ip": true,
     "private_network": null,
-    "self_host": null,
+    "self_host": false,
     "byoc": true,
     "open_source": true,
     "soc2": true,
@@ -288,7 +288,19 @@
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "firecracker",
+    "image_oci": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
+    "wake_on_request": true,
+    "live_resize": false,
+    "own_agent_api": false,
+    "lang_python": true,
+    "lang_node": true,
+    "egress_http_rules": false,
+    "guest_firewall": true,
+    "eu_data_residency": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -406,6 +418,174 @@
       "quote": "Each browser session loads its own profile snapshot. Profiles don't synchronize changes between running browsers",
       "note": "One profile can be attached to many browsers but as a per-browser copy, not a live shared filesystem; no shared volumes.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "firecracker",
+      "source": "https://kernel.sh/docs/info/unikernels",
+      "quote": "a Kernel browser is a unikernel VM with no shared host kernel — root inside your session has no path to other customers or platform infrastructure",
+      "note": "Kernel's own docs describe each browser as a dedicated Unikraft-based unikernel VM (sub-20ms cold starts) but never name the underlying hypervisor. Unikraft's microVM deployment target is Firecracker/KVM, the closest enum match to 'unikernel VM with no shared host kernel'; not independently confirmed on Kernel's own pages.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://kernel.sh/docs/info/unikernels",
+      "quote": "running Chromium browsers on lightweight unikernels. This architecture represents a significant departure from traditional solutions (warm pools / Kubernetes-orchestrated Docker containers)",
+      "note": "not offered: outside the product's scope. Machines are fixed Chromium-on-unikernel browser VMs or a code-deploy runtime (kernel deploy from source, no Dockerfile/config); there is no way to boot a custom OCI/Docker image.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://kernel.sh/docs/info/unikernels",
+      "quote": "unikernels are specialized, single-purpose systems that include only the necessary components to run a specific application",
+      "note": "derived: a minimal single-purpose unikernel VM has no documented /dev/kvm passthrough or nested-virtualization support; not mentioned anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "mem",
+      "source": "https://kernel.sh/docs/info/unikernels",
+      "quote": "the ability to create complete snapshots of the browser's state when entering standby mode. These snapshots capture everything: ... Active downloads and processes",
+      "note": "Automatic memory snapshot on standby (idle), restored on next connection; not a user-invoked persistent snapshot API (see snapshot_on_demand=false in the card).",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://api.onkernel.com/spec.json",
+      "quote": null,
+      "note": "not offered: outside the product's scope. No clone/fork endpoint exists; browser pools pre-warm fresh identical browsers, not clones of a specific running machine's state.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://api.onkernel.com/spec.json",
+      "quote": null,
+      "note": "not offered: outside the product's scope. No forking capability of any kind is documented.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://api.onkernel.com/spec.json",
+      "quote": null,
+      "note": "not offered: outside the product's scope. Kernel's memory snapshots (standby) resume the same session in place; they are not used to spawn a new, separate machine.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://kernel.sh/docs/browsers/standby",
+      "quote": "Your app can spring to life almost instantly when needed, then return to standby when idle.",
+      "note": "A new CDP/WebDriver/Live View/computer-controls connection to a standby browser automatically wakes it from its memory snapshot; no explicit 'resume' API call is required.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://kernel.sh/docs/browsers/termination",
+      "quote": "it will be automatically deleted after a configurable timeout (default 60 seconds)",
+      "note": "The browser VM's writable filesystem is deleted with the browser; only cookies/local-storage/extensions persist across sessions via Browser Profiles, not arbitrary files on disk.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://www.onkernel.com/pricing",
+      "quote": "8 GiB default ($0.48/h), 16 GiB when `memory` is set on create ($0.96/h)",
+      "note": "Memory tier is chosen at browser creation time; no documented API to change CPU/RAM of an already-running browser. 'Resize at any time' in the docs refers to browser-pool size (instance count), not per-machine resources.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "source": "https://kernel.sh/docs/integrations/claude/claude-agent-sdk",
+      "quote": "kernel create --template claude-agent-sdk ... When deploying to Kernel, the app automatically installs Claude Code on the remote infrastructure.",
+      "note": "Claude Agent SDK / Claude Code is offered as a first-party app template and auto-installed on deploy.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://kernel.sh/docs/bots",
+      "quote": "Kernel Agent: User-directed browser automation. Kernel Agent visits pages on behalf of an end user's request; it is not an automatic crawler.",
+      "note": "not offered: outside the product's scope. 'Kernel Agent' is a Web Bot Auth traffic-identity label for customer-run automation, not a first-party API that runs Kernel's own browsing/research agent on your behalf.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://kernel.sh/docs/apps/deploy",
+      "quote": "The dependency manifest (`package.json` for JS/TS, `pyproject.toml` for Python) must be present in the root directory of your project.",
+      "note": "Kernel apps and the SDK support Python; `kernel.browsers.repl()` etc. are also callable from the Python SDK.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://kernel.sh/docs/browsers/repl",
+      "quote": "Execute JavaScript in a persistent Node.js runtime that lives alongside Chromium inside your browser's VM.",
+      "note": "Node.js/TypeScript is a first-class supported runtime for both the REPL and app deployment.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://kernel.sh/docs/info/network-access",
+      "quote": "You don't need to open inbound ports.",
+      "note": "Browser VMs are not assigned a routable public IPv4; access is only via Kernel-hosted, per-session tokenized CDP/Live View URLs.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://kernel.sh/docs/browsers/live-view",
+      "quote": "https://api.onkernel.com/browser/live/<TOKEN>?readOnly=true",
+      "note": "Reachability is only through Kernel's own api.onkernel.com proxy endpoints (Live View/CDP tokens) or `kernel browsers ssh` port-forwarding; there is no way to expose an arbitrary app port on the machine over its own public HTTPS URL.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": true,
+      "source": "https://kernel.sh/docs/browsers/chrome-policies",
+      "quote": "To lock a browser to an approved set of URLs, block everything with `URLBlocklist` and then allow back only the URLs you want with `URLAllowlist`.",
+      "note": "Chrome-policy level allow/deny list on top-level navigation domains/paths; it does not block sub-resource or API calls a permitted page loads from other origins, so it is narrower than a network-level security-group egress rule.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://kernel.sh/docs/browsers/chrome-policies",
+      "quote": "Entries match a whole domain (`chatgpt.com`) or a specific path ... it does not block resources or API calls a permitted page loads from other origins.",
+      "note": "URLAllowlist/URLBlocklist operate at domain/path granularity for page navigation, not at HTTP method level; no method-scoped egress rule is documented.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://kernel.sh/docs/api-reference/browser-processes/exec-a-command",
+      "quote": "a Kernel browser is a unikernel VM with no shared host kernel — root inside your session has no path to other customers or platform infrastructure",
+      "note": "derived: full VM with root=true inside a real Linux process environment; nftables/iptables are not explicitly documented but expected to work given root shell access.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://kernel.sh/docs/proxies/isp",
+      "quote": "every connection in a session exits through the same static IP — making them ideal for login flows and session-based workflows.",
+      "note": "Available via Kernel's ISP proxy (or BYO custom proxy on Start-Up/Enterprise), not as a default per-machine egress IP.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://www.onkernel.com/pricing",
+      "quote": "Headless / Headful Chromium browsers on Linux unikernels",
+      "note": "not offered: outside the product's scope. Kernel only offers Linux-based Chromium browser VMs; the only 'windows' string in the docs refers to residential-proxy OS geo-targeting, not a Windows machine.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://www.onkernel.com/pricing",
+      "quote": "Headless / Headful Chromium browsers on Linux unikernels",
+      "note": "not offered: outside the product's scope. No macOS machine option; the only 'macOS' mentions are local CLI install instructions and residential-proxy OS targeting.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://www.onkernel.com/pricing",
+      "quote": "Kernel's infrastructure runs browsers on Unikraft-based unikernels hosted by Kernel",
+      "note": "not offered: outside the product's scope. Kernel is a managed SaaS (with a BYOC option deploying into the customer's own cloud account); there is no self-hosted/open-source build of the platform itself to run entirely on your own infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://kernel.sh/docs/browsers/managed-auth/overview",
+      "quote": "Choose from `us-east`, `eu-west`, and `ap-southeast`. Region selection is available on Start-Up and Enterprise plans",
+      "note": "eu-west region is offered for browsers (Start-Up/Enterprise plans; Free/Hobbyist are US-only).",
+      "checked": "2026-09-30"
     }
   }
 }

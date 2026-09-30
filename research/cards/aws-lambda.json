@@ -421,19 +421,19 @@
     "lang_java": true,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": true,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": true,
     "audit_logs": true,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": true,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
     "harness_api": false,
@@ -442,7 +442,13 @@
     "guest_firewall": false,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "firecracker",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -556,6 +562,237 @@
       "quote": "With Amazon EFS, your function code can access and modify shared resources safely and at high concurrency.",
       "note": "Read-write (or read-only connections without ClientWrite); NFS on port 2049; shared across all concurrent environments and other compute.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "firecracker",
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html",
+      "quote": "AWS Lambda uses Firecracker microVM technology to provide a highly secure, isolated execution environment for each function invocation.",
+      "note": "Confirmed consistent with card top-level isolation field; matches SnapStart docs' explicit 'Firecracker MicroVM snapshot' language too.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/images-create.html",
+      "quote": "Lambda supports two types of deployment packages: container images and .zip file archives. There are three ways to build a container image for a Lambda function: Using an AWS base image for Lambda... Using an AWS OS-only base image... Using a non-AWS base image.",
+      "note": "Container images are pushed to Amazon ECR as standard OCI/Docker images (up to 10 GB) and Lambda runs the function from that image.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://aws.amazon.com/lambda/pricing/",
+      "quote": "AWS Lambda is a serverless, event-driven compute service that lets you run code for virtually any type of application or backend service without provisioning or managing servers.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://aws.amazon.com/lambda/pricing/",
+      "quote": "AWS Lambda is a serverless, event-driven compute service that lets you run code for virtually any type of application or backend service without provisioning or managing servers.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html",
+      "quote": "Security groups control inbound and outbound traffic for your resources, and network ACLs control inbound and outbound traffic for your subnets.",
+      "note": "Non-VPC functions egress via AWS-managed shared IP ranges; VPC-attached functions egress through a NAT gateway (Elastic IP) or public IPv4 on ENI. Both are standard AWS datacenter IP ranges, not residential/mobile.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html",
+      "quote": "Lambda freezes the execution environment when the runtime and each extension have completed and there are no pending events.",
+      "note": "Frozen/idle execution environments (and cold environments with none warm) are transparently created/thawed the moment an invocation (request) arrives; this is the core Lambda invoke-on-demand model.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-common.html",
+      "quote": "You can configure a range of settings for your function, including memory and timeout allocations.",
+      "note": "Memory/CPU allocation is changed via UpdateFunctionConfiguration, which applies to new execution environments going forward; a currently running/warm environment cannot have its CPU/RAM changed in place.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://aws.amazon.com/lambda/pricing/",
+      "quote": "AWS Lambda is a serverless, event-driven compute service that lets you run code for virtually any type of application or backend service without provisioning or managing servers.",
+      "note": "not offered: outside the product's scope. AWS's own browser/computer-use/research task agent product is Bedrock AgentCore, a separate product not modeled by this card.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/awslabs/mcp/main/src/aws-serverless-mcp-server/README.md",
+      "quote": "Comprehensive tooling: Offers tools for initialization, deployment, monitoring, and troubleshooting of serverless applications... Initialize, build, and deploy Serverless Application Model (SAM) applications with SAM CLI. Test Lambda functions locally and remotely.",
+      "note": "AWS ships the open-source AWS Serverless MCP Server (awslabs.aws-serverless-mcp-server), referenced from Lambda's own Agent setup guide, which deploys, tests/invokes, and monitors Lambda functions via MCP tools.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html",
+      "quote": "Security groups control inbound and outbound traffic for your resources, and network ACLs control inbound and outbound traffic for your subnets.",
+      "note": "Egress control is IP/CIDR/port-level (security groups, NACLs) or domain-level via a separate service (Network Firewall / Route 53 Resolver DNS Firewall); nothing at HTTP method/path granularity.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://aws.amazon.com/compliance/gdpr-center/",
+      "quote": "Choose the secured state of their customer data, including where it will be stored, including the type of storage and geographic region of that storage.",
+      "note": "Lambda is generally available in multiple EU regions (eu-west-1 Ireland, eu-central-1 Frankfurt, eu-central-2 Zurich, eu-north-1 Stockholm, eu-south-1 Milan, eu-west-2/3 London/Paris); customers select the region and AWS does not move data out of it by default.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-ephemeral-storage.html",
+      "quote": "Lambda provides ephemeral storage for functions in the /tmp directory. This storage is temporary and unique to each execution environment.",
+      "note": "No contradiction: 'volumes':true refers only to opt-in EFS/S3-Files network mounts a customer must attach explicitly; the default /tmp disk is ephemeral per execution environment and Lambda has no user-triggered pause/resume that preserves it (freeze/thaw is automatic and the environment can be discarded/reset at any time, e.g. 'the Lambda reset does not clear the /tmp directory content before the next init phase' is best-effort reuse, not a guarantee).",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html",
+      "quote": "With SnapStart, Lambda initializes your function when you publish a function version. Lambda takes a Firecracker MicroVM snapshot of the memory and disk state of the initialized execution environment",
+      "note": "SnapStart only snapshots the post-init state at version-publish time for cold-start acceleration (Java/Python/.NET only, restricted); there is no API to snapshot an arbitrary running execution environment on demand or automatically on idle/stop, so 'none' is correct for the general-purpose snapshot feature this field tracks.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html",
+      "quote": "Lambda freezes the execution environment when the runtime and each extension have completed and there are no pending events.",
+      "note": "This freeze/thaw is fully automatic reuse-or-discard behavior managed by the service between invocations, not a user-invokable pause/resume API; Lambda gives no way to explicitly pause a running environment and resume it later.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html",
+      "quote": "Lambda invokes your function in an execution environment... If Lambda needs to scale up, it creates new execution environments.",
+      "note": "New execution environments are always created fresh (or resumed from a SnapStart version snapshot); there is no API to fork a live running environment into a second independent copy. No AWS documentation describes a fork capability.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html",
+      "quote": "Lambda invokes your function in an execution environment, which provides a secure and isolated runtime environment.",
+      "note": "Same basis as fork: no documented mechanism to fork a currently-running execution environment; each environment handles invocations serially and new ones are created independently, not branched from a live one.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html",
+      "quote": "With SnapStart, Lambda initializes your function when you publish a function version. Lambda takes a Firecracker MicroVM snapshot of the memory and disk state of the initialized execution environment",
+      "note": "SnapStart resumes many new environments from one shared version-publish-time snapshot, but this is not a user-controlled 'fork a running instance's memory' primitive: you cannot pick an arbitrary in-flight environment and branch it.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/images-create.html",
+      "quote": "The container image must be able to run on a read-only file system... The default Lambda user must be able to read all the files required to run your function code. Lambda follows security best practices by defining a default Linux user with least-privileged permissions.",
+      "note": "The container image is only Lambda's deployment packaging format; the running function executes as an unprivileged, non-root user on a read-only filesystem, so it cannot start a Docker daemon or run nested containers inside the execution environment.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/images-create.html",
+      "quote": "Lambda follows security best practices by defining a default Linux user with least-privileged permissions. This means that you don't need to specify a USER in your Dockerfile.",
+      "note": "Code runs unprivileged inside a Firecracker microVM with no elevated capabilities (no CAP_SYS_ADMIN/KVM access), so customer code cannot start its own nested VM/hypervisor.",
+      "checked": "2026-09-30"
+    },
+    "root": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/images-create.html",
+      "quote": "Lambda follows security best practices by defining a default Linux user with least-privileged permissions. This means that you don't need to specify a USER in your Dockerfile.",
+      "note": "Function code always runs as a non-root, least-privileged default Linux user; there is no way to obtain root inside the execution environment.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html",
+      "quote": "Lambda invokes your function in an execution environment, which provides a secure and isolated runtime environment that manages the resources required to run your function.",
+      "note": "Lambda has no shell/SSH access product surface at all -- interaction is strictly through the Invoke API and Runtime/Extensions/Telemetry APIs; there is no listed inbound SSH/console feature anywhere in the docs, matching the card's separate ingress_rules note that the only ingress is invocation.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://aws.amazon.com/lambda/",
+      "quote": "AWS Lambda is a serverless compute service that lets you run code without provisioning or managing servers.",
+      "note": "Lambda is a stateless function-execution service with no display/GUI surface of any kind; a remote desktop feature is outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://aws.amazon.com/lambda/",
+      "quote": "AWS Lambda is a serverless compute service that lets you run code without provisioning or managing servers.",
+      "note": "No managed/embedded browser is offered by Lambda; it is a headless function runtime (customers may run headless Chromium themselves inside a function, but that is not a first-party browser feature).",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/agent-setup-guide.html",
+      "quote": "By configuring your agent with the right combination of plugins, skills, and MCP Servers, you equip it with expertise required to build and manage serverless applications.",
+      "note": "Lambda's agent material targets local coding agents that build/manage Lambda apps via MCP/skills; it provides no computer-use (screen/mouse/keyboard control) capability. AWS's actual computer-use product is Bedrock AgentCore, a separate service not represented by this card.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html",
+      "quote": "Connecting a function to a public subnet doesn't give it internet access or a public IP address.",
+      "note": "Functions run inside an AWS-managed Lambda VPC that customers cannot see; even VPC-attached functions in a public subnet get no public IPv4. There is no way to assign a public IPv4 address to a Lambda function.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html",
+      "quote": "By default, Lambda functions have access to the public internet. When you attach your function to a VPC, it can only access resources available within that VPC. To give your function access to the internet, you also need to configure the VPC to have internet access.",
+      "note": "Lambda itself assigns no fixed egress IP; a static egress IP is only achievable by the customer separately provisioning a VPC NAT Gateway + Elastic IP (per the card's own NAT gateway caveat) -- not a built-in Lambda feature.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/agent-setup-guide.html",
+      "quote": "By configuring your agent with the right combination of plugins, skills, and MCP Servers, you equip it with expertise required to build and manage serverless applications.",
+      "note": "Same evidence already recorded under feature_evidence.harness_api: this guide is for external coding agents (Claude Code, Codex, Kiro...) that build Lambda apps; there is no hosted agent-harness runtime feature inside Lambda itself.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html",
+      "quote": "Function memory allocation 128 MB to 10,240 MB, in 1-MB increments. Note: Lambda allocates CPU power in proportion to the amount of memory configured.",
+      "note": "Lambda's compute/quota documentation only ever describes memory-proportional vCPU allocation; there is no GPU option, GPU quota, or GPU pricing dimension anywhere in Lambda's docs or pricing pages.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html",
+      "quote": "The runtime is paired with one of the Amazon Linux distributions... Lambda supports only Linux-based container images.",
+      "note": "All Lambda runtimes and container base images run on Amazon Linux (2 or 2023); there is no Windows runtime or Windows container support.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html",
+      "quote": "The runtime is paired with one of the Amazon Linux distributions. The underlying execution environment provides additional libraries and environment variables that you can access from your function code.",
+      "note": "Lambda functions only run on Amazon Linux; there is no macOS runtime (AWS's macOS offering is the unrelated EC2 Mac dedicated-host product, not Lambda).",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://aws.amazon.com/lambda/",
+      "quote": "AWS Lambda is a serverless compute service that lets you run code without provisioning or managing servers.",
+      "note": "Lambda is a fully managed, AWS-operated multi-tenant service; there is no distributable Lambda runtime/control-plane a customer can install and operate on their own infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://aws.amazon.com/lambda/",
+      "quote": "AWS Lambda is a serverless compute service that lets you run code without provisioning or managing servers.",
+      "note": "Lambda only runs inside AWS's own account/region infrastructure (execution environments live in an AWS-managed VPC per configuration-vpc.html); there is no bring-your-own-cloud deployment mode. (Lambda Managed Instances still runs on the customer's own EC2 instances within their AWS account, but that is BYO-EC2-within-AWS, not BYOC to another cloud/on-prem.)",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/images-create.html",
+      "quote": "You must include a runtime interface client for your language in the image... open-source runtime interface clients implement the API.",
+      "note": "Only the small Runtime Interface Client/Emulator glue libraries are open source; the Lambda execution service itself (scheduler, Firecracker fleet management, APIs) is closed-source, proprietary AWS infrastructure -- there is no way to run 'Lambda' outside AWS.",
+      "checked": "2026-09-30"
     }
   }
 }

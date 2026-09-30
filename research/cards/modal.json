@@ -361,7 +361,7 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": false,
+    "arm64": null,
     "gpu": true,
     "gpu_types": [
       "T4",
@@ -379,13 +379,13 @@
     "snapshot": "mem",
     "pause_resume": false,
     "fork": true,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": 24,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": false,
+    "docker_inside": false,
+    "nested_virt": true,
     "root": true,
     "systemd": true,
     "browser": false,
@@ -393,7 +393,7 @@
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
-    "ssh": false,
+    "ssh": true,
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": true,
@@ -402,7 +402,7 @@
     "static_egress_ip": true,
     "private_network": null,
     "self_host": false,
-    "byoc": null,
+    "byoc": false,
     "open_source": false,
     "regions": [
       "us",
@@ -414,25 +414,25 @@
     "hipaa": true,
     "sso": true,
     "lang_python": true,
-    "lang_node": null,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": true,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "isolation": "gvisor",
     "image_oci": true,
     "snapshot_auto": false,
@@ -443,7 +443,11 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -632,6 +636,198 @@
       "quote": "Concurrent modification from multiple containers is supported, but concurrent\nmodifications of the same files should be avoided. Last write wins",
       "note": "Read-write (or read_only mount option); sub_path mounts isolate sessions on one Volume; v2 volumes: concurrent writes from hundreds of containers. Changes visible to others only after commit + reload. Bucket mounts also shareable.",
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/sandboxes.md",
+      "quote": "Use the VM runtime to run Docker in a Sandbox. Start `dockerd` as the Sandbox entrypoint and run containers with `sb.exec`.",
+      "note": "True only under the opt-in VM Sandbox runtime (beta, runtime=\"vm\"); the default gVisor runtime is not documented to support running Docker/dockerd inside it. Card-level value reflects the default runtime; the vm-sandbox mode already carries docker_inside:true.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://modal.com/pricing",
+      "quote": "Modal is a platform for running AI workloads in the cloud with minimal configuration. Key use cases include AI model training and inference, high-performance batch jobs, and sandboxed code execution.",
+      "note": "not offered: outside the product's scope. Modal is a general compute/sandbox platform, not a browser-automation/scraping product; no stealth or fingerprint-evasion feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://modal.com/pricing",
+      "quote": "Modal is a platform for running AI workloads in the cloud with minimal configuration. Key use cases include AI model training and inference, high-performance batch jobs, and sandboxed code execution.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature or API is documented anywhere in Modal's docs/pricing.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://modal.com/docs/guide/proxy-ips.md",
+      "quote": "Proxies are a secure tunnel between Apps and exit nodes with static IPs. You can allow-list those static IPs in your network firewall...",
+      "note": "Team/Enterprise-plan Proxy feature gives fixed outbound datacenter IPs (WireGuard exit nodes); default (no Proxy) egress uses Modal's shared cloud-provider datacenter IP ranges, which vary by run.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/sandbox-snapshots.md",
+      "quote": "Snapshotting a Sandbox will currently cause it to terminate. We intend to remove this limitation soon.",
+      "note": "Forking (filesystem snapshot -> boot new Sandboxes from the Image) requires the source Sandbox to be snapshotted, which terminates it; you cannot fork a Sandbox while it keeps running. (Memory snapshots are also documented as terminating the source Sandbox.)",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/sandboxes.md",
+      "quote": "Sandboxes can also be automatically terminated after a period of inactivity - you can do this by setting the `idle_timeout` parameter.",
+      "note": "Sandboxes have no sleep/paused state: idle_timeout or timeout fully terminates the Sandbox (Finished state); there is no mechanism for a stopped sandbox to wake automatically on an incoming request. Consistent with card caveat 'No pause/stopped state.'",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/resources.md",
+      "quote": "Physical core (2 vCPU equivalent)... You pay for max(request, actual). ... a default request of 0.125 CPU cores and 128 MiB of memory",
+      "note": "CPU/memory are set via request/limit parameters at Sandbox.create() time (with elastic bursting up to a limit); no documented API to change a running Sandbox's resource request/limit after creation without recreating it. The Sandbox SDK reference (Sandbox.md) has no update/resize method.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://modal.com/pricing",
+      "quote": "Modal is a platform for running AI workloads in the cloud with minimal configuration. Key use cases include AI model training and inference, high-performance batch jobs, and sandboxed code execution.",
+      "note": "not offered: outside the product's scope. Modal is an execution backend that lets customers run their own agents/harnesses (examples: OpenCode, Claude Agent SDK, Cursor Cloud Agents); it does not ship its own first-party browser/computer-use/research task agent.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://modal.com/docs/examples/mcp_server_stateless.md",
+      "quote": "This example demonstrates how to deploy a simple MCP server on Modal with FastMCP.",
+      "note": "Modal's MCP-related material is an example of hosting a user-built MCP server on Modal, not a first-party MCP server Modal ships to let clients control Modal Sandboxes/Apps themselves. No such control-plane MCP server is documented in the CLI or guide sections of llms.txt.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://modal.com/llms.txt",
+      "quote": "Modal offers official SDKs in Python, Go, and JavaScript/TypeScript, along with a fully-featured CLI for interacting with the platform.",
+      "note": "First-party JS/TypeScript SDK (modal.com/docs/sdk/js/latest/intro.md, beta) exposes Sandbox/Function/etc.; Node.js also runs inside sandboxes generically via custom images (e.g. 'Run Node.js, Ruby, and more in a Sandbox' example).",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/security.md",
+      "quote": "Compute jobs at Modal are containerized and virtualized using gVisor... Sandboxes may also run on Modal's secure VM runtime.",
+      "note": "not offered: outside the product's scope. Modal is a fully managed multi-tenant serverless platform running on its own infrastructure/regions; no self-hosted-in-your-cloud-account (BYOC) deployment option is documented on the security, pricing, or enterprise pages.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://modal.com/docs/guide/data-residency.md",
+      "quote": "You can select the container and routing regions for most Modal services... For a full list of available regions, please visit our region selection documentation page.",
+      "note": "Region selection documents an 'eu' broad region (European Economic Area) with eu-west/eu-north/eu-south narrow regions; Sandboxes support container-region pinning to 'eu' (region-selection.md), which the card's region-broad/region-narrow modes price at 1.15x/1.75x.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://modal.com/docs/guide/volumes",
+      "quote": "Create a named, persistent modal.Volume. ... For Volumes, changes are persisted by background commits that run every few seconds while the Sandbox executes, with a final commit when the Sandbox terminates.",
+      "note": "A default Sandbox's own root disk is ephemeral (wiped on terminate; no pause state), so the card's plain 'no persistent disk' default is right about the root FS. But Volumes (already features.volumes=true) are first-party attachable persistent disks: they outlive the Sandbox and can be remounted into a new Sandbox with the same files. That makes persistent_disk true (opt-in via Volume attach; the ephemeral root FS remains the default).",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/sandboxes",
+      "quote": "5. **Finished** — The Sandbox has stopped running. This can happen for several reasons: the entrypoint process exited on its own, the Sandbox was explicitly terminated (via the dashboard or `sandbox.terminate()`), the timeout or idle timeout was reached, or an out-of-memory condition occurred. Once finished, no further commands can be executed inside the Sandbox.",
+      "note": "Sandbox lifecycle only has Created/Scheduled/Started/Ready/Finished; there is no Paused state and no resume of a running container. (Filesystem/memory snapshot+restore exists but that creates a brand-new Sandbox, not a resumed one — tracked separately as memory_snapshot_fork.)",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://modal.com/docs/guide/sandbox-snapshots",
+      "quote": "Sandbox memory snapshots are copies of a Sandbox's entire state, both in memory and on the filesystem. These Snapshots can be restored later to create a new Sandbox, which is an exact clone of the original Sandbox.",
+      "note": "Memory Snapshots (alpha, gated: 'Access to VM Memory Snapshots is available on request') capture RAM+FS and Sandbox._experimental_from_snapshot() clones them into a new, running Sandbox with processes' memory state intact -- this is exactly the memory_snapshot_fork definition. Alpha/experimental API (_experimental_snapshot / _experimental_enable_snapshot), so confidence medium rather than high.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://modal.com/docs/guide/sandboxes",
+      "quote": "Nested virtualization is also available on the Team and Enterprise plans; to request access, reach out via Slack or email us at support@modal.com.",
+      "note": "Docs now explicitly offer nested virtualization (for the VM runtime) on Team/Enterprise, gated behind a support request rather than self-serve -- so it is a real, provider-offered capability, not absent. Corrected from false to true (note: request-gated, Team/Enterprise only).",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://modal.com/llms-full.txt",
+      "quote": "This assumes you have a rsa keypair in ~/.ssh/id_rsa{.pub}, this is a bare-bones example letting you SSH into a Modal container. ... subprocess.Popen([\"/usr/sbin/sshd\", \"-D\", \"-e\"]) with modal.forward(port=22, unencrypted=True) as tunnel: ... connection_cmd = f'ssh -p {port} root@{hostname}'",
+      "note": "Officially documented pattern: install openssh-server in the image, run sshd, and expose it via modal.forward's raw-TCP tunnel (already features.raw_tcp_inbound=true) to get a real `ssh user@host -p port` session. It's DIY (you supply sshd + keys, not a managed 'SSH into your sandbox' button), so medium confidence rather than high, but it is a first-party documented capability, not absent -- corrected from false to true.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://modal.com/docs/examples/computer_use_vnc",
+      "quote": "By default, Browser Use launches Chromium headless. However, we want to watch the browser in real time. In each Sandbox, Xvfb provides a virtual display, x11vnc serves it over VNC, and websockify bridges the stream into the noVNC page that the UI embeds.",
+      "note": "The only VNC/desktop capability found is a user-built example (installs Xvfb/x11vnc/websockify themselves inside a generic Linux Sandbox) -- not a managed desktop product. No first-party 'desktop' offering.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://modal.com/docs/examples/computer_use_vnc",
+      "quote": "This example builds one with Browser Use. ... The agent drives Chromium inside a Modal Sandbox running in a VM",
+      "note": "Chromium is not a managed/offered browser -- it's installed and driven by the user's own code (Browser Use) inside a generic Sandbox, per the example. No first-party managed browser.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://modal.com/docs/examples/computer_use_vnc",
+      "quote": "Computer-use agents are LLMs that can interact with a web browser in a loop. Rather than calling a fixed set of APIs, they look at a rendered page or screen, decide what to click or type next, take that action, and look again. This example builds one with Browser Use.",
+      "note": "'Computer Use Vnc' is a code example showing how to wire up a third-party computer-use agent (Browser Use) yourself on top of generic Sandbox + Xvfb/VNC; Modal ships no first-party computer-use/screenshot-click API.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/sandbox-networking",
+      "quote": "Sandboxes are built to be secure-by-default, meaning that a default Sandbox has no ability to accept incoming network connections or access your Modal resources.",
+      "note": "Inbound access is only via TLS tunnels/hostnames (modal.forward, encrypted_ports, Connect Tokens) or workspace-private i6pn IPv6 for clusters; there is no per-sandbox public IPv4 assigned. The 'static IP' feature (Proxies, already features.static_egress_ip=true) is for outbound traffic only ('Proxies are a secure tunnel between Apps and exit nodes with static IPs'), not an inbound public IPv4 on the machine.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://modal.com/llms-full.txt",
+      "quote": "First, we define a Modal container Image with OpenCode installed. ... .run_commands(\"curl -fsSL https://opencode.ai/install | bash\")",
+      "note": "'Run OpenCode in a Modal Sandbox' is a customer-authored example that installs OpenCode itself via a shell command in a custom Image; Codex/Claude Code/OpenCode docs elsewhere are about pointing those external CLIs at a Modal-hosted model endpoint, not about Modal preinstalling/offering coding-agent harnesses as sandbox templates.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/images",
+      "quote": "By default, Modal Functions and Sandboxes run in a Debian Linux environment with a basic Python installation of the same minor version `v3.x` as your local Python interpreter.",
+      "note": "No Windows runtime or Windows base images are offered anywhere in the docs; Sandboxes/Functions are Linux containers/VMs (Debian-based, or custom OCI Linux images) only.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://modal.com/docs/guide/images",
+      "quote": "By default, Modal Functions and Sandboxes run in a Debian Linux environment",
+      "note": "Modal is a Linux-container/VM compute platform (gVisor or Linux-kernel VM runtimes); no macOS machines/images are offered. Plainly outside the product, matching the 'macOS for a GPU cloud' example in the field definitions.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": null,
+      "was": false,
+      "note": "doubtful \"no\" could not be confirmed: Docs describe images/base OS but never state CPU architecture options; no mention of arm64/Graviton/Apple-silicon guest CPUs anywhere in the docs, gpu guide, or pricing page. Absence of any ARM mention across the full docs corpus is consistent with x86_64-only, but no page explicitly says 'x86_64 only', so kept as unclear rather than a confirmed 'right'.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://modal.com/llms-full.txt",
+      "quote": "Most interactions with Modal are well-described in a gRPC API, and occur through modal, our open-source command-line tool and Python client library.",
+      "note": "Only the client (CLI/SDK) is open; the actual compute platform (workers, scheduler, storage) is Modal's own multi-tenant SaaS with no on-prem/self-hosted or BYOC deployment option documented anywhere (Enterprise plan mentions AWS/GCP marketplace billing, not deploying Modal's control plane into a customer's account).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://modal.com/llms-full.txt",
+      "quote": "occur through modal, our open-source command-line tool and Python client library.",
+      "note": "Only the `modal` CLI/Python client is open-source; the core product -- the compute platform itself (scheduler, workers, storage, billing) -- is closed-source and only usable as Modal's hosted service. No OSI license covers the core product.",
+      "checked": "2026-09-30"
     }
   }
 }

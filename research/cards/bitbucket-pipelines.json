@@ -226,30 +226,30 @@
     "max_session_h": 12,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": null,
+    "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
-    "agent_harnesses": false,
-    "ssh": null,
+    "agent_harnesses": true,
+    "ssh": false,
     "public_ipv4": false,
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": false,
     "private_network": null,
-    "self_host": false,
+    "self_host": true,
     "byoc": false,
     "open_source": false,
     "regions": [
       "us"
     ],
-    "soc2": null,
-    "hipaa": null,
+    "soc2": true,
+    "hipaa": false,
     "sso": true,
     "lang_python": true,
     "lang_node": true,
@@ -258,7 +258,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
     "fork_running": false,
@@ -266,18 +266,25 @@
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": true,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": false,
+    "mcp_server": true,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
     "harness_api": true,
     "ingress_rules": false,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "container",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "guest_firewall": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -310,17 +317,17 @@
   "feature_evidence": {
     "snapshot_auto": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "Steps are ephemeral CI containers bounded by max-time; state carries over only via explicit caches (dependency dirs) and artifacts. No snapshot concept in docs.",
-      "checked": "2026-09-29"
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "artifacts — to retain artifacts that subsequent steps can consume.",
+      "note": "Steps are ephemeral CI containers bounded by max-time; nothing is auto-saved/restored on stop other than explicit caches/artifacts.",
+      "checked": "2026-09-30"
     },
     "snapshot_on_demand": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No snapshot/checkpoint API; caches and artifacts are the only persistence mechanisms (step-options page).",
-      "checked": "2026-09-29"
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "artifacts — to retain artifacts that subsequent steps can consume.",
+      "note": "No API/CLI snapshot or checkpoint action exists in Pipelines.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": true,
@@ -331,10 +338,10 @@
     },
     "ingress_rules": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "Build steps expose no inbound ports/URLs at all on Atlassian cloud runners, so there is nothing to control (no preview URLs, no SSH-to-step).",
-      "checked": "2026-09-29"
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "A step lets you group commands together and configure the environment used to execute them.",
+      "note": "Build containers expose no inbound network endpoint at all (no preview URL, no SSH-to-step) on Atlassian cloud runners, so there is nothing to configure ingress rules for.",
+      "checked": "2026-09-30"
     },
     "secret_proxy": {
       "value": false,
@@ -352,10 +359,272 @@
     },
     "volume_shared": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No shared filesystem between concurrent steps; artifacts pass files between sequential steps only.",
-      "checked": "2026-09-29"
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "artifacts — to retain artifacts that subsequent steps can consume.",
+      "note": "No shared filesystem between concurrent steps/builds; artifacts pass files between sequential steps of the SAME pipeline run only, and there are no volumes at all to share.",
+      "checked": "2026-09-30"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "Each step in your pipeline will start a separate Docker container to run the commands configured in the script option.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "image — to use a different Docker image.",
+      "note": "Steps can specify any custom Docker/OCI image via the `image` option.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "Each step in your pipeline will start a separate Docker container to run the commands configured in the script option.",
+      "note": "not offered: outside the product's scope — steps are plain Docker containers on shared Atlassian cloud infrastructure; no /dev/kvm or nested-virtualization capability is documented.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://www.atlassian.com/software/bitbucket/pricing",
+      "quote": "Pipelines is an integrated CI/CD service built into Bitbucket.",
+      "note": "not offered: outside the product's scope — a CI/CD runner does not ship a managed/real browser; users may install one inside their own build image, but that is not a provider feature.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.atlassian.com/software/bitbucket/pricing",
+      "quote": "Pipelines is an integrated CI/CD service built into Bitbucket.",
+      "note": "not offered: outside the product's scope — CI/CD runner, no stealth/fingerprinting features.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.atlassian.com/software/bitbucket/pricing",
+      "quote": "Pipelines is an integrated CI/CD service built into Bitbucket.",
+      "note": "not offered: outside the product's scope — CI/CD runner, no CAPTCHA-solving features.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/what-are-the-bitbucket-cloud-ip-addresses-i-should-use-to-configure-my-corporate-firewall/",
+      "quote": "The servers that execute all steps on Atlassian Cloud Infrastructure, are hosted on Amazon Web Services (AWS). An exhaustive list of IP addresses that the traffic may come from on AWS can be found by using the following endpoint...",
+      "note": "Outbound traffic comes from a large, shared, changing pool of AWS datacenter IP ranges (an optional narrower 'Atlassian IP ranges' subset exists for 4x+ steps, still a shared datacenter range, not a per-customer static IP).",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "Each step in your pipeline will start a separate Docker container to run the commands configured in the script option.",
+      "note": "not offered: outside the product's scope — Bitbucket's 'SSH keys in Pipelines' docs cover outbound SSH auth from a build step to external hosts, not interactive inbound SSH into the ephemeral step container itself; no such feature is documented for Atlassian cloud runners.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://www.atlassian.com/software/bitbucket/pricing",
+      "quote": "Pipelines is an integrated CI/CD service built into Bitbucket.",
+      "note": "not offered: outside the product's scope — Atlassian offers 'Rovo Dev' as a coding-harness option inside Pipelines (already modeled as harness_api), not a first-party browser/computer-use/research task-agent API.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/what-are-the-bitbucket-cloud-ip-addresses-i-should-use-to-configure-my-corporate-firewall/",
+      "quote": "As a reminder, Atlassian does not recommend configuring IP-based firewalls as the only mechanism to protect access to your infrastructure.",
+      "note": "The IP-range docs describe customers allowlisting Bitbucket's IPs in their OWN firewalls; there is no provider-side control to restrict what a build step can reach outbound (no allow/deny list or no-internet mode documented).",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "Each step in your pipeline will start a separate Docker container to run the commands configured in the script option.",
+      "note": "No HTTP method/path-level egress rule feature is documented for Pipelines steps.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "Each step in your pipeline will start a separate Docker container to run the commands configured in the script option.",
+      "note": "Isolation is a plain Docker container (shared kernel), not a full VM/microVM, so the 'root=true implies guest_firewall' heuristic doesn't apply; no CAP_NET_ADMIN/iptables capability is documented for step containers.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/what-are-the-bitbucket-cloud-ip-addresses-i-should-use-to-configure-my-corporate-firewall/",
+      "quote": "An exhaustive list of IP addresses that the traffic may come from on AWS can be found by using the following endpoint, filtering to records where the service equals EC2...",
+      "note": "Egress comes from a large shared/changing AWS IP range, not a fixed IP dedicated to one customer or build.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": true,
+      "source": "https://www.atlassian.com/trust/compliance/resources/soc2",
+      "quote": "Relevant products ... Git code management Bitbucket Cloud Learn more",
+      "note": "Bitbucket Cloud is listed as a relevant product covered by Atlassian's SOC 2 report.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://www.atlassian.com/trust/compliance/resources/hipaa",
+      "quote": "Relevant products Project and issue tracking Jira Learn more document collaboration Confluence Cloud Learn more high-velocity itsm Jira Service Management Learn more Unlock enterprise knowledge Rovo Learn more Plan, Track, & Support Jira Product Discovery Learn more",
+      "note": "Atlassian's HIPAA/BAA program's relevant-products list covers Jira, Confluence, Jira Service Management, Rovo, and Jira Product Discovery; Bitbucket is not listed.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://support.atlassian.com/security-and-access-policies/docs/understand-data-residency/",
+      "quote": "Atlassian Cloud: Jira, Jira Service Management, Jira Product Discovery, Loom, and Confluence with Enterprise, Premium, and Standard plans.",
+      "note": "Bitbucket is not among the products supporting Atlassian's data-residency pinning feature, so an EU region cannot be guaranteed/pinned for Bitbucket/Pipelines data despite Atlassian's general AWS EU infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "artifacts — to retain artifacts that subsequent steps can consume.",
+      "note": "Each step is a fresh ephemeral container; there is no pause/stop-start of the same machine and no persistent-volume concept. Only caches (tarball of specific dirs, restored into a NEW container) and artifacts (passed to later steps in the same run) exist, which is not a disk that persists across a stop/sleep of one machine.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "artifacts — to retain artifacts that subsequent steps can consume.",
+      "note": "No snapshot/checkpoint mechanism documented anywhere in Pipelines docs; only caches and artifacts exist for state transfer between steps/builds.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "artifacts — to retain artifacts that subsequent steps can consume.",
+      "note": "No pause/resume of a running build container; a step either runs to completion/timeout or is stopped (torn down), with no resume capability.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "artifacts — to retain artifacts that subsequent steps can consume.",
+      "note": "Pipelines is a CI build-step engine; there is no concept of cloning a machine into a new one. Feature is outside what the product is.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "artifacts — to retain artifacts that subsequent steps can consume.",
+      "note": "No forking capability at all (see fork); a fortiori no fork-while-running.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "artifacts — to retain artifacts that subsequent steps can consume.",
+      "note": "No snapshot and no fork mechanism exist, so memory-snapshot forking is not possible.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "A step lets you group commands together and configure the environment used to execute them.",
+      "note": "Pipelines runs headless Docker-image build steps for CI/CD; no graphical desktop (VNC/RDP/stream) is offered or mentioned anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/agentic-pipelines/",
+      "quote": "can be granted controlled access to Bitbucket using MCP tools and scoped OAuth permissions",
+      "note": "Agentic Pipelines gives agents Bitbucket API/MCP tool access and shell/build-tool access inside the headless container, not screenshot+click GUI driving; no desktop exists to drive.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "A step lets you group commands together and configure the environment used to execute them.",
+      "note": "There is no persistent/sleeping machine to wake; each run/trigger spins up brand-new ephemeral step containers, so 'wake on request' doesn't apply to this product shape.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "artifacts — to retain artifacts that subsequent steps can consume.",
+      "note": "No attachable persistent volumes; only fixed per-size disk (e.g. 64 GB at 1x), caches and artifacts.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "A step lets you group commands together and configure the environment used to execute them.",
+      "note": "No documented way to reach an HTTPS URL into a running build step; Pipelines is outbound-only CI compute.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "A step lets you group commands together and configure the environment used to execute them.",
+      "note": "No per-machine public IPv4 is assigned or documented for build steps; only shared/static outbound IP ranges are published for allowlisting, not an inbound public address per step.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/agentic-pipelines/",
+      "quote": "Bitbucket Pipelines supports integrating agents using either Rovo Dev (Atlassian-managed) or Codex or Claude Code (bring-your-own account).",
+      "note": "Agentic Pipelines lets you declare an `agent:` step in bitbucket-pipelines.yml backed by Claude Code, Codex, or Rovo Dev; Pipelines installs/configures the agent CLI automatically. This is exactly 'coding agents preinstalled/offered as templates', so agent_harnesses should be true, not false.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/interacting-with-bitbucket-via-mcp/",
+      "quote": "The Bitbucket Cloud MCP server lets any supported agent runtime interact securely with Bitbucket. It exposes tools that your agent can use to automate tasks simply by having them referenced in your natural language prompt.",
+      "note": "Pipelines automatically starts a built-in Bitbucket Cloud MCP server inside the agent step container (Authentication and security for Agentic Pipelines: 'Pipelines starts a Bitbucket Cloud MCP server inside the container and injects the step's OAuth token'). This is a first-party MCP server shipped by the provider, so mcp_server should be true, not false.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "1x 2 CPU/4 GB/64 GB, 2x 4/8/64",
+      "note": "Only CPU size tiers (1x..32x) are documented for cloud runners; no GPU option is offered or mentioned in official docs or pricing pages.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/runners/",
+      "quote": "Currently, we only support the following: Linux with x64 and ARM architecture ... Windows 10+ or Windows Server 2019+ MacOS Catalina 10.15+",
+      "note": "reviewed: proposed correction rejected (Self-hosted Bitbucket Pipelines Runners can be installed on Windows hosts (as well as Linux and macOS) and run pipeline steps there; the cloud-hosted runners are Linux-only, but the provider does offer Windows machines via self-hosted runners, so windows should be true.)",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/runners/",
+      "quote": "Currently, we only support the following: Linux with x64 and ARM architecture ... Windows 10+ or Windows Server 2019+ MacOS Catalina 10.15+",
+      "note": "reviewed: proposed correction rejected (Self-hosted Runners are supported on macOS (Catalina 10.15+) as well as Linux/Windows, so macos should be true (self-hosted, BYO hardware).)",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/runners/",
+      "quote": "Runners allows you to run builds in Pipelines on your own infrastructure, and you won’t be charged for the build minutes used by your self-hosted runners.",
+      "note": "Bitbucket Pipelines Runners let you run the build agent on your own Linux/Windows/macOS infrastructure while Bitbucket Cloud remains the control plane, which matches the self_host definition ('you can run it on your own infrastructure'); should be true.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/runners/",
+      "quote": "Runners allows you to run builds in Pipelines on your own infrastructure, and you won’t be charged for the build minutes used by your self-hosted runners.",
+      "note": "Self-hosted runners are BYO compute you install and manage yourself — there is no Atlassian-managed service deployed into your own cloud account (VPC), which is what byoc requires; so byoc remains false even though self_host is true.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://www.atlassian.com/software/bitbucket/pricing",
+      "quote": "Bitbucket Pipelines",
+      "note": "Bitbucket (and Pipelines/the runner agent) is proprietary Atlassian software; no OSI-license open-source release of the core product is offered. No evidence found of an open-source core.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+      "quote": "1x 2 CPU/4 GB/64 GB, 2x 4/8/64",
+      "note": "Step size (1x..32x) is fixed per step definition in bitbucket-pipelines.yml and applies to a whole new container at start; there is no documented way to change CPU/RAM of an already-running step.",
+      "checked": "2026-09-30"
     }
   }
 }

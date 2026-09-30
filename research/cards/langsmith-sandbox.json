@@ -112,10 +112,10 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
-    "gpu": null,
+    "windows": false,
+    "macos": false,
+    "arm64": false,
+    "gpu": false,
     "snapshot": "mem",
     "pause_resume": true,
     "fork": true,
@@ -125,25 +125,25 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
     "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
+    "agent_harnesses": false,
     "ssh": true,
-    "public_ipv4": null,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
-    "open_source": null,
+    "open_source": false,
     "soc2": true,
     "hipaa": true,
     "sso": true,
@@ -153,8 +153,8 @@
       "eu",
       "asia"
     ],
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -163,7 +163,7 @@
     "egress_http_rules": true,
     "wake_on_request": true,
     "live_resize": false,
-    "fork_running": null,
+    "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
@@ -172,7 +172,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "isolation": "vm",
     "image_oci": true,
     "snapshot_auto": true,
@@ -183,7 +183,12 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": false,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -304,6 +309,160 @@
       "quote": "For writable mounts, keep writeback_seconds low when another process needs to read the objects from S3 or GCS soon after the sandbox writes them.",
       "note": "First-party mount feature for customer-owned S3/GCS buckets (read_only true/false; writable mounts write back to the bucket), plus Git (clone) and Context Hub (read-only, one-way sync) mounts. The same bucket/prefix can be mounted by several sandboxes (bucket is 'the source of truth'), but it is object storage with a local cache and writeback delay, not a POSIX shared filesystem; concurrent multi-sandbox mounting is not stated explicitly. Mounts are set at sandbox creation.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/deploy-self-hosted-full-platform",
+      "quote": "Your cluster must include dedicated nodes that can run nested workloads with Linux KVM available at `/dev/kvm`. ... On AWS and GCP, use x86_64 Linux instances that expose `/dev/kvm` to the sandbox runtime.",
+      "note": "derived: /dev/kvm is required on the HOST so LangSmith's sandbox runtime can boot each customer sandbox as a KVM microVM. No docs expose /dev/kvm or nested virtualization inside the guest sandbox itself; the sandbox API (exec/files/tunnel) has no VM/emulator feature.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/sandboxes",
+      "quote": "Sandboxes are isolated environments that allow agents to safely execute potentially risky operations, like running arbitrary code or interacting with the filesystem, without affecting your main infrastructure.",
+      "note": "not offered: outside the product's scope. LangSmith sandboxes are a code-execution/filesystem VM primitive with no browser or stealth/fingerprinting product (browser: false in the card; caveats confirm no browser is provided).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/sandboxes",
+      "quote": "Sandboxes are isolated environments that allow agents to safely execute potentially risky operations, like running arbitrary code or interacting with the filesystem, without affecting your main infrastructure.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature is documented anywhere in the sandbox, auth-proxy, or mounts docs.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.langchain.com/langsmith/sandboxes",
+      "quote": "GCP US (`smith.langchain.com`) | Generally available ... AWS US (`aws.smith.langchain.com`) | Generally available",
+      "note": "Sandboxes run as VMs on LangSmith's GCP/AWS cloud infrastructure; outbound traffic goes through the sandbox auth proxy on that same datacenter infrastructure. No residential/mobile egress is offered.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandbox-snapshots",
+      "quote": "You can also capture a snapshot from a running sandbox—install packages, write data files, or configure state, then snapshot the result and reuse it as a new starting point.",
+      "note": "capture_snapshot works on a running sandbox (include_memory requires a sandbox that is running or stopped) without stopping it, and the resulting snapshot boots new sandboxes; with include_memory=true the clone also carries running processes (memory_snapshot_fork).",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/sandboxes",
+      "quote": "Sandboxes are isolated environments that allow agents to safely execute potentially risky operations, like running arbitrary code or interacting with the filesystem, without affecting your main infrastructure.",
+      "note": "not offered: outside the product's scope. The default snapshot is a bare Ubuntu 24.04 dev-tools image; no coding-agent template (Claude Code, Codex, OpenCode, etc.) is preinstalled or offered. Managed Deep Agents (LangChain's own agent framework) requires you to write the agent's tools/instructions yourself, not a preinstalled harness.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/python/managed-deep-agents-overview",
+      "quote": "You write the agent's intelligence: its instructions, the tools it can call, the skills it follows, and you select the model that drives it. MDA provides everything underneath",
+      "note": "not offered: outside the product's scope. Managed Deep Agents runs the Deep Agents harness/runtime for agents YOU define (business logic, tools, instructions); it is not a fixed, provider-owned browser/computer-use/research agent product driven through a first-party task API.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.langchain.com/use-these-docs",
+      "quote": "Our documentation exposes two complementary Model Context Protocol (MCP) servers that let AI applications query LangChain content in real-time. ... `docs-langchain` https://docs.langchain.com/mcp ... `reference-langchain` https://reference.langchain.com/mcp",
+      "note": "LangChain's MCP servers are for querying documentation/API reference, not for controlling sandboxes. No sandbox-control MCP server is documented; the sandbox API surface is the langsmith SDK, CLI, and REST/WS endpoints only.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandboxes",
+      "quote": "with client.sandbox() as sb:\n      result = sb.run(\"python3 -c 'print(2 + 2)'\")\n      print(result.stdout)  # \"4\\n\"",
+      "note": "Default snapshot (Ubuntu 24.04 with common dev tools) includes Python out of the box, plus a first-party langsmith[sandbox] Python SDK.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandboxes",
+      "quote": "const result = await sandbox.run(\"node -e 'console.log(2 + 2)'\");",
+      "note": "Default snapshot includes Node.js out of the box, plus a first-party langsmith TypeScript/Node SDK (npm install langsmith).",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/sandbox-service-urls",
+      "quote": "Service URLs let you access an HTTP service running inside a sandbox ... without tunnels, port forwarding, or CLI tools. Each sandbox + port combination gets its own URL",
+      "note": "There is no per-sandbox public IPv4 address; ports are reached only via authenticated service URLs or API-key-authenticated TCP tunnels, never a raw public IP.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/sandbox-auth-proxy",
+      "quote": "Matching is on the destination exactly as the sandbox addressed it. A hostname entry matches requests made to that hostname; an IP or CIDR entry matches requests made to a literal IP address. Neither is resolved",
+      "note": "Egress control and credential injection are hostname/domain based through a shared proxy layer; no documentation offers a fixed, dedicated outbound IP per sandbox or organization.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/deploy-self-hosted-full-platform",
+      "quote": "On AWS and GCP, use x86\\_64 Linux instances that expose `/dev/kvm` to the sandbox runtime.",
+      "note": "not offered: outside the product's scope. Sandbox create/update API (cpu_millicores, vcpus, mem_bytes, fs_capacity_bytes) has no GPU field, and the card's gpu_types is empty; sandboxes are plain KVM microVMs for code execution.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/deploy-self-hosted-full-platform",
+      "quote": "On AWS and GCP, use x86\\_64 Linux instances that expose `/dev/kvm` to the sandbox runtime.",
+      "note": "not offered: outside the product's scope. All documented sandbox environments and the default snapshot are Ubuntu 24.04 Linux; no Windows image or OS option is documented.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/deploy-self-hosted-full-platform",
+      "quote": "On AWS and GCP, use x86\\_64 Linux instances that expose `/dev/kvm` to the sandbox runtime.",
+      "note": "not offered: outside the product's scope. LangSmith sandboxes run on Linux KVM microVMs on GCP/AWS; no macOS runtime is offered or documented.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/deploy-self-hosted-full-platform",
+      "quote": "On AWS and GCP, use x86\\_64 Linux instances that expose `/dev/kvm` to the sandbox runtime.",
+      "note": "Self-hosted setup explicitly requires x86_64 Linux instances; no ARM64 sandbox architecture option is documented anywhere in the sandbox docs or create-sandbox API.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/deploy-self-hosted-full-platform",
+      "quote": "Sandbox runtime pods that run sandbox workloads on KVM-capable nodes.",
+      "note": "The Sandboxes feature is part of the proprietary LangSmith platform (self-hostable/BYOC but not released under an OSI license); the `sandbox-host` runtime image and platform backend are not published as open source. (LangChain's separate agent-framework libraries, e.g. langchain/langgraph, are open source, but that is a different product from the Sandboxes runtime being modeled here.)",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.langchain.com/langsmith/sandbox-sdk",
+      "quote": "`idle_ttl_seconds` | The launcher stops the sandbox after this many seconds of inactivity. Any command execution or file I/O resets the timer. `0` disables the idle stop.",
+      "note": "No fixed wall-clock cap on a running sandbox is documented; idle_ttl_seconds can be set to 0 to disable the idle stop entirely ('Long-running: never auto-stop'), so a sandbox kept active (or explicitly non-idle) runs indefinitely like a VM, limited only by cost/usage, not a hard session-length ceiling.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/fleet/computer-use",
+      "quote": "Computer use gives your Fleet agent access to an isolated virtual computer. The agent can write and execute code, manage files, install packages, and call authenticated external APIs without exposing credentials to the language model.",
+      "note": "not offered: the product's only 'computer' surface (LangSmith Sandboxes, including the Fleet-branded 'Computer use' feature built on the same sandboxes) is a headless VM reached via exec/files/tunnels/service-URLs; no VNC/RDP/streamed GUI desktop is documented anywhere in the sandbox, Fleet, or Deep Agents docs.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/sandboxes",
+      "quote": "Computer use gives your Fleet agent access to an isolated virtual computer. The agent can write and execute code, manage files, install packages, and call authenticated external APIs without exposing credentials to the language model.",
+      "note": "not offered: no first-party/managed browser is documented for LangSmith Sandboxes or the Fleet 'computer'; access is exec/file APIs, service URLs and TCP tunnels on a bare Linux microVM. A browser could be installed inside a custom image, but none is provided or managed by LangChain.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/fleet/computer-use",
+      "quote": "Computer use gives your Fleet agent access to an isolated virtual computer. The agent can write and execute code, manage files, install packages, and call authenticated external APIs without exposing credentials to the language model.",
+      "note": "LangChain's own product literally named 'Computer use' is code-exec + files + authenticated HTTP APIs on a headless sandbox - not a screenshot+click GUI-driving API. No screenshot/click/mouse/keyboard control endpoints are documented anywhere in the sandbox or Fleet docs, so the screenshot-and-click sense of computer_use is not offered.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.langchain.com/langsmith/sandboxes",
+      "quote": "Resizing an existing sandbox with `update_sandbox` / `updateSandbox` takes effect at its next start, and a resize enforces only the 64 GiB ceiling rather than the per-vCPU ratio.",
+      "note": "Confirmed by the CLI docs too: 'langsmith sandbox update my-vm --rootfs-capacity 16gb ... Resource changes take effect the next time the sandbox boots.' vCPU/RAM/disk changes require a stop/restart cycle, not a live resize of a running sandbox.",
+      "checked": "2026-09-30"
     }
   }
 }

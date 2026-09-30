@@ -324,7 +324,7 @@
     "gpu_types": [],
     "snapshot": "fs",
     "pause_resume": true,
-    "fork": false,
+    "fork": true,
     "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": false,
@@ -359,17 +359,17 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
     "egress_http_rules": true,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": false,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": false,
     "scheduled_wakeups": null,
@@ -378,7 +378,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": null,
+    "mcp_server": true,
     "snapshot_auto": true,
     "snapshot_on_demand": true,
     "harness_api": false,
@@ -387,7 +387,14 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "qemu-kvm",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -452,10 +459,10 @@
     },
     "harness_api": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No first-party agent-harness control for EC2; drive the VM yourself via RDP or SSM Run Command / Session Manager (generic exec, does not count).",
-      "checked": "2026-09-29"
+      "source": "https://docs.aws.amazon.com/systems-manager/latest/userguide/execute-remote-commands.html",
+      "quote": "Run Command ... lets you remotely and securely manage the configuration of your managed nodes.",
+      "note": "SSM Run Command / Session Manager is a generic remote-exec/RDP path, not a first-party API purpose-built to drive a coding-agent harness (prompt, stream events, follow-ups) inside the sandbox. Confirms card's existing evidence.",
+      "checked": "2026-09-30"
     },
     "egress_allowlist": {
       "value": true,
@@ -489,10 +496,10 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "Secrets live in AWS Secrets Manager / SSM Parameter Store and are fetched into the instance via its IAM instance-profile role; no first-party proxy that injects credentials into outbound requests for EC2.",
-      "checked": "2026-09-29"
+      "source": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html",
+      "quote": "An instance profile is a container for an IAM role that you can use to pass role information to an EC2 instance when the instance starts.",
+      "note": "Credentials reach the instance via IAM instance-profile roles / Secrets Manager / SSM Parameter Store (fetched into the machine), not via a first-party HTTP proxy that injects credentials into outbound requests so secrets never enter the machine. Confirms card's existing evidence.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": true,
@@ -507,6 +514,162 @@
       "quote": "Amazon EBS Multi-Attach enables you to attach a single Provisioned IOPS SSD ( io1 or io2 ) volume to multiple instances that are in the same Availability Zone.",
       "note": "Multi-Attach: up to 16 Nitro instances in one AZ, read-write, 'Windows instances support Multi-Attach enabled io2 volumes only', needs a cluster-aware FS (e.g. WSFC). For normal shared file storage on Windows: Amazon FSx for Windows File Server (SMB, read-write, many instances, cross-VPC/account/Region); EFS is the Linux (NFS) equivalent. All separately billed.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "qemu-kvm",
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html",
+      "quote": "Amazon EC2 supports the following hypervisors: Xen and Nitro.",
+      "note": "AWS's own docs name the hypervisor 'Nitro' rather than 'KVM'/'QEMU' directly, but AWS's public announcement of Nitro/C5 and independent references (e.g. Wikipedia: 'a custom architecture around the KVM hypervisor, called Nitro') describe it as a lightweight, custom KVM-based hypervisor. Current-generation EC2 instances (incl. c7i/m7i used for Windows Server here) are Nitro-based full VMs with per-customer hardware isolation via the Nitro Card/Nitro Security Chip, not a container or microVM-per-request model.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/pricing/on-demand/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) offers ... virtual servers, otherwise known as instances, on-demand.",
+      "note": "not offered: EC2 instances boot from Amazon Machine Images (AMIs), not from a customer-supplied Docker/OCI image; running an OCI/Docker image as the machine's own boot image is outside EC2's model (containers can run *inside* an EC2 instance via Docker Engine, or via ECS/EKS on top of EC2, but that's a different product layer).",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/pricing/on-demand/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) offers ... virtual servers, otherwise known as instances, on-demand.",
+      "note": "not offered: outside the product's scope. EC2 (incl. Windows) is a general-purpose VM; it ships no browser-fingerprinting/stealth feature for evading bot detection.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/pricing/on-demand/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) offers ... virtual servers, otherwise known as instances, on-demand.",
+      "note": "not offered: outside the product's scope. EC2 is a general VM product with no built-in CAPTCHA-solving service.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-ip-addressing.html",
+      "quote": "Public IPv4 addresses are allocated from Amazon's pool of public IPv4 addresses.",
+      "note": "EC2 outbound/public IPs come from AWS's own datacenter IP ranges (published as AWS IP ranges), not residential or mobile ISP ranges.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-resize.html",
+      "quote": "As your needs change, you might find that your Amazon EC2 instance is too big or too small for its workload.",
+      "note": "not offered: outside the product's scope. EC2 is a persistent VM model: a stopped instance stays stopped until explicitly started via API/console/CLI; there is no serverless-style 'incoming request wakes the machine' mechanism for a stopped EC2 instance.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-resize.html",
+      "quote": "If this is the case, you can resize your instance by changing its instance type.",
+      "note": "Changing the instance type (CPU/RAM) is done via 'Modify instance type', which for the vast majority of instances (including EBS-backed Windows Server instances used here) requires the instance to be stopped first, then restarted on the new type -- not a resize of a machine that keeps running.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/pricing/on-demand/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) offers ... virtual servers, otherwise known as instances, on-demand.",
+      "note": "No first-party API that drives AWS's own browser/computer-use/research agent inside the EC2 instance; you must drive the desktop yourself (RDP or SSM Run Command/Session Manager).",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://raw.githubusercontent.com/awslabs/mcp/main/README.md",
+      "quote": "AWS API MCP Server | Start here for general AWS interactions! Comprehensive AWS API support with command validation, security controls, and access to all AWS services. Perfect for managing infrastructure, exploring resources, and executing AWS operations through natural language.",
+      "note": "AWS (awslabs org) ships a first-party 'AWS API MCP Server' covering all AWS services, which can create/start/stop/manage EC2 instances via natural language; it is a general AWS-API MCP server rather than an EC2-only/sandbox-specific one.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ec2-windows-ami-version-history.html",
+      "quote": "Beginning March 2025, R Services and Machine Learning Services with R and Python runtimes are no longer enabled by default on SQL Server 2016, 2017, and 2019 AMIs.",
+      "note": "The base Windows Server AMIs used for a plain EC2 Windows instance do not ship Python preinstalled; even the SQL Server AMI variant that could optionally include a Python runtime (via ML Services) no longer enables it by default. Python must be installed by the customer (e.g. via EC2Launch/user data).",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ec2-windows-ami-version-history.html",
+      "quote": "Windows Server 2022 Base",
+      "note": "AWS's published Windows Server AMIs (Base, SQL Server, Core, etc.) list OS/SQL components only; Node.js is not among the preinstalled components on the base Windows Server AMI -- it must be installed by the customer.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-resize.html",
+      "quote": "As your needs change, you might find that your Amazon EC2 instance is too big or too small for its workload.",
+      "note": "On-Demand EC2 (incl. Windows) instances are persistent VMs that run until the customer stops/terminates them; AWS imposes no maximum session/runtime duration (Spot instances can be reclaimed on price/capacity events, but that is not modeled here as the On-Demand/t3/flex modes).",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html",
+      "quote": "To create an Amazon EBS-backed AMI from an instance, start by launching an instance using an existing Amazon EBS-backed AMI. ... After customizing the instance to meet your specific requirements, create and register a new AMI. You can then use the new AMI to launch new instances with your customizations.",
+      "note": "Creating an AMI from an instance and launching multiple new instances from it is a first-party 'clone a machine into new ones' workflow (disk-only, no running memory) -> fork should be true.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html",
+      "quote": "If you're confident that your instance is in a consistent state appropriate for AMI creation, you can tell Amazon EC2 not to power down and reboot the instance ... aws ec2 create-image --instance-id i-1234567890abcdef0 --name \"my-web-server\" --no-reboot",
+      "note": "The --no-reboot flag on create-image lets you snapshot/AMI a RUNNING instance without stopping or rebooting it, then launch new instances from that AMI -> fork_running should be true (disk-only clone).",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html",
+      "quote": "During the AMI-creation process, Amazon EC2 creates snapshots of your instance's root volume and any other EBS volumes attached to your instance.",
+      "note": "AMI-based clones (running or stopped) only capture EBS disk contents, never in-memory/running-process state, so new instances launched from an AMI boot fresh rather than resuming running processes. Hibernation (separate feature) restores memory on the SAME instance, not into new cloned instances.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a web service that provides secure, resizable compute capacity in the cloud.",
+      "note": "EC2 is a raw VM product; it ships no first-party API to drive a desktop by screenshots+clicks (Windows RDP or SSM Run Command are the only official access paths). Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/UsingAlarmActions.html",
+      "quote": "Using Amazon CloudWatch alarm actions, you can create alarms that automatically stop, terminate, reboot, or recover your instances. You can use the stop or terminate actions to help you save money when you no longer need an instance to be running. ... Rather than letting those instances sit idle (and accrue charges), you can stop or terminate them.",
+      "note": "reviewed: proposed correction rejected (First-party CloudWatch alarm actions can automatically stop an instance based on an idle metric (e.g. low CPU), which satisfies 'stops/sleeps automatically when idle'; it requires the customer to configure the alarm rather than being a single always-on toggle, so medium confidence.)",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html",
+      "quote": "To create an HTTPS listener, you must deploy at least one SSL server certificate on your load balancer. The load balancer uses a server certificate to terminate the front-end connection and then decrypt requests from clients before sending them to the targets.",
+      "note": "A raw EC2 instance itself gives only a public IPv4/raw TCP; there is no managed HTTPS URL to reach an instance's ports out of the box -- HTTPS termination requires separately provisioning and configuring an Application Load Balancer plus an ACM certificate (or your own web server + cert on the instance).",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a web service that provides secure, resizable compute capacity in the cloud.",
+      "note": "EC2 offers only OS/software AMIs (Windows Server, Linux, marketplace images); it does not preinstall or offer coding-agent harnesses (Claude Code, Codex, OpenCode, etc.) as templates. Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a web service that provides secure, resizable compute capacity in the cloud.",
+      "note": "EC2 is AWS's own cloud compute service; there is no way to run the EC2 service itself on your own infrastructure (AWS Outposts runs AWS-owned hardware in your datacenter but is still an AWS-operated extension, not customer self-hosting). Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a web service that provides secure, resizable compute capacity in the cloud.",
+      "note": "EC2 IS the cloud account/infrastructure itself; there's no separate provider deploying EC2 as a managed service into a different cloud account. Not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://aws.amazon.com/agreement/",
+      "quote": "AWS Customer Agreement",
+      "note": "EC2 is a proprietary AWS commercial service governed by the AWS Customer Agreement; no OSI-licensed core product. (No first-party page claims EC2 is open source; the Nitro hypervisor/host software is closed/proprietary.)",
+      "checked": "2026-09-30"
     }
   }
 }

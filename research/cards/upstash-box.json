@@ -743,7 +743,7 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": false,
-    "docker_inside": null,
+    "docker_inside": false,
     "nested_virt": false,
     "root": null,
     "systemd": null,
@@ -758,7 +758,7 @@
     "custom_domain": null,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": false,
     "self_host": false,
     "byoc": false,
@@ -766,9 +766,9 @@
     "regions": [
       "us"
     ],
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": true,
+    "hipaa": false,
+    "sso": false,
     "lang_python": true,
     "lang_node": true,
     "lang_go": true,
@@ -776,10 +776,10 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": true,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": null,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": true,
     "scheduled_wakeups": true,
@@ -797,7 +797,14 @@
     "egress_allowlist_level": "both",
     "ingress_rules": true,
     "secret_proxy": "any-http",
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "volume_attach": false,
+    "own_agent_api": true,
+    "guest_firewall": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -901,6 +908,223 @@
       "quote": "Each box has its own filesystem. No shared volumes between boxes.",
       "note": null,
       "checked": "2026-09-29"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works.md",
+      "quote": "Each box is an isolated container with its own filesystem, shell, network stack, and optional coding agent.",
+      "note": "not offered: outside the product's scope. Box is itself a container-isolated sandbox; docs cover installing packages via apt-get (shell.md) but never mention Docker/containers running inside a box, and no privileged/nested-container capability is documented.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/browser/overview.md",
+      "quote": "Create a box with `browser: true` to get a managed, headless Chromium that you control through the SDK. ... Everything works headless. There is no desktop, no VNC, and nothing to install.",
+      "note": "not offered: the built-in browser is a plain managed headless Chromium (tabs, screenshots, extraction, AI actions, CDP connect); no stealth/fingerprint-evasion or anti-bot-detection feature is documented anywhere in the browser docs.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/browser/ai-actions.md",
+      "quote": "A DOM-aware browser agent runs inside the box and resolves natural-language instructions against the live page. It can find elements and execute single actions.",
+      "note": "not offered: outside the product's scope. The browser AI actions (observe/act/extract) automate DOM interaction; no CAPTCHA-solving service or API is mentioned in the browser, security, or pricing docs.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://upstash.com/docs/box/overall/network-policy.md",
+      "quote": "Single region: AWS us-east-1.",
+      "note": "Boxes run as AWS-hosted containers in us-east-1; outbound traffic uses standard AWS/cloud-provider (datacenter) IP ranges. No residential/mobile IP option is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://upstash.com/docs/box/overall/snapshots.md",
+      "quote": "Call `snapshot()` on a running or paused box. ... `Box.fromSnapshot()` provisions a new box with the exact state from the snapshot. The original box is unaffected. You can branch into multiple boxes from the same checkpoint.",
+      "note": "A running box can be snapshotted (no stop required) and Box.fromSnapshot() clones it into one or more new boxes while the original keeps running unaffected — i.e. cloning a running machine without stopping it.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works.md",
+      "quote": "Each box has its own filesystem. No shared volumes between boxes.",
+      "note": "not offered: outside the product's scope. Each box gets one built-in persistent disk (5/10/20 GB by size); no API to attach separate/extra volumes is documented (card's existing `volumes` feature is also false).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/keep-alive.md",
+      "quote": "The selected size determines the box's available CPU, RAM, and workspace storage whether `keepAlive` is enabled or not.",
+      "note": "Size (vCPU/RAM/disk) is fixed at creation via the `size` option; changing size means creating a new box (optionally via Box.fromSnapshot() into a different size), not resizing a running box in place. No live-resize API is documented.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": true,
+      "source": "https://upstash.com/docs/box/overall/browser/ai-actions.md",
+      "quote": "`observe()` finds actionable elements matching an instruction. ... `act()` resolves and executes exactly one action described in natural language. ... `extract()` hands the page to a DOM-aware agent inside the box and validates the result against a Zod schema.",
+      "note": "This is Upstash's own first-party browser/task-agent API (observe/act/extract, natural-language DOM actions) distinct from harness_api, which drives third-party coding harnesses (Claude Code/Codex/OpenCode).",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/network-policy.md",
+      "quote": "| `custom` | Allow or deny specific domains and CIDR ranges. |",
+      "note": "Network policy operates at domain/CIDR (host) granularity (allowedDomains, allowedCidrs, deniedCidrs) with no HTTP method or URL-path level rules documented.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works.md",
+      "quote": "Every box is a self-contained environment ... isolated container with its own filesystem, shell, and network stack.",
+      "note": "derived: isolation is `container` (shared kernel), not a full VM/microVM, so the usual root+VM basis for guest-managed iptables/nftables doesn't apply; no NET_ADMIN capability or guest firewall tooling is documented.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://upstash.com/pricing/box.md",
+      "quote": "No public IPv4 (HTTPS preview URLs + SSH gateway only).",
+      "note": "No dedicated/static outbound IP is offered or documented; boxes have no public IPv4 and network egress goes through the shared AWS us-east-1 infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": true,
+      "source": "https://trust.upstash.com",
+      "quote": "Compliance: SOC 2 Type II, GDPR, HIPAA, Data Privacy Framework (DPF)",
+      "note": "Upstash's company-wide Trust Center (Vanta-hosted) lists an active SOC 2 Type II report covering the organization's infrastructure/controls. A separate legacy FAQ (compliance.md) attributes SOC2 specifically to 'Redis databases under Pro and Enterprise'; scoping of the SOC2 report to the Box product specifically is not explicitly stated, hence medium confidence.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://upstash.com/docs/common/help/compliance.md",
+      "quote": "Upstash Redis is HIPAA compliant and we are in process of getting this compliance for our other products.",
+      "note": "The company's own compliance FAQ explicitly limits current HIPAA compliance to Redis and states other products (including Box) are still in progress; no BAA-for-Box is documented.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://upstash.com/docs/common/account/teams.md",
+      "quote": "Admin: This role has full access, including the ability to add and remove members, manage databases, and payment methods. Dev: This role can create, manage, and delete databases",
+      "note": "Team/account docs describe only Admin/Dev roles with email-based invites; no SAML/OIDC single sign-on option is mentioned anywhere in account, teams, or trust-center docs.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://upstash.com/docs/box/overall/keep-alive.md",
+      "quote": "When `keepAlive` is enabled, the box stays on between sessions instead of auto-pausing when idle. Use it when you need a box to remain continuously available",
+      "note": "No maximum wall-clock session length is documented for standard boxes: default boxes auto-pause after an idle timeout (1h Free / 6h PAYG) but can be resumed 'days or even weeks later', and keep-alive boxes stay on indefinitely. (EphemeralBox is a separate lightweight variant with its own 3-day max TTL, not the general session cap.)",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/snapshots.md",
+      "quote": "A snapshot captures: Filesystem: the full disk state of the box at the time of the snapshot. Agent configuration: the agent harness, model, and API key settings.",
+      "note": "Snapshots (and Box.fromSnapshot to fork a new box) cover filesystem + agent config only, not running memory/process state, so there is no memory-snapshot fork. Matches the existing feature_evidence entry for snapshot_auto.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works",
+      "quote": "Every box runs as its own Docker container with an independent filesystem, process tree, and network stack.",
+      "note": "Boxes are plain Docker containers (isolation: container); no VM/nested-virtualization capability is documented anywhere in the Box docs.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works",
+      "quote": "Every box is a self-contained environment with five capabilities: Agent, Git, Shell, Filesystem, Snapshots.",
+      "note": "Box is a headless shell/filesystem/agent sandbox; no GUI desktop, VNC, or display capability is documented anywhere in the product.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works",
+      "quote": "The agent has full access to the shell, filesystem, and git inside its box.",
+      "note": "Agent tools are shell/filesystem/git only; there is no browser/GUI computer-use tool documented for the box product.",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://upstash.com/pricing/box.md",
+      "quote": "Can I use my own Docker container? Yes, custom Docker container support is planned and coming soon.",
+      "note": "Confirms custom images are not yet available; only fixed pre-built runtimes (node, python, go, ruby, rust, plus -alpine variants) can be selected today.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://upstash.com/pricing/box.md",
+      "quote": "Can I use my own Docker container? Yes, custom Docker container support is planned and coming soon.",
+      "note": "No OCI/Docker image import exists yet; same 'coming soon' gap as custom_image. Environments are instead reproduced via filesystem snapshots restored into new boxes.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works.md",
+      "quote": "Each box has its own filesystem. No shared volumes between boxes.",
+      "note": "No attachable/shared persistent volume feature; each box only has its own local disk (persistent across pause/resume, but not a mountable volume, and never shared).",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/preview.md",
+      "quote": "Expose ports from a box with public URLs. Each public URL maps to a specific port and can optionally require authentication. ... https://{BOX_ID}-3000.preview.box.upstash.com",
+      "note": "Inbound access is only via HTTPS preview subdomains (getPublicURL) or the SSH gateway (ssh <box-id>@us-east-1.box.upstash.com); no dedicated public IPv4 address is offered.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://upstash.com/pricing/box.md",
+      "quote": "Box Sizes (Pay as You Go): Small 2 vCPU / 4 GB RAM / 5 GB, Medium 4 vCPU / 8 GB RAM / 10 GB, Large 8 vCPU / 16 GB RAM / 20 GB.",
+      "note": "Only three CPU-only container sizes are sold; no GPU option appears anywhere in pricing, docs, or FAQ.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works",
+      "quote": "Each box runs in an isolated container with a pre-installed language runtime. By default, all runtimes use Debian (glibc)... Append -alpine for smaller images based on musl.",
+      "note": "Only Linux (Debian/Alpine) container runtimes are offered; Box is a Linux-container coding-agent sandbox, so Windows is outside scope.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works",
+      "quote": "Each box runs in an isolated container with a pre-installed language runtime. By default, all runtimes use Debian (glibc)... Append -alpine for smaller images based on musl.",
+      "note": "Container-only product on AWS us-east-1; no macOS runtime/hardware is offered or possible for a Docker-container-based service.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://github.com/upstash/box",
+      "quote": "TypeScript SDK and CLI for Upstash Box — sandboxed AI coding agents",
+      "note": "Only the client SDK/CLI is public; the box execution platform itself is Upstash-hosted (AWS us-east-1) with no self-hosted/on-prem deployment option documented.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://upstash.com/pricing/box.md",
+      "quote": "Where are boxes hosted? Boxes currently run on AWS us-east-1. We are planning to add more regions soon.",
+      "note": "Boxes run only in Upstash's own AWS account/region; no bring-your-own-cloud deployment is offered, even on Enterprise (which only offers 'custom regions', not customer-cloud deployment).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/upstash/box",
+      "quote": "TypeScript SDK and CLI for Upstash Box — sandboxed AI coding agents",
+      "note": "The upstash/box GitHub repo is only the client SDK/CLI wrapper; the sandbox execution service itself is closed-source, proprietary Upstash infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://upstash.com/pricing/box.md",
+      "quote": "Where are boxes hosted? Boxes currently run on AWS us-east-1. We are planning to add more regions soon.",
+      "note": "Single region only (AWS us-east-1, US); no EU region or data-residency option exists today, even mentioned as unpublished/custom only under Enterprise.",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": false,
+      "source": "https://upstash.com/docs/box/overall/how-it-works.md",
+      "quote": "Network: Boxes can make outbound requests (HTTP, DNS) but cannot reach other boxes.",
+      "note": "Boxes are explicitly isolated from each other with no private networking/VPC-peering feature documented for the Box product; Upstash's general Enterprise VPC-peering offer (llms.txt) is not stated to extend to Box.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -183,8 +183,8 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": false,
+    "nested_virt": false,
     "root": true,
     "systemd": false,
     "browser": true,
@@ -198,7 +198,7 @@
     "custom_domain": true,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": true,
     "self_host": false,
     "byoc": true,
@@ -210,22 +210,22 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": false,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
+    "wake_on_request": false,
+    "live_resize": true,
+    "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -236,7 +236,16 @@
     "harness_api": false,
     "egress_allowlist_level": "both",
     "ingress_rules": true,
-    "secret_proxy": "any-http"
+    "secret_proxy": "any-http",
+    "isolation": "qemu-kvm",
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "volume_attach": false,
+    "volume_shared": false,
+    "own_agent_api": false,
+    "guest_firewall": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -328,6 +337,181 @@
       "quote": "Secrets are organization-scoped, encrypted credentials that Daytona injects into a sandbox's outbound HTTPS traffic without ever placing the plaintext inside the sandbox.",
       "note": "Arbitrary secrets with per-secret host allowlist; sandbox env var holds placeholder dtn_secret_...; proxy substitutes in HTTPS request headers only (no bodies, query, plain HTTP, Basic-auth-encoded), scrubs responses. No DB/SSH/non-HTTP. Docs are class-agnostic; not confirmed specifically for Windows VMs (needs proxy CA trust in the Windows store) - hence medium.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "qemu-kvm",
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Nested virtualization exposes KVM (`/dev/kvm`) inside the guest, so the sandbox can run its own virtual machines with hardware acceleration.",
+      "note": "Docs describe VM/Windows sandboxes as 'a full virtual machine' scheduled by a 'runner'; the KVM reference (for the Linux-VM-only nested-virt feature) implies the underlying host hypervisor is KVM/QEMU, but no page names the Windows-guest hypervisor explicitly.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "VM sandboxes are distinct from container sandboxes and support VM-only capabilities: ... Nested virtualization (#nested-virtualization) (Linux VM only)",
+      "note": "Nested virtualization (/dev/kvm, needed for Docker Desktop/WSL2-backed containers on Windows) is documented as Linux-VM-only; no Windows-specific Docker/container support is documented.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Nested virtualization (#nested-virtualization) (Linux VM only)",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/computer-use.md",
+      "quote": "Computer Use enables programmatic control of desktop environments within sandboxes. It provides mouse, keyboard, screenshot, screen recording, and display operations for automating GUI interactions and testing desktop applications.",
+      "note": "not offered: outside the product's scope — Windows sandboxes are a general-purpose desktop/computer-use VM, not a browser stealth/anti-detection product; no fingerprinting/stealth features are documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/computer-use.md",
+      "quote": "Computer Use enables programmatic control of desktop environments within sandboxes.",
+      "note": "not offered: outside the product's scope — no CAPTCHA-solving service is documented anywhere in Daytona's docs.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://www.daytona.io/docs/en/network-limits.md",
+      "quote": "Each sandbox runs behind a firewall that restricts which external IP addresses and domains it can reach",
+      "note": "No residential/mobile IP product is documented; egress runs from Daytona's own cloud infrastructure (standard datacenter IPs). Exact ranges/type not published.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Click the three-dot menu (⋮) next to the started Windows sandbox you want to fork ... Forking creates a duplicate of a Windows sandbox's filesystem and memory state in a new sandbox. The forked sandbox is fully independent.",
+      "note": "Fork is performed on a started (running) Windows sandbox without stopping it first; the fork captures filesystem + memory state.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "A sandbox that is stopped and started again gets a new token, and tokens issued before that stop no longer work",
+      "note": "not offered: Daytona's docs describe only explicit start()/resume() calls (dashboard, SDK, CLI, API); no doc describes an incoming preview/API request automatically waking a stopped or paused sandbox.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/volumes.md",
+      "quote": "Volumes are FUSE-based mounts that provide shared file access across Daytona sandboxes.",
+      "note": "Volume-mount examples all use CreateSandboxFromSnapshotParams with a `language` (container/Linux-VM) runtime; FUSE mounts are a Linux kernel mechanism with no documented Windows-guest support, and no Windows example/mention exists in the volumes docs.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/volumes.md",
+      "quote": "a single volume can be mounted to multiple sandboxes",
+      "note": "Shared-volume mounting is documented, but only for container/Linux-VM sandboxes (FUSE-based); not documented for Windows sandboxes, so treated as not offered for this class.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "On a running sandbox, you can increase CPU and memory without interruption. To decrease CPU or memory, or to increase disk capacity, stop the sandbox first.",
+      "note": "Resize section is generic (not scoped to container-only); Windows VM sandboxes are otherwise treated identically to Linux VM sandboxes for lifecycle ops (pause/resume, fork, resize), so increase-only live resize is assumed to apply. Not explicitly Windows-confirmed.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/computer-use.md",
+      "quote": "Computer Use provides the programmatic API for AI agents to automate operations.",
+      "note": "not offered: outside the product's scope — Daytona ships a generic Computer Use API (mouse/keyboard/screenshot) for callers to drive their OWN agent logic; it does not offer a first-party hosted task/browser/research agent of its own.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Create a Windows sandbox. ... Select a Windows Snapshot: windows-small, windows-medium, windows-large",
+      "note": "Windows sandboxes boot from a fixed Windows OS snapshot; the `language` parameter and preinstalled Python/Node runtime (process.codeRun) are documented for container and Linux VM snapshots only, with no Windows example or preinstall claim.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Create a Windows sandbox. ... Select a Windows Snapshot: windows-small, windows-medium, windows-large",
+      "note": "Same reasoning as lang_python: no documented Node.js preinstall or `language`/code-run support for the Windows sandbox class.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/network-limits.md",
+      "quote": "Each sandbox runs behind a firewall that restricts which external IP addresses and domains it can reach",
+      "note": "derived: guest is Windows, not Linux, so nftables/iptables (the field's literal definition) do not apply; Windows Firewall may work inside but this is not documented, and Daytona's own firewalling is enforced at the host/network layer, not proven inside the guest.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/network-limits.md",
+      "quote": "networkAllowList for IPv4 CIDR ranges ... networkBlockAll to block all outbound traffic ... outboundProxyUrl to route sandbox HTTP(S) traffic through an upstream proxy",
+      "note": "Egress control docs describe allow/deny lists and an outbound proxy, not a dedicated/static outbound IP assigned to the sandbox; no static egress IP product is documented (card also notes egress/IPv4 are unpublished).",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/regions.md",
+      "quote": "Regions managed by Daytona and available to all organizations: | United States | `us` | | Europe | `eu` |",
+      "note": "Windows sandboxes are created via the standard create() API which accepts a `target` region, so the EU shared region applies to them as well.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "if neither auto-pause nor auto-stop is set, non-ephemeral sandbox classes that support pausing default to an auto-pause interval of 60 minutes with auto-stop disabled",
+      "note": "No hard maximum runtime is documented; a Windows sandbox keeps running until stopped/paused by auto-stop/auto-pause (user-configurable, including disabling both) or manually — i.e. no fixed session cap analogous to serverless function timeouts.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "VM sandboxes can currently only be created from existing VM snapshots. Dynamic builds through the declarative builder are supported for container sandboxes only.",
+      "note": "Windows is a VM-class sandbox; custom Docker/OCI image builds only exist for the Container class. Windows sandboxes can only be created from the fixed windows-small/medium/large VM snapshots.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/preview.md",
+      "quote": "Daytona provides preview URLs for accessing services running in your sandboxes. Any process listening for HTTP traffic on ports 1 - 65535 can be previewed through a generated URL.",
+      "note": "Inbound access is exclusively via generated HTTPS preview URLs (standard/signed, token-authenticated); network-limits.md only describes outbound firewalling (allow lists/CIDR/domain), no public IPv4 assignment or raw TCP endpoint is documented for any sandbox class including Windows.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Available lifecycle features depend on the sandbox class. | Lifecycle feature | Container | Linux VM | Windows | GPU | ... | Pause / resume sandboxes | ✗ | ✓ | ✓ | ✗ |",
+      "note": "GPU is its own separate sandbox class (NVIDIA/AMD, distinct daytona-gpu snapshot) from Windows; the windows-small/medium/large snapshots list no GPU column value, and pricing/limits never pair GPU with Windows presets.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Daytona also provides ... macOS sandboxes running on dedicated Apple silicon hardware.",
+      "note": "macOS is a distinct sandbox product (own snapshots/dedicated Apple-silicon hardware) separate from the Windows VM class this card models; outside what the Windows product is.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "windows-small | 1 | 4GiB | 30GiB | | Windows ... windows-large | 4 | 16GiB | 50GiB | | Windows",
+      "note": "Windows VM presets are only described alongside Windows-on-x86 tooling/workflows; the only ARM hardware Daytona documents is the dedicated Apple-silicon macOS product, a different sandbox class. No ARM64 Windows offering is documented.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/daytonaio/daytona/main/README.md",
+      "quote": "This repository is no longer maintained. As of June 2026, Daytona's core development has moved to a private codebase. This repository will receive no further updates, fixes, or releases.",
+      "note": "The only public/self-hostable Daytona codebase is a frozen, unmaintained snapshot whose documented feature set (Sandboxes/Snapshots/Volumes/etc.) never included Windows, GPU, or macOS sandbox classes; current Windows sandboxes run only on Daytona's managed cloud.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/daytonaio/daytona/main/README.md",
+      "quote": "This repository is no longer maintained. As of June 2026, Daytona's core development has moved to a private codebase.",
+      "note": "The historical daytonaio/daytona repo was AGPL-3.0, but as of the June 2026 move to a private codebase the live/current Daytona platform (including Windows sandboxes) is not developed in the open; the frozen public repo also never modeled Windows sandboxes.",
+      "checked": "2026-09-30"
     }
   }
 }

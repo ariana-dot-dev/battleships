@@ -173,7 +173,7 @@
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": null,
+    "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
@@ -184,17 +184,17 @@
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": false,
     "byoc": false,
     "open_source": false,
     "regions": [],
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
-    "lang_python": null,
-    "lang_node": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": true,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -202,13 +202,13 @@
     "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "live_resize": false,
+    "fork_running": true,
+    "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -223,7 +223,11 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": false
+    "volume_shared": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -379,6 +383,188 @@
       "quote": "exclusive: exclusive permits one sandbox to attach the volume read-write.",
       "note": "API attachment mode is exclusive only ('it never silently enables shared writers'; cookbook: 'For Cloud Sandboxes, supply one entry and use exclusive attachment'). The CLI page does say concurrent mounts are possible but each sandbox works on its own copy: 'If multiple sandboxes mount the same volume at the same time, the last sandbox to exit overwrites the stored snapshot.' So no live shared filesystem; no read-only multi-attach mode documented.",
       "checked": "2026-09-29"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://www.docker.com/products/docker-sandboxes/",
+      "quote": "Run Claude Code, Codex, and your other agents at full speed in MicroVM environments. Local or cloud. One CLI.",
+      "note": "not offered: outside the product's scope — Docker (Cloud) Sandboxes is a MicroVM sandbox for running coding agents/CLI workloads; no managed/real browser is documented anywhere in the sandbox, API, or agent-kit docs.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.docker.com/products/docker-sandboxes/",
+      "quote": "Run Claude Code, Codex, and your other agents at full speed in MicroVM environments. Local or cloud. One CLI.",
+      "note": "not offered: outside the product's scope — a coding-agent MicroVM sandbox, not a browser/scraping product; no stealth or fingerprinting feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.docker.com/products/docker-sandboxes/",
+      "quote": "Run Claude Code, Codex, and your other agents at full speed in MicroVM environments. Local or cloud. One CLI.",
+      "note": "not offered: outside the product's scope — a coding-agent MicroVM sandbox with no browser automation product; no CAPTCHA solving feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.docker.com/ai/sandboxes/cloud/network-policy/",
+      "quote": "All outbound TCP traffic passes through a proxy ... that enforces the network access policy.",
+      "note": "Sandboxes run on Docker-managed cloud infrastructure and egress via Docker's own outbound proxy; nothing in the docs claims residential or mobile IPs (product is a dev/coding sandbox, not a residential-proxy service). No specific static/allowlistable IP is published, so this is Docker's ordinary datacenter egress.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://docs.docker.com/ai/sandboxes-api/cookbook/snapshot-and-fork-a-sandbox/",
+      "quote": "Use an authenticated client and the resource name of a running sandbox. ... The source sandbox does not need to remain running. Restoration does not replace it.",
+      "note": "CreateSnapshot checkpoints a running sandbox (a stopped source is rejected per API docs) and RestoreSnapshot forks a brand-new sandbox from it while the source is left untouched/continues running — i.e. a running machine can be cloned without stopping it.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": true,
+      "source": "https://docs.docker.com/ai/sandboxes-api/cookbook/snapshot-and-fork-a-sandbox/",
+      "quote": "Request memory only when your environment supports it and you need the running state. ... captureMode: withMemory ? 'all' : 'disk'",
+      "note": "captureMode 'all' captures memory plus disk ('requires memory-capture support'); restoring that snapshot creates a new sandbox from the same point, i.e. forks carrying memory/running-process state, not just disk.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.docker.com/reference/api/sandboxes/latest/operations/updateSandbox/",
+      "quote": "UpdateSandbox changes only the display label under the observed etag. Its resource name, backing identity and child addresses remain unchanged.",
+      "note": "CPU/memory (Resources: cpus, memoryMib) are fixed size pairs chosen at creation (docs list supported CPU/memory pairs); the only mutation API (UpdateSandbox / PATCH) changes just the display label, with no documented way to change vCPU/RAM of a running sandbox.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/agents/docker-agent/",
+      "quote": "Create a sandbox and run Docker Agent for a project directory: $ sbx run docker-agent ~/my-project ... Without extra args, the sandbox runs: docker-agent run --yolo",
+      "note": "not offered: outside the product's scope — 'Docker Agent' is Docker's own coding/CLI agent (a harness like Claude Code/Codex), launched interactively inside the sandbox with no documented API to prompt/stream a browser, computer-use, or research task agent. The sandbox API's process endpoints are generic process I/O, not a task-agent API.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.docker.com/ai/sandboxes/customize/author/base-images/",
+      "quote": "Most variants include Git, Docker CLI, and common development tools like Node.js, Python, Go, and Java.",
+      "note": "The claude-code-minimal variant is explicitly called out as lacking Node.js/Python/Go/Java, confirming the other Docker-provided base images (used by default for cloud sandboxes) include Python out of the box.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.docker.com/ai/sandboxes/customize/author/base-images/",
+      "quote": "Most variants include Git, Docker CLI, and common development tools like Node.js, Python, Go, and Java.",
+      "note": "Same base-image documentation confirms Node.js is included by default (absent only from the claude-code-minimal variant).",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/cloud/network-policy/",
+      "quote": "All outbound TCP traffic passes through a proxy ... that enforces the network access policy.",
+      "note": "not offered: egress is via Docker's shared outbound proxy enforcing network policy; no per-sandbox or per-account fixed/static outbound IP is documented anywhere in the network-policy, architecture, or API limits pages.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://www.docker.com/trust/compliance/",
+      "quote": "The current SOC 2 Type 2 audit report includes Docker Desktop, Hub, Scout, Build Cloud, Testcontainers Cloud, Docker Hardened Images (DHI), and Offload. As new products are introduced, they are evaluated for scoping and inclusion in our audits based on GA release date and the reporting cycle.",
+      "note": "Docker Inc. as a company is SOC 2 Type 2 audited, but Docker (Cloud) Sandboxes — launched 2026-09-24 — is not in the published list of products currently in scope for that audit.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://www.docker.com/trust/compliance/",
+      "quote": "Docker complies with leading privacy regulations like GDPR, CCPA, CPA, CTDPA, VCDPA, UCPA, and The APEC Privacy Framework.",
+      "note": "not offered: Docker's compliance/trust pages list ISO 27001/27701, SOC 2, GDPR/CCPA-family privacy laws, but no HIPAA eligibility or BAA program is mentioned anywhere for Docker or specifically for the individual-account, pay-as-you-go Cloud Sandboxes product.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": true,
+      "source": "https://docs.docker.com/security/for-admins/single-sign-on/",
+      "quote": "Single sign-on (SSO) lets users access Docker by authenticating through their identity providers (IdPs). SSO can be configured for an entire company ... that has a Docker Business subscription.",
+      "note": "SSO governs sign-in to Docker Hub/Desktop/account (which cloud sandboxes are billed and accessed under) and is available on the Docker Business subscription tier.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes-api/limits/",
+      "quote": "Cloud Sandboxes supports these CPU and memory pairs ...",
+      "note": "not offered: no region selection, region list, or EU-residency option is documented anywhere in the cloud sandbox usage, limits, network-policy, or architecture pages; the card notes regions are unpublished ([]), consistent with a single (unstated) region rather than a chooseable EU location.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/security/isolation/",
+      "quote": "Every sandbox runs inside a lightweight microVM with its own Linux kernel. Unlike containers, which share the host kernel, a sandbox VM cannot access host processes, files, or resources outside its defined boundaries.",
+      "note": "No page documents /dev/kvm or nested-VM support inside a sandbox; the sandbox API/CLI docs, GPU-passthrough page and CreateSandboxRequest schema never mention KVM-in-guest or emulator support. The only 'nested virtualization' text found is about running the sbx *host* CLI inside a VM/VDI ('Cloud sandboxes don't require this setup') — unrelated to the sandbox guest itself. Product is a coding-agent VM, not a virtualization platform, so absence is consistent with the product's scope; medium confidence since it's not an explicit denial.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/faq/",
+      "quote": "In local sandboxes, image paste is off by default. Text paste works because the terminal sends it directly.",
+      "note": "Docker (Cloud) Sandboxes are described throughout as terminal/TTY sessions you attach/detach from (sbx attach, Ctrl+\\ to detach) running CLI coding agents (Claude Code, Codex, Gemini CLI, etc.). No VNC/RDP/graphical desktop or streaming feature is documented anywhere in the sandboxes, sandboxes-api or reference API docs. Product is explicitly a coding-agent CLI/API sandbox, not a desktop-streaming product.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes-api/",
+      "quote": "Create and manage cloud sandboxes from your applications.",
+      "note": "No screenshot+click 'computer use' style API exists; the API's process endpoints (CreateProcess/Interact/ReadOutput) are generic terminal/process I/O, and the product has no GUI to drive. Consistent with a headless, terminal-based coding-agent sandbox.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/cloud/usage/",
+      "quote": "A cloud sandbox expires after one hour by default. On expiration, the service stops sandboxes that can be resumed and deletes the rest.",
+      "note": "Stopping is driven by a fixed TTL timer set at creation (default 1h, renewable up to a 24h hard cap via renewSandboxTimeout), not by detecting idleness. TimeoutOptions schema confirms 'timeout is the initial TTL' with 'on_timeout defaults to DELETE' — a deadline model, no idle-activity detector is documented.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes-api/cookbook/expose-a-port-from-a-cloud-sandbox/",
+      "quote": "Reach a web application running inside a sandbox through an HTTPS URL. Publishing creates a route to the application; it does not start the application. ... This is HTTP application access, not a general-purpose TCP tunnel.",
+      "note": "Only mechanism to reach a sandbox from outside is publishing a port behind a Docker-issued HTTPS URL (proxied); no dedicated/public IPv4 address is assigned to a sandbox anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/cloud/usage/",
+      "quote": "1 vCPU 2 GiB micro 2 vCPU 4 GiB small 4 vCPU 8 GiB medium 8 vCPU 16 GiB large 16 vCPU 32 GiB xl",
+      "note": "The five cloud sandbox sizes are CPU/RAM-only; no GPU size or GPU flag appears in the cloud rate card, the CreateSandboxRequest/Resources API schemas, or any cloud doc. The only GPU passthrough feature Docker documents (VFIO NVIDIA passthrough, 'x86_64 Linux hosts... with NVIDIA GPUs') is explicitly for LOCAL sandboxes on your own machine, not cloud.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/security/isolation/",
+      "quote": "Every sandbox runs inside a lightweight microVM with its own Linux kernel.",
+      "note": "Platform API schema only documents os=\"linux\" ('os is the operating system, for example \"linux\"'), and architecture is amd64/arm64 only; no Windows guest OS is offered for cloud sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/security/isolation/",
+      "quote": "Every sandbox runs inside a lightweight microVM with its own Linux kernel.",
+      "note": "Same evidence as windows: cloud sandbox guests are Linux microVMs only (amd64/arm64); macOS is only referenced as a client OS for running the sbx CLI, never as a guest OS.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/",
+      "quote": "Cloud sandboxes Run on Docker-managed compute without local virtualization.",
+      "note": "Cloud sandboxes explicitly run only on Docker-managed infrastructure; there is no documented option to run the cloud-sandbox control plane or compute on your own infrastructure (the 'local sandbox' mode is a different product that runs on your own laptop via KVM/HVF/WHP, not a self-hosted version of the cloud service).",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.docker.com/ai/sandboxes/",
+      "quote": "Cloud sandboxes Run on Docker-managed compute without local virtualization.",
+      "note": "No documentation of deploying cloud sandboxes into a customer's own AWS/GCP/Azure account; all cloud sandbox compute runs on Docker's own account/infrastructure ('api.sandboxes-cloud.docker.com').",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://api.github.com/repos/docker/sbx-releases/license",
+      "quote": "Copyright © 2026 Docker Inc. All rights reserved. Docker and the Docker logo are trademarks of Docker Inc. registered in the U.S. and other countries.",
+      "note": "The public docker/sbx-releases GitHub repo (used to distribute the sbx CLI and NVIDIA passthrough bundle) is release-artifacts only, licensed 'All rights reserved', not an open-source license; no source repository for the sandboxes daemon, cloud service, or API is published.",
+      "checked": "2026-09-30"
     }
   }
 }

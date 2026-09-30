@@ -405,24 +405,24 @@
     "persistent_disk": false,
     "volumes": false,
     "auto_stop_idle": true,
-    "max_session_h": null,
+    "max_session_h": 24,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": null,
+    "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
-    "ssh": null,
+    "ssh": false,
     "public_ipv4": false,
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": true,
     "private_network": null,
     "self_host": false,
     "byoc": false,
@@ -443,7 +443,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
     "fork_running": false,
@@ -463,7 +463,14 @@
     "ingress_rules": false,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "qemu-kvm",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "guest_firewall": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -495,17 +502,17 @@
     },
     "snapshot_on_demand": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No snapshot/checkpoint API for build workers anywhere in the Cloud Build docs; card models snapshot 'none'.",
-      "checked": "2026-09-29"
+      "source": "https://cloud.google.com/build/pricing",
+      "quote": "Cloud Build is a service that executes your builds on Google Cloud.",
+      "note": "No snapshot/checkpoint API anywhere in the Cloud Build API reference or docs for build workers; consistent with snapshot='none'.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "CI build service; runs container steps. No agent harness API (you could run an agent CLI as a build step, but that is generic exec).",
-      "checked": "2026-09-29"
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "For each build step, Cloud Build executes a Docker container as an instance of docker run.",
+      "note": "No first-party API to drive a coding-agent harness (prompt/stream events/follow-ups) inside a build; you could run a CLI tool as a generic build step, but that is not a harness API.",
+      "checked": "2026-09-30"
     },
     "egress_allowlist": {
       "value": true,
@@ -542,6 +549,251 @@
       "quote": "is a Docker container volume that is mounted into build steps to persist files\nacross build steps.",
       "note": "Build volumes are shared only between sequential steps of the same build on one worker; no cross-worker shared filesystem (use GCS/Filestore over the network yourself).",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "qemu-kvm",
+      "source": "https://cloud.google.com/security/infrastructure/design",
+      "quote": "we are the largest submitter of CVEs and security bug fixes for the Linux KVM hypervisor.",
+      "note": "Each Cloud Build runs on its own dedicated Compute Engine worker VM ('Each build runs on its own worker and is isolated from other workloads', private-pools-overview) sized by GCE machine type (e2/n2d/c3); Google's infrastructure docs confirm KVM is the underlying hypervisor for its compute fleet. Exact hypervisor is not named per-product, so classified as full VM (qemu-kvm) rather than microVM.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://cloud.google.com/build/docs/build-config-file-schema",
+      "quote": "Use the name field of a build step to specify a cloud builder, which is a container image running common tools. You use a builder in a build step to execute your tasks.",
+      "note": "Every build step runs an arbitrary container image (name: field) pulled from any registry, including custom/private Docker or OCI images you publish yourself; oci artifacts are also natively supported for output.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/building/build-vm-images-with-packer",
+      "quote": "Build VM images using Packer",
+      "note": "Cloud Build's own workflow for producing VM images (e.g. with Packer) delegates to the Compute Engine API to create real GCE instances rather than emulating a VM locally inside the build step; no docs mention /dev/kvm or nested virtualization being exposed to build containers.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://cloud.google.com/build/pricing",
+      "quote": "Cloud Build lets you build software quickly across all languages... on VMs (or on Kubernetes, or serverless).",
+      "note": "not offered: outside the product's scope (CI build service that runs container-based build steps, not a browser/computer-use product).",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://cloud.google.com/build/pricing",
+      "quote": "Cloud Build lets you build software quickly across all languages... on VMs (or on Kubernetes, or serverless).",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://cloud.google.com/build/pricing",
+      "quote": "Cloud Build lets you build software quickly across all languages... on VMs (or on Kubernetes, or serverless).",
+      "note": "not offered: outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://cloud.google.com/build/docs/private-pools/access-external-resources-using-static-external-ip",
+      "quote": "you must set up a virtual machine (VM) in your project to act as a self-managed NAT gateway to proxy requests to the public internet.",
+      "note": "Default pool builds egress from Google's shared datacenter IP ranges; a fixed/static IP on private pools requires the customer to build and operate their own self-managed NAT gateway VM, so out-of-the-box egress is shared datacenter IPs, not provider-managed static IPs.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/access-github-from-build",
+      "quote": "Access GitHub from a build via SSH keys",
+      "note": "Cloud Build's SSH-related docs are about builds using SSH keys to reach source repos (e.g. GitHub), not interactive SSH access into the build worker itself; it's a batch CI job runner with no documented shell/SSH login to the worker VM.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://cloud.google.com/build/pricing",
+      "quote": "Cloud Build lets you build software quickly across all languages... on VMs (or on Kubernetes, or serverless).",
+      "note": "not offered: outside the product's scope (CI/CD build automation, not a browser/computer-use task agent).",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/private-pools/use-in-private-network",
+      "quote": "Customize firewall rules on your VPC network to restrict egress ... Remove public IPs on private pools by setting egressOption field in the private pool config file to NO_PUBLIC_EGRESS.",
+      "note": "Egress control on private pools is all-or-nothing (NO_PUBLIC_EGRESS) or VPC firewall/VPC-SC rules at IP/CIDR/port level; nothing at HTTP method/path granularity.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": true,
+      "source": "https://cloud.google.com/build/docs/private-pools/private-pools-overview",
+      "quote": "Each build runs on its own worker and is isolated from other workloads.",
+      "note": "derived: full VM worker with root access inside the build container/VM, so iptables/nftables configuration inside the guest is expected to work.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://cloud.google.com/build/docs/private-pools/access-external-resources-using-static-external-ip",
+      "quote": "This page explains how you can set up your private pools to access external resources through a static external IP.",
+      "note": "Achievable on private pools by routing egress through a self-managed NAT gateway VM you create in your VPC; not an automatic per-machine static IP assigned by the provider out of the box.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": 24,
+      "source": "https://cloud.google.com/build/docs/build-config-file-schema",
+      "quote": "The maximum value for timeout is 24 hours.",
+      "note": "Overall build timeout field is capped at 24 hours; individual build steps can have shorter timeouts.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/build-config-file-schema",
+      "quote": "Each volume is created as an empty volume prior to starting the build process. Upon completion of the build, volumes and their contents are discarded.",
+      "note": "Build workers are ephemeral per-build; the workspace and any declared volumes are wiped when the build finishes. No first-party mechanism keeps a worker's filesystem across builds.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://cloud.google.com/build/docs/build-config-file-schema",
+      "quote": "Upon completion of the build, volumes and their contents are discarded.",
+      "note": "No disk or memory snapshot/checkpoint concept exists for build workers; state is either discarded or you push it yourself (image/artifact/GCS).",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build is a service that executes your builds on Google Cloud.",
+      "note": "not offered: outside the product's scope. Cloud Build runs a single job-to-completion build on an ephemeral worker; there is no pause/resume lifecycle for a build (only cancel).",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build is a service that executes your builds on Google Cloud.",
+      "note": "not offered: outside the product's scope. A build worker is a one-shot execution environment for a single build, not a machine you clone.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build is a service that executes your builds on Google Cloud.",
+      "note": "not offered: outside the product's scope (no fork capability at all, running or otherwise).",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build is a service that executes your builds on Google Cloud.",
+      "note": "not offered: outside the product's scope (no fork or memory-snapshot capability exists).",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build uses Docker to execute builds. For each build step, Cloud Build executes a Docker container as an instance of docker run.",
+      "note": "not offered: outside the product's scope. Build steps are headless Docker container runs; there is no graphical desktop/VNC/RDP surface.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build uses Docker to execute builds. For each build step, Cloud Build executes a Docker container as an instance of docker run.",
+      "note": "not offered: outside the product's scope. No desktop exists, so there is no screenshot/click API to drive one.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build is a service that executes your builds on Google Cloud.",
+      "note": "not offered: outside the product's scope. Builds are triggered (API call/trigger/repo push) and spin up a fresh worker; there is no persistent/sleeping machine that 'wakes' since none stays around between builds.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/build-config-file-schema",
+      "quote": "A Volume is a Docker container volume that is mounted into build steps to persist files across build steps... Upon completion of the build, volumes and their contents are discarded.",
+      "note": "Only ephemeral, per-build Docker volumes shared between sequential steps of the same build; nothing persistent or attachable across builds/workers.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/private-pools/private-pools-overview",
+      "quote": "its own worker and is isolated from other workloads.",
+      "note": "Build workers expose no inbound ports or URLs; they run steps and exit. Nothing to reach via HTTPS.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://cloud.google.com/build/pricing",
+      "quote": "Cloud Build is a service that executes your builds on Google Cloud.",
+      "note": "Build workers are not addressable machines with a public IPv4 assigned to the customer; they only make outbound calls (pull source/images, push artifacts). Consistent with card's network.ipv4_available: false.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build uses Docker to execute builds. For each build step, Cloud Build executes a Docker container as an instance of docker run.",
+      "note": "No preinstalled/offered coding-agent (Claude Code, Codex, OpenCode) templates in Cloud Build's build-step catalog; it only provides generic community/Google container build steps.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build is a service that executes your builds on Google Cloud.",
+      "note": "No provider-shipped MCP server to control Cloud Build workers found in the docs.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://cloud.google.com/build/pricing",
+      "quote": "default pool e2-standard-2 2 vCPU/8 GB ... private pools E2 standard ... N2D/C3 private-pool machine types",
+      "note": "Pricing page lists only E2/N2D/C3 CPU machine families for build workers; no GPU worker option is offered.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build uses Docker to execute builds. For each build step, Cloud Build executes a Docker container as an instance of docker run. Currently, Cloud Build is running Docker engine version 20.10.24.",
+      "note": "Build workers run Linux Docker containers only; no Windows build-worker option is offered.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build uses Docker to execute builds. For each build step, Cloud Build executes a Docker container as an instance of docker run.",
+      "note": "not offered: outside the product's scope. Cloud Build only runs Linux Docker-container build steps; no macOS workers exist on Google Cloud.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://cloud.google.com/build/pricing",
+      "quote": "default pool e2-standard-2 ... private pools E2 standard ... N2D/C3 private-pool machine types",
+      "note": "All listed default/private-pool worker machine types (E2, N2D, C3) are x86-64 GCE families; no Arm (Tau T2A) worker option is listed on the pricing page or in the private pools docs.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build is a service that executes your builds on Google Cloud.",
+      "note": "not offered: outside the product's scope. Cloud Build is a fully managed Google-run service; there is no self-hosted/on-prem distribution of the build execution service itself.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/private-pools/private-pools-overview",
+      "quote": "its own worker and is isolated from other workloads.",
+      "note": "Private pools let build workers peer into your own VPC network, but the workers themselves still run in Google-managed infrastructure/projects, not deployed as a managed service into an arbitrary customer cloud account (not AWS/Azure BYOC).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/overview",
+      "quote": "Cloud Build is a service that executes your builds on Google Cloud.",
+      "note": "Cloud Build is a proprietary managed Google Cloud service; no OSI-licensed core product is published for it.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/build-config-file-schema",
+      "quote": "options: machineType: enum(MachineType) ... diskSizeGb: string (int64 format)",
+      "note": "machineType/diskSizeGb are set per-build in the config file before the worker starts; there is no API to change CPU/RAM of an already-running build worker.",
+      "checked": "2026-09-30"
     }
   }
 }

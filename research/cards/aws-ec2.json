@@ -2617,26 +2617,26 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": true,
-    "wake_on_request": null,
-    "live_resize": null,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "isolation": "vm",
     "image_oci": false,
     "snapshot_auto": true,
@@ -2647,7 +2647,12 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -2780,10 +2785,10 @@
     },
     "harness_api": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "EC2 has generic exec (SSM Run Command / Session Manager, user data) but no API to drive Claude Code / Codex / an agent harness inside an instance. AWS's agent runtime is a separate product (Bedrock AgentCore), not EC2.",
-      "checked": "2026-09-29"
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a cloud computing service that provides resizable, secure compute capacity as virtual servers.",
+      "note": "EC2 offers generic remote exec (SSM Run Command/Session Manager, user data) but no API to prompt/stream/follow-up with a coding agent harness (Claude Code, Codex, etc.) inside an instance. AWS's agent product for that is Bedrock AgentCore, a separate service not modelled on this card.",
+      "checked": "2026-09-30"
     },
     "egress_allowlist": {
       "value": true,
@@ -2817,10 +2822,10 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No credential-injecting egress proxy for EC2. Secrets are delivered into the instance: IAM instance-profile temporary credentials via instance metadata, Secrets Manager / SSM Parameter Store fetched by the workload. A root agent can read them.",
-      "checked": "2026-09-29"
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a cloud computing service that provides resizable, secure compute capacity as virtual servers.",
+      "note": "No credential-injecting egress proxy exists for EC2. Secrets reach the guest as IAM instance-profile temporary credentials (instance metadata service) or via Secrets Manager/SSM Parameter Store calls made from inside the instance — a root user/process on the box can read them directly, unlike a proxy that keeps secrets off the machine.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": true,
@@ -2835,6 +2840,181 @@
       "quote": "You can access your EFS file system concurrently from multiple NFS clients, so applications that scale beyond a single connection can access a file system.",
       "note": "Read-write. EFS (NFSv4.1, strong consistency and file locking, multi-AZ) and FSx family. Also EBS Multi-Attach for io1/io2 in one AZ: 'Each instance to which the volume is attached has full read and write permission to the shared volume' (needs a cluster-aware FS). Also Mountpoint for S3 (not checked here).",
       "checked": "2026-09-29"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/pricing/on-demand/",
+      "quote": "Amazon EC2 provides secure, resizable compute capacity...to run virtually any workload",
+      "note": "not offered: outside the product's scope — EC2 is a general-purpose VM, not a browser/scraping product with stealth/fingerprinting features",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/pricing/on-demand/",
+      "quote": "Amazon EC2 provides secure, resizable compute capacity...to run virtually any workload",
+      "note": "not offered: outside the product's scope — EC2 is a general-purpose VM, no built-in CAPTCHA solving",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html",
+      "quote": "An Elastic IP address is a static IPv4 address designed for dynamic cloud computing. ... An Elastic IP address is a public IPv4 address, which is reachable from the internet.",
+      "note": "AWS-owned datacenter IP ranges; Elastic IP gives a fixed (static) address, auto-assigned public IPv4 is also datacenter but not guaranteed static across stop/start unless an EIP is attached",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-resize.html",
+      "quote": "You must stop your instance before you can change its instance type.",
+      "note": "not offered: EC2 has no request-triggered auto-wake for stopped instances; instances must be started explicitly via StartInstances API/console/CLI/schedule, not by an incoming network request",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/change-instance-type-of-ebs-backed-instance.html",
+      "quote": "You must stop your instance before you can change its instance type. Ensure that you plan for downtime while your instance is stopped.",
+      "note": "changing vCPU/RAM (instance type) requires stopping the instance first; not a live/running resize",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/pricing/on-demand/",
+      "quote": "Amazon EC2 provides secure, resizable compute capacity...to run virtually any workload",
+      "note": "not offered: outside the product's scope — EC2 is raw compute; AWS's agent/browser-automation products (e.g. Bedrock AgentCore) are separate services, not part of EC2 itself",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://github.com/awslabs/mcp",
+      "quote": "Open source MCP Servers for AWS",
+      "note": "awslabs/mcp ships general-purpose MCP servers for AWS APIs/IaC (e.g. AWS IaC MCP Server), not an MCP server dedicated to controlling EC2 sandboxes specifically",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/linux/al2023/ug/compare-with-al2.html",
+      "quote": "Python 2.7 has been replaced with Python 3",
+      "note": "Amazon Linux 2023, the default EC2 AMI family, ships Python 3 out of the box; other AMIs vary since EC2 lets you choose any OS image",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/linux/al2023/ug/compare-with-al2.html",
+      "quote": "AL2023 contains thousands of software packages available for use.",
+      "note": "Node.js is available as an installable package (dnf/yum or nvm) but is not preinstalled by default on Amazon Linux 2023 or other stock AMIs",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://aws.amazon.com/about-aws/global-infrastructure/regions_az/",
+      "quote": "The AWS Cloud spans 124 Availability Zones within 39 Geographic Regions",
+      "note": "AWS operates multiple EU regions (e.g. eu-west-1 Ireland, eu-central-1 Frankfurt, eu-north-1 Stockholm) where instances and their data stay within the chosen region",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://aws.amazon.com/ec2/pricing/on-demand/",
+      "quote": "Amazon EC2 provides secure, resizable compute capacity...pay only for what you use",
+      "note": "on-demand EC2 instances run until you stop/terminate them; no maximum session duration is imposed (unlike e.g. Spot's interruption)",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html",
+      "quote": "If you're confident that your instance is in a consistent state appropriate for AMI creation, you can tell Amazon EC2 not to power down and reboot the instance.",
+      "note": "EC2 has no single-call live-clone/fork API. The only clone path is: create an AMI (disk-only, minutes, optionally without reboot) then separately RunInstances from it (a fresh boot, tens of seconds). Same taxonomy result as gcp-compute.json and azure-vm.json, which are also fork:false despite offering the identical AMI/image-launch pattern.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html",
+      "quote": "you can tell Amazon EC2 not to power down and reboot the instance",
+      "note": "NoReboot AMI creation lets you snapshot disk state from a still-running instance, but the resulting clone is a brand-new instance booted from that AMI minutes later, not a live duplicate of the running machine kept in sync. No API clones a running instance in place. Consistent with gcp-compute/azure-vm being fork_running:false too.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Hibernate.html",
+      "quote": "Hibernation saves the contents from the instance memory (RAM) to your Amazon Elastic Block Store (Amazon EBS) root volume.",
+      "note": "Hibernation persists RAM for resuming the SAME instance later (pause/resume), it does not clone that memory state into a NEW running instance. AMI/EBS snapshots (the only clone mechanism) are disk-only; memory is never included in a clone.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/EC2Win_GetStarted.html",
+      "quote": "The following procedure uses the Remote Desktop Connection client for Windows (MSTSC).",
+      "note": "reviewed: proposed correction rejected (This card's os list includes windows:true, and every Windows EC2 instance ships with RDP enabled by default, giving a full graphical desktop out of the box — the same reasoning already applied to give desktop:true in gcp-windows.json and azure-windows.json. Should be corrected to true (Windows only; Linux instances have no desktop unless you install one yourself).)",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/EC2Win_GetStarted.html",
+      "quote": "The following procedure uses the Remote Desktop Connection client for Windows (MSTSC).",
+      "note": "reviewed: proposed correction rejected (Windows Server AMIs (the OS this card prices) ship Microsoft Edge preinstalled, reachable once connected over the built-in RDP desktop — same basis used for browser:true on gcp-windows.json/azure-windows.json. Should be corrected to true for the Windows mode; Linux AMIs have no GUI browser by default.)",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a cloud computing service that provides resizable, secure compute capacity as virtual servers.",
+      "note": "EC2 is a generic VM product; it has no first-party screenshot+click computer-use API (that exists only as a separate AWS product, Bedrock AgentCore Browser/computer use, not modelled on this card).",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html",
+      "quote": "You can create an Amazon EBS-backed Linux AMI from either a running or stopped instance.",
+      "note": "Instances boot from AMIs (AWS's own machine-image format), never directly from a Docker/OCI image. Running an OCI image as the workload requires a container runtime installed inside the instance (docker_inside:true) or a different service (ECS/Fargate/EKS), not modelled here.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/faqs/",
+      "quote": "Amazon EC2 provides three purchasing options... On-Demand Instances... you retain full control over its lifecycle",
+      "note": "EC2 itself has no built-in auto-stop-on-idle setting; instances run until you (or your own CloudWatch alarm + Lambda/EventBridge automation, or a separate product like Cloud9) stop them. No first-party idle-shutdown feature on the EC2 API/console.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html",
+      "quote": "You can specify the destination, port range, and protocol for each outbound rule.",
+      "note": "EC2 gives you a raw public IPv4/security-group ingress (raw_tcp_inbound:true) but no managed, ready-made HTTPS URL to an instance's port; TLS termination and a hostname require you to bring your own Route 53 domain, ACM certificate and either a load balancer or your own web-server config. There is no one-step 'exposed HTTPS URL' feature on the instance itself.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a cloud computing service that provides resizable, secure compute capacity as virtual servers.",
+      "note": "EC2 sells bare/generic AMIs (Amazon Linux, Ubuntu, Windows, etc.) and a Marketplace of third-party images; AWS does not preinstall or offer Claude Code / Codex / OpenCode as an official EC2 template.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/instance-types/mac/",
+      "quote": "Amazon EC2 Mac Instances allow you to run on-demand macOS workloads in the cloud... Mac instances are available on Dedicated Hosts.",
+      "note": "macOS EC2 instances exist, but only as Mac Dedicated Hosts with a mandatory minimum allocation period (24 hours), a completely different purchasing/billing model from the x86/Graviton on-demand and reserved modes priced on this card. This card's own caveats already say 'macOS is not in this card (see aws-ec2-mac)', so macos:false is correct for THIS card/product-scope; a true macOS offering exists under a separate card id.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a cloud computing service that provides resizable, secure compute capacity as virtual servers.",
+      "note": "EC2 is AWS's own hosted hypervisor/service (built on the proprietary Nitro system); there is no distributable EC2 software you can run on your own infrastructure outside AWS.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a cloud computing service that provides resizable, secure compute capacity as virtual servers.",
+      "note": "BYOC means a third-party managed service deployed into a customer's own cloud account; EC2 IS the cloud account's native compute primitive, not a third party's product deployed on top of someone else's cloud, so this concept does not apply.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://aws.amazon.com/ec2/",
+      "quote": "Amazon Elastic Compute Cloud (Amazon EC2) is a cloud computing service that provides resizable, secure compute capacity as virtual servers.",
+      "note": "EC2's virtualization stack (the proprietary Nitro hypervisor/system) and the EC2 service itself are closed-source AWS infrastructure; no OSI-licensed release of EC2 exists.",
+      "checked": "2026-09-30"
     }
   }
 }

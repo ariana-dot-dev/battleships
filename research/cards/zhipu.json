@@ -93,7 +93,7 @@
     "gpu": false,
     "gpu_types": [],
     "snapshot": "fs",
-    "pause_resume": false,
+    "pause_resume": true,
     "fork": false,
     "persistent_disk": true,
     "volumes": null,
@@ -300,8 +300,8 @@
     "snapshot_on_demand": {
       "value": false,
       "source": "https://docs.bigmodel.cn/cn/managed-agents/create-session.md",
-      "quote": "开启后，平台会在成功执行结束时尝试保存快照，下一轮优先从最近一次成功快照恢复；失败轮不更新快照",
-      "note": "Checkpointing is an opt-in, platform-triggered automatic snapshot at the end of each successful turn (x-checkpoint header at session creation) — there is no API to take a snapshot on demand at an arbitrary moment.",
+      "quote": "开启后，平台会在成功执行结束时尝试保存快照，下一轮优先从最近一次成功快照恢复；失败轮不更新快照。",
+      "note": "Checkpoint saving is automatic-only, triggered by the platform at the end of each successful turn when x-checkpoint:true was set at session creation. There is no API/CLI call to take a snapshot on demand at an arbitrary point; snapshot:\"fs\" describes the mechanism's kind (disk-only), not an on-demand trigger, so no real contradiction with on_demand=false.",
       "checked": "2026-09-30"
     },
     "fork": {
@@ -326,10 +326,11 @@
       "checked": "2026-09-30"
     },
     "pause_resume": {
-      "value": false,
+      "value": true,
+      "corrected_from": false,
       "source": "https://docs.bigmodel.cn/cn/managed-agents/overview.md",
-      "quote": "每个会话配备云沙箱，bash 与文件读写开箱即用，会话结束即释放",
-      "note": "derived: no pause/resume API is documented; the sandbox is provisioned per turn and released automatically, not explicitly paused and resumed by the caller.",
+      "quote": "Managed Agents 在设计上是有状态的：会话长时间运行、可在暂停后恢复，对话历史与产出保存在服务端。",
+      "note": "Official docs explicitly state sessions can run long and be resumed after being paused ('可在暂停后恢复'). Between turns a session goes to 'idle' (no active compute billed) and resumes on the next message; with x-checkpoint:true the disk state (not running processes/RAM) is restored automatically on resume - matches the pause_resume definition (billing paused/reduced across pause), consistent with snapshot_auto=true.",
       "checked": "2026-09-30"
     },
     "wake_on_request": {
@@ -463,6 +464,27 @@
       "source": "https://docs.bigmodel.cn/cn/managed-agents/overview.md",
       "quote": "目前以 API 开放内测，控制台等更多功能近期即将推出",
       "note": "not offered: the product is currently API-key-only (Bearer token from the open-platform console) with no console/web login yet ('console coming soon'), so there is no SAML/OIDC SSO surface today.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.bigmodel.cn/cn/managed-agents/sandbox-reference.md",
+      "quote": "Docker CLI | 29.x | 含 Buildx、Compose；仅 CLI，沙箱内不运行 Docker daemon",
+      "note": "The sandbox ships the Docker CLI (with Buildx/Compose) but explicitly does not run a Docker daemon inside the sandbox, so containers cannot actually be built/run inside it.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.bigmodel.cn/cn/managed-agents/sandbox-reference.md",
+      "quote": "基础系统：Ubuntu 24.04 LTS，架构 linux/amd64（x86_64）",
+      "note": "The sandbox base image is explicitly x86_64 (linux/amd64) only; no ARM architecture is offered.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": false,
+      "source": "https://docs.bigmodel.cn/cn/managed-agents/api-reference.md",
+      "quote": "https://agent-api.bigmodel.cn/api/agent/managed",
+      "note": "Managed Agents is a Zhipu AI (bigmodel.cn) product served from a single Chinese API domain (agent-api.bigmodel.cn); no regions, EU or otherwise, are documented or selectable anywhere in the API reference, overview, or pricing docs. No EU residency option is offered; product is China/Asia-only, so confidence is medium per the 'plainly outside what the product is' rule.",
       "checked": "2026-09-30"
     }
   }

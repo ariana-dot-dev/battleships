@@ -257,7 +257,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": false,
     "browser": true,
@@ -271,18 +271,18 @@
     "custom_domain": null,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": true,
     "self_host": true,
-    "byoc": false,
+    "byoc": true,
     "open_source": false,
     "regions": [
       "us",
       "eu"
     ],
-    "soc2": null,
+    "soc2": false,
     "hipaa": null,
-    "sso": null,
+    "sso": true,
     "lang_python": true,
     "lang_node": true,
     "lang_go": true,
@@ -291,8 +291,8 @@
     "gpu_desktop": false,
     "credential_injection": null,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
+    "wake_on_request": true,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": true,
     "webhooks": true,
@@ -313,7 +313,12 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": false,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -478,6 +483,147 @@
       "quote": "Disks are the one thing sandboxes can share. A disk belongs to one account; only that account's sandboxes can attach it. Several of your sandboxes can mount the same disk at once and see the same bucket, with S3's last-write-wins semantics.",
       "note": "Read-write (no read-only mount option documented); object storage semantics (last-write-wins), not a POSIX shared filesystem. Same disk can also be mounted at multiple paths in one sandbox. Disk mounts do not carry over to forks.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/NodeOps-app/createos-sandbox-sdk/main/llms-full.txt",
+      "quote": "A createos-sandbox sandbox is a VM — a real virtual machine running its own Linux kernel on KVM hardware virtualization, not a container sharing the host kernel.",
+      "note": "KVM hardware virtualization is used by the HOST to run the Firecracker microVM guest; no docs page (Limits, Security, Concepts, SDK) mentions /dev/kvm or nested virtualization being exposed inside the guest itself. Not documented as offered.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://createos.sh/products/sandbox",
+      "quote": "devbox:1 ... desktop:1: Graphical desktop with XFCE, Google Chrome, remote desktop and computer-use APIs.",
+      "note": "not offered: outside the product's scope. The desktop/browser image is a plain XFCE + Chrome remote desktop for general computer-use automation; no stealth/fingerprint-evasion or anti-bot-detection feature is documented anywhere on the product, docs, or SDK pages.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://createos.sh/products/sandbox",
+      "quote": "devbox:1 ... desktop:1: Graphical desktop with XFCE, Google Chrome, remote desktop and computer-use APIs.",
+      "note": "not offered: outside the product's scope. CreateOS Sandbox is a general VM/desktop/browser compute product; no built-in CAPTCHA-solving service is documented on any product, docs, or SDK page.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://createos.sh/docs/Sandbox/Limits",
+      "quote": "region at create time: eu or us, and it must match the control plane you are talking to.",
+      "note": "derived: sandboxes have no public IPv4 (public_ipv4=false) and egress is described only in terms of host/IP/CIDR allowlists enforced in-kernel on the provider's own infrastructure (Egress page); no residential, mobile, or dedicated/static IP product is advertised anywhere, so outbound traffic runs through the provider's own cloud/datacenter NAT.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://createos.sh/docs/Sandbox/Overview",
+      "quote": "Wake on request: Hit a paused sandbox's HTTPS URL and it resumes on its own; browsers get a waiting page that reloads until the app answers.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/REST-API/Bandwidth-And-Resize",
+      "quote": "POST /v1/sandboxes/{id}/resize Grow a sandbox's disk online. No sandbox restart is needed... Disk size can only increase, not decrease.",
+      "note": "The only documented \"resize\" endpoint changes disk size (and only upward, to a fixed menu of sizes). There is no documented way to change a running sandbox's vCPU or RAM allocation without recreating it; changing shape means creating a new sandbox with a different `shape`.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/Integrations/Herdr",
+      "quote": "One pane maps to one sandbox. Your keystrokes go into the microVM; the agent's output comes back.",
+      "note": "not offered: outside the product's scope. CreateOS Sandbox itself ships no first-party API that drives its OWN browser/computer-use/research task agent; Computer-use/desktop APIs let YOUR code or harness drive the sandbox's desktop, and Herdr/Orca only attach an interactive PTY terminal to run a THIRD-PARTY coding harness (Claude Code, Codex, etc.) inside the VM. CreateOS's separate \"Studio\" Agent-Builder product (a distinct product line, not the Sandbox card modeled here) offers agent building/orchestration, but that is not part of the Sandbox product.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/REST-API/Egress",
+      "quote": "A non-empty rule list means deny-by-default: only the listed destinations pass; everything else is dropped in-kernel on the host, outside the VM.",
+      "note": "Egress is governed by host-side allow/deny rules, not by any documented fixed/dedicated outbound IP feature. No page (Limits, Egress, Networks, Security) advertises a static or dedicated egress IP for a sandbox; public_ipv4 is also false.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/Limits",
+      "quote": "CreateOS Sandbox is in alpha: APIs may change and it is not yet covered by an SLA. Certifications are in progress; ask for the current letter before committing regulated workloads.",
+      "note": "Conflict: the company's general marketing/security page (createos.sh/security, createos.sh/products/sandbox footer) claims \"SOC 2 Type II certified\" and \"ISO 27001 certified\" company-wide. The Sandbox-product-specific Limits doc (lastModified 2026-09-28, same day as this check) explicitly says certifications for Sandbox are still in progress and it has no SLA yet. Deferring to the Sandbox-specific statement since this card models the Sandbox product; flip to true if the company-wide cert is confirmed to cover Sandbox.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": true,
+      "source": "https://createos.sh/security",
+      "quote": "Can we use our own SSO access controls? Yes. CreateOS supports SAML/SSO and role-based access controls, scoped per team and per workflow.",
+      "note": "Stated on the company-wide security/trust page (covers account/dashboard access across CreateOS products, including Sandbox); no Sandbox-specific SSO page found, so confidence is medium rather than high.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://createos.sh/docs/Sandbox/Limits",
+      "quote": "Maximum session length None. A sandbox runs until you destroy it, pause it, or it auto-pauses. There is no lifetime cap to fit a job inside.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://raw.githubusercontent.com/NodeOps-app/createos-sandbox-sdk/main/llms.txt",
+      "quote": "Because `fork()` operates on a snapshot, the source must be `paused` (or `pausing`). Calling `fork()` on a `running` sandbox throws",
+      "note": "SDK docs and the fork() API reference both require the source sandbox to be paused before forking; forking a running sandbox raises CreateosSandboxValidationError. Confirmed no.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/Limits/",
+      "quote": "Inbound (ingress) Closed. Nothing reaches a sandbox unless ingress_enabled: true, which exposes one HTTPS URL per sandbox.",
+      "note": "The only inbound path is a single HTTPS ingress URL (ulid-based hostname) toggled per sandbox; no public IPv4 address is allocated or mentioned anywhere in docs/product/pricing pages. Confirmed no.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://createos.sh/products/sandbox",
+      "quote": "What is preinstalled, and where does it run? The devbox:1 image is Ubuntu 24.04 with Python 3.12 and pandas, numpy, scipy, matplotlib, pyarrow, scikit-learn, openai, anthropic and langchain preinstalled, plus Node.js 24, Bun, Go 1.26, Rust and Docker",
+      "note": "Preinstalled image ships data/AI libraries and language runtimes, not coding-agent harnesses. The product page's 'CreateOS Skills' feature (npx skills add ... --skill createos, supporting Claude Code/Copilot/Gemini CLI/OpenCode/Codex/Amp/Kimi CLI) is a skill for a LOCAL coding agent to control CreateOS deploys via natural language - the reverse of agent_harnesses (harnesses running inside the sandbox). Confirmed no.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/Limits/",
+      "quote": "No GPU shapes are offered.",
+      "note": "Explicit statement on the Limits doc; matches the products/sandbox size list (CPU/RAM-only shapes, no GPU size or gpu_types). Confirmed no.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://createos.sh/products/sandbox",
+      "quote": "CreateOS Sandbox gives every agent its own computer: a Firecracker micro-VM with its own kernel, private networking, pause to zero, and no egress fees.",
+      "note": "Product is a Firecracker microVM sandbox; the only first-party images are devbox:1 (Ubuntu 24.04) and an Alpine 3.20 base (Concepts doc). Firecracker only boots Linux guests; no Windows image/shape exists anywhere in docs. Confirmed no.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://createos.sh/docs/Sandbox/Concepts/",
+      "quote": "alpine:3.20 Alpine 3.20 Minimal (musl + busybox); ~5x smaller.",
+      "note": "Only Linux base images (Ubuntu devbox:1, Alpine) are offered; Firecracker microVMs cannot run macOS and no macOS option is mentioned anywhere in docs/product/pricing pages. Confirmed no.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://createos.sh/products/sandbox",
+      "quote": "cold_start_tti median 74.65 ms ... 8 vCPU / 15.64 GiB x86_64",
+      "note": "Card's own perf benchmark (computesdk provider entry) records the largest shape as x86_64; no ARM/aarch64 shape, image, or architecture option appears in the product page, Limits doc, Concepts doc, or SDK docs. Confirmed no ARM offering.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://createos.sh/products/sandbox",
+      "quote": "Can I self-host the sandbox in my own cloud? Yes, for enterprise customers only. Our team onboards your own hardware, cloud account, or on-premise machines into the CreateOS data plane, so sandboxes and their compute stay in your environment, while we run the control plane and manage the platform.",
+      "note": "This is exactly the BYOC definition (managed service deployed into your own cloud account): CreateOS runs/manages the control plane while compute stays in the customer's own cloud account/hardware. Enterprise-gated ('onboarding is gated and done with us directly'), but offered. Correct false -> true; keep self_host also true (same FAQ answer covers on-prem/dedicated hardware too).",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://api.github.com/orgs/NodeOps-app/repos",
+      "quote": "createos-sandbox-sdk: MIT License; createos-python-sdk: MIT License; createos-go-sdk: MIT License (client libraries only)",
+      "note": "NodeOps-app's public repos are client SDKs/CLIs/plugins (MIT/Apache-2.0), not the core sandbox execution platform (Firecracker orchestration, control plane, billing), which is closed-source and only accessible via the hosted API. Confirmed no OSI-licensed core product.",
+      "checked": "2026-09-30"
     }
   }
 }

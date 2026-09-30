@@ -136,7 +136,7 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "snapshot": "mem",
     "pause_resume": true,
@@ -258,9 +258,9 @@
     "snapshot_on_demand": {
       "value": false,
       "source": "https://www.ellipsis.dev/openapi.v1.json",
-      "quote": null,
-      "note": "No user-triggered snapshot/checkpoint or fork endpoint in the 95-path OpenAPI spec, CLI or docs; /v1/vm-images and /v1/vms are GET-only. Snapshots are platform-managed caches only; only control is force_rebuild.",
-      "checked": "2026-09-29"
+      "quote": "VMImageResponse.snapshot_id: 'Freestyle snapshot backing this reusable VM image.' Only GET operations exist for /v1/vm-images, /v1/vm-images/{image_id}, /v1/vms, /v1/vms/{vm_id} — no POST/create endpoint for images, snapshots, or forks anywhere in the spec.",
+      "note": "Not a contradiction once checked: the only other 'snapshot' occurrence is an unrelated WebSocket frame type ('type: snapshot' = the initial session-state push on the /v1/sessions/{id}/stream socket, per llms-full.txt and docs/api/session-events.md), not a VM/disk snapshot feature. The actual VM-image snapshot mechanism (Freestyle-backed, per VMImageResponse.snapshot_id) is entirely platform-managed: images are built and cached automatically from environment setup (build_base/after_checkout hooks) and reused by cache_key; the OpenAPI spec exposes only read (GET) operations on vm-images/vms, with no user-triggered create/checkpoint/fork call. This matches feature_evidence's existing note ('only control is force_rebuild') that force_rebuild just discards the cache rather than letting the user create/name a snapshot on demand. So snapshot_on_demand=false is confirmed; snapshot_auto=true (automatic caching/restore) stands and is not in tension with it.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": true,
@@ -561,6 +561,13 @@
       "source": "https://www.ellipsis.dev/docs/environments/schema.md",
       "quote": "compute.timeout | 60 seconds to 1 hour; default 1 hour",
       "note": "Each turn is capped at a configurable timeout of at most 1 hour; interactive sessions can continue across many turns/follow-ups (with the sandbox going cold and auto-resuming between them), but no single continuous machine run exceeds this per-turn 1-hour ceiling.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://www.freestyle.sh/docs/llms-full.txt",
+      "quote": "Freestyle VMs are x86_64 Linux, so the VM needs the **`linux-amd64`** release — the `darwin-arm64` tarball you may already have installed locally is a Mach-O binary and will not execute there.",
+      "note": "Ellipsis sandboxes run on Freestyle VMs (confirmed in the card's own feature_evidence: 'Backed by Freestyle VM snapshots'); Freestyle's own docs state its VMs are x86_64 Linux only, with a further confirming line elsewhere in the same doc: `console.log(uname.stdout.trim()); // Linux … 6.1.0-15-freestyle … x86_64`. No ARM/aarch64 machine option is offered on Ellipsis's own docs, pricing, or OpenAPI spec.",
       "checked": "2026-09-30"
     }
   }

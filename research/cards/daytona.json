@@ -458,10 +458,10 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": true,
-    "egress_http_rules": null,
-    "wake_on_request": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
     "live_resize": true,
-    "fork_running": null,
+    "fork_running": false,
     "memory_snapshot_fork": true,
     "webhooks": true,
     "scheduled_wakeups": null,
@@ -473,8 +473,8 @@
     "mcp_server": true,
     "browser_control": null,
     "desktop_control": true,
-    "anti_bot": null,
-    "captcha_solving": null,
+    "anti_bot": false,
+    "captcha_solving": false,
     "egress_ip_type": null,
     "ip_note": "Egress IP type not documented; outbound traffic can be routed via a customer HTTP(S) proxy (outboundProxyUrl) or VPN (Tailscale/OpenVPN/Netbird).",
     "isolation": "container",
@@ -487,7 +487,9 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -667,6 +669,90 @@
       "quote": "Sandboxes that mount the same volume see writes immediately, but FUSE-backed volumes are not transactional. If two sandboxes write to the same path concurrently, the last write wins.",
       "note": "Read-write, concurrent mounts by several running sandboxes ('a single volume can be mounted to multiple sandboxes'); last-write-wins, no locking.",
       "checked": "2026-09-29"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Daytona provides full composable computers — sandboxes — for AI agents. Sandboxes are isolated runtime environments you can manage programmatically to run code.",
+      "note": "not offered: outside the product's scope. Daytona is a general-purpose code/agent sandbox (containers/VMs/GPU); no mention of stealth/fingerprint-evasion features against bot detection anywhere in docs, pricing, or llms-full.txt.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Daytona provides full composable computers — sandboxes — for AI agents. Sandboxes are isolated runtime environments you can manage programmatically to run code.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature documented anywhere (docs, pricing, changelog, llms-full.txt search for \"captcha\" returns nothing).",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/snapshots.md",
+      "quote": "VM sandboxes capture filesystem and memory state (hot snapshots)",
+      "note": "Fork is only available on Linux VM/Windows classes and works by creating a new sandbox from a (cold or hot) snapshot of the source, not by cloning a live running sandbox in place without affecting it; card's per-mode features already record fork_running: false for on-demand, vm-tier, on-demand-gpu, and spot modes. No documentation describes forking a sandbox while it keeps running unaffected.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/preview.md",
+      "quote": "Sandbox management: automatically start stopped sandboxes before forwarding users",
+      "note": "This capability is explicitly something a customer must build into their own custom preview proxy (\"Your proxy should ... 2. Check sandbox status and start it if needed\"). Daytona's own standard/signed preview URLs do not themselves auto-start a stopped sandbox on an incoming request; the web terminal docs likewise say \"If your sandbox is stopped, start it before attempting to access the terminal.\"",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/computer-use.md",
+      "quote": "Computer Use enables programmatic control of desktop environments within sandboxes. It provides mouse, keyboard, screenshot, screen recording, and display operations for automating GUI interactions and testing desktop applications.",
+      "note": "Computer Use is infrastructure that lets YOUR agent drive a desktop inside a Daytona sandbox; Daytona does not offer its own hosted browser/computer-use/research task agent product. SDK module list (Sandbox, CodeInterpreter, ComputerUse, FileSystem, Git, LspServer, ObjectStorage, Process, Secret, Snapshot, Volume) has no first-party agent product; guides only show driving third-party coding harnesses (Claude Code, Codex, etc.) via generic process exec.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/network-limits.md",
+      "quote": "networkAllowList for IPv4 CIDR ranges; domainAllowList for domains and wildcard domains; networkBlockAll to block all outbound traffic",
+      "note": "Egress rules operate at IP-CIDR / domain(+wildcard) / block-all granularity only. No documented ability to restrict by HTTP method or URL path.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Wall-clock TTL: Set ttl_minutes when creating a sandbox, or update it later. The value is in minutes: 0: disables the TTL; if not set, the sandbox has no TTL deadline.",
+      "note": "No default hard cap: auto-stop/auto-pause (idle-based) can be set to 0 to run indefinitely, and the optional wall-clock ttl_minutes hard-deadline is disabled/unset by default (docs include a dedicated \"Running indefinitely\" section). A sandbox can therefore run until explicitly stopped, i.e. no imposed maximum session length.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/preview.md",
+      "quote": "Daytona provides preview URLs for accessing services running in your sandboxes. Any process listening for HTTP traffic on ports 1 - 65535 can be previewed through a generated URL. ... URL structure: https://{port}-{sandboxId}.{daytonaProxyDomain}",
+      "note": "Inbound access to sandboxes is exclusively via Daytona's HTTP(S) preview-proxy URLs (standard or signed); no docs page anywhere in llms-full.txt/sandboxes.md/network-limits.md offers a per-sandbox public/static/dedicated IPv4 address, and raw_tcp_inbound is already false. Confirms public_ipv4: false.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md",
+      "quote": "Daytona also provides VM sandboxes with a dedicated Linux VM or Windows operating system, GPU sandboxes with NVIDIA and AMD GPU acceleration for model inference, fine-tuning, and GPU-accelerated compute, and macOS sandboxes running on dedicated Apple silicon hardware. ... ### macOS sandboxes\nDaytona provides macOS sandboxes through the use.computer platform. ... 4. Use the API key to create a macOS sandbox\ncurl 'https://api.use.computer/v1/sandboxes' --data '{\"type\":\"macos\"}'",
+      "note": "reviewed: proposed correction rejected (Daytona's own official sandboxes doc dedicates a section to macOS sandboxes (Computer Use, VNC, SSH) and lists it in the sandbox-type grid alongside container/VM/GPU. Fulfilled through a partner platform (use.computer) but documented and offered by Daytona itself, so macos should be true, not false.)",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/en/snapshots.md",
+      "quote": "Daytona expects the local image to be built for AMD64 architecture. Therefore, the --platform=linux/amd64 flag is required when building the Docker image if your machine is running on a different architecture.",
+      "note": "Guest sandboxes (container/VM/GPU) run AMD64 only; ARM64 mentions elsewhere in the docs are only the CLI binary download (daytona-darwin-arm64/daytona-linux-arm64) and the unrelated Box Mount utility binary, not the sandbox guest architecture. Confirms arm64: false.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://www.daytona.io/docs/llms-full.txt",
+      "quote": "Bring Your Own Compute enables you to run sandbox workloads on your own infrastructure while using Daytona's control plane to manage them.",
+      "note": "The only 'run it on your own infrastructure' option (BYOC / custom regions via the daytona-region Helm chart) still requires Daytona's hosted control plane to orchestrate it - it is BYOC (already true), not a way to run the whole product yourself. No docs describe deploying/self-hosting the control plane itself. Confirms self_host: false.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/daytonaio/daytona/blob/ec4c21b2d597091ac09ecc278f3bcc172575a987/README.md",
+      "quote": "This repository is no longer maintained. As of June 2026, Daytona's core development has moved to a private codebase. This repository will receive no further updates, fixes, or releases. It remains public and free to use, fork, and build on under the LICENSE (v0.190.0), as is and without support or warranty.",
+      "note": "The current managed Daytona product's core is developed in a private codebase; the historical AGPLv3-licensed repo (frozen at v0.190.0) is unmaintained and not the live service. The Kubernetes Helm charts repo (daytona-region, for BYOC) is licensed Elastic License 2.0, which is source-available but not OSI open source either. Confirms open_source: false for the current product.",
+      "checked": "2026-09-30"
     }
   }
 }

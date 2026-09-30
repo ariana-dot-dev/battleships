@@ -1336,20 +1336,20 @@
       "us",
       "asia"
     ],
-    "soc2": null,
-    "hipaa": null,
-    "sso": null,
+    "soc2": false,
+    "hipaa": false,
+    "sso": false,
     "lang_python": null,
-    "lang_node": null,
+    "lang_node": false,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": false,
     "egress_http_rules": false,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
+    "wake_on_request": false,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": false,
     "scheduled_wakeups": null,
@@ -1358,7 +1358,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": false,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
     "harness_api": false,
@@ -1367,7 +1367,14 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": false
+    "volume_shared": false,
+    "isolation": "qemu-kvm",
+    "image_oci": false,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false,
+    "max_session_unlimited": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1495,10 +1502,10 @@
     },
     "harness_api": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "Plain IaaS: the Cloud API (OpenAPI spec) covers servers, images, volumes, networks, firewalls, IPs, load balancers, DNS, object storage; no agent/harness endpoints and no exec API. Not stated explicitly, hence medium.",
-      "checked": "2026-09-29"
+      "source": "https://docs.hetzner.cloud/cloud.spec.json",
+      "quote": "n/a - full Cloud API tag list: Actions, Certificates, Datacenters, Firewalls, Floating IPs, Images, ISOs, Load Balancers, Load Balancer Types, Locations, Networks, Placement Groups, Pricing, Primary IPs, Servers, Server Types, SSH Keys, Volumes",
+      "note": "Reviewed the complete OpenAPI spec's endpoint/tag list: plain IaaS surface, no exec/agent-harness endpoints of any kind.",
+      "checked": "2026-09-30"
     },
     "egress_allowlist": {
       "value": true,
@@ -1532,10 +1539,10 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": null,
-      "quote": null,
-      "note": "No secret management at all; credentials go into the server via cloud-init user_data / SSH keys / your own tooling. No credential-injecting proxy.",
-      "checked": "2026-09-29"
+      "source": "https://docs.hetzner.cloud/cloud.spec.json",
+      "quote": "n/a - Cloud API has no credential-injection/secret-proxy endpoints; only server metadata/user-data (cloud-init) is available for passing configuration into a server.",
+      "note": "Plain IaaS: any secrets an operator wants inside the VM go in as env vars / cloud-init user-data / mounted files, set up by the customer. No first-party HTTP proxy that injects credentials for outbound API calls.",
+      "checked": "2026-09-30"
     },
     "volume_attach": {
       "value": true,
@@ -1550,6 +1557,209 @@
       "quote": "Please note that you can only attach a Volume to one server at a time.",
       "note": "Volumes are single-attach read-write block devices. No managed NFS in Hetzner Cloud; the separate Hetzner Storage Box product (SMB/CIFS, SFTP) or Object Storage (S3, not a mount) are the shared options, outside the Cloud server product.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "qemu-kvm",
+      "source": "https://docs.hetzner.com/cloud/servers/faq/",
+      "quote": "When using the VNC console for text input, each character is sent as individual key presses and releases directly to the hypervisor.",
+      "note": "Hetzner Cloud servers are full VMs on a hypervisor (own kernel, root access, VNC console to the underlying hypervisor); no nested virtualization is possible inside them, and no vTPM/TPM — consistent with standard QEMU/KVM cloud virtualization. Hetzner does not name the hypervisor explicitly in public docs, hence medium confidence rather than a direct quote of \"KVM\".",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/faq/",
+      "quote": "Create a new server from a Backup/Snapshot . Attach an ISO image to the virtual drive in your server.",
+      "note": "not offered: Hetzner Cloud boots servers from its own OS images, uploaded ISOs, or Backup/Snapshot images of a prior server disk — there is no way to start a server directly from a Docker/OCI container image; outside the product's scope (plain VM IaaS, not a container-image runner).",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/overview",
+      "quote": "Cloud Servers ... virtual machines that you can use flexibly for your projects.",
+      "note": "not offered: outside the product's scope (generic IaaS VM/VPS, no browser or scraping stealth features).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/overview",
+      "quote": "Cloud Servers ... virtual machines that you can use flexibly for your projects.",
+      "note": "not offered: outside the product's scope (generic IaaS VM, no CAPTCHA-solving capability).",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.hetzner.com/cloud/servers/primary-ips/overview/",
+      "quote": "Every Cloud Server has one Primary IP by default, which allows the server to communicate with the internet.",
+      "note": "Outbound IPs are ordinary Hetzner datacenter IPv4/IPv6 addresses allocated per server; no residential or mobile IP product exists for Cloud servers.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://docs.hetzner.cloud/cloud.spec.json",
+      "quote": "If the Server is currently running you must make sure that its disk content is consistent. Otherwise, the created Image may not be readable. To make sure disk content is consistent, we recommend to shut down the Server prior to creating an Image.",
+      "note": "create_image (snapshot) can be triggered on a running server without stopping it, and a new server can then be booted from that image; Hetzner recommends (but does not require) shutting down first for disk consistency, so this is a disk-only fork of a running machine, not a memory-preserving one.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/overview",
+      "quote": "Cloud Servers ... virtual machines that you can use flexibly for your projects.",
+      "note": "not offered: outside the product's scope. Hetzner Cloud is a self-managed IaaS VM you start/stop yourself via API/console; there is no proxy or gateway that wakes a stopped server when a network request arrives, and a stopped server still bills in full (per docs.hetzner.com/cloud/billing/faq).",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.hetzner.cloud/cloud.spec.json",
+      "quote": "Changes the type (Cores, RAM and disk sizes) of a Server. Server must be powered off for this command to succeed.",
+      "note": "Rescale (change_type) requires the server to be stopped first; there is no live/hot resize of a running server's CPU/RAM.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.hetzner.cloud/cloud.spec.json",
+      "quote": "The Hetzner Cloud API lets you manage Cloud Servers, Networks, and other resources.",
+      "note": "not offered: outside the product's scope. The Cloud API only manages infrastructure (servers, images, volumes, networks, firewalls, load balancers, DNS); there is no browser/computer-use/research task-agent product or API.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://github.com/hetznercloud",
+      "quote": "hcloud-cli, terraform-provider-hcloud, csi-driver, cloud-controller-manager",
+      "note": "The hetznercloud GitHub org ships a CLI, Terraform provider, CSI driver, and Kubernetes cloud-controller-manager, but no first-party MCP server was found for controlling Hetzner Cloud sandboxes/servers as of 2026-09-30.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/apps/list/",
+      "quote": "Docker CE, GitLab CE ...",
+      "note": "not offered out-of-the-box: the App Images marketplace has no Node.js image, and plain OS images (Ubuntu/Debian) do not ship Node.js by default; you install it yourself on the DIY VM.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://www.hetzner.com/unternehmen/zertifizierung/",
+      "quote": "Hetzner Online is certified in accordance with DIN ISO/IEC 27001:2022 ... SOCOTEC Certification, a third party certification authority, performed the audits and officially awarded the certificates.",
+      "note": "not offered: Hetzner's public certifications page lists only ISO/IEC 27001:2022 (and, per Hetzner docs elsewhere, BSI C5 Type 2); no SOC 2 report or attestation is mentioned anywhere on Hetzner's compliance pages.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://www.hetzner.com/compliance",
+      "quote": "Hetzner Online is certified in accordance with DIN ISO/IEC 27001:2022",
+      "note": "not offered: no HIPAA eligibility or BAA is mentioned on Hetzner's compliance/certification pages; Hetzner is an EU-headquartered generic IaaS provider with no published US HIPAA program.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/console/faq",
+      "quote": "Hetzner Cloud Console FAQ",
+      "note": "not offered: no SAML/OIDC single sign-on is documented for the Hetzner Console; account security docs only reference standard password login plus optional two-factor authentication (TOTP/security key), not enterprise SSO.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://docs.hetzner.com/cloud/billing/faq/",
+      "quote": "Billed from creation until DELETION, powered-off servers pay full price.",
+      "note": "Cloud servers are ordinary VMs that run indefinitely until the customer stops/deletes them; there is no provider-enforced maximum session length.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.hetzner.cloud/cloud.spec.json",
+      "quote": "Creates an Image (snapshot) from a Server by copying the contents of its disks.",
+      "note": "Hetzner's only 'clone/snapshot' primitive is the Image/snapshot API, which copies disk contents only. No mechanism captures RAM/running-process state, so a clone created from an Image boots cold; nothing survives running.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/faq/",
+      "quote": "Can I run virtual machines on cloud servers, or rather is nested virtualization possible? No, this is not possible on cloud server.",
+      "note": "Official FAQ states nested virtualization (KVM/etc. inside a cloud server) is not possible.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/overview/",
+      "quote": "Cloud servers are virtual machines that run on physical servers and are used to run an operating system and computer programs. ... You can create your own cloud server quickly and easily in the Hetzner Console and add features such as Firewalls and Volumes.",
+      "note": "Hetzner Cloud is a bare/DIY IaaS VM product (BYO OS via own ISO/images); there is no vendor-managed graphical desktop/VNC/RDP streaming feature. Outside what the product is.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/overview/",
+      "quote": "Cloud servers are virtual machines that run on physical servers and are used to run an operating system and computer programs.",
+      "note": "No managed/pre-installed browser is offered; you install and run everything yourself on the VM. Not part of the product.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.hetzner.cloud/cloud.spec.json",
+      "quote": "n/a - Cloud API surface only covers Servers, Images, Volumes, Networks, Firewalls, Load Balancers, Certificates, Primary IPs, Placement Groups, Datacenters/Locations, Actions",
+      "note": "Plain IaaS Cloud API (checked full endpoint list); no screenshot/click-driving API exists. Outside what the product is.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/billing/faq/",
+      "quote": "Yes, you pay for a server that has completed the creation process for as long as it exists, regardless of whether it is turned on or not. We will bill you for your servers until you delete them, independent of their state.",
+      "note": "No idle-detection/auto-stop feature exists; servers are billed at full price whether idle, off, or busy, until explicitly deleted.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.hetzner.cloud/cloud.spec.json",
+      "quote": "certificates: IDs of the Certificates to use for TLS/SSL termination by the Load Balancer; empty for TLS/SSL passthrough. redirect_http: Redirect HTTP requests to HTTPS.",
+      "note": "reviewed: proposed correction rejected (Hetzner Cloud Load Balancers support an 'https' service protocol with first-party TLS/SSL termination using uploaded or Hetzner-managed Certificates, plus automatic HTTP->HTTPS redirect. This is a genuine first-party HTTPS-ingress feature (docs.hetzner.com/networking/load-balancers/overview also lists 'Certificates / Managed certificate' as an associated resource), so the card's false is wrong.)",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/apps/overview/",
+      "quote": "Our apps provide you easy access to often used software, such as Docker, WordPress or Nextcloud, with the same intuitive workflow as you already know it from the Hetzner Cloud Server deployment.",
+      "note": "Hetzner Cloud Apps (one-click images) list is generic self-hosted software (Docker, WordPress, Nextcloud, GitLab, etc.); no coding-agent harness (Claude Code, Codex, OpenCode...) is offered as a template.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://www.hetzner.com/dedicated-rootserver/matrix-gpu/",
+      "quote": "GPU-Line ... Dedicated GPU Server. Powerful and cost-efficient servers for AI workload.",
+      "note": "GPUs are only available as Hetzner's separate Dedicated Root Server (Robot) 'GPU-Line' product, not through Hetzner Cloud (the product this card covers, which is provisioned via the Cloud API/Console and has no gpu server type).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/faq/",
+      "quote": "Can I use Windows 10/11 on a server?",
+      "note": "Windows is only installable by uploading your own ISO with your own licence; Hetzner does not offer or support a first-party Windows server image/type on Cloud.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/overview/",
+      "quote": "Cloud servers are virtual machines that run on physical servers ... The physical servers are located in the USA, in Singapore, and in our data centers in Europe.",
+      "note": "Hetzner Cloud only offers Linux/BSD-oriented KVM virtual machines (x86/arm64); no Apple/macOS hardware or VM offering exists on this product. Outside what the product is.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/overview/",
+      "quote": "Cloud servers are virtual machines that run on physical servers ... The physical servers are located in the USA, in Singapore, and in our data centers in Europe.",
+      "note": "Hetzner Cloud is a managed public cloud service running only in Hetzner's own datacenters; there is no software/appliance you can install on your own infrastructure.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/servers/overview/",
+      "quote": "Cloud servers are virtual machines that run on physical servers ... The physical servers are located in the USA, in Singapore, and in our data centers in Europe.",
+      "note": "No bring-your-own-cloud deployment mode; Hetzner Cloud only runs in Hetzner-owned datacenters/regions (EU/US/Singapore), not inside a customer's own AWS/GCP/Azure account.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.hetzner.com/cloud/apps/overview/",
+      "quote": "Our Hetzner Cloud Apps are open-source projects.",
+      "note": "Only the 'Apps' image-build tooling/metadata (Packer/cloud-init recipes) is open source; the core Hetzner Cloud platform itself (Console, Cloud API/hypervisor stack, billing) is proprietary and not released under any OSI license.",
+      "checked": "2026-09-30"
     }
   }
 }

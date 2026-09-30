@@ -84,14 +84,14 @@
     "linux": null,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
     "snapshot": "none",
     "pause_resume": true,
     "fork": true,
-    "persistent_disk": null,
+    "persistent_disk": false,
     "volumes": null,
-    "auto_stop_idle": null,
+    "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": false,
@@ -108,15 +108,15 @@
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
-    "egress_allowlist": null,
-    "static_egress_ip": null,
+    "egress_allowlist": false,
+    "static_egress_ip": false,
     "private_network": true,
     "self_host": false,
     "byoc": true,
     "open_source": true,
     "soc2": null,
     "hipaa": null,
-    "sso": null,
+    "sso": false,
     "gpu_types": [],
     "regions": [],
     "lang_python": false,
@@ -126,9 +126,9 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
-    "live_resize": null,
+    "live_resize": false,
     "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": null,
@@ -151,7 +151,8 @@
     "harness_api": false,
     "own_agent_api": false,
     "guest_firewall": false,
-    "max_session_unlimited": true
+    "max_session_unlimited": true,
+    "volume_attach": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -270,9 +271,9 @@
     },
     "snapshot": {
       "value": "none",
-      "source": "https://docs.lap.dev/core-concepts/architecture/branch-environment-architecture.md",
-      "quote": "A shared baseline environment runs all services once. Developers create lightweight branch environments for only the services they're actively modifying.",
-      "note": "No disk or memory snapshot/restore mechanism is documented; environments are (re)created from the App Catalog blueprint, not from a saved snapshot.",
+      "source": "https://docs.lap.dev/llms-full.txt",
+      "quote": "Each personal environment runs in its own Kubernetes namespace... Lapdev helps mitigate this cost by allowing you to pause and resume environments on demand, automatically scaling down resources when you're not using them.",
+      "note": "Lapdev environments are Kubernetes namespaces running live workload copies (personal/shared/branch), not VM disk images. 'Pause and resume' scales Kubernetes deployments down/up (reducing pod replicas/resources) rather than taking a disk or memory snapshot; branch environments are Git-like HTTP-service overlays, not machine clones/forks. The full docs (llms-full.txt), the pivot blog post, and the GitHub README contain no mention of 'snapshot', 'fork', or 'clone' as a machine/VM-state feature anywhere. No contradiction found: pause/resume of a k8s namespace is a distinct capability from disk/memory snapshotting, and no on-demand/automatic snapshot or fork capability is documented or implied.",
       "checked": "2026-09-30"
     },
     "snapshot_auto": {
@@ -413,6 +414,69 @@
       "source": "https://docs.lap.dev/core-concepts/architecture/branch-environment-architecture.md",
       "quote": "A shared baseline environment runs all services once. Developers create lightweight branch environments for only the services they're actively modifying.",
       "note": "No session/time limit is documented anywhere; environments are long-running Kubernetes deployments that persist until the developer deletes them.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": false,
+      "source": "https://docs.lap.dev/core-concepts/environment.md",
+      "quote": "Services with persistent state (databases, caches) are shared across branches",
+      "note": "not offered: outside the product's scope. Lapdev replicates Deployments/StatefulSets/ConfigMaps/Secrets/Services into namespaces; stateful data is left shared/unreplicated rather than given a Lapdev-managed persistent disk per environment. Disk persistence, if any, is a property of the customer's own cluster storage classes, not a Lapdev feature.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.lap.dev/core-concepts/environment.md",
+      "quote": "1. Select an existing App Catalog that defines your app's workloads 2. Choose an environment type (Personal, Shared, or Branch) 3. Lapdev deploys the workloads",
+      "note": "not offered: outside the product's scope. Lapdev orchestrates Kubernetes workload manifests (Deployments/StatefulSets/ConfigMaps/Secrets/Services); it does not expose an API of its own to attach extra storage volumes to an environment. Volume provisioning, if used, is the customer's own Kubernetes/cloud concern.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": true,
+      "source": "https://docs.lap.dev/core-concepts/environment.md",
+      "quote": "Lapdev helps mitigate this cost by allowing you to pause and resume environments on demand, automatically scaling down resources when you're not using them.",
+      "note": "Phrasing mixes an on-demand pause action with a claim of automatic scale-down when idle; docs do not give a precise idle timeout, so treated as a real but loosely-specified auto-stop-on-idle behavior for Personal Environments.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://lap.dev/pricing/",
+      "quote": "Native product meter; not a general-purpose 4-vCPU/8-GiB VM",
+      "note": "not offered: outside the product's scope. Lapdev does not sell or size VM/CPU/RAM instances itself (compute comes from the customer's own Kubernetes cluster/nodes), so there is no Lapdev-level API to live-resize CPU/RAM of a running environment; no such capability is documented anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.lap.dev/core-concepts/architecture.md",
+      "quote": "Connection is outbound-only from your cluster (no inbound firewall rules needed)",
+      "note": "not offered: outside the product's scope. Lapdev's own connectivity model is a single outbound websocket tunnel from the customer's kube-manager to Lapdev's API server; there is no documented Lapdev feature to allow/deny-list outbound destinations from environments themselves. Egress control, if any, is a customer Kubernetes NetworkPolicy concern, not a Lapdev product feature.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.lap.dev/core-concepts/preview-url.md",
+      "quote": "Custom rules** are marked coming soon",
+      "note": "not offered: outside the product's scope currently. Lapdev's documented per-path/method control ('Custom rules') only applies to inbound Preview URL access and is explicitly marked as not yet shipped ('coming soon'); no HTTP-method/path-level egress rule feature is documented at all.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.lap.dev/core-concepts/architecture.md",
+      "quote": "Connection is outbound-only from your cluster (no inbound firewall rules needed)",
+      "note": "not offered: outside the product's scope. Outbound networking for environments comes from the customer's own Kubernetes cluster/cloud; Lapdev does not document assigning or offering a fixed outbound IP for environments it orchestrates.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://lap.dev/pricing/",
+      "quote": "Native product meter; not a general-purpose 4-vCPU/8-GiB VM",
+      "note": "not offered: outside the product's scope. Lapdev does not provide or size compute itself; it deploys workload copies into the customer's own Kubernetes cluster, so CPU architecture (x86/arm64) is entirely determined by the customer's own nodes and is never mentioned as a Lapdev-selectable option.",
+      "checked": "2026-09-30"
+    },
+    "sso": {
+      "value": false,
+      "source": "https://docs.lap.dev/core-concepts/architecture.md",
+      "quote": "User authentication and authorization - GitHub/GitLab OAuth, team management",
+      "note": "Documented authentication is GitHub/GitLab OAuth only; no SAML/OIDC enterprise single sign-on is mentioned anywhere in the docs, pricing, or blog.",
       "checked": "2026-09-30"
     }
   }

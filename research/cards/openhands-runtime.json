@@ -3,7 +3,7 @@
   "name": "OpenHands Remote Sandbox / Cloud",
   "url": "https://docs.openhands.dev/openhands/usage/sandboxes/remote",
   "category": "dev-env",
-  "isolation": null,
+  "isolation": "container",
   "modes": [
     {
       "key": "cloud",
@@ -132,30 +132,30 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
+    "windows": false,
+    "macos": false,
     "arm64": null,
-    "gpu": null,
-    "snapshot": null,
+    "gpu": false,
+    "snapshot": "none",
     "pause_resume": true,
-    "fork": null,
-    "persistent_disk": null,
+    "fork": false,
+    "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
-    "max_session_h": null,
+    "auto_stop_idle": true,
+    "max_session_h": 12,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": true,
     "root": null,
     "systemd": null,
-    "browser": null,
-    "desktop": null,
-    "computer_use": null,
+    "browser": true,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
     "agent_harnesses": true,
-    "ssh": null,
-    "public_ipv4": null,
-    "inbound_https": null,
+    "ssh": false,
+    "public_ipv4": false,
+    "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": false,
@@ -169,31 +169,39 @@
     "sso": true,
     "gpu_types": [],
     "regions": [],
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
-    "fork_running": null,
-    "memory_snapshot_fork": null,
+    "egress_http_rules": false,
+    "wake_on_request": true,
+    "live_resize": false,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": false,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
     "harness_api": true,
     "ingress_rules": true,
-    "secret_proxy": "ai-only"
+    "secret_proxy": "ai-only",
+    "isolation": "container",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "volume_shared": false,
+    "own_agent_api": false,
+    "guest_firewall": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -271,6 +279,237 @@
       "quote": "The `openhands/` prefix tells the SDK to automatically route requests to the OpenHands LLM proxy—no need to manually set a base URL.",
       "note": "Only the OpenHands LLM provider acts as a proxy. It is a LiteLLM gateway (llm-proxy.app.all-hands.dev), so the upstream model keys stay out of the sandbox, but an OpenHands LLM key is still used inside. Custom secrets are plain env vars: 'All custom secrets are automatically exported as environment variables in the agent's runtime environment' (secrets-settings). SDK LookupSecret values are 'resolved lazily by the agent-server inside the sandbox'. Output masking exists, but there is no credential-injecting proxy for arbitrary HTTP, git, databases or SSH.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://docs.openhands.dev/enterprise/docker-in-sandbox.md",
+      "quote": "each sandbox runs under a hardened container runtime that provides kernel-level isolation between the agent's workload and the host node... Root inside a nested container is not root on the node... The isolation runtime is chosen by the operator through a Kubernetes RuntimeClass",
+      "note": "Sandboxes are Kubernetes pods (one pod per sandbox) using a selectable hardened container RuntimeClass (the admin console exposes a 'Sandbox Isolation' setting, e.g. Sysbox-style user-namespace remapping), not a per-tenant hypervisor VM. Classified as shared-kernel container isolation with strong hardening, not firecracker/kata/gvisor/VM.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://docs.openhands.dev/enterprise/custom-sandbox-image.md",
+      "quote": "Custom sandbox images let you prebake the repository, dependencies, compiled output, and test harness your agents need... Publish the image to a registry reachable from your OpenHands cluster.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.openhands.dev/enterprise/docker-in-sandbox.md",
+      "quote": "Agents in OpenHands Enterprise can run a Docker daemon inside their own sandbox... Docker is already installed in the standard Enterprise sandbox image, and the agent will start the Docker daemon the first time it needs it.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": true,
+      "source": "https://docs.openhands.dev/enterprise/vm-install/admin-console-configuration.md",
+      "quote": "`Enable /dev/kvm passthrough (QEMU/KVM)` | Makes host KVM acceleration available inside sandboxes. The node must expose `/dev/kvm`.",
+      "note": "Self-hosted Enterprise admin console setting; requires the underlying node to expose /dev/kvm.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.openhands.dev/openhands/usage/sandboxes/remote",
+      "quote": "A remote sandbox runs the agent server in a remote execution environment instead of on your local machine.",
+      "note": "not offered: outside the product's scope — the sandbox exposes a terminal/file-editor/browser-tool agent workspace (plus a VS Code URL); no VNC/RDP graphical desktop is documented.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": true,
+      "source": "https://docs.openhands.dev/sdk/guides/agent-browser-use.md",
+      "quote": "The BrowserToolSet integration enables your agent to interact with web pages through automated browser control. Built on top of browser-use, it provides capabilities for navigating websites, clicking elements, filling forms, and extracting content",
+      "note": "Managed, real (Chromium-based via browser-use/Playwright) browser tool available to the agent inside the sandbox.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.openhands.dev/sdk/guides/agent-browser-use.md",
+      "quote": "The BrowserToolSet integration enables your agent to interact with web pages through automated browser control.",
+      "note": "not offered: outside the product's scope — browser interaction is DOM/action-based (browser-use), and there is no documented desktop screenshot+click computer-use API (no desktop/GUI exists to drive).",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://docs.openhands.dev/sdk/guides/agent-browser-use.md",
+      "quote": "The BrowserToolSet integration enables your agent to interact with web pages through automated browser control.",
+      "note": "not offered: outside the product's scope — no stealth/fingerprinting-evasion capability is documented for the coding-agent browser tool.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://docs.openhands.dev/sdk/guides/agent-browser-use.md",
+      "quote": "The BrowserToolSet integration enables your agent to interact with web pages through automated browser control.",
+      "note": "not offered: outside the product's scope — no built-in CAPTCHA-solving capability is documented.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://app.vanta.com/openhands.dev/trust/an0kgh9goh7xyqkhsb6tlp",
+      "quote": "Google Cloud Platform • Cloud provider • us-central1",
+      "note": "Managed OpenHands Cloud sandboxes run on Kubernetes (GCP-hosted per the trust-center subprocessor list); outbound traffic is ordinary datacenter/cloud IP space, not residential/mobile.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.openhands.dev/openhands/usage/sandboxes/remote",
+      "quote": "Remote sandboxes may expose additional service URLs (e.g., VS Code, app ports) depending on the provider.",
+      "note": "No documented SSH-into-sandbox feature; access to the sandbox is via the Agent Server HTTP/WebSocket API and tokenized service URLs (e.g. VS Code), not SSH. The only SSH references in the docs are about SSH-ing into your own self-hosting VM or SSH git remotes.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.openhands.dev/openhands/usage/api/v1.md",
+      "quote": "**Sandboxes**: list/start/pause/resume the execution environments that power conversations.",
+      "note": "No snapshot/checkpoint or template-from-sandbox endpoint exists (create/search/get/pause/resume/delete only). Pausing releases CPU/memory but keeps the PVC; there is no user-facing memory or filesystem snapshot/restore-to-new-machine capability.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.openhands.dev/sdk/guides/convo-fork.md",
+      "quote": "Fork a Conversation: Branch off an existing conversation for follow-up exploration without contaminating the original.",
+      "note": "'Fork' in OpenHands clones the conversation history/state, not the sandbox machine; there is no API to clone a running sandbox into a new one.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.openhands.dev/sdk/guides/convo-fork.md",
+      "quote": "Fork a Conversation: Branch off an existing conversation for follow-up exploration without contaminating the original.",
+      "note": "Same reasoning as fork: conversation-level branching only, not a running-machine clone.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.openhands.dev/sdk/guides/convo-fork.md",
+      "quote": "Fork a Conversation: Branch off an existing conversation for follow-up exploration without contaminating the original.",
+      "note": "No machine cloning/snapshot feature exists at all, so a memory-preserving fork is not offered.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": true,
+      "source": "https://docs.openhands.dev/enterprise/conversations-and-sandboxes.md",
+      "quote": "A paused conversation is resumed automatically on next access.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "source": "https://docs.openhands.dev/enterprise/conversations-and-sandboxes.md",
+      "quote": "After a conversation has been idle... for this long, its sandbox is paused, releasing CPU and memory... A paused conversation is resumed automatically on next access.",
+      "note": "Each sandbox's filesystem is backed by a Kubernetes PersistentVolumeClaim that survives pause/resume; only when the 'Deletion Time' elapses is the storage permanently deleted.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.openhands.dev/enterprise/conversations-and-sandboxes.md",
+      "quote": "A sandbox can contain one conversation or several, depending on placement... Two conversations in the same sandbox... share the sandbox's filesystem, credentials, compute limits, and failure domain.",
+      "note": "Filesystem sharing only happens between conversations placed in the same single sandbox; no mechanism shares one volume across multiple independently-running sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": true,
+      "source": "https://docs.openhands.dev/enterprise/conversations-and-sandboxes.md",
+      "quote": "Idle Time (seconds) — After a conversation has been idle (no agent or user activity) for this long, its sandbox is paused, releasing CPU and memory.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.openhands.dev/enterprise/vm-install/admin-console-configuration.md",
+      "quote": "`Memory Request` | Memory reserved for each sandbox. | `Memory Limit` | Maximum memory available to each sandbox. | `CPU Request` | CPU reserved for each sandbox. | `CPU Limit` | Maximum CPU available to each sandbox.",
+      "note": "CPU/RAM are fixed, deployment-wide admin settings applied per new sandbox; no documented API to change a single running sandbox's CPU/RAM without recreating it.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.openhands.dev/enterprise/conversations-and-sandboxes.md",
+      "quote": "Start a conversation | `POST /api/v1/app-conversations` |",
+      "note": "not offered: outside the product's scope — the first-party API drives OpenHands' own coding agent (already captured by harness_api); there is no separate first-party browser/computer-use/research task-agent API distinct from the coding harness.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.openhands.dev/sdk/arch/mcp.md",
+      "quote": "The MCP Integration system enables agents to use external tools via the Model Context Protocol (MCP). It provides a bridge between MCP servers and the Software Agent SDK's tool system",
+      "note": "OpenHands acts as an MCP client that connects to external MCP servers; it does not ship its own MCP server for controlling its sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.openhands.dev/enterprise/custom-sandbox-image.md",
+      "quote": "ghcr.io/openhands/agent-server:<release>-python, which already includes Python and Node.js.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.openhands.dev/enterprise/custom-sandbox-image.md",
+      "quote": "ghcr.io/openhands/agent-server:<release>-python, which already includes Python and Node.js.",
+      "note": null,
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.openhands.dev/enterprise/vm-install/admin-console-configuration.md",
+      "quote": "`Sandbox Routing Mode` | Uses subdomains or another supported routing mode for sandbox traffic.",
+      "note": "Sandbox traffic is routed by subdomain/ingress and tokenized service URLs (e.g. VS Code); no documented per-sandbox public IPv4 address.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": true,
+      "source": "https://docs.openhands.dev/enterprise/vm-install/admin-console-configuration.md",
+      "quote": "`Sandbox Routing Mode` | Uses subdomains or another supported routing mode for sandbox traffic.",
+      "note": "Sandboxes expose additional service URLs (VS Code, app ports) reachable over HTTPS via subdomain routing plus per-sandbox session/token auth.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.openhands.dev/enterprise/docker-in-sandbox.md",
+      "quote": "Controlling where sandboxes can reach on your wider network is governed by where you place the OpenHands Enterprise instance... use your VPC and subnet placement, security groups, or on-premises firewall rules to constrain the instance's egress",
+      "note": "Only whole-instance network placement/firewalling is documented; no per-sandbox HTTP method/path-level egress rule feature exists.",
+      "checked": "2026-09-30"
+    },
+    "guest_firewall": {
+      "value": false,
+      "source": "https://docs.openhands.dev/enterprise/docker-in-sandbox.md",
+      "quote": "Sandbox processes run as a non-root user, and nested containers are confined by user namespaces. Root inside a nested container is not root on the node.",
+      "note": "Sandboxes are unprivileged, non-root Kubernetes pods (not a full VM/microVM with true root), so guest-side nftables/iptables control of the sandbox's own network namespace is not guaranteed.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.openhands.dev/openhands/usage/how-to/cli-mode.md",
+      "quote": "`--gpu` | Enable GPU support via nvidia-docker",
+      "note": "not offered: outside the product's scope for the managed/remote sandbox — the documented `--gpu` flag is for the local `openhands serve` CLI using your own machine's NVIDIA GPU via nvidia-docker, not a GPU sandbox offered by OpenHands Cloud or Enterprise.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.openhands.dev/openhands/usage/sandboxes/remote",
+      "quote": "A remote sandbox runs the agent server in a remote execution environment instead of on your local machine.",
+      "note": "not offered: outside the product's scope — sandboxes are Linux containers (agent-server base images are Linux-based); no Windows machine option is documented.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.openhands.dev/openhands/usage/sandboxes/remote",
+      "quote": "A remote sandbox runs the agent server in a remote execution environment instead of on your local machine.",
+      "note": "not offered: outside the product's scope — sandboxes are Linux containers; no macOS machine option is documented.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://www.openhands.dev/enterprise",
+      "quote": "Self-hosted in your VPC via Kubernetes. Your code never leaves your environment. No shared tenancy.",
+      "note": "OpenHands Enterprise (one of this card's two modeled modes) is deployed into the customer's own Kubernetes/VPC, so a customer can choose an EU region for the sandbox/data plane; the managed OpenHands Cloud SaaS itself only lists a GCP us-central1 subprocessor with no EU region offered.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": 12,
+      "source": "https://docs.openhands.dev/enterprise/conversations-and-sandboxes.md",
+      "quote": "a single running session is capped at a maximum of 12 hours. This cap applies even to a continuously-active conversation: once a session has been running for 12 hours it is force-paused... This maximum session duration is not currently configurable.",
+      "note": "Documented for self-hosted Enterprise (one of this card's modeled modes); resuming starts a new 12-hour window (pause/resume, not a hard delete), so it is a run-length cap rather than an absolute lifetime limit. Not separately confirmed for the managed Cloud SaaS mode.",
+      "checked": "2026-09-30"
     }
   }
 }

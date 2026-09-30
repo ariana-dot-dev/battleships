@@ -133,55 +133,55 @@
   },
   "features": {
     "linux": true,
-    "windows": null,
-    "macos": null,
-    "arm64": null,
-    "gpu": null,
+    "windows": false,
+    "macos": false,
+    "arm64": false,
+    "gpu": false,
     "snapshot": "fs",
     "pause_resume": true,
     "fork": true,
-    "persistent_disk": null,
+    "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": true,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": null,
-    "desktop": null,
-    "computer_use": null,
+    "browser": false,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": null,
-    "ssh": null,
-    "public_ipv4": null,
+    "agent_harnesses": false,
+    "ssh": false,
+    "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
-    "self_host": null,
-    "byoc": null,
-    "open_source": null,
+    "self_host": false,
+    "byoc": false,
+    "open_source": true,
     "soc2": null,
     "hipaa": null,
     "sso": null,
     "gpu_types": [],
     "regions": [],
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": false,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": null,
-    "memory_snapshot_fork": null,
+    "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": true,
     "audit_logs": null,
@@ -189,13 +189,20 @@
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": true,
-    "mcp_server": null,
+    "mcp_server": true,
     "snapshot_on_demand": true,
     "own_agent_api": true,
     "harness_api": false,
     "ingress_rules": true,
     "guest_firewall": true,
-    "volume_attach": true
+    "volume_attach": true,
+    "isolation": "firecracker",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "snapshot_auto": false,
+    "volume_shared": false,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -283,6 +290,223 @@
       "quote": "Durable volumes accrue storage usage while retained.",
       "note": "Durable volumes: SDK create({volumes:[{name, mountPath, storageGb, deleteOnSandboxDelete}]}); pricing page: Volumes 2 (Free) / 20 (Starter, Pro), retained volume storage 5/100/100 GiB; $0.00000002/GiB-s (~$0.0518/GiB-month).",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "firecracker",
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox-template/manifest.ts",
+      "quote": "managed database requests are unsupported for Firecracker sandbox templates; use a durable volume with SQLite or files instead",
+      "note": "Confirmed further by apps/cli/test/cli-sandbox-record-fixtures.ts: defaultExecutionProfileId: \"firecracker-direct-k8s\".",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox-template/manifest.ts",
+      "quote": "ref: OciImageRefSchema, digest: OciDigestSchema.optional(), registrySecretRef: ..., platform: z.literal(\"linux/amd64\").optional()",
+      "note": "openpond.yaml runtime accepts exactly one of base, snapshot, image (OCI ref+digest), or dockerfile (build context).",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://github.com/openpond/openpond/blob/master/apps/server/src/openpond/command-access.ts",
+      "quote": "docker\\s+(?:run|build|compose) ... docker\\s+(?:volume\\s+rm|system\\s+prune|container\\s+rm)",
+      "note": "The command-risk/allowlist classifier explicitly recognizes docker run/build/compose/system as commands an agent can execute inside a sandbox session; not stated on a marketing page.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/apps/cli/test/cli-sandbox-record-fixtures.ts",
+      "quote": "defaultExecutionProfileId: \"firecracker-direct-k8s\"",
+      "note": "derived: sandboxes are Firecracker microVMs; no /dev/kvm-in-guest or nested-virtualization capability is documented anywhere in the SDK/docs.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://openpond.ai/docs/sandbox-sdk",
+      "quote": "Run agentic work or control an isolated OpenPond sandbox from server-side TypeScript.",
+      "note": "not offered: outside the product's scope. Cloud sandboxes are headless Linux compute (files/exec/processes/ports) reached via SDK/API; the only graphical desktop is the local Electron app on the user's own machine, not a streamed sandbox desktop.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/apps/server/src/openpond/browser-control-queue.ts",
+      "quote": "registerDesktopExecutor(payload: unknown): { ok: true; registered: true; instanceId: string }",
+      "note": "not offered: outside the product's scope. The browser-control queue drives the browser embedded in the local Desktop Electron app (registerDesktopExecutor), not a browser inside a cloud sandbox.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/apps/server/src/openpond/browser-control-queue.ts",
+      "quote": "click, typeText, pressKey, scroll, moveCursor ... BrowserHarnessToolExecutor",
+      "note": "not offered: outside the product's scope. Screenshot/click-style control tools target the local Desktop app's browser view, not the cloud sandbox VM.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://openpond.ai/pricing",
+      "quote": "Sandbox compute $0.0000333/second About $0.12/hour for the default 1 vCPU, 2 GiB memory, and 10 GiB VM disk configuration.",
+      "note": "not offered: outside the product's scope. OpenPond sandboxes are general-purpose Linux compute for agent work, not a browser-automation/stealth product.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://openpond.ai/pricing",
+      "quote": "Sandbox compute $0.0000333/second About $0.12/hour for the default 1 vCPU, 2 GiB memory, and 10 GiB VM disk configuration.",
+      "note": "not offered: outside the product's scope; no CAPTCHA-solving capability is documented anywhere.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://openpond.ai/docs/sandbox-sdk/files-processes-and-previews",
+      "quote": "Use exec for bounded setup and checks. Use startProcess for a service that must stay alive while you inspect it or open a preview.",
+      "note": "Access to a sandbox is exclusively via the SDK/API (exec, startProcess, pty-* CLI subcommands); no SSH endpoint or ssh key/keypair feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_auto": {
+      "value": false,
+      "source": "https://openpond.ai/docs/sandbox-sdk/runtimes-snapshots-and-cleanup",
+      "quote": "Create a snapshot when a prepared filesystem is worth reusing. A snapshot can be validated, published as an approved template where supported, or forked into another sandbox.",
+      "note": "Snapshots are created explicitly via createSnapshot/checkpointHint calls; no documentation describes an automatic snapshot-and-restore on stop/sleep/timeout.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://openpond.ai/docs/sandbox-sdk/runtimes-snapshots-and-cleanup",
+      "quote": "Create a snapshot when a prepared filesystem is worth reusing.",
+      "note": "Snapshots/forks are described only in filesystem terms (a 'prepared filesystem'); no mention of memory state or running processes being preserved across a fork.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox/sandbox-instance-client.ts",
+      "quote": "start(sandboxId: string, options: SandboxAsyncRequestOptions = {}): Promise<SandboxStartResponse>",
+      "note": "Stopped sandboxes are resumed only via an explicit start()/restore() API call; no auto-wake-on-inbound-request behavior is documented.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "source": "https://openpond.ai/docs/sandbox-sdk/work-sandboxes-and-runtimes",
+      "quote": "Raw sandbox | Your application | The sandbox filesystem until you stop, archive, or delete it",
+      "note": "Filesystem persists across stop/start (start/restore APIs resume the same sandbox); only an explicit delete removes it.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://openpond.ai/docs/sandbox-sdk/pricing-and-budgets",
+      "quote": "Durable volumes accrue storage usage while retained.",
+      "note": "Volumes are declared per-sandbox at create({volumes:[{name, mountPath, storageGb, ...}]}); no documented mechanism to mount one volume into several simultaneously-running sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://openpond.ai/docs/sandbox-sdk/runtimes-snapshots-and-cleanup",
+      "quote": "resources : { cpu : 2 , memoryGb : 4 , diskGb : 16 }",
+      "note": "cpu/memory/disk are set only at sandbox-creation time in every documented example; no resize-while-running API is documented.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox/types/runtime-profiles.ts",
+      "quote": "SANDBOX_RUNTIME_PROFILE_IDS = [\"openpond-generic-v1\", \"openpond-work-v1\", \"openpond-coding-core-v1\", \"openpond-agent-harness-v1\"]",
+      "note": "Runtime profile IDs hint at an internal 'agent-harness' sandbox profile, but its contents are undocumented; no public page states that third-party coding agents (Claude Code, Codex, OpenCode) are preinstalled or offered as templates.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox/client.ts",
+      "quote": "mcpServerConfig(): OpenPondSandboxMcpServerConfig { return { name: \"openpond-sandboxes\", transport: \"streamable-http\", url: `${this.sandboxApiUrl}/mcp`, ... } }",
+      "note": "SDK exposes client.mcpServerConfig() and the CLI has `sandbox mcp-config`/`mcp-url` subcommands pointing at a streamable-http MCP endpoint for controlling sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox-template/manifest.ts",
+      "quote": "base: node-bun-workspace",
+      "note": "The only documented/default runtime base across SDK examples and manifests is the Node+Bun workspace image; Python is only available if the user brings a custom Dockerfile/OCI image.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://openpond.ai/docs/sandbox-sdk",
+      "quote": "Requirements: Node.js 22.14 or newer and earlier than Node 25.",
+      "note": "Default sandbox base image is 'node-bun-workspace' and all SDK examples write/run Node.js (node server.mjs) scripts inside the sandbox.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://openpond.ai/docs/sandbox-sdk/files-processes-and-previews",
+      "quote": "const preview = await openpond.sandboxes.openPort(sandbox.id, { port: 3000, label: \"example-service\", access: \"private\" });",
+      "note": "Inbound access is via opened preview ports that mint HTTPS preview URLs, not a per-machine public IPv4 address.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox-template/manifest.ts",
+      "quote": "egress: z.enum([\"restricted\", \"allow\", \"block\"]).default(\"restricted\")",
+      "note": "Egress control is host/allowlist-level (networkPolicy.allowedHosts, template network.egress), not documented at HTTP method/path granularity.",
+      "checked": "2026-09-30"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/docs/public/openpond-connect.md",
+      "quote": "OpenPond Connect is the website-based flow for connecting OAuth providers and third-party services to OpenPond. ... Lets agents request provider access without committing raw tokens.",
+      "note": "Credential handling (OpenPond Connect) is scoped to a fixed set of OAuth integrations (google, github, x per manifest.ts INTEGRATION_PROVIDERS), not a generic proxy injecting credentials into arbitrary HTTP calls.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox-template/manifest.ts",
+      "quote": "egress: z.enum([\"restricted\", \"allow\", \"block\"]).default(\"restricted\")",
+      "note": "No dedicated/fixed outbound IP feature is documented anywhere in the pricing page, docs, or SDK/manifest source.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://openpond.ai/docs/sandbox-sdk/pricing-and-budgets",
+      "quote": "Resource Meter Current rate Hourly equivalent vCPU vCPU-second ... Memory GiB-second ... VM disk GiB-second ... Durable volume GiB-second",
+      "note": "not offered: outside the product's scope. Only vCPU/memory/disk/volume meters exist; no GPU resource, meter, or size tier is published.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox-template/manifest.ts",
+      "quote": "platform: z.literal(\"linux/amd64\").optional()",
+      "note": "not offered: outside the product's scope. Cloud sandboxes are Linux/amd64 Firecracker microVMs; the separate Desktop client's Windows build is also currently paused per docs/public/desktop.md.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox-template/manifest.ts",
+      "quote": "platform: z.literal(\"linux/amd64\").optional()",
+      "note": "not offered: outside the product's scope. Cloud sandboxes are Linux/amd64 microVMs; macOS is only a target for the local Desktop client, not a sandbox OS.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/packages/cloud/src/sandbox-template/manifest.ts",
+      "quote": "platform: z.literal(\"linux/amd64\").optional()",
+      "note": "Custom-image and Dockerfile runtimes only accept the linux/amd64 platform literal; no arm64 sandbox option is exposed.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://github.com/openpond/openpond/blob/master/docs/public/local-cloud.md",
+      "quote": "Hybrid uses OpenPond Cloud resources, so it requires an OpenPond account.",
+      "note": "The open-source repo ships the client SDK/CLI/manifest schema (MIT), but the actual Firecracker sandbox execution backend is only reachable through OpenPond's hosted api.openpond.ai; no self-hosted sandbox-provisioning backend is published.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://openpond.ai/pricing",
+      "quote": "Enterprise Custom ... Dedicated sandbox capacity ... Custom billing and support terms.",
+      "note": "Enterprise offers dedicated capacity within OpenPond's own infrastructure; no deploy-into-your-own-cloud-account (BYOC) option is documented.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": true,
+      "source": "https://github.com/openpond/openpond/blob/master/LICENSE",
+      "quote": "MIT License Copyright (c) 2026 OpenPond contributors",
+      "note": "package.json also declares \"license\": \"MIT\" for the openpond/openpond monorepo (Desktop, CLI, TUI, cloud SDK, harness).",
+      "checked": "2026-09-30"
     }
   }
 }

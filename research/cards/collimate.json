@@ -116,35 +116,35 @@
     "windows": false,
     "macos": false,
     "arm64": null,
-    "gpu": null,
+    "gpu": false,
     "snapshot": "mem",
     "pause_resume": true,
     "fork": true,
-    "persistent_disk": null,
+    "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": null,
-    "max_session_h": null,
+    "auto_stop_idle": false,
+    "max_session_h": 24,
     "custom_image": true,
     "docker_inside": null,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": true,
-    "desktop": null,
-    "computer_use": null,
+    "desktop": false,
+    "computer_use": false,
     "code_interpreter": true,
-    "agent_harnesses": null,
-    "ssh": null,
-    "public_ipv4": null,
+    "agent_harnesses": false,
+    "ssh": false,
+    "public_ipv4": false,
     "inbound_https": false,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": false,
     "private_network": null,
     "self_host": true,
     "byoc": true,
-    "open_source": null,
+    "open_source": false,
     "soc2": null,
     "hipaa": null,
     "sso": true,
@@ -157,9 +157,9 @@
     "lang_java": null,
     "gpu_desktop": null,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
@@ -176,7 +176,14 @@
     "snapshot_on_demand": true,
     "harness_api": false,
     "egress_allowlist_level": "domain",
-    "ingress_rules": true
+    "ingress_rules": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "volume_attach": false,
+    "volume_shared": false,
+    "own_agent_api": false,
+    "secret_proxy": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -265,6 +272,160 @@
       "quote": "Mint a signed, time-boxed URL to a port inside a running sandbox — the connect-from-outside primitive.",
       "note": "Pro/Enterprise only; token HMAC-scoped to (tenant, sandbox, port, exp), revoked on delete; only the template's exposed ports (else 409 port_not_exposed); WebSocket tunnel (tcp or cdp) or Bearer key. No public URLs, no IP allowlists.",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.collimate.ai/llms.txt",
+      "quote": "Every sandbox is a hardware-isolated Firecracker microVM.",
+      "note": "not offered: no /dev/kvm, VM, or emulator capability is documented anywhere in the API/exec/templates docs; outside the scope of a short-lived Firecracker microVM built for code exec and browser rollouts.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.collimate.ai/cookbook/live-browser/",
+      "quote": "setsid \"$CH\" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --remote-debugging-port=9222 --remote-allow-origins=*",
+      "note": "not offered: the only GUI-adjacent surface is a headless Chromium reached via CDP; no VNC/RDP/streamed desktop is documented.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.collimate.ai/cookbook/remote-browser/",
+      "quote": "Point a local Playwright at that URL with connect_over_cdp. The script runs on your machine; every navigation and selector is executed by the browser inside the sandbox.",
+      "note": "not offered: browser control is via CDP/Playwright selectors, not a screenshot+click computer-use API; outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://collimate.ai/pricing",
+      "quote": "Fast live-fork microVM sandboxes for agents & RL.",
+      "note": "not offered: no stealth/fingerprinting claims anywhere; product is a general microVM sandbox/RL platform, not a scraping/anti-bot tool.",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://collimate.ai/pricing",
+      "quote": "Fast live-fork microVM sandboxes for agents & RL.",
+      "note": "not offered: outside the product's scope (microVM sandbox + RL rollout infra, not a CAPTCHA-solving service).",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.collimate.ai/core/egress/",
+      "quote": "Collimate applies an egress policy per sandbox ... sandbox egress to the cloud metadata endpoint (169.254.169.254) is blocked.",
+      "note": "No residential/mobile IP product is documented; outbound traffic runs from the provider's cloud fleet (standard datacenter egress) behind a per-sandbox host allowlist.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.collimate.ai/cookbook/access-models/",
+      "quote": "exec-in-guest ... you hand it a command ... connect-from-outside ... The SDK gives you a signed, per-sandbox URL to a port inside the guest.",
+      "note": "not offered: the two documented access models are the exec API and a signed connect-url/websocket tunnel to an exposed port (browser/CDP, DB, model server); no SSH endpoint or SSH key mechanism is documented.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.collimate.ai/core/lifecycle/",
+      "quote": "suspend — POST /v1/sandboxes/{id}/suspend snapshots the sandbox to disk, reclaims its RAM, and stops the meter. resume — POST /v1/sandboxes/{id}/resume restores a suspended sandbox back to running.",
+      "note": "Resuming a suspended sandbox requires an explicit resume API call; no mechanism wakes a suspended sandbox automatically when an inbound request arrives.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "source": "https://docs.collimate.ai/core/suspend-resume/",
+      "quote": "Suspend freezes a running sandbox to disk: its running guest process is snapshotted, its RAM is reclaimed, and its network is released — but the sandbox is fully resumable by id.",
+      "note": "Suspend/resume is the stop/start analogue here and preserves the full filesystem (and memory) state, billed as snapshot storage while suspended.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.collimate.ai/core/files/",
+      "quote": "Files: byte-exact upload/download over the exec channel.",
+      "note": "not offered: storage is the sandbox's own disk (persisted via suspend snapshots); no separate attachable/detachable volume resource is documented.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.collimate.ai/cookbook/live-browser/",
+      "quote": "Log in inside the rollout on first use and persist Playwright's storage_state to the fork's own disk (per-fork, never shared), so later steps in the same episode reuse the session.",
+      "note": "Storage is explicitly per-sandbox/per-fork and never shared between concurrently running sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://docs.collimate.ai/reference/limits/",
+      "quote": "Session duration — a sandbox that outlives your tier's max session is reaped. Persist anything you need and re-create, or suspend before the cap.",
+      "note": "Only a hard per-tier session-duration cap (reap) exists; there is no documented idle-based auto-suspend, and suspend is described as an explicit API call, not an automatic idle trigger.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://collimate.ai/pricing",
+      "quote": "vCPU $0.040 / vCPU-hour, billed per second while running. Memory $0.012 / GB-hour, billed per second while running.",
+      "note": "not offered: sandbox size is fixed by the template it was created/forked from; the API has no vCPU/RAM parameter and no resize endpoint is documented.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.collimate.ai/core/templates/",
+      "quote": "python Python 3 ... node Node.js ... browser A headful browser driven over CDP. python-ml Python...",
+      "note": "The template catalog is language/runtime templates (python, node, browser, python-ml), not preinstalled coding-agent harnesses (Claude Code, Codex, OpenCode, etc.).",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.collimate.ai/llms.txt",
+      "quote": "One engine, two audiences (agentic API/MCP, and the collimate-rl SDK for rollouts).",
+      "note": "not offered: outside the product's scope — Collimate ships sandbox/fork infrastructure that outside agents (Claude Code, custom RL loops) drive; it does not ship its own browsing/computer-use/research agent.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.collimate.ai/cookbook/remote-browser/",
+      "quote": "the address is a platform-managed endpoint on api.collimate.ai. Available on Pro connect_url / cdp_url and browser egress are Pro capabilities.",
+      "note": "Inbound reachability is only via a signed, time-boxed connect-url/websocket tunnel to one exposed port on the shared platform domain; no per-sandbox public IPv4 is documented.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.collimate.ai/core/egress/",
+      "quote": "egress policy resolves in this order, most specific wins ... { \"egress\": { \"allow\": [\"api.github.com\", \"pypi.org\"] } }",
+      "note": "Egress control is a host allowlist (per-sandbox/per-exec/per-fork), not HTTP method/path-level rules.",
+      "checked": "2026-09-30"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://docs.collimate.ai/cookbook/live-browser/",
+      "quote": "store it in Collimate's secret store and inject it at sandbox-create time, where it reaches the sandbox through the sealed credential proxy — never the artifact, never a log.",
+      "note": "This is a secret store that delivers/injects the credential into the sandbox at create time (so it isn't baked into a shared image/log) — the secret still enters the guest, unlike a proxy that keeps the secret out of the machine entirely for arbitrary HTTP APIs.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": false,
+      "source": "https://docs.collimate.ai/core/egress/",
+      "quote": "{ \"egress\": { \"allow\": [\"api.github.com\", \"pypi.org\"] } }",
+      "note": "Egress is controlled by a destination-hostname allowlist; no fixed/static outbound IP feature is documented.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://collimate.ai/pricing",
+      "quote": "vCPU $0.040 / hr · RAM $0.012 / GB-hr · suspended storage $0.10 / GB-mo · spawning and forking free.",
+      "note": "Only vCPU and RAM are metered/priced; no GPU instance type or GPU pricing is mentioned anywhere on the pricing or docs pages.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/collimate-ai/collimate",
+      "quote": "404",
+      "note": "The GitHub org link surfaced on the docs site (collimate-ai/collimate) resolves to GitHub's 404 page; no public OSS repository or license for the core platform was found. Collimate is a closed-source hosted SaaS.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": 24,
+      "source": "https://docs.collimate.ai/reference/limits/",
+      "quote": "Max session duration 1 hour 24 hours unlimited",
+      "note": "Demo caps at 1h, Pro ('most teams') at 24h, Enterprise is uncapped/unlimited per the API. 24h (Pro) given as the representative value.",
+      "checked": "2026-09-30"
     }
   }
 }

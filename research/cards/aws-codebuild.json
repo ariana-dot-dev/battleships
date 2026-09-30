@@ -1118,29 +1118,29 @@
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
-    "volumes": false,
+    "persistent_disk": true,
+    "volumes": true,
     "auto_stop_idle": true,
-    "max_session_h": null,
+    "max_session_h": 36,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": null,
+    "browser": false,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
-    "ssh": null,
+    "ssh": true,
     "public_ipv4": false,
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": null,
+    "static_egress_ip": true,
     "private_network": true,
-    "self_host": false,
+    "self_host": true,
     "byoc": false,
     "open_source": false,
     "regions": [
@@ -1159,7 +1159,7 @@
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
+    "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
     "fork_running": false,
@@ -1167,7 +1167,7 @@
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -1180,7 +1180,13 @@
     "guest_firewall": true,
     "secret_proxy": false,
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "isolation": "container",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -1282,6 +1288,226 @@
       "quote": "You might want to create your AWS CodeBuild builds on Amazon Elastic File System, a scalable, shared file service for Amazon EC2 instances.",
       "note": "EFS is a network file system that concurrent builds (and EC2 instances) can mount read-write at the same time; billed separately by EFS.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "container",
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sandbox.html",
+      "quote": "\"environment\": { \"type\": \"LINUX_CONTAINER\", \"image\": \"aws/codebuild/standard:6.0\", \"computeType\": \"BUILD_GENERAL1_SMALL\", ... \"privilegedMode\": false",
+      "note": "Default on-demand builds run as LINUX_CONTAINER (shared-kernel container) on CodeBuild-managed hosts, matching the card's top-level isolation. Reserved-capacity fleets and EC2-based compute types give a dedicated EC2 VM instead, but the modeled default modes are container-based.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/create-project.html",
+      "quote": "To use another Docker image, choose Custom image . For Environment type , choose ARM , Linux , Linux GPU , or Windows . ... If you choose Other registry , for External registry URL , enter the name and tag of the Docker image in Docker Hub ... If you choose Amazon ECR , use Amazon ECR repository and Amazon ECR image",
+      "note": "Build projects can start from any custom Docker image in Docker Hub, Amazon ECR, or another OCI-compatible registry (private images supported via Secrets Manager credentials).",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker-custom-image.html",
+      "quote": "By default, Docker daemon is enabled for non-VPC builds. If you would like to use Docker containers for VPC builds ... enable privileged mode. Also, Windows does not support privileged mode.",
+      "note": "privilegedMode only documents enabling the Docker daemon (Docker-in-Docker) inside the build container; AWS docs never mention /dev/kvm or nested virtualization for CodeBuild build/sandbox environments. Derived: no evidence of KVM passthrough.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://aws.amazon.com/codebuild/pricing/",
+      "quote": "AWS CodeBuild is a fully managed continuous integration service that compiles source code, runs tests, and produces software packages that are ready to deploy.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://aws.amazon.com/codebuild/pricing/",
+      "quote": "AWS CodeBuild is a fully managed continuous integration service that compiles source code, runs tests, and produces software packages that are ready to deploy.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://aws.amazon.com/codebuild/pricing/",
+      "quote": "AWS CodeBuild is a fully managed continuous integration service that compiles source code, runs tests, and produces software packages that are ready to deploy.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/vpc-support.html",
+      "quote": "Query external web services that require fixed IP addresses through the Elastic IP address of the NAT gateway or NAT instance associated with your subnet.",
+      "note": "Non-VPC builds egress from CodeBuild-managed AWS IP ranges (ordinary AWS datacenter IPs, no fixed address); VPC-configured builds can obtain a fixed outbound address only via a customer-provisioned NAT gateway/instance Elastic IP, which is still a standard AWS datacenter IP.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sandbox.html",
+      "quote": "In the SSH Client tab and choose Start sandbox . After the CodeBuild sandbox starts running, follow the console instructions to connect your SSH client with the sandbox.",
+      "note": "CodeBuild Sandbox (interactive debug mode) supports connecting an SSH client via SSM Session Manager; plain build runs (Lambda compute, on-demand/reserved builds) do not expose SSH.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://aws.amazon.com/codebuild/pricing/",
+      "quote": "AWS CodeBuild is a fully managed continuous integration service that compiles source code, runs tests, and produces software packages that are ready to deploy.",
+      "note": "not offered: outside the product's scope",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/run-codebuild-in-managed-proxy-server.html",
+      "quote": "Denies outgoing traffic to all destinations by default.",
+      "note": "The managed proxy for reserved-capacity fleets supports orderedProxyRules of type DOMAIN or IP with ALLOW/DENY only; there is no HTTP method/path-level rule. VPC egress control is via security groups/NAT (IP level), also not path-aware.",
+      "checked": "2026-09-30"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/vpc-support.html",
+      "quote": "Query external web services that require fixed IP addresses through the Elastic IP address of the NAT gateway or NAT instance associated with your subnet.",
+      "note": "Achieved by running builds inside your own VPC with a NAT gateway/instance that has an Elastic IP - a documented, customer-configured pattern, not a one-click provider feature.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/general/latest/gr/aws-service-information.html",
+      "quote": "Europe (Frankfurt) eu-central-1 ... Europe (Ireland) eu-west-1 ... Europe (London) eu-west-2 ... Europe (Paris) eu-west-3 ... Europe (Stockholm) eu-north-1 ... Europe (Milan) eu-south-1 ... Europe (Spain) eu-south-2 ... Europe (Zurich) eu-central-2",
+      "note": "CodeBuild is available in multiple EU regions; selecting an EU region keeps build execution and artifacts data-resident there.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": 36,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/limits.html",
+      "quote": "Build timeout in minutes Each supported Region: 2,160 No Maximum build timeout in minutes",
+      "note": "2,160 minutes = 36 hours is the hard (non-adjustable) maximum build/sandbox timeout across all compute types.",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sample-efs.html",
+      "quote": "You might want to create your AWS CodeBuild builds on Amazon Elastic File System, a scalable, shared file service for Amazon EC2 instances.",
+      "note": "Each build/sandbox's own container/instance disk is ephemeral (nothing checkpointed on stop, per specify-caching-local.html), but CodeBuild first-party supports mounting a persistent Amazon EFS file system (ProjectFileSystemLocation) into the build environment; files written there survive across separate builds/sandboxes since EFS storage is independent of the build lifecycle. Default (no EFS configured) is no persistent disk - ephemeral only; persistence is opt-in via EFS.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_ProjectFileSystemLocation.html",
+      "quote": "Information about a file system created by Amazon Elastic File System (EFS).",
+      "note": "Project fileSystemLocations mount an EFS volume at a mountPoint inside the build container (requires VPC config, Linux only), and that EFS volume can be shared/concurrently mounted by multiple builds/instances (sample-efs.html: 'a scalable, shared file service'). This directly contradicts volumes:false; corrected to true.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_Operations.html",
+      "quote": "StartBuild StartBuildBatch StartCommandExecution StartSandbox StartSandboxConnection StopBuild StopBuildBatch StopSandbox",
+      "note": "The complete CodeBuild API action list has no snapshot/checkpoint/image-capture operation for a running build or sandbox; only Start/Stop actions exist. Reserved fleets can boot from a custom AMI, but that configures a fleet ahead of time, it is not a snapshot of a running environment.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_StopSandbox.html",
+      "quote": "StopSandbox Stops a sandbox.",
+      "note": "There is a StopBuild/StopSandbox action but no Resume/Pause action anywhere in the API (API_Operations.html); StopSandbox terminates the session (build/sandbox docs describe builds going RUNNING -> TIMED_OUT/STOPPED, a terminal state) and a new StartSandbox/StartBuild begins a fresh ephemeral environment rather than resuming the stopped one.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_Operations.html",
+      "quote": "StartBuild StartBuildBatch StartCommandExecution StartSandbox StartSandboxConnection StopBuild StopBuildBatch StopSandbox",
+      "note": "No Fork/Clone/Duplicate operation exists anywhere in the full CodeBuild API action list; each build/sandbox is created fresh from a project definition, not cloned from another instance.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_Operations.html",
+      "quote": "StartBuild StartBuildBatch StartCommandExecution StartSandbox StartSandboxConnection StopBuild StopBuildBatch StopSandbox",
+      "note": "Same full action list has no operation to clone a currently-running build/sandbox; no fork capability of any kind is documented.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_Operations.html",
+      "quote": "StartBuild StartBuildBatch StartCommandExecution StartSandbox StartSandboxConnection StopBuild StopBuildBatch StopSandbox",
+      "note": "No memory/process snapshot-and-fork (CRIU-style) primitive exists in the API or docs; CodeBuild only supports plain Start/Stop of builds and sandboxes.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sandbox.html",
+      "quote": "In AWS CodeBuild, you can debug a build by using CodeBuild sandbox to run custom commands and troubleshoot your build.",
+      "note": "CodeBuild's interactive access is a command-shell/SSH sandbox for build debugging, not a graphical desktop; the product is a CI build service and no VNC/RDP/streamed-desktop feature is documented anywhere in the userguide or console.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sandbox.html",
+      "quote": "In AWS CodeBuild, you can debug a build by using CodeBuild sandbox to run custom commands and troubleshoot your build.",
+      "note": "CodeBuild is a CI build/compute service; there is no screenshot+click computer-use API. Its only interactive surface is a command/SSH sandbox for build debugging.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_Operations.html",
+      "quote": "StartBuild StartBuildBatch StartCommandExecution StartSandbox StartSandboxConnection StopBuild StopBuildBatch StopSandbox",
+      "note": "Builds/sandboxes have no 'paused, wakes on request' state - a stopped build/sandbox is terminal; incoming source-repo webhooks (CreateWebhook) trigger a brand-new StartBuild, they don't wake an existing stopped instance.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/vpc-support.html",
+      "quote": "Make sure that your security groups have no inbound (ingress) traffic allowed to your builds.",
+      "note": "AWS explicitly recommends builds accept no inbound traffic at all; there is no first-party feature to expose a build/sandbox over inbound HTTPS.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/vpc-support.html",
+      "quote": "CodeBuild does not support assigning Elastic IP addresses to the network interfaces that it creates, and auto-assigning a public IP address is not supported by Amazon EC2 for any network interfaces created outside of Amazon EC2 instance launches.",
+      "note": "Build/sandbox network interfaces cannot get a public IPv4 address; outbound-only egress via NAT is the documented pattern.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html",
+      "quote": "A runtime environment image is a container image that runs on top of your chosen compute platform, and includes extra tools that your build might need, such as the AWS CLI.",
+      "note": "CodeBuild's curated runtime images bundle build tooling (AWS CLI, language runtimes, Docker) but AWS does not document any preinstalled/offered coding-agent harness (Claude Code, Codex, OpenCode, etc.) template.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_Operations.html",
+      "quote": "StartBuild StartBuildBatch StartCommandExecution StartSandbox StartSandboxConnection StopBuild StopBuildBatch StopSandbox",
+      "note": "No MCP (Model Context Protocol) server or similar agent-driving endpoint is documented anywhere in the CodeBuild API/user guide; the product's own automation surface is the plain REST/SDK API and SSH-via-SSM sandbox.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/use-codebuild-agent.html",
+      "quote": "You can use the AWS CodeBuild agent to run CodeBuild builds on a local machine.",
+      "note": "AWS ships a first-party CodeBuild agent (Docker image, public.ecr.aws/codebuild/local-builds) that runs CodeBuild-compatible builds on your own infrastructure (any machine with Docker), i.e. build execution is self-hostable. The full managed service (fleets, sandbox debug, console) is AWS-only, but the core build-execution capability is not, so false is too strong; corrected to true (build execution) with the managed-service caveat noted.",
+      "checked": "2026-09-30"
+    },
+    "byoc": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html",
+      "quote": "Compute refers to the computing engine (the CPU, memory, and operating system) that is managed and maintained by CodeBuild.",
+      "note": "All CodeBuild compute (on-demand EC2/Lambda, reserved fleets) runs on AWS-managed infrastructure inside the CodeBuild service account; there is no documented option to deploy the managed control plane into a customer-owned cloud account.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/use-codebuild-agent.html",
+      "quote": "You can use the AWS CodeBuild agent to run CodeBuild builds on a local machine.",
+      "note": "The core CodeBuild service (orchestration API, sandbox, fleets) is AWS proprietary; only the sample base-image Dockerfiles (aws/codebuild-docker-images on GitHub) are open source, and the distributed 'local-builds' agent image itself is a closed AWS binary, not an OSI-licensed release of the product.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/APIReference/API_Operations.html",
+      "quote": "StartBuild StartBuildBatch StartCommandExecution StartSandbox StartSandboxConnection StopBuild StopBuildBatch StopSandbox",
+      "note": "compute type (vCPU/RAM) is chosen at project/StartBuild time; there is no API to change vCPU/RAM of a running build or sandbox without stopping and starting a new one with a different compute type.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -659,28 +659,28 @@
     "gpu": false,
     "gpu_types": [],
     "snapshot": "none",
-    "pause_resume": false,
+    "pause_resume": true,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": false,
     "auto_stop_idle": true,
     "max_session_h": 3.5,
     "custom_image": false,
     "docker_inside": true,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": false,
     "browser": true,
-    "desktop": false,
-    "computer_use": false,
+    "desktop": true,
+    "computer_use": true,
     "code_interpreter": false,
-    "agent_harnesses": false,
+    "agent_harnesses": true,
     "ssh": true,
     "public_ipv4": false,
     "inbound_https": false,
     "custom_domain": false,
     "raw_tcp_inbound": false,
-    "egress_allowlist": null,
+    "egress_allowlist": false,
     "static_egress_ip": true,
     "private_network": false,
     "self_host": true,
@@ -691,24 +691,24 @@
       "eu"
     ],
     "soc2": true,
-    "hipaa": null,
+    "hipaa": false,
     "sso": true,
     "lang_python": null,
-    "lang_node": null,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
     "credential_injection": null,
-    "egress_http_rules": null,
-    "wake_on_request": null,
-    "live_resize": null,
+    "egress_http_rules": false,
+    "wake_on_request": false,
+    "live_resize": false,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": true,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": null,
+    "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -716,7 +716,17 @@
     "snapshot_auto": false,
     "harness_api": true,
     "guest_firewall": true,
-    "secret_proxy": false
+    "secret_proxy": false,
+    "isolation": "apple-vm",
+    "image_oci": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "static-datacenter",
+    "snapshot_on_demand": false,
+    "volume_attach": false,
+    "volume_shared": false,
+    "own_agent_api": false,
+    "ingress_rules": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -785,6 +795,256 @@
       "quote": "Secrets are a specific type of Environment Variable",
       "note": "CI Secrets and RDE saved inputs/template variables are injected as env vars (resolved server-side, but the value enters the machine). RDE GitHub integration 'plants a short-lived GitHub token on each new session' (token is inside the VM). Claude Code credential saved input is also placed in the session. No outbound credential-injecting proxy.",
       "checked": "2026-09-29"
+    },
+    "isolation": {
+      "value": "apple-vm",
+      "source": "https://docs.bitrise.io/en/bitrise-rde/getting-started/rde-faq",
+      "quote": "Which machines can I get? macOS on Apple silicon (M2 Pro, M4, M4 Pro) and Linux from 2 to 48 vCPUs, on shared or dedicated clusters.",
+      "note": "Card category is macos; each build/session runs in its own dedicated virtual machine ('Each build runs in its own virtual machine' - about-build-stacks). macOS runs on Apple silicon via Apple's own virtualization; Linux side also runs in VMs but the hypervisor tech isn't documented publicly.",
+      "checked": "2026-09-30"
+    },
+    "image_oci": {
+      "value": true,
+      "source": "https://docs.bitrise.io/en/bitrise-platform/infrastructure/docker-containers-on-bitrise/about-docker-containers-on-bitrise",
+      "quote": "Use any Docker image as the execution environment for your Steps or as a background service: spin up a database, HTTP server, or any dependency your tests need.",
+      "note": "Linux CI builds only: you can run build Steps inside any Docker/OCI image (container-in-VM), not a full machine boot from your own image. macOS builds and RDE sessions boot from fixed Bitrise 'stacks', not customer-supplied images.",
+      "checked": "2026-09-30"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://bitrise.io/pricing",
+      "quote": "on-demand mode and RDE mode feature blocks both record features.nested_virt: false for macOS machines",
+      "note": "Card's mode-level feature_evidence already records nested_virt: false for macOS on-demand machines and macOS RDE sessions; no documentation of /dev/kvm or nested hypervisor access for Linux either. Extending false to the whole product (no evidence of true anywhere).",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://bitrise.io/pricing",
+      "quote": "Bitrise is a top mobile CI/CD platform, streamlining build, test, and deployment for mobile apps.",
+      "note": "not offered: outside the product's scope (mobile CI/CD build runner and dev-environment product, not a browser/scraping automation platform).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://bitrise.io/pricing",
+      "quote": "Bitrise is a top mobile CI/CD platform, streamlining build, test, and deployment for mobile apps.",
+      "note": "not offered: outside the product's scope (mobile CI/CD build runner and dev-environment product, not a browser/scraping automation platform).",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://docs.bitrise.io/en/bitrise-build-hub/infrastructure/ip-addresses-for-the-build-machines",
+      "quote": "Our datacenters are behind a set of public static IP addresses, with the virtual machines having their own internal subnets behind these addresses.",
+      "note": "Consistent with card's existing features.static_egress_ip: true.",
+      "checked": "2026-09-30"
+    },
+    "snapshot_on_demand": {
+      "value": false,
+      "source": "https://docs.bitrise.io/en/bitrise-rde/getting-started/key-concepts",
+      "quote": "Terminated: the machine is stopped, but the session and its persistent disk are kept. Terminating is reversible.",
+      "note": "No snapshot/checkpoint API found anywhere in the docs sitemap (no 'snapshot' or 'checkpoint' endpoints). RDE only keeps a persistent disk across terminate/restore (no memory state, no on-demand point-in-time snapshot). CI build VMs are rolled back to a base state after every build. Consistent with card's snapshot: 'none' / snapshot_auto: false.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.bitrise.io/en/bitrise-rde/getting-started/key-concepts",
+      "quote": "Terminated: the machine is stopped, but the session and its persistent disk are kept. Terminating is reversible.",
+      "note": "A terminated/stopped session must be explicitly restored via CLI/API/UI ('restore session'); nothing in the docs describes an incoming request automatically waking a stopped session.",
+      "checked": "2026-09-30"
+    },
+    "volume_attach": {
+      "value": false,
+      "source": "https://docs.bitrise.io/en/bitrise-rde/getting-started/key-concepts",
+      "quote": "Terminating a session preserves its persistent disk, so when you restore it your files and changes are still there.",
+      "note": "Only one built-in persistent disk per session is documented; no attachable/extra volume feature or API found.",
+      "checked": "2026-09-30"
+    },
+    "volume_shared": {
+      "value": false,
+      "source": "https://docs.bitrise.io/en/bitrise-rde/getting-started/key-concepts",
+      "quote": "A session's disk stores only the changes you have made on top of the stack image it was created from, so the session can only be started while that stack image is still available.",
+      "note": "Persistent disk is per-session; no documented feature to mount one volume across several running machines.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.bitrise.io/en/bitrise-rde/getting-started/key-concepts",
+      "quote": "A machine type: the size of the machine, defined by its CPU and RAM. ... A template can set these for you, or you can pick them directly when creating a session.",
+      "note": "Machine type (CPU/RAM) is chosen at session/build creation; no documented API to change CPU/RAM of a running machine without recreating/restoring it.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.bitrise.io/en/bitrise-ci/workflows-and-pipelines/ai-configuration-assistant",
+      "quote": "The AI config assistant is a chat-based assistant built into the Bitrise Workflow Editor that turns natural-language descriptions into validated YAML.",
+      "note": "Bitrise's own AI features (AI configuration assistant, AI build fixer) are UI-embedded chat tools, not exposed as a first-party API to drive an own browser/computer-use/research task agent. The RDE MCP server / session-click / session-screenshot APIs drive the sandbox's desktop generically (computer_use) rather than a Bitrise-authored task agent.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://stacks.bitrise.io/stack_reports/",
+      "quote": "Tools ... Node.js versions",
+      "note": "Bitrise publishes a dedicated 'Node.js versions' tool page alongside Java/Ruby/Go, confirming Node.js is a preinstalled/managed runtime on Bitrise stacks.",
+      "checked": "2026-09-30"
+    },
+    "ingress_rules": {
+      "value": false,
+      "source": "https://docs.bitrise.io/en/bitrise-rde-api/api-reference/codespaces-service-open-remote-access",
+      "quote": "Establishes remote access (SSH/VNC) for a running session.",
+      "note": "not offered: build machines have no public IPv4/inbound HTTPS (card: public_ipv4/inbound_https false); RDE remote access (SSH/VNC) is opened per-session via an authenticated API call rather than provider-side IP allowlists/security groups on exposed ports.",
+      "checked": "2026-09-30"
+    },
+    "egress_allowlist": {
+      "value": false,
+      "source": "https://docs.bitrise.io/en/bitrise-platform/infrastructure/build-machines/configuring-your-network-to-access-our-build-machines",
+      "quote": "Our datacenters are behind a set of public static IP addresses, with the virtual machines having their own internal subnets behind these addresses.",
+      "note": "This page documents customers allowlisting Bitrise's outbound IPs on their own network, not a Bitrise-side control restricting what the build/RDE machine itself can reach outbound. No provider-side outbound allow/deny-list or no-internet mode found.",
+      "checked": "2026-09-30"
+    },
+    "egress_http_rules": {
+      "value": false,
+      "source": "https://docs.bitrise.io/en/bitrise-platform/infrastructure/build-machines/configuring-your-network-to-access-our-build-machines",
+      "quote": "Our datacenters are behind a set of public static IP addresses, with the virtual machines having their own internal subnets behind these addresses.",
+      "note": "No documentation of HTTP method/path-level egress rules; consistent with no coarser egress_allowlist feature either.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://bitrise.io/security",
+      "quote": "Certified, compliant, audit-ready SOC 2 Type II Independently audited, annually PCI DSS Assessed yearly by a QSA GDPR Fully compliant as a data controller ISO 27001 Held by all our core infrastructure providers",
+      "note": "Bitrise's Trust/security page lists SOC 2 Type II, PCI DSS, GDPR, and ISO 27001 as its compliance credentials; HIPAA/BAA is not mentioned anywhere on this page or elsewhere on bitrise.io, so it is not offered.",
+      "checked": "2026-09-30"
+    },
+    "eu_data_residency": {
+      "value": true,
+      "source": "https://bitrise.io/security",
+      "quote": "Data residency. Choose your region via Bitrise on AWS (US, Ireland, Frankfurt, Singapore, Sydney)",
+      "note": "Ireland and Frankfurt are EU regions; consistent with card's features.regions: ['us','eu'].",
+      "checked": "2026-09-30"
+    },
+    "persistent_disk": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/key-concepts.md",
+      "quote": "Terminating a session preserves its persistent disk, so when you restore it your files and changes are still there.",
+      "note": "Remote Dev Environments (RDE) sessions keep a persistent disk across stop/start ('Terminated' -> 'Running'). Top-level features.persistent_disk=false contradicts the card's own rde-macos/rde-linux mode-level features (both have persistent_disk:true) and feature_evidence.snapshot_auto note. CI build VMs are still ephemeral/rolled-back, but the field only needs one first-party path to be true.",
+      "checked": "2026-09-30"
+    },
+    "snapshot": {
+      "value": "none",
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/rde-faq.md",
+      "quote": "Is my session disk backed up? No. Session disks are working storage, and not backed up.",
+      "note": "No fs or mem snapshot/checkpoint mechanism is offered: RDE keeps one persistent working disk (no backup/restore points, no memory-state capture) and CI VMs are rolled back to the base stack image after every build ('the virtual machine is rolled back to a saved state, the base box state, after the build is finished', about-build-stacks.md) rather than snapshotted for the user.",
+      "checked": "2026-09-30"
+    },
+    "pause_resume": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/rde-faq.md",
+      "quote": "Terminated: the machine is stopped, and the session and its persistent disk are kept; fully reversible.",
+      "note": "RDE sessions can be terminated (stopped) and later restored, keeping the disk; while terminated no session compute is running/billed ('Does using RDE consume my CI build credits? No' - RDE meters per-minute active use only). This is the pause/resume pattern the field asks about.",
+      "checked": "2026-09-30"
+    },
+    "fork": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/configuration/templates.md",
+      "quote": "A template is a reusable Remote Dev Environment configuration. Define the machine and its setup once, then create consistent sessions from it without repeating the same choices each time.",
+      "note": "Sessions are created fresh from a stack image + template/warm-pool configuration, not by cloning an existing session's disk/state. No 'clone this session' or 'fork' action is documented anywhere in RDE, warm pools, templates, or CI docs.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/configuration/warm-pools.md",
+      "quote": "Claiming a session from a pool gives you one of its warm sessions, renamed and stamped with your name, labels, and auto-terminate window.",
+      "note": "Warm pools hand out pre-booted sessions from a shared template configuration; claiming does not clone an already-running, in-use session. No documented ability to fork a live running machine into an independent copy.",
+      "checked": "2026-09-30"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/key-concepts.md",
+      "quote": "A session's disk stores only the changes you have made on top of the stack image it was created from",
+      "note": "No memory-state capture/restore or process-preserving clone is documented anywhere (only disk state persists; CI VMs even discard disk state on rollback). Consistent with fork/fork_running being false.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/rde-faq.md",
+      "quote": "VNC for a graphical desktop on macOS sessions. Linux sessions have no desktop, so VNC isn't available.",
+      "note": "macOS Remote Dev Environment sessions expose a real graphical desktop over VNC. This also matches the card's own rde-macos mode features (desktop:true) which contradicts the top-level features.desktop=false.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/rde-options/bitrise-rde-mcp-server.md",
+      "quote": "Take screenshots of, and control, the macOS desktop.",
+      "note": "The first-party RDE MCP server exposes exactly a screenshot+click style computer-use capability for driving the macOS desktop (also used to drive iOS simulator/Android emulator UIs: 'install a build, tap through the UI, take screenshots, and run tests').",
+      "checked": "2026-09-30"
+    },
+    "custom_image": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-build-hub/infrastructure/build-stacks/about-build-stacks.md",
+      "quote": "The build stack indicates the virtual machine version that we will use to run your build.",
+      "note": "Machines are booted from Bitrise-managed, fixed 'stacks' (curated OS/tool images) that you select from a list; no documented way to supply your own base VM/OCI image for CI, RDE, or Build Hub machines.",
+      "checked": "2026-09-30"
+    },
+    "volumes": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/rde-faq.md",
+      "quote": "What's actually on the persistent disk? Only the changes made since the session was created - your clone, build outputs, local configuration - stored as a difference against the stack image.",
+      "note": "Each session has exactly one persistent working disk; no documented ability to attach additional/extra persistent volumes to a machine.",
+      "checked": "2026-09-30"
+    },
+    "inbound_https": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/devices/device-preview-links.md",
+      "quote": "A device preview link is a URL that opens an app build on a live iOS simulator or Android emulator in the recipient's browser.",
+      "note": "Device preview links are a Bitrise-hosted proxy that streams a simulator/emulator screen from a build artifact; they are not a general mechanism for exposing a port/HTTP server running inside a session over a public HTTPS URL. No such ingress feature is documented for CI or RDE machines.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/rde-faq.md",
+      "quote": "SSH, using the address and one-time password shown there or from `bitrise-cli rde session view`.",
+      "note": "Connectivity is documented as an SSH address/one-time password issued by Bitrise (plus VNC/web terminal), not a standing public IPv4 assigned to the machine; no page advertises a dedicated public IPv4 per machine. Matches card's own network.ipv4_available=false.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/rde-faq.md",
+      "quote": "Which agents can I run? Claude Code is first-class: `bitrise-cli rde claude` creates a session, clones your branch, and starts the agent.",
+      "note": "Claude Code is offered as a first-class, ready-to-run harness on Remote Dev Environments ('bitrise-cli rde claude'), and other agents can be preinstalled via template warmup scripts. Top-level features.agent_harnesses=false contradicts the card's own rde-macos/rde-linux mode features (agent_harnesses:true) and feature_evidence.harness_api entry.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/rde-faq.md",
+      "quote": "Which machines can I get? macOS on Apple silicon (M2 Pro, M4, M4 Pro) and Linux from 2 to 48 vCPUs, on shared or dedicated clusters.",
+      "note": "Every documented machine type (CI, RDE, Build Hub) is a plain CPU macOS/Linux VM; no GPU instance type is offered anywhere. Product is a mobile CI/dev-environment platform, not a compute/GPU cloud.",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/rde-faq.md",
+      "quote": "Which machines can I get? macOS on Apple silicon (M2 Pro, M4, M4 Pro) and Linux from 2 to 48 vCPUs, on shared or dedicated clusters.",
+      "note": "Consistently across CI, RDE, and Build Hub docs and the pricing page, only macOS and Linux machines are offered; no Windows machine type exists on Bitrise.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/rde-options/bitrise-rde-mcp-server.md",
+      "quote": "Connect the open-source Bitrise Dev Environments MCP server to your AI agent so it can create and drive Remote Dev Environment sessions on your behalf.",
+      "note": "Only the MCP connector/CLI tooling is open source; the core Bitrise CI/RDE/Build Hub platform itself is a paid, closed-source commercial SaaS (plans, pricing, sales-only Enterprise tier). No OSI-licensed core product exists, so the field stays false.",
+      "checked": "2026-09-30"
+    },
+    "private_network": {
+      "value": false,
+      "source": "https://docs.bitrise.io/bitrise-rde/getting-started/rde-faq.md",
+      "quote": "Can I reach a private network or VPN? Yes, through custom scripts in your template, the same way CI machines do. There's no dedicated Step or one-click setup yet.",
+      "note": "Bitrise explicitly says there is no first-party private-networking/VPC-peering feature: reaching a private network requires the customer's own VPN client script inside the machine, not a provider-managed private network/security-group construct.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -212,10 +212,10 @@
     "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
-    "max_session_h": null,
+    "max_session_h": 24,
     "custom_image": true,
     "docker_inside": null,
-    "nested_virt": null,
+    "nested_virt": false,
     "root": true,
     "systemd": null,
     "browser": false,
@@ -223,7 +223,7 @@
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
-    "ssh": null,
+    "ssh": false,
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
@@ -241,8 +241,8 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": null,
-    "lang_node": null,
+    "lang_python": true,
+    "lang_node": true,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -250,8 +250,8 @@
     "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": null,
-    "fork_running": false,
+    "live_resize": false,
+    "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
@@ -260,7 +260,7 @@
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
-    "mcp_server": null,
+    "mcp_server": false,
     "isolation": "vm",
     "image_oci": true,
     "snapshot_auto": true,
@@ -271,7 +271,11 @@
     "guest_firewall": true,
     "secret_proxy": "any-http",
     "volume_attach": true,
-    "volume_shared": true
+    "volume_shared": true,
+    "anti_bot": false,
+    "captcha_solving": false,
+    "egress_ip_type": "datacenter",
+    "own_agent_api": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -400,6 +404,168 @@
       "quote": "Archil supports sharing disks between multiple connected users simultaneously.",
       "note": "Read-write with delegations: exclusive mode (one machine), shared mode (read-only until `archil checkout <path>` write-lock), conditional mode (NFS-like, all unlocked files writable).",
       "checked": "2026-09-29"
+    },
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.archil.com/guides/virtualization/firecracker",
+      "quote": "Persistent sandboxes are built on full-featured Linux microVMs that are colocated with your Archil disk data for maximum security and performance.",
+      "note": "Archil sandboxes are themselves Firecracker microVMs (a guest under AWS's hypervisor). No docs mention /dev/kvm passthrough or nested virtualization support inside a sandbox; microVM guests do not typically expose KVM to their own guests.",
+      "checked": "2026-09-30"
+    },
+    "anti_bot": {
+      "value": false,
+      "source": "https://archil.com/pricing",
+      "quote": "Sandboxes are 2 vCPU · 4 GB RAM",
+      "note": "not offered: outside the product's scope (Archil is a data-disk + persistent-sandbox/serverless-execution compute platform, not a browser/scraping product; no browser, computer_use, or stealth features exist in the docs).",
+      "checked": "2026-09-30"
+    },
+    "captcha_solving": {
+      "value": false,
+      "source": "https://archil.com/pricing",
+      "quote": "Sandboxes are 2 vCPU · 4 GB RAM",
+      "note": "not offered: outside the product's scope (no browser or CAPTCHA-related functionality anywhere in the docs; product is a general Linux sandbox/disk platform).",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "datacenter",
+      "source": "https://docs.archil.com/compute/sandboxes/firewall",
+      "quote": "our egress proxy must terminate TLS, so we install an \"archil egress\" proxy CA into every sandbox",
+      "note": "Sandboxes run on AWS (us-east-1, us-west-2, eu-west-1) and egress passes through Archil's own TLS-terminating egress proxy fleet; this is standard cloud/datacenter IP space, not residential/mobile. No specific IP range or static-IP guarantee is published.",
+      "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": false,
+      "source": "https://docs.archil.com/compute/sandboxes/introduction",
+      "quote": "const execution = await sandbox.processes.start(\"python --version && pwd\");",
+      "note": "No SSH access to persistent sandboxes is documented anywhere in the docs or API reference; interaction is via the processes/exec API and exposed TCP/HTTPS ports (public ports or private port tokens), not SSH. The only SSH content in the docs is an unrelated guide for self-hosting Archil inside your own Firecracker microVM.",
+      "checked": "2026-09-30"
+    },
+    "live_resize": {
+      "value": false,
+      "source": "https://docs.archil.com/api-reference/sandboxes/create-sandbox",
+      "quote": "vcpuCount: 2, memSizeMiB: 4096",
+      "note": "vCPU/RAM (1-32 vCPU, 0.25-64 GiB) are set only at sandbox creation. The full sandbox API surface (create/start/stop/pause/resume/fork/set-timeout/update-network/expose-port) has no update-resources/resize endpoint.",
+      "checked": "2026-09-30"
+    },
+    "own_agent_api": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "Run untrusted AI-generated code against context with tools based on serverless execution or traditional persistent sandboxes.",
+      "note": "not offered: outside the product's scope. Archil provides generic compute/exec + disk storage for others to build agents on top of; it does not ship its own browser/computer-use/research task agent or an API to drive one.",
+      "checked": "2026-09-30"
+    },
+    "mcp_server": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "Add to your agent, [Mastra](https://www.npmjs.com/package/@archildata/mastra), or [LangChain](https://www.npmjs.com/package/@archildata/langchain). For more control, use our TypeScript SDK or Python SDK directly.",
+      "note": "Docs list integrations (Vercel AI SDK, Mastra, LangChain) and TypeScript/Python/CLI SDKs, but no MCP server package or docs page exists anywhere in the full docs corpus.",
+      "checked": "2026-09-30"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.archil.com/compute/serverless-execution",
+      "quote": "Archil's serverless execution makes it simple to run untrusted code like bash, Python, and Node.js",
+      "note": "Also has a first-party Python SDK (docs.archil.com/sdks/python), and persistent sandboxes can boot any OCI image including python:3.13.",
+      "checked": "2026-09-30"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://docs.archil.com/compute/serverless-execution",
+      "quote": "Archil's serverless execution makes it simple to run untrusted code like bash, Python, and Node.js",
+      "note": "Also has a first-party TypeScript/Node SDK (`disk` npm package) and persistent sandboxes can boot node:24-bookworm images.",
+      "checked": "2026-09-30"
+    },
+    "max_session_h": {
+      "value": 24,
+      "source": "https://docs.archil.com/compute/sandboxes/introduction",
+      "quote": "| `maxTtlSeconds`  | 60–86,400 seconds | 86,400 seconds (24 hours) |",
+      "note": "Hard timeout (maxTtlSeconds) defaults to and maxes out at 86,400 seconds = 24 hours. It pauses (not kills) the sandbox and can be reset via setTimeout() before expiry to keep an active session going indefinitely across pause/resume cycles, but any single continuous run is capped at 24h before a pause is forced.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.archil.com/api-reference/sandboxes/fork-sandbox",
+      "quote": "Checkpoints a running source sandbox and creates an isolated writable disk branch. Forks from running or paused sources resume from the source's CPU, memory, and disk state. ... A running source is resumed after its checkpoint; paused and stopped sources remain inactive.",
+      "note": "You CAN fork a running sandbox: docs confirm 'You can fork a running, paused, or stopped sandbox' and 'Forking a running sandbox pauses it while the snapshot is taken and resumes it once the fork is accepted' — the original keeps running (briefly paused for the snapshot only, same mechanism the card already credits under memory_snapshot_fork:true). Card's fork_running:false contradicts its own memory_snapshot_fork:true and snapshot_on_demand evidence; should be true.",
+      "checked": "2026-09-30"
+    },
+    "desktop": {
+      "value": false,
+      "source": "https://docs.archil.com/compute/sandboxes/introduction",
+      "quote": "Persistent sandboxes are built on full-featured Linux microVMs that are colocated with your Archil disk data... Create long-running Linux VMs with persistent disks, interactive shells, services, and forks.",
+      "note": "Archil is a headless Linux sandbox/VM + storage product (interactive shells, processes, ports) with no VNC/RDP/streamed GUI desktop anywhere in the docs. Outside the product's scope.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "Create long-running Linux VMs with persistent disks, interactive shells, services, and forks.",
+      "note": "No managed/real browser offering in the docs; only mentions of 'browser' are the user's own web browser opening share URLs or the console file browser. Outside scope for a headless compute+storage product.",
+      "checked": "2026-09-30"
+    },
+    "computer_use": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "const execution = await sandbox.processes.start(\"python --version && pwd\");",
+      "note": "Only a generic process/exec + PTY API is offered; no screenshot+click computer-use API exists. Consistent with no desktop/browser being offered at all.",
+      "checked": "2026-09-30"
+    },
+    "agent_harnesses": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "const execution = await sandbox.processes.start(\"python --version && pwd\");",
+      "note": "Full docs corpus searched for Claude Code / Codex / OpenCode: none found preinstalled or offered as a template. Only generic exec/process API + AI-SDK-as-bash-tool guides (harness runs outside the sandbox). Matches existing harness_api:false evidence.",
+      "checked": "2026-09-30"
+    },
+    "public_ipv4": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "Exposed ports are public: they accept any TCP protocol over TLS with SNI, without authentication. ... For private access, leave the port unexposed and create a port token.",
+      "note": "Sandbox ports are reached via a TLS/SNI hostname or private port token, never a dedicated public IPv4 address per machine. No mention of a per-sandbox public IPv4 anywhere in the docs.",
+      "checked": "2026-09-30"
+    },
+    "gpu": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "Archil sandboxes run on x86-64 (`amd64`) and support between 1 and 32 vCPU cores and between 0.25 and 64 GiB of memory.",
+      "note": "Sandbox spec is CPU/RAM only; no GPU instance type mentioned anywhere in pricing or docs (only unrelated mentions of faiss-gpu, a client library, in a tutorial).",
+      "checked": "2026-09-30"
+    },
+    "windows": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "Archil sandboxes run on x86-64 (`amd64`) and support between 1 and 32 vCPU cores and between 0.25 and 64 GiB of memory. Sandboxes run as the root...",
+      "note": "Sandboxes are Linux microVMs (custom images default to ubuntu); no Windows machine type is offered. Windows only appears in the docs as a client-OS caveat for the CLI/download tables, not as a sandbox OS.",
+      "checked": "2026-09-30"
+    },
+    "macos": {
+      "value": false,
+      "source": "https://docs.archil.com/compute/sandboxes/introduction",
+      "quote": "Persistent sandboxes are built on full-featured Linux microVMs that are colocated with your Archil disk data...",
+      "note": "Compute (sandboxes) is Linux-only. Archil does ship a macOS *client* app (Archil for macOS, FSKit menu-bar app) for mounting disks locally, but that is not a macOS compute/sandbox machine, so the feature (macOS machines offered) is correctly false.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "Archil sandboxes run on x86-64 (`amd64`) and support between 1 and 32 vCPU cores and between 0.25 and 64 GiB of memory.",
+      "note": "Sandbox compute is explicitly x86-64 only. arm64 binaries exist only for the client CLI/Lambda layer, not for sandbox machines.",
+      "checked": "2026-09-30"
+    },
+    "self_host": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "[contact us](mailto:support@archil.com) to learn more about our BYOC options for organizations with 100 TiB of data",
+      "note": "Only a BYOC option (Archil-managed control plane deployed into the customer's own cloud account) is offered for large customers; there is no self-managed/open build customers can run entirely on their own infrastructure without Archil operating it.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://docs.archil.com/llms-full.txt",
+      "quote": "This page covers versioned, signed Linux releases only. It does not cover macOS, Windows, package-repository signing, Sigstore or Cosign attestations, or the unversioned `https://archil.com/install` script.",
+      "note": "Only compiled client binaries/CLI and SDKs are distributed (no OSI-license source repo for the core sandbox/storage engine found in docs or a public GitHub org); the core Archil disk/sandbox engine is proprietary.",
+      "checked": "2026-09-30"
     }
   }
 }

@@ -179,9 +179,9 @@
     "linux": true,
     "windows": false,
     "macos": false,
-    "arm64": null,
+    "arm64": false,
     "gpu": false,
-    "snapshot": "none",
+    "snapshot": "fs",
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
@@ -189,7 +189,7 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
+    "docker_inside": false,
     "nested_virt": false,
     "root": null,
     "systemd": null,
@@ -209,8 +209,8 @@
     "self_host": true,
     "byoc": true,
     "open_source": false,
-    "soc2": null,
-    "hipaa": null,
+    "soc2": false,
+    "hipaa": false,
     "sso": true,
     "gpu_types": [],
     "regions": [
@@ -224,9 +224,9 @@
     "gpu_desktop": null,
     "credential_injection": null,
     "egress_http_rules": null,
-    "wake_on_request": null,
+    "wake_on_request": false,
     "live_resize": true,
-    "fork_running": null,
+    "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": true,
@@ -387,10 +387,11 @@
       "checked": "2026-09-30"
     },
     "snapshot": {
-      "value": "none",
-      "source": "https://docs.specific.dev/llms-full.txt",
-      "quote": "No. Each deploy can restart the instance, and there are no snapshots. Treat every key as something your app can recompute.",
-      "note": "Stated explicitly for the Redis/Valkey cache; no filesystem/memory snapshot feature for services documented anywhere else either.",
+      "value": "fs",
+      "corrected_from": "none",
+      "source": "https://docs.specific.dev/guides/previews",
+      "quote": "A full preview branches off a parent environment and starts from its data. Each resource is forked in the way that's fastest for that service: - **Postgres** databases are branched - an instant, copy-on-write branch. - **Object storage** buckets are forked. - **Volumes** are cloned - an instant, copy-on-write copy of the parent volume.",
+      "note": "Not a memory snapshot (only Redis is explicitly stated to have none: 'there are no snapshots' for the Redis cache, guides/redis). But Specific does give on-demand, disk-level copy-on-write snapshots: every preview (manual, or automatic per-PR) instantly clones each service's persistent volume and branches its Postgres database, giving the new environment an exact point-in-time copy of the parent's on-disk data ('the preview's service boots on it exactly as it would after a restart'). This is a filesystem/disk-level snapshot-and-restore mechanism (no process/memory state carried over), so corrected value is 'fs', not 'none'. This is separate from 'fork' (cloning into a running new environment), which the docs also support and which the card leaves null.",
       "checked": "2026-09-30"
     },
     "snapshot_auto": {
@@ -510,6 +511,55 @@
       "source": "https://docs.specific.dev/guides/services",
       "quote": "During a deploy, the new instance doesn't receive traffic until its health check passes. The old version stays up until then, so users never hit a half-started process.",
       "note": "Services are long-running deployed processes (web/worker/cron), not time-boxed sandbox sessions; no maximum runtime/session duration is documented, so treated as unbounded until stopped/redeployed.",
+      "checked": "2026-09-30"
+    },
+    "docker_inside": {
+      "value": false,
+      "source": "https://docs.specific.dev/guides/builds",
+      "quote": "For full control over the build, provide your own Dockerfile instead of `base`",
+      "note": "not offered: outside the product's scope. Specific builds your service into a container image (via a managed base or your Dockerfile) and runs it as a single-process container (isolation: container); no docs describe a nested Docker/container runtime available inside the running service.",
+      "checked": "2026-09-30"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://docs.specific.dev/guides/previews",
+      "quote": "Specific clones databases and buckets used by the affected services, while resources used only by unchanged services stay in the parent environment.",
+      "note": "not offered: forking only applies to stateful resources (Postgres branches, object storage buckets, volumes) for preview environments. Compute services themselves are not 'a running machine' that gets cloned live — previews start fresh service instances, not a fork of a running one.",
+      "checked": "2026-09-30"
+    },
+    "wake_on_request": {
+      "value": false,
+      "source": "https://docs.specific.dev/faq",
+      "quote": "services are long-running processes with no execution time limits and no cold starts",
+      "note": "Services are always-on long-running processes by design (contrasted explicitly with serverless cold-start/wake models like Vercel's); no scale-to-zero-and-wake-on-request behavior is documented for services.",
+      "checked": "2026-09-30"
+    },
+    "arm64": {
+      "value": false,
+      "source": "https://docs.specific.dev/guides/builds",
+      "quote": "`base` - base environment: `\"node\"`, `\"python\"`, `\"go\"`, `\"rust\"`, or `\"java\"`. For anything else, use a custom Dockerfile.",
+      "note": "not offered: services build from managed base images or a Dockerfile with no CPU-architecture selection documented anywhere for production compute (ARM64 is only mentioned for the local CLI binary distribution, e.g. specific-linux-arm64 / specific-darwin-arm64, not for deployed services).",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://specific.dev/dpa",
+      "quote": "This Section does not represent that Provider holds a certification or has obtained an independent security audit.",
+      "note": "Specific's own Data Processing Agreement explicitly disclaims holding any security certification; only offers to share an audit report 'if available' on written request. No SOC 2 attestation found or claimed anywhere on the site.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://specific.dev/dpa",
+      "quote": "This Section does not represent that Provider holds a certification or has obtained an independent security audit.",
+      "note": "not offered: no HIPAA/BAA mention anywhere in the DPA, pricing, or docs; the DPA covers only GDPR/EEA SCCs/UK Addendum obligations, with no HIPAA provisions or BAA offering found.",
+      "checked": "2026-09-30"
+    },
+    "open_source": {
+      "value": false,
+      "source": "https://github.com/specific-dev",
+      "quote": "specific-dev public repos: examples, replacebase, plugin, openclaw-specific-template, example-task-board, action, spectest, spectest-action, firecracker (all sample code, a GitHub Action, a testing tool, and a Firecracker fork) - no repo for the core Specific platform, dashboard, or CLI.",
+      "note": "The company's own docs contrast Specific's use of open-source *components* (Postgres, Valkey/Redis, Temporal) with its own product, which is a managed proprietary platform (docs.specific.dev/llms-full.txt: 'Specific builds on battle-tested open-source technology... If you ever need to move, your data and your knowledge transfer with you' - implying the platform/runtime itself, unlike the underlying data stores, is not itself distributed as open source). No source repo, license file, or 'open source' claim exists for the core product/CLI/dashboard. Confirms the card's false.",
       "checked": "2026-09-30"
     }
   }

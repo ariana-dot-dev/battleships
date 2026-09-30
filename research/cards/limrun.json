@@ -89,7 +89,7 @@
     "snapshot": "fs",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -98,7 +98,7 @@
     "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": null,
+    "browser": true,
     "desktop": false,
     "computer_use": true,
     "code_interpreter": null,
@@ -114,8 +114,8 @@
     "self_host": false,
     "byoc": false,
     "open_source": false,
-    "soc2": null,
-    "hipaa": null,
+    "soc2": false,
+    "hipaa": false,
     "sso": true,
     "gpu_types": [],
     "regions": [
@@ -156,7 +156,8 @@
     "volume_attach": false,
     "volume_shared": false,
     "own_agent_api": false,
-    "max_session_unlimited": true
+    "max_session_unlimited": true,
+    "egress_ip_type": "static-datacenter"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -207,9 +208,9 @@
     "snapshot_on_demand": {
       "value": false,
       "source": "https://docs.limrun.com/docs/ios/snapshots.md",
-      "quote": "The saved snapshot is for future instances and is only published when this instance terminates.",
-      "note": "No API/CLI to checkpoint a running instance; publication happens only at termination of a snapshot-configured Xcode sandbox (the closest thing: delete with --wait-snapshot). New Xcode sandboxes can restore from a key (effectively a warm template of disk state). No memory snapshots; nothing for simulators/emulators.",
-      "checked": "2026-09-29"
+      "quote": "You can keep building on the same running instance without restoring again. The saved snapshot is for future instances and is only published when this instance terminates. ... A failed compile or cancelled build does not produce a new snapshot.",
+      "note": "No API/CLI call checkpoints a running instance on demand; the only trigger for publishing the disk snapshot is instance termination (delete, or inactivity/hard timeout) of a snapshot-configured Xcode/Gradle sandbox, and only if the last build succeeded. Confirms false.",
+      "checked": "2026-09-30"
     },
     "harness_api": {
       "value": false,
@@ -319,8 +320,8 @@
     "pause_resume": {
       "value": false,
       "source": "https://docs.limrun.com/docs/reference/instances.md",
-      "quote": "creating ──► assigned ──► ready ──► terminated",
-      "note": "not offered: the documented lifecycle is create/ready/terminated only — no pause or suspend state exists between ready and terminated; instances end via delete or a timeout, not a pause you can resume.",
+      "quote": "Every iOS, Android, Xcode, and Gradle instance moves through the same lifecycle: `creating` while hardware is provisioned, `assigned` while it boots, `ready` when the URLs in `status` are usable, and finally `terminated`.",
+      "note": "The documented lifecycle has only creating/assigned/ready/terminated states -- no paused/suspended state and no pause or resume API. State that outlives an instance is carried only via the separate opt-in disk-snapshot restore mechanism (a new instance, not the same one resumed), which is not pause/resume. Confirms false.",
       "checked": "2026-09-30"
     },
     "wake_on_request": {
@@ -331,10 +332,11 @@
       "checked": "2026-09-30"
     },
     "persistent_disk": {
-      "value": false,
+      "value": true,
+      "corrected_from": false,
       "source": "https://docs.limrun.com/docs/ios/snapshots.md",
-      "quote": "The saved snapshot is for future instances and is only published when this instance terminates.",
-      "note": "Instances themselves don't keep a persistent disk across stop/start automatically; state only survives via the opt-in Xcode disk-snapshot-and-restore workflow (a new instance restores a prior snapshot by key), not a disk that stays attached to a stopped instance.",
+      "quote": "Use a disk snapshot to carry source files, dependencies, and Xcode's DerivedData into your next instance. Snapshots belong to your organization. Without snapshot configuration, a new instance starts without a saved workspace.",
+      "note": "Opt-in disk snapshotting for Xcode/Gradle build sandboxes: create with --snapshot-key, files persist across instance termination and are restored into the next instance via --snapshot-restore-keys. Default (no snapshot-key) is no persistence -- a new instance starts cold. iOS/Android simulator instances have no general persistent disk, only optional keychain-state assets. So the card's flat false is wrong; should be true with the opt-in/default-delete caveat noted.",
       "checked": "2026-09-30"
     },
     "volume_attach": {
@@ -461,6 +463,34 @@
       "source": "https://docs.limrun.com/docs/android/run-emulator.md",
       "quote": "`--hard-timeout <duration>` | Forced termination after this wall-clock window. Defaults to no cap.",
       "note": "Hard timeout (wall-clock cap) defaults to '0' = no cap and can be set per instance; the inactivity timeout defaults to an org setting with a documented max override of 24h for Android, but that only fires when idle, not while the session is active.",
+      "checked": "2026-09-30"
+    },
+    "browser": {
+      "value": true,
+      "source": "https://docs.limrun.com/docs/testing/playwright.md",
+      "quote": "Each Android instance ships with Chrome, and Limrun exposes Chrome's DevTools Protocol (CDP) endpoint to your test as a single WebSocket URL.",
+      "note": "Every cloud Android emulator ships a managed Chrome browser (installable/pre-installed via --install-asset chrome-stable), reachable over CDP for Playwright automation.",
+      "checked": "2026-09-30"
+    },
+    "egress_ip_type": {
+      "value": "static-datacenter",
+      "source": "https://docs.limrun.com/docs/reference/egress-ip-addresses.md",
+      "quote": "Limrun instances send outbound traffic through shared regional egress IP addresses. Allowlist every address for the region your instance runs in.",
+      "note": "Fixed, published per-region IP lists (Hetzner/datacenter ranges e.g. 37.27.x, 45.148.x, 65.21.x) shared across customers in that region, not assigned per organization/instance and not residential.",
+      "checked": "2026-09-30"
+    },
+    "soc2": {
+      "value": false,
+      "source": "https://trust.limrun.com",
+      "quote": "SOC 2 Type 2 In progress",
+      "note": "Trust center's compliance overview lists SOC 2 Type 2 as in progress, meaning not yet attested.",
+      "checked": "2026-09-30"
+    },
+    "hipaa": {
+      "value": false,
+      "source": "https://trust.limrun.com",
+      "quote": "Compliance overview: Current compliance status across frameworks — SOC 2 Type 2, In progress",
+      "note": "Trust center's compliance overview names only SOC 2 (still in progress) as a tracked framework; no HIPAA/BAA program is listed or advertised anywhere on the site.",
       "checked": "2026-09-30"
     }
   }
