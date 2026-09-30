@@ -281,6 +281,9 @@ input[type=range]:active::-webkit-slider-thumb{cursor:grabbing}
 .adj{display:flex;gap:8px;align-items:center;font-size:var(--t4);color:var(--ink-2)}
 .adj button{font-size:var(--t4);padding:2px 8px;border:0;background:var(--fill);color:var(--ink);cursor:pointer}
 .adj button:hover{background:var(--fill-2)}
+.adj>span{min-width:0}
+.adj button{flex:none;align-self:flex-start}
+.adjmore{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
 .why{margin:0;color:var(--ink-2);max-width:72ch;font-size:var(--t3);line-height:1.6}
 #scenario:empty{display:none}
 .scpre{font:600 var(--t4)/1.2 var(--sans);color:var(--ink-2);margin:0 0 2px}
@@ -1191,12 +1194,40 @@ function applyPreset(k){const p=PRESETS.find(x=>x.k===k); curPreset=k; foreverOn
   const hasProf=PROFS.some(x=>x.id===p.prof);
   $('#profile').value=hasProf?p.prof:'custom';
   if(hasProf) applyProfile(); else { $('#cpuUtil').value=p.cpu??30; $('#ramUtil').value=p.ramu??60; $('#cpuPeak').value=Math.min(100,(p.cpu??30)*1.6); $('#ramPeak').value=Math.min(100,(p.ramu??60)*1.3); $('#idleShare').value=p.idle??20; applyProfile(); }
-  $$('#presets .chip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k)); $('#presetSel').value=k; fitSel(); showAll.meets=showAll.soft=false; edited=false; run();}
+  $$('#presets .chip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k)); $('#presetSel').value=k; fitSel(); showAll.meets=showAll.soft=false; edited=false; base=snap(); for(const id in scaleExact) delete scaleExact[id]; run();}
 $$('#presets .chip').forEach(b=>b.onclick=()=>applyPreset(b.dataset.k));
-$('#scale').onchange=()=>{ if(curPreset) applyPreset(curPreset); else run(); };
+// Fleet size scales the workload you have now (your edits and features stay). A value still at the preset's
+// default moves to the preset's default at the new size, so going 1× → 0.1× → 1× lands back exactly.
+let lastScale=+$('#scale').value||1; const scaleExact={};
+$('#scale').onchange=()=>{ const sc=+$('#scale').value||1, r=sc/lastScale; lastScale=sc;
+  const p=curPreset&&PRESETS.find(x=>x.k===curPreset), pw=p&&p.w, nb={};
+  if(pw){ nb.sessions=Math.round(pw.sessions*sc); nb.concurrency=pw.concurrency?Math.max(1,Math.round(pw.concurrency*sc)):0; nb.alwaysOn=pw.alwaysOn?Math.max(1,Math.round(pw.alwaysOn*sc)):0; nb.seats=Math.max(1,Math.round(pw.seats*Math.sqrt(sc))); }
+  [['sessions',r],['concurrency',r],['alwaysOn',r],['seats',Math.sqrt(r)]].forEach(([id,f])=>{ const el=$('#'+id), v=+el.value||0;
+    if(base&&pw&&String(v)===String(base.v[id])){ el.value=nb[id]; delete scaleExact[id]; }
+    else { // your own value: scale the unrounded number we last wrote, so 5 → 3× → 1× comes back as 5
+      const x=(scaleExact[id]&&scaleExact[id].shown===el.value?scaleExact[id].x:v)*f;
+      el.value=x?Math.max(1,Math.round(x)):0; scaleExact[id]={x,shown:el.value}; }
+    if(base&&pw) base.v[id]=String(nb[id]); });
+  run(); };
 // editing a control keeps you in the scenario (its sliders and toggles stay), marked as adjusted with a way back
 let edited=false;
 function dirty(){ edited=true; }
+// What the preset set, to show in the scenario box exactly what you changed from it (from the sidebar or the scenario)
+let base=null;
+const DIFF_SKIP=new Set(['scale','profile','capVal']), DIFF_LABEL={idleCapture:'Idle caught',alwaysOn:'Always-on'};
+const ctlEls=()=>$$('#controls input[id],#controls select[id]').filter(el=>!DIFF_SKIP.has(el.id));
+const ctlVal=el=>el.type==='checkbox'?String(el.checked):String(el.value);
+function snap(){ const v={}; ctlEls().forEach(el=>v[el.id]=ctlVal(el)); return {v,req:new Set(req)}; }
+const ctlLab=el=>{ if(DIFF_LABEL[el.id]) return DIFF_LABEL[el.id]; const l=el.closest('label'); if(!l) return el.id;
+  const c=l.cloneNode(true); c.querySelectorAll('select,input,.ic,b').forEach(x=>x.remove()); return c.textContent.replace(/\s+/g,' ').replace(/^[…\s]+|[:…\s]+$/g,'').trim()||el.id; };
+const ctlShow=(el,raw)=>{ if(el.type==='checkbox') return raw==='true'?'on':'off';
+  if(el.tagName==='SELECT'){ const o=[...el.options].find(o=>o.value===raw); return o?o.text.replace(/\s*\(.*$/,''):raw; }
+  const n=parseFloat(raw); return isFinite(n)?(+n.toFixed(2)).toLocaleString('en-US'):raw; };
+function changes(){ if(!base) return [];
+  const out=ctlEls().filter(el=>el.id in base.v&&ctlVal(el)!==base.v[el.id]).map(el=>el.type==='checkbox'?`${ctlLab(el)} ${ctlShow(el,ctlVal(el))}`:`${ctlLab(el)} ${ctlShow(el,base.v[el.id])} → ${ctlShow(el,ctlVal(el))}`);
+  const lab=k=>PM.FEATURE_LABELS[k]||k;
+  [...req].filter(k=>!base.req.has(k)).forEach(k=>out.push('+ '+lab(k))); [...base.req].filter(k=>!req.has(k)).forEach(k=>out.push('− '+lab(k)));
+  return out; }
 
 // ---- scenario dials: a few sliders per scenario, each bound 1:1 to one field of the filter panel
 // [field id, label, low, high, kind]  kinds: n = count, min = minutes, pct = percent, gib = GiB, cpu = vCPU, gpu = GPUs
@@ -1371,8 +1402,10 @@ function run(){
   $('#sumAssume').textContent=`${['self-serve','+ verify','+ upfront','+ email','+ sales'][+$('#maxAccess').value]} · ${['credits','amortize','perf','allowSpot','allowSales','allowAlt','allowPromo'].filter(id=>$('#'+id).checked).length} on`;
   // at-a-glance: which scenario, and which filters decide who can compete
   { const pp=PRESETS.find(p=>p.k===curPreset), sopt=(SCEN[curPreset]||{}).opt||[];
-    const load=W.alwaysOn?`${W.alwaysOn} machine${W.alwaysOn>1?'s':''} on 24/7`:`${nf(W.sessions)} sessions × ${W.sessionMin>=60?(W.sessionMin/60).toFixed(1)+' h':Math.round(W.sessionMin)+' min'}, up to ${nf(W.concurrency)} at once`;
-    const sc=$('#scale').value!=='1'?` · fleet ×${$('#scale').value}`:'';
+    // everything that is priced: sessions and always-on machines can both be set at once
+    const sessPart=W.sessions>0&&W.sessionMin>0?`${nf(W.sessions)} sessions × ${W.sessionMin>=60?(W.sessionMin/60).toFixed(1)+' h':Math.round(W.sessionMin)+' min'}, up to ${nf(W.concurrency)} at once`:'';
+    const onPart=W.alwaysOn?`${nf(W.alwaysOn)}${sessPart?'':` machine${W.alwaysOn>1?'s':''}`} on 24/7`:'';
+    const load=[sessPart,onPart].filter(Boolean).join(' + ')||'nothing running', sc='';
     // description first; toggles and sliders live together in the frame below it
     $('#scchips').innerHTML=(()=>{// fixed order (the scenario's own features, then its optional ones, then anything else you required, by name) so a chip never moves when toggled
 const extra=[...req].filter(k=>!(pp&&pp.req||[]).includes(k)&&!sopt.includes(k)).sort((a,b)=>(PM.FEATURE_LABELS[a]||a).localeCompare(PM.FEATURE_LABELS[b]||b));
@@ -1381,7 +1414,8 @@ $('#scFeatN').textContent=`${on} feature${on===1?'':'s'} out of ${ks.length} ena
 return ks.map(k=>{ const chip=`<button class="mhk" data-k="${k}" aria-pressed="${req.has(k)}">${esc(PM.FEATURE_LABELS[k]||k)}</button>`;
   return FEAT_WHY[k]?`<span class="mhw">${chip}${ic('why','?',FEAT_WHY[k])}</span>`:chip; }).join('');})()+($('#region').value!=='any'?`<button class="mhk mhr" aria-pressed="true">${esc($('#region').value.toUpperCase())} region</button>`:'');
     $('#scFeatSec').hidden=!$('#scchips').innerHTML;
-    $('#scenario').innerHTML=`${pp&&pp.why?`<p class="why">${esc(pp.why)}</p>`:''}${pp&&edited?`<div class="adj">Adjusted from the scenario's defaults <button type="button" id="scReset">Reset</button></div>`:''}${W.sessions>0&&W.concurrency>W.sessions?`<div class="adj">Only ${nf(W.sessions)} sessions a month, so at most ${nf(Math.ceil(W.sessions))} can run at once: priced that way.</div>`:''}${W.sessions>sessFit?`<div class="adj">${nf(W.concurrency)} at once can only fit ${nf(Math.floor(sessFit))} sessions of this length in a month, not ${nf(W.sessions)}: priced that way.</div>`:''}`;
+    $('#scenario').innerHTML=`${pp&&pp.why?`<p class="why">${esc(pp.why)}</p>`:''}${(()=>{ const ch=pp?changes():[]; if(!ch.length) return ''; const N=4, rest=ch.slice(N);
+      return `<div class="adj"><span>Changed: ${esc(ch.slice(0,N).join(' · '))}${rest.length?` · <span class="adjmore" tabindex="0" data-tip="${esc(rest.join('\n'))}">+${rest.length} more</span>`:''}</span> <button type="button" id="scReset">Reset</button></div>`; })()}${W.sessions>0&&W.concurrency>W.sessions?`<div class="adj">Only ${nf(W.sessions)} sessions a month, so at most ${nf(Math.ceil(W.sessions))} can run at once: priced that way.</div>`:''}${W.sessions>sessFit?`<div class="adj">${nf(W.concurrency)} at once can only fit ${nf(Math.floor(sessFit))} sessions of this length in a month, not ${nf(W.sessions)}: priced that way.</div>`:''}`;
     if($('#scReset')) $('#scReset').onclick=()=>applyPreset(curPreset);
     $('#scDialN').textContent=load+sc;
     syncDials(); $('#scDialSec').hidden=!$('#dials').innerHTML; $('.scframe').hidden=!$('#scenario').innerHTML.trim()&&$('#scFeatSec').hidden&&$('#scDialSec').hidden;
