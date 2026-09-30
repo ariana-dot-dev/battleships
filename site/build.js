@@ -20,7 +20,9 @@ for (const f of readDir(path.join(R, 'cards'), '.json')) {
     // who is behind it: ownership, stage, accelerators, money raised, revenue (research/funding/<id>.json), compacted
     const fu = readIf(path.join(R, 'funding', c.id + '.json'));
     if (fu) { const f = JSON.parse(fu), num = x => typeof x === 'number' && isFinite(x) ? x : null;
-      const amt = o => o && num(o.value ?? o.value_usd) != null && o.status !== 'unknown' ? { v: num(o.value ?? o.value_usd), s: o.status, src: o.source || null, basis: o.basis || null } : null;
+      // a search-results page is not a source
+      const srcOk = u => u && !/google\.[a-z.]+\/search|bing\.com\/search|duckduckgo\.com/.test(u) ? u : null;
+      const amt = o => o && num(o.value ?? o.value_usd) != null && o.status !== 'unknown' ? { v: num(o.value ?? o.value_usd), s: o.status, src: srcOk(o.source), basis: o.basis || null } : null;
       const st = (f.stage || {}).value || 'unknown';
       // "Alibaba Group Holding Limited (NYSE: BABA; HKEX: 9988), a publicly traded company" -> "Alibaba"
       const BRANDS = [[/International Business Machines|\bIBM\b/, 'IBM'], [/Alphabet|Google/, 'Google'], [/Huawei/, 'Huawei'], [/Samsung/, 'Samsung'], [/Iliad/, 'Iliad'], [/Schwarz/, 'Schwarz Group'],
@@ -28,9 +30,9 @@ for (const f of readDir(path.join(R, 'cards'), '.json')) {
       const brand = s => !s ? null : (BRANDS.find(([re]) => re.test(s)) || [])[1] || String(s).replace(/\s*\(.*?\)/g, '').split(/[,;]| - | — /)[0]
         .replace(/\b(Group Holdings?|Holdings?|Group|Limited|Ltd\.?|Inc\.?|Incorporated|Corporation|Corp\.?|Co\.|LLC|L\.L\.C\.|PLC|S\.A\.|SE|AG|GmbH|N\.V\.|B\.V\.)\b/g, '').replace(/\.com\b/, '').replace(/\s(N\.V\.|B\.V\.|S\.A\.|\.)(?=\s|$)/g, '').replace(/\s+/g, ' ').trim() || s;
       c.co = { own: st === 'acquired' ? 'acquired' : (f.ownership || {}).value || null, parent: brand((f.ownership || {}).parent), stage: st === 'acquired' ? 'unknown' : st, stageSrc: (f.stage || {}).source || null,
-        acc: (f.accelerators || []).filter(a => a.confidence !== 'low').map(a => ({ n: a.name, b: a.batch || null, src: a.source || null })),
+        acc: (f.accelerators || []).filter(a => a.confidence !== 'low').map(a => ({ n: a.name, b: a.batch || null, src: srcOk(a.source) })),
         raised: amt(f.total_funding_usd),
-        last: f.last_round && f.last_round.type ? { t: f.last_round.type, a: num(f.last_round.amount_usd), d: f.last_round.date || null, leads: (f.last_round.leads || []).slice(0, 3), s: f.last_round.status, src: f.last_round.source || null } : null,
+        last: f.last_round && f.last_round.type ? { t: f.last_round.type, a: num(f.last_round.amount_usd), d: f.last_round.date || null, leads: (f.last_round.leads || []).slice(0, 3), s: f.last_round.status, src: srcOk(f.last_round.source) } : null,
         inv: (f.investors || []).slice(0, 6),
         rev: amt(f.revenue) && Object.assign(amt(f.revenue), { k: f.revenue.kind || null, at: f.revenue.as_of || null }) };
     }

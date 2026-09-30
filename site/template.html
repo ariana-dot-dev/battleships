@@ -347,7 +347,7 @@ details.scfold{display:block}
 .acc{font-size:var(--t4);font-weight:400;color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent);padding:1px 6px;white-space:nowrap;cursor:help}
 .co{margin:0 0 12px;line-height:1.7}
 .co .hint{display:inline}
-.est{color:var(--ink-2)}
+.estv{color:var(--ink-2)}
 .iso:hover{background:var(--fill-2);color:var(--ink)}
 .iso[aria-pressed="true"]{background:var(--fill-2);color:var(--ink)}
 .isoclear{font:inherit;font-size:var(--t4);margin-left:8px;padding:2px 8px;border:0;background:var(--fill-2);color:var(--ink);cursor:pointer}
@@ -631,7 +631,8 @@ html{overflow-x:clip}
 .atlas dd{margin:4px 0 0;color:var(--ink-2)}
 .atlas dd em{font-style:normal;font-size:var(--t4)}
 .tbl{overflow-x:auto}
-.tbl table{border-collapse:collapse;width:100%;font-size:var(--t4)}
+/* every column as wide as its content needs (feature titles wrap at word breaks) plus the cell padding, never stretched */
+.tbl table{border-collapse:collapse;width:max-content;font-size:var(--t4)}
 .tbl th,.tbl td{padding:8px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:left;white-space:nowrap}
 .tbl th{position:sticky;top:0;background:var(--wash);font-weight:600;cursor:pointer}
 .tbl td.num{text-align:right}
@@ -669,14 +670,17 @@ html{overflow-x:clip}
 .mpv i{font-style:normal;color:var(--ink-2)}
 .tbl{max-height:calc(100vh - 160px);overflow:auto}
 .tbl th{top:0;z-index:2}
-.tbl th.fh{white-space:normal;min-width:88px;max-width:112px;vertical-align:bottom;line-height:1.3}
+.tbl th.fh{white-space:normal;width:1px;padding:8px 10px;vertical-align:bottom;line-height:1.3;hyphens:manual}
 .tbl th.fh:hover{background:var(--fill-2)}
 .tbl th .fs{display:block;min-height:14px}
 .tbl th .fs svg{width:11px;height:11px;fill:currentColor}
 .tbl th.req{background:var(--fill-2);color:var(--ink)}
 .tbl th.exc{background:var(--bg);color:var(--ink);box-shadow:inset 0 -3px 0 var(--warn)}
 .tbl td.req,.tbl td.exc{background:var(--fill)}
-.tbl .pn{position:sticky;left:0;background:var(--bg);z-index:1;font-weight:600;white-space:normal;min-width:180px}
+.tbl .pn{position:sticky;left:0;background:var(--bg);z-index:1;font-weight:600;white-space:normal;width:190px;min-width:190px}
+/* text columns get a set width and wrap; number columns fit their figure */
+.tbl .cw{white-space:normal;width:150px;min-width:150px}
+.tbl .cn{width:1px}
 .tbl th.pn{z-index:3;background:var(--wash);cursor:pointer}
 .tbl td.y{color:var(--ink);text-align:center;font-weight:600}
 .tbl td.x{color:var(--ink-2);text-align:center}
@@ -2131,14 +2135,14 @@ function renderMatrix(){
   $('#mchips').innerHTML=ks.map(k=>'<span class="mfchip" data-k="'+k+'"><button type="button" class="mfedit" data-k="'+k+'" data-tip="Change this filter">'+esc(FL(k))+': <b>'+esc(mf[k].join(', '))+'</b></button><button type="button" class="mfx" data-k="'+k+'" aria-label="Remove filter">×</button></span>').join('')+(ks.length>1?'<button class="mclear">Clear all</button>':'');
   const cell=(k,v)=>{ const c=on(k); return v===true?'<td class="y '+c+'">✓</td>':v===false||v==='none'?'<td class="x '+c+'">–</td>':v==null?'<td class="u '+c+'">?</td>':'<td class="'+c+'">'+esc(VAL_NAME[v]||v)+'</td>'; };
   const th=(k,label,cls)=>'<th class="'+cls+' '+on(k)+'" data-k="'+k+'"'+(on(k)?' data-tip="Filtered: '+esc(mf[k].join(', '))+'"':'')+'><span class="fs">'+(on(k)?'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 2h9L7 6.5V10L5 11V6.5z"/></svg>':'')+'</span>'+esc(label)+'</th>';
-  const amtCell=(k,x)=>'<td class="num '+on(k)+'">'+(x?(x.src?'<a href="'+esc(x.src)+'" target="_blank" rel="noopener">':'')+(x.s==='estimated'?'~':'')+money(x.v)+(x.src?'</a>':'')+(x.s==='estimated'?' <span class="est">est.</span>':''):'<span class="u">?</span>')+'</td>';
+  const amtCell=(k,x)=>'<td class="num cn '+on(k)+'">'+(x?(x.src?'<a href="'+esc(x.src)+'" target="_blank" rel="noopener">':'')+(x.s==='estimated'?'~':'')+money(x.v)+(x.src?'</a>':'')+(x.s==='estimated'?' <span class="estv">est.</span>':''):'<span class="u">?</span>')+'</td>';
   $('#matrix').innerHTML='<table><thead><tr><th class="pn" data-sort="1">Provider '+(msortD>0?'↑':'↓')+'</th>'+['accel','stage','raised','revenue'].map(k=>th(k,FL(k),'fh')).join('')+th('iso','Isolation','fh')+th('session','Max session','fh')
     +MK.map(k=>th(k,FL(k),'fh')).join('')+'<th>GPU types</th><th>Regions</th></tr></thead><tbody>'
     +rows.map(c=>{const f=c.features||{}, o=c.co||{}; return '<tr><td class="pn">'+esc(c.name)+'</td>'
-      +'<td class="wrap '+on('accel')+'">'+((o.acc||[]).length?esc(o.acc.map(accLabel).join(' · ')):'')+'</td>'
-      +'<td class="'+on('stage')+'">'+esc(tokensOf(c,'stage')[0]==='Unknown'?'':c.co&&(o.own==='subsidiary'||o.own==='acquired')?stageOf(c):tokensOf(c,'stage')[0])+'</td>'
+      +'<td class="cw '+on('accel')+'">'+((o.acc||[]).length?esc(o.acc.map(a=>ACC_SHORT(a.n)+(batchShort(a.b)?' '+batchShort(a.b):'')).join(' · ')):'')+'</td>'
+      +'<td class="cw '+on('stage')+'">'+esc(tokensOf(c,'stage')[0]==='Unknown'?'':c.co&&(o.own==='subsidiary'||o.own==='acquired')?stageOf(c):tokensOf(c,'stage')[0])+'</td>'
       +amtCell('raised',o.raised)+amtCell('revenue',o.rev)
-      +'<td class="'+on('iso')+'">'+esc(isoOf(c))+'</td><td class="num '+on('session')+'">'+(f.max_session_h==null?(f.max_session_unlimited?'no limit':'<span class="u">?</span>'):f.max_session_h+' h')+'</td>'+MK.map(k=>cell(k,cellVal(f,k))).join('')+'<td class="wrap">'+esc((f.gpu_types||[]).join(', '))+'</td><td class="wrap">'+esc((f.regions||[]).join(', '))+'</td></tr>';}).join('')
+      +'<td class="cw '+on('iso')+'">'+esc(isoOf(c))+'</td><td class="num '+on('session')+'">'+(f.max_session_h==null?(f.max_session_unlimited?'no limit':'<span class="u">?</span>'):f.max_session_h<1?Math.max(1,Math.round(f.max_session_h*60))+' min':(+f.max_session_h.toFixed(1))+' h')+'</td>'+MK.map(k=>cell(k,cellVal(f,k))).join('')+'<td class="wrap">'+esc((f.gpu_types||[]).join(', '))+'</td><td class="wrap">'+esc((f.regions||[]).join(', '))+'</td></tr>';}).join('')
     +'</tbody></table>'+(rows.length?'':'<div class="empty">No provider matches these filters.</div>');
   $$('#matrix th[data-k]').forEach(t=>t.onclick=()=>{ tip(); openPop(t,t.dataset.k); });
   $('#matrix th.pn').onclick=()=>{ msortD=-msortD; renderMatrix(); };
