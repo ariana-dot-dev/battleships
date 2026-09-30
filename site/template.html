@@ -1660,8 +1660,12 @@ const batchShort=b=>{ if(!b) return ''; const m=String(b).match(/(winter|summer|
 const accLabel=a=>ACC_SHORT(a.n)+(batchShort(a.b)?' '+batchShort(a.b):'');
 const money=v=>v>=1e9?'$'+(v/1e9).toFixed(v>=1e10?0:1).replace(/\.0$/,'')+'B':v>=1e6?'$'+(v/1e6).toFixed(v>=1e8?0:1).replace(/\.0$/,'')+'M':v>=1e3?'$'+Math.round(v/1e3)+'k':'$'+Math.round(v);
 const STAGE={bootstrapped:'Bootstrapped','pre-seed':'Pre-seed',seed:'Seed','series-a':'Series A','series-b':'Series B','series-c':'Series C','series-d+':'Series D or later',public:'Public company',subsidiary:'Part of a larger company',unknown:'Unknown'};
-const stageOf=c=>{ const o=c.co; if(!o) return 'Unknown'; if(o.own==='subsidiary'||o.stage==='subsidiary') return o.parent?`Part of ${o.parent}`:STAGE.subsidiary;
-  if(o.own==='acquired'&&o.parent) return `Acquired by ${o.parent}`; return STAGE[o.stage]||'Unknown'; };
+// "Acquired by X": an independent startup that was bought (its funding story ends there); "Part of X": a product a
+// bigger company built itself. Acquired wins, whatever stage the research left next to it.
+const stageOf=c=>{ const o=c.co; if(!o) return 'Unknown';
+  if(o.own==='acquired') return o.parent?`Acquired by ${o.parent}`:'Acquired';
+  if(o.own==='subsidiary'||o.stage==='subsidiary') return o.parent?`Part of ${o.parent}`:STAGE.subsidiary;
+  return STAGE[o.stage]||'Unknown'; };
 // an amount with its evidence level: confirmed as is, estimated with "~" and "est."
 const amtTxt=x=>!x?'unknown':(x.s==='estimated'?'~':'')+money(x.v)+(x.s==='estimated'?' (est.)':'');
 const coTip=c=>{ const o=c.co; if(!o) return ''; const L=[];
@@ -1680,7 +1684,8 @@ const accTag=c=>{ const t=$('#showAcc').checked&&fundTxt(c); return t?`<span cla
 const srcA=(txt,u)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(txt)}</a>`:esc(txt);
 function coHtml(c){ const o=c.co; if(!o) return ''; const L=[];
   L.push(`<b>${esc(stageOf(c))}</b>${o.raised?` · ${srcA(amtTxt(o.raised)+' raised',o.raised.src)}`:''}`);
-  if(o.last&&(o.last.a||o.last.d)) L.push(`Last round: ${srcA([STAGE[o.last.t]||o.last.t,o.last.a?money(o.last.a):'',o.last.d||''].filter(Boolean).join(', ')+(o.last.s==='estimated'?' (est.)':''),o.last.src)}${o.last.leads.length?`, led by ${esc(o.last.leads.join(', '))}`:''}`);
+  if(o.last&&/acqui/i.test(o.last.t)) L.push(srcA(`${o.parent?'Acquired by '+o.parent:'Acquired'}${o.last.d?', '+o.last.d:''}${o.last.a?' for '+money(o.last.a):' (terms not disclosed)'}`,o.last.src));
+  else if(o.last&&(o.last.a||o.last.d)) L.push(`Last round: ${srcA([STAGE[o.last.t]||o.last.t,o.last.a?money(o.last.a):'',o.last.d||''].filter(Boolean).join(', ')+(o.last.s==='estimated'?' (est.)':''),o.last.src)}${o.last.leads.length?`, led by ${esc(o.last.leads.join(', '))}`:''}`);
   if(o.acc.length) L.push(`Backed early by ${o.acc.map(a=>srcA(ACC_SHORT(a.n)+(a.b?' '+a.b:''),a.src)).join(' · ')}`);
   const inv=o.inv.filter(i=>!o.acc.some(a=>ACC_SHORT(a.n)===ACC_SHORT(i)||a.n===i));
   if(inv.length) L.push(`Investors: ${esc(inv.join(', '))}`);
@@ -2088,7 +2093,7 @@ const tok=v=>v===true?'Yes':v===false||v==='none'?'No':v==null?'Unknown':VAL_NAM
 const tokensOf=(c,k)=>{ const f=c.features||{};
   if(k==='iso'){ const cl=isoClasses(c); return cl.length?cl:['Unknown']; }
   if(k==='accel'){ const a=(c.co&&c.co.acc)||[]; return a.length?[...new Set(a.map(x=>ACC_SHORT(x.n)))]:['None found']; }
-  if(k==='stage') return [c.co&&(c.co.own==='subsidiary'||c.co.stage==='subsidiary')?STAGE.subsidiary:c.co&&c.co.own==='acquired'?'Acquired':STAGE[(c.co||{}).stage]||'Unknown'];
+  if(k==='stage') return [c.co&&c.co.own==='acquired'?'Acquired':c.co&&(c.co.own==='subsidiary'||c.co.stage==='subsidiary')?STAGE.subsidiary:STAGE[(c.co||{}).stage]||'Unknown'];
   if(k==='raised') return [bucket(c.co&&c.co.raised)];
   if(k==='revenue') return [bucket(c.co&&c.co.rev)];
   if(k==='session'){ const h=f.max_session_h; return [h==null?(f.max_session_unlimited?'no limit':'Unknown'):h<1?'under 1 h':h<24?'1 to 24 h':'24 h or more']; }
