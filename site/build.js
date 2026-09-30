@@ -70,6 +70,8 @@ html = html.replace('/*__ASSETS__*/', () => 'window.BOAT_ASSETS=' + JSON.stringi
 html = html.replace('/*__THEME__*/', () => '');
 html = html.replace('/*__DATA__*/', () => JSON.stringify(data).replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\u0021--'));
 fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
+// favicon inlined, so the page shows it wherever it's opened (site, embeds, a saved file)
+html = html.replace('%FAVICON%', () => 'data:image/svg+xml,' + encodeURIComponent(fs.readFileSync(path.join(__dirname, 'assets', 'favicon.svg'), 'utf8').trim()));
 fs.writeFileSync(path.join(__dirname, 'dist', 'index.html'), html);
 console.log(`cards=${cards.length} regimes=${Object.keys(data.regimes).length} verify=${Object.keys(data.verify).length} perfRef=${perfRef} usage=${!!data.usage} bytes=${html.length}`);
 if (problems.length) console.log('PROBLEMS:\n' + problems.join('\n'));
