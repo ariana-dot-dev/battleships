@@ -306,7 +306,9 @@
         const warmN = Math.max(1, W.concurrency);
         const perMachineMonth = h.monthCap != null ? Math.min(h.total * HOURS_MONTH, h.monthCap) : h.total * HOURS_MONTH;
         const warm = warmN * perMachineMonth;
-        const sessionTotal = sumB(b);
+        // if a plan waives start fees (Sail Pro), plan choice removes them later: don't let them force machines kept on 24/7
+        const feeWaivable = (card.plans || []).some(p => p && p.waives_start_fee && !p.trial_only);
+        const sessionTotal = feeWaivable ? sumB(Object.assign({}, b, { fees: 0 })) : sumB(b);
         if (!m.no_reuse && warm > 0 && warm < sessionTotal * 0.98 && warmN * HOURS_MONTH >= W.sessions * W.sessionMin / 60) {
           const s = warm / sumB(Object.assign({}, b, { fees: 0 }));
           for (const k in b) if (k !== 'fees') b[k] *= s;
@@ -445,8 +447,12 @@
     const cands = [];
     for (const r of priced.filter(r => r.pool)) cands.push({ b: Object.assign({}, r.b), hours: r.hours, modes: [r], shape: r.shape, diskIncluded: r.diskIncluded, notes: r.notes, unknowns: r.unknowns });
     const rs = priced.filter(r => !r.pool);
-    const bB = needB ? rs.filter(r => r.burst).sort((a, b) => sumB(a.burst.b) - sumB(b.burst.b))[0] : null;
-    const bA = needA ? rs.filter(r => r.always).sort((a, b) => sumB(a.always.b) - sumB(b.always.b))[0] : null;
+    // among modes: a real fit beats a size capped below your request; among capped ones the closest to your size wins
+    // (a 16-vCPU job can't be split over 2-vCPU boxes); then the cheapest
+    const capRank = r => r.shape && r.shape.clamped ? 1 : 0, capBig = r => r.shape && r.shape.clamped ? num(r.shape.vcpu) * 4 + num(r.shape.ram) : 0;
+    const pick = (list, part) => list.sort((a, b) => (capRank(a) - capRank(b)) || (capBig(b) - capBig(a)) || (sumB(a[part].b) - sumB(b[part].b)))[0];
+    const bB = needB ? pick(rs.filter(r => r.burst), 'burst') : null;
+    const bA = needA ? pick(rs.filter(r => r.always), 'always') : null;
     if ((!needB || bB) && (!needA || bA) && (bB || bA)) {
       const b = {}; let hours = 0;
       if (bB) { addInto(b, bB.burst.b); hours += bB.burst.hours; }
@@ -458,7 +464,11 @@
     if (!needB && !needA) cands.push({ b: {}, hours: 0, modes: [rs[0] || priced[0]], shape: null, diskIncluded: 0, notes: [], unknowns: [] });
     if (!cands.length) return fail(skipped.concat(priced.flatMap(r => [r.burstError, r.alwaysError]).filter(Boolean)));
 
-    const best = cands.sort((a, b) => sumB(a.b) - sumB(b.b))[0];
+    // cheapest wins, except among sizes capped below what you asked for: then the one closest to your size wins (a 16-vCPU
+    // job on Upstash is priced on its 8-vCPU box, not on its cheaper 2-vCPU one), and a real fit always beats a capped one
+    const capped = c => (c.shape && c.shape.clamped) ? 1 : 0;
+    const capSize = c => c.shape && c.shape.clamped ? num(c.shape.vcpu) * 4 + num(c.shape.ram) : 0;
+    const best = cands.sort((a, b) => (capped(a) - capped(b)) || (capSize(b) - capSize(a)) || (sumB(a.b) - sumB(b.b)))[0];
     const b = best.b, caveats = best.notes.slice(), reasons = [];
     const kb = applyKnobs(card, best.modes[0].mode, W, ov.knobs);
 
@@ -518,8 +528,14 @@
     const startsDay = reusedN ? 0 : W.sessions / 30;
     const steadyMin = reusedN || !(W.sessionMin > 0) ? 0 : Math.max(W.concurrency, 1) / W.sessionMin;
     const startsHourCap = Math.min(steadyMin * 60, startsDay);
-    const startsMin = Math.min(steadyMin, startsDay);
+    // a per-minute start limit is a burst throttle: a short burst above it queues for seconds. What needs a bigger plan is
+    // the SUSTAINED rate, i.e. the busiest hour's starts spread over its minutes (the old min(steady, day) assumed a whole
+    // day's sessions all start in the same minute, which pushed 33 runs a day onto boat.dev's $500 plan).
+    const startsMin = startsHourCap / 60;
+    const burstMin = Math.min(steadyMin, startsDay);
     let bestPlan = null; const planErrs = [];
+    const knownConcs = plans.filter(p => p && known(p.concurrency) && known(p.fee) && !p.trial_only).map(p => p.concurrency);
+    const siblingConc = knownConcs.length ? Math.max(...knownConcs) : null;
     // a regime may only be sold on certain plans (mode.plans = [plan names])
     const allowedPlans = best.modes.map(r => r.mode.plans || (r.mode.requires_plan ? [].concat(r.mode.requires_plan) : null)).filter(Array.isArray);
     for (const p of plans) {
@@ -530,7 +546,10 @@
       if (p.fee === null) { planErrs.push(`${p.name}: price not published`); continue; }
       const exempt = best.modes.every(r => r.mode.plan_limits_exempt);
       const lim = [];
-      if (known(p.concurrency) && peak > p.concurrency) lim.push(`${p.name}: max ${p.concurrency} concurrent`);
+      // a plan that doesn't publish its cap is not unlimited: it most likely keeps the highest cap its sibling plans publish
+      // (Railway's "$5k commit" tier is not a way around Pro's 100). Only card-level unknowns stay unknown.
+      const pConc = known(p.concurrency) ? p.concurrency : (siblingConc != null ? siblingConc : null);
+      if (known(pConc) && peak > pConc) lim.push(`${p.name}: max ${pConc} concurrent${known(p.concurrency) ? '' : ' (not published; assumed like its other plans)'}`);
       if (known(p.max_session_h) && sessH > p.max_session_h + 1e-9) lim.push(`${p.name}: sessions capped at ${p.max_session_h} h`);
       if (!exempt && best.shape && known(p.max_vcpu) && best.shape.vcpu > p.max_vcpu) lim.push(`${p.name}: max ${p.max_vcpu} vCPU`);
       if (!exempt && best.shape && known(p.max_ram_gib) && best.shape.ram > p.max_ram_gib) lim.push(`${p.name}: max ${p.max_ram_gib} GiB RAM`);
@@ -547,12 +566,14 @@
       if (known(p.max_starts_per_hour) && startsHour > p.max_starts_per_hour) capHit.push([`${p.name}: max ${p.max_starts_per_hour} starts/hour (needs ~${Math.round(startsHour)})`, startsHour / Math.max(1, p.max_starts_per_hour)]);
       // how far over each limit the workload is (1 = at the limit); used to pick the least-bad plan when all violate
       let severity = 0;
-      if (known(p.concurrency) && peak > p.concurrency) severity = Math.max(severity, peak / Math.max(1, p.concurrency));
+      if (known(pConc) && peak > pConc) severity = Math.max(severity, peak / Math.max(1, pConc));
       if (known(p.max_session_h) && sessH > p.max_session_h) severity = Math.max(severity, sessH / Math.max(0.01, p.max_session_h));
       if (known(p.max_starts_per_day) && startsDay > p.max_starts_per_day) { lim.push(`${p.name}: max ${p.max_starts_per_day} starts/day (needs ~${Math.round(startsDay)})`); severity = Math.max(severity, startsDay / Math.max(1, p.max_starts_per_day)); }
       if (known(p.max_starts_per_min) && startsMin > p.max_starts_per_min) { lim.push(`${p.name}: max ${p.max_starts_per_min} starts/min (needs ~${startsMin.toFixed(1)})`); severity = Math.max(severity, startsMin / Math.max(0.01, p.max_starts_per_min)); }
       for (const [t, sv] of capHit) { lim.push(t); severity = Math.max(severity, sv); }
       if (lim.length && !opts.ignorePlanLimits) { planErrs.push(...lim); continue; }
+      const burstNote = known(p.max_starts_per_min) && burstMin > p.max_starts_per_min
+        ? `bursts above ${p.max_starts_per_min} starts/min are queued (a burst of ${Math.round(burstMin)} takes ~${Math.ceil(burstMin / p.max_starts_per_min)} min to start)` : null;
       const incScope = Array.isArray(p.included_applies_to_modes) ? p.included_applies_to_modes : null;
       const incOk = !incScope || best.modes.some(r => incScope.includes(r.mode.key));
       const fee = num(p.fee), inc = incOk ? num(p.included_usd) : 0, seats = num(p.per_seat) * Math.max(0, W.seats - 1);
@@ -566,7 +587,7 @@
         || (!lim.length && bestPlan.lim.length)
         || (!lim.length && !bestPlan.lim.length && total < bestPlan.total)
         || (lim.length && bestPlan.lim.length && (severity < bestPlan.severity - 1e-9 || (Math.abs(severity - bestPlan.severity) < 1e-9 && total < bestPlan.total)));
-      if (better) bestPlan = { plan: p, total, planCost: total - net, credit: Math.min(usage, inc), lim, severity };
+      if (better) bestPlan = { plan: p, total, planCost: total - net, credit: Math.min(usage, inc), lim, severity, burstNote };
     }
     if (!bestPlan) return fail(planErrs);
 
@@ -585,6 +606,7 @@
       const c = Math.min(fr.one_time_credit / 12, total); total -= c; breakdown.credits = (breakdown.credits || 0) - c;
     }
     if (bestPlan.lim.length) caveats.push(...bestPlan.lim);
+    if (bestPlan.burstNote) caveats.push(bestPlan.burstNote);
     return {
       card, eligible: true, reasons: [], unknowns: best.unknowns, caveats, planLimits: bestPlan.lim,
       total, breakdown, hours: best.hours, modeLabel: [...new Set(best.modes.map(r => r.mode.label || r.mode.key))].join(' + '),
