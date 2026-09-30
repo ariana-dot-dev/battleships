@@ -194,6 +194,8 @@ details.grp[open] .sumval{visibility:hidden}
 .mhw{display:inline-flex;align-items:center;gap:2px}
 .scmore{display:inline-block;margin-top:10px;padding:0;border:0;background:none;font:inherit;font-size:var(--t4);color:var(--ink-2);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;cursor:pointer}
 .scmore:hover{color:var(--ink);text-decoration-color:currentColor}
+.nowrap{white-space:nowrap}
+details.grp>summary h3{white-space:nowrap}
 .mhk[aria-pressed="true"]{color:var(--ink);background:var(--fill);box-shadow:none}
 .mhk[aria-pressed="true"]::before{content:"✓ "}
 .mhk[aria-pressed="false"]::before{content:"+ "}
@@ -311,6 +313,17 @@ details.chartbox>summary h3{font-weight:400}
 .wn-fix>span{color:var(--ink-2);margin-right:4px}
 .wn-b{font-size:var(--t4);border:0;background:var(--fill);color:var(--ink);padding:6px 10px;cursor:pointer}
 .wn-b:hover{background:var(--fill-2)}
+/* ranking search: one quiet line above the summary; matches drop down with where each provider stands */
+.rsearch{position:relative;display:flex;align-items:center;gap:10px;padding:10px 24px;border-bottom:1px solid var(--line)}
+.rsearch svg{width:16px;height:16px;flex:none;fill:none;stroke:var(--ink-2);stroke-width:1.6}
+.rsearch input{flex:1;min-width:0;background:transparent;padding:6px 0;min-height:36px}
+.rsearch input:focus{box-shadow:none}
+.rqdd{position:absolute;left:12px;right:12px;top:100%;z-index:40;background:var(--bg);box-shadow:0 0 0 1px var(--line),0 12px 32px rgba(0,0,0,.14);padding:4px;max-height:min(60vh,420px);overflow:auto}
+.rqdd button{display:flex;justify-content:space-between;align-items:baseline;gap:12px;width:100%;text-align:left;border:0;background:none;font:inherit;color:var(--ink);padding:9px 10px;cursor:pointer}
+.rqdd button span{font-size:var(--t4);color:var(--ink-2);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rqdd button[aria-selected="true"],.rqdd button:hover{background:var(--fill)}
+.rqnone{padding:9px 10px;color:var(--ink-2);font-size:var(--t4)}
+@media (max-width:720px){.rsearch{padding:8px 16px}.rqdd button{flex-direction:column;gap:2px}.rqdd button span{text-align:left;white-space:normal}}
 .cmpwrap{padding:4px 24px 20px}
 .cmpl{margin:0 0 12px;font-size:var(--t4);color:var(--ink-2);max-width:80ch}
 .cmpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;align-items:start}
@@ -775,8 +788,9 @@ details.more-in[open]>summary{display:none}
     </aside>
     <div class="results">
       <div class="tile scenario"><div class="scpre" id="scPreLabel">Usecase preset:</div><label class="wlpick" aria-labelledby="scPreLabel"><span id="presetName"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg><select id="presetSel" aria-label="Usecase preset"></select></label>
-        <div class="scframe"><div id="scenario"></div><section class="scsec" id="scFeatSec"><h4 class="sclab">Suggested features <span>tap to require or drop</span></h4><div id="scchips" class="mh"></div><button type="button" class="scmore" id="scMoreFeat">See more in “Must have”</button></section>
+        <div class="scframe"><div id="scenario"></div><section class="scsec" id="scFeatSec"><h4 class="sclab">Suggested features <span>tap to require or drop</span></h4><div id="scchips" class="mh"></div><button type="button" class="scmore" id="scMoreFeat">See more in <span class="nowrap">“Must have”</span></button></section>
         <section class="scsec" id="scDialSec"><h4 class="sclab">Scale <span>same settings as the panel</span></h4><div id="dials" class="dials"></div></section></div></div>
+      <div class="tile rsearch"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input id="rq" type="search" placeholder="Find a provider in the ranking" autocomplete="off" aria-label="Find a provider in the ranking" role="combobox" aria-expanded="false" aria-controls="rqdd"><div id="rqdd" class="rqdd" role="listbox" hidden></div></div>
       <div class="tile sumline"><div id="summary"></div>
         <div class="viewctl"><label class="tog" data-tip="Show each billing regime of a provider as its own row (up to 3 per provider)."><input type="checkbox" id="perRegime" checked> per regime</label>
           <div class="seg" id="barmode"><button data-m="total" aria-pressed="true">Total</button><button data-m="split" aria-pressed="false">Split</button></div></div></div>
@@ -1156,7 +1170,28 @@ $$('#barmode button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.m===ba
 let open=null;
 $('#perRegime').checked=store.get('perRegime',true);
 $('#perRegime').onchange=()=>{store.set('perRegime',$('#perRegime').checked); run();};
-let lastWO=null, focusProv=null;
+let lastWO=null, focusProv=null, rankIdx=new Map();
+// ---- ranking search: type a name, see where each match stands, pick one to jump to its row (opened, highlighted)
+{ const q=$('#rq'), dd=$('#rqdd'); let act=0, list=[];
+  const where=id=>{ const x=rankIdx.get(id); if(!x) return 'not in this ranking'; if(x.missing) return 'not ranked: '+x.missing; return (x.soft?'with compromises · ':'')+'#'+x.pos+' · '+fmt(x.total); };
+  const show=()=>{ const s=q.value.trim().toLowerCase(); if(!s){ dd.hidden=true; q.setAttribute('aria-expanded','false'); return; }
+    list=CARDS.filter(c=>c.name.toLowerCase().includes(s)||c.id.includes(s)).sort((a,b)=>(a.name.toLowerCase().indexOf(s)-b.name.toLowerCase().indexOf(s))||((rankIdx.get(a.id)||{}).pos||1e9)-((rankIdx.get(b.id)||{}).pos||1e9)).slice(0,8);
+    act=Math.min(act,Math.max(0,list.length-1));
+    dd.innerHTML=list.length?list.map((c,i)=>`<button type="button" role="option" data-id="${esc(c.id)}" aria-selected="${i===act}"><b>${esc(c.name)}</b><span>${esc(where(c.id))}</span></button>`).join(''):'<div class="rqnone">No provider by that name</div>';
+    dd.hidden=false; q.setAttribute('aria-expanded','true'); dd.querySelectorAll('button').forEach(b=>b.onmousedown=e=>{ e.preventDefault(); go(b.dataset.id); }); };
+  const go=id=>{ dd.hidden=true; q.setAttribute('aria-expanded','false'); q.value=(CARDS.find(c=>c.id===id)||{}).name||''; q.blur();
+    const x=rankIdx.get(id);
+    if(x&&!x.missing){ showAll.meets=true; if(x.soft) showAll.soft=true; focusProv=id; run(); return; }
+    // not ranked: open the "missing from the ranking" list and point at it
+    if(open){ open=null; run(); }
+    const inel=$('#inel'); if(inel&&!inel.hidden){ inel.open=true; inel.scrollIntoView({block:'center'}); inel.classList.add('flash'); setTimeout(()=>inel.classList.remove('flash'),1600); } };
+  q.addEventListener('input',()=>{ act=0; show(); });
+  q.addEventListener('focus',show);
+  q.addEventListener('blur',()=>setTimeout(()=>{ dd.hidden=true; q.setAttribute('aria-expanded','false'); },120));
+  q.addEventListener('keydown',e=>{ if(dd.hidden) return;
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); act=(act+(e.key==='ArrowDown'?1:-1)+list.length)%Math.max(1,list.length); show(); }
+    else if(e.key==='Enter'&&list[act]){ e.preventDefault(); go(list[act].id); }
+    else if(e.key==='Escape'){ dd.hidden=true; } }); }
 window.__pm={ run:()=>run(), readW:()=>readW(), readOpts:()=>readOpts() }; // test/measurement hook
 let holdRun=false;
 function run(){
@@ -1316,6 +1351,10 @@ function RUN_REST(W,O,perRegime,res,hrs,nf){
   inel.querySelector('ul').innerHTML='<li class="wn-g">Checking what would bring them back…</li>';
   if(inel.open) findFixes();
   // after a "bring it back" click: open that provider's row and take the reader there
+  // where every provider stands, for the ranking search: position + price, or why it isn't ranked
+  rankIdx=new Map(); strictOk.forEach((r,i)=>{ if(!rankIdx.has(r.card.id)) rankIdx.set(r.card.id,{pos:i+1,total:r.total,soft:false}); });
+  softOk.forEach((r,i)=>{ if(!rankIdx.has(r.card.id)) rankIdx.set(r.card.id,{pos:strictOk.length+i+1,total:r.total,soft:true}); });
+  bad.concat(offTopic).forEach(r=>{ if(!rankIdx.has(r.card.id)) rankIdx.set(r.card.id,{missing:(whyNot(r)[0]||'not priced for this workload')}); });
   if(focusProv){ const row=$('#rank .r[data-id^="'+focusProv+'|"]'); focusProv=null;
     if(row){ open=row.dataset.id; run(); const r2=$('#rank .r.open'); if(r2){ r2.scrollIntoView({block:'center'}); r2.classList.add('flash'); } } }
   crossChart([...new Map(ok.map(r=>[r.card.id,r.card])).values()].slice(0,6), O);
