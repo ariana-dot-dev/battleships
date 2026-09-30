@@ -224,6 +224,9 @@ details.grp[open] .sumval{visibility:hidden}
 .mrules li b{color:var(--ink);font-weight:600}
 .mrules i{flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-weight:600;color:var(--royal);background:var(--bg);box-shadow:inset 0 0 0 1px var(--line)}
 .mrules li a{color:var(--ink)}
+.mvid{margin:48px 0 0}
+.mvid video{display:block;width:100%;aspect-ratio:16/9;background:var(--wash)}
+.mvid figcaption{margin-top:10px;font-size:var(--t4);color:var(--ink-2)}
 /* the limits: same grid as the rules, an open dashed box instead of a filled one */
 .mlimits{margin-top:20px;padding:28px;border:1.5px dashed var(--line)}
 .mlimits h3{margin:0 0 18px;font:400 var(--t2) var(--display);color:var(--ink)}
@@ -910,6 +913,8 @@ details.more-in[open]>summary{display:none}
     <li><span class="mdot"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21v-9M12 21V3M18 21v-6"/><path d="M3 21h18"/></svg></span>
       <b>Rank</b><p>Full matches first, cheapest on top. The rest show what they miss, so you decide what you can live with.</p><strong><span data-stat="providers">0</span> providers</strong></li>
   </ol>
+  <figure class="mvid"><video data-src="wall.mp4" data-poster="wall.jpg" muted loop playsinline preload="none" aria-label="A wall of 361 screen recordings: an agent reading each provider’s pricing page, starting on boat.dev and pulling back to all of them"></video>
+    <figcaption>Every pricing page, read by an agent in a real browser: 361 of them at once, at 4× speed.</figcaption></figure>
   <div class="mrules"><h3>Rules we don’t bend</h3><ul>
     <li><i aria-hidden="true">?</i><span><b>Unknown stays unknown.</b> A price or limit a provider doesn’t publish is never read as free or unlimited.</span></li>
     <li><i aria-hidden="true">=</i><span><b>Disclosure never costs you.</b> Publishing a limit can’t rank worse than hiding it, and what’s true of everyone counts against no one.</span></li>
@@ -1008,7 +1013,7 @@ const PRESETS=[
  {k:'browseruse',sizing:'any',access:3,shop:'browser',n:'Browser-use agents',prof:'fam-browser-desktop',req:['browser','browser_control'],why:'Agents that do tasks on websites for your users: open a real browser, read the page, click and fill forms. Sessions of about 10 minutes.',w:{vcpu:2,ram:4,disk:10,sessions:30000,sessionMin:10,concurrency:50,alwaysOn:0,snapshotGiB:0,egress:300,ipv4:0,seats:2,persistentDisk:false}},
  {k:'scrape',sizing:'any',access:3,shop:'browser',pool:true,n:'Scraping & bots (startup scale)',prof:'custom',cpu:40,ramu:60,idle:5,req:['browser'],why:'A startup collecting data from websites with headless browsers: about 100,000 short visits a month, 50 at a time.',w:{vcpu:1,ram:2,disk:5,sessions:100000,sessionMin:3,concurrency:50,alwaysOn:0,snapshotGiB:0,egress:500,ipv4:0,seats:1,persistentDisk:false}},
  {k:'scrapemass',sizing:'any',access:4,shop:'stealth',pool:true,n:'Mass scraping & bots (undetectable)',prof:'custom',cpu:40,ramu:60,idle:5,req:['browser','anti_bot','captcha_solving','residential_ip'],why:'Millions of browser visits a month to sites that try to block bots: needs stealth browsers, CAPTCHA solving and residential IP addresses, 1,000 at a time.',w:{vcpu:1,ram:2,disk:5,sessions:3000000,sessionMin:2,concurrency:1000,alwaysOn:0,snapshotGiB:0,egress:5000,ipv4:0,seats:1,persistentDisk:false}},
- {k:'redteam',access:3,shop:'agent',n:'Parallel red teaming',prof:'custom',cpu:50,ramu:60,idle:10,req:['vm_isolation','root'],why:'Many security agents attacking your own app at once, each on its own throwaway machine: a real VM with root, so they can run scanners and raw-socket tools and route traffic through your proxy (nftables). They only attack what they are told to, so provider-side egress rules are optional. 200 at a time, 30 minutes each.',w:{vcpu:2,ram:4,disk:20,sessions:5000,sessionMin:30,concurrency:200,alwaysOn:0,snapshotGiB:20,egress:100,ipv4:0,seats:2,persistentDisk:false}},
+ {k:'redteam',access:3,shop:'agent',n:'Parallel red teaming',prof:'custom',cpu:50,ramu:60,idle:10,req:['vm_isolation','root','browser'],why:'Many security agents attacking your own app at once, each on its own throwaway machine. Much like QA, they drive a real browser through your app (logins, forms, flows) and run scanners and raw-socket tools next to it: a real VM with root, so they can also route traffic through your proxy (nftables). They only attack what they are told to, so provider-side egress rules are optional. 200 at a time, 30 minutes each.',w:{vcpu:2,ram:4,disk:20,sessions:5000,sessionMin:30,concurrency:200,alwaysOn:0,snapshotGiB:20,egress:100,ipv4:0,seats:2,persistentDisk:false}},
  {k:'gpu',net:'pkg',access:2,shop:'gpu',n:'GPU eval jobs',prof:'custom',cpu:50,ramu:60,idle:5,why:'Model evaluation jobs that each need one H100 GPU for about 30 minutes.',w:{vcpu:8,ram:32,disk:100,sessions:500,sessionMin:30,concurrency:10,alwaysOn:0,snapshotGiB:0,egress:50,ipv4:0,seats:1,persistentDisk:false,gpu:'H100',gpuCount:1}},
  {k:'mac',access:2,shop:'mac',n:'macOS agents',prof:'custom',cpu:60,ramu:60,idle:10,cat:'all',why:'Agents that need a real macOS machine, for example to build and test iPhone or Mac apps. Sessions of about 20 minutes.',w:{vcpu:4,ram:8,disk:60,sessions:1000,sessionMin:20,concurrency:5,alwaysOn:0,snapshotGiB:0,egress:50,ipv4:0,seats:1,persistentDisk:false,os:'macos'}},
 ];
@@ -1103,6 +1108,16 @@ function syncSegs(){ $$('.segc').forEach(w=>{ const sel=w.previousElementSibling
 addEventListener('resize',fitSel); document.fonts&&document.fonts.ready.then(fitSel);
 // sticky panels sit exactly on the tab bar's bottom border, whatever its height (fonts, zoom)
 { const nav=$('nav.tabs'); if(nav&&window.ResizeObserver) new ResizeObserver(()=>document.documentElement.style.setProperty('--navh',nav.offsetHeight+'px')).observe(nav); }
+// the methodology video: fetched only when it scrolls into view, plays while visible; reduced motion = poster + controls
+{ const v=$('.mvid video'); if(v){ const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // the files sit next to the page on our hosts; a copy opened elsewhere (a file, an embed) fetches them from the boat.dev host
+  const home=/^https?:$/.test(location.protocol)&&!/claude|anthropic|usercontent/.test(location.hostname);
+  const base=home?'':'https://box-node-571f393fa2f19056-8080.on.boat.dev/';
+  v.dataset.src=base+v.dataset.src; v.poster=base+v.dataset.poster;
+  const load=()=>{ if(!v.src){ v.src=v.dataset.src; v.preload='auto'; } };
+  if(still){ v.preload='none'; v.src=v.dataset.src; v.controls=true; }
+  else if(window.IntersectionObserver) new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ load(); v.play().catch(()=>{}); } else v.pause(); }),{rootMargin:'200px 0px'}).observe(v);
+  else { load(); v.autoplay=true; } } }
 // the vertical scrollbar's width, for the full-bleed hero and footer (0 with overlay scrollbars and on phones)
 { const de=document.documentElement, sb=()=>de.style.setProperty('--sbw',Math.max(0,innerWidth-de.clientWidth)+'px'); sb(); addEventListener('resize',sb); if(window.ResizeObserver) new ResizeObserver(sb).observe(document.body); }
 $('#presets').innerHTML=PRESETS.map(p=>`<button class="chip" data-k="${p.k}" aria-pressed="false" data-tip="${esc(presetTip(p))}">${esc(p.n)}</button>`).join('');
@@ -1159,7 +1174,7 @@ const SCEN={
   scrape:{opt:['anti_bot','captcha_solving','residential_ip','static_egress_ip'],dials:[['sessions','Page visits a month',1000,10000000,'n'],['concurrency','Browsers at once',1,5000,'n'],['sessionMin','Minutes per visit',0.5,30,'min'],['egress','Data downloaded a month',1,100000,'gib']]},
   scrapemass:{opt:['static_egress_ip','browser_control'],dials:[['sessions','Page visits a month',100000,500000000,'n'],['concurrency','Browsers at once',10,50000,'n'],['sessionMin','Minutes per visit',0.5,30,'min'],['egress','Data downloaded a month',10,1000000,'gib']]},
   evals:{opt:['fast_boot','docker_inside','image_snapshot','snapshot_on_demand','fork','egress_allowlist'],dials:[['sessions','Eval tasks a month',100,10000000,'n'],['sessionMin','Length of a task',1,240,'min'],['concurrency','Tasks at once',1,20000,'n'],['vcpu','vCPU per task',0.5,16,'cpu']]},
-  redteam:{opt:['egress_allowlist','nested_virt','docker_inside','ingress_rules','guest_firewall','private_network','audit_logs','fork'],dials:[['concurrency','Attack agents at once',1,5000,'n'],['sessions','Attack runs a month',10,1000000,'n'],['sessionMin','Length of a run',1,480,'min'],['vcpu','vCPU per agent',0.5,32,'cpu']]},
+  redteam:{opt:['browser_control','computer_use','desktop','egress_allowlist','nested_virt','docker_inside','ingress_rules','guest_firewall','private_network','audit_logs','fork'],dials:[['concurrency','Attack agents at once',1,5000,'n'],['sessions','Attack runs a month',10,1000000,'n'],['sessionMin','Length of a run',1,480,'min'],['vcpu','vCPU per agent',0.5,32,'cpu']]},
   gpu:{opt:['custom_image','docker_inside','persistent_disk','volume_shared'],dials:[['sessions','Eval jobs a month',1,100000,'n'],['sessionMin','Length of a job',1,1440,'min'],['concurrency','Jobs at once',1,1000,'n'],['gpuCount','GPUs per job',1,8,'gpu']]},
   mac:{opt:['ssh','desktop','computer_use'],dials:[['concurrency','Macs at once',1,500,'n'],['sessions','Sessions a month',10,100000,'n'],['sessionMin','Length of a session',5,1440,'min']]},
 };
