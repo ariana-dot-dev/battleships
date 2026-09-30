@@ -60,6 +60,14 @@
     const w = SPRITE[name][0] * K, h = SPRITE[name][1] * K; used.add(name);
     return `<i class="ship ride spr-${name}" style="left:${sailing ? 0 : pct(x, W)};top:${pct(y - h, H)};width:${pct(w, W)};height:${pct(h, H)};animation-delay:${r2(-i * 1.3)}s"></i>`;
   }
+  // a cannon shot: muzzle flash + smoke at (x0,y0), a ball on a parabola (apex h above the muzzle) to (x1,y1), then a
+  // splash, or a burst on a hit. Units are the scene's (1200 wide), turned into cqw so everything scales with the sea.
+  // Transform/opacity only: runs on the compositor. dur = one full cycle, del = when in the cycle this gun fires.
+  const cq = v => r2(v / W * 100) + 'cqw';
+  function shot(x0, y0, x1, y1, h, dur, del, hit) {
+    return `<div class="shot${hit ? ' hit' : ''}" style="--x0:${cq(x0)};--y0:${cq(y0)};--dx:${cq(x1 - x0)};--dy:${cq(y1 - y0)};--h:${cq(h)};--dur:${dur}s;--del:${del}s">`
+      + `<i class="flash"></i><i class="smoke"></i><span class="bx"><span class="by"><b></b></span></span><i class="land"></i></div>`;
+  }
   function sprites() {
     return `<style>${[...used].map(n => `.spr-${n}{background-image:url(${(A().ships || {})[n]})}`).join('')}</style>`;
   }
@@ -78,7 +86,14 @@
       + vessel('ship-medium-l', 1030, 310, 1, H)
       + vessel('barrel', 1100, 440, 4, H)
       + vessel('rowboat-l', 900, 470, 3, H)
-      + vessel('ship-large-r', 150, 480, 2, H) + `</div></div>`;
+      + vessel('ship-large-r', 150, 480, 2, H)
+      // the battle: the big ship and the medium one trade broadsides over the title, the small one joins in; some miss
+      + shot(338, 395, 1075, 262, 150, 7.2, 0.6, true)     // large → medium, over the subtitle: hit
+      + shot(1045, 250, 150, 245, 175, 7.2, 3.1, false)    // medium → small, over the title: splash short
+      + shot(142, 225, 1040, 300, 120, 9.6, 5.2, false)    // small → medium: splash
+      + shot(1040, 262, 330, 420, 110, 9.6, 8.1, true)     // medium → large: hit
+      + shot(330, 410, 880, 470, 70, 12, 10.4, false)      // large → the rowboat: near miss
+      + `</div></div>`;
   }
 
   // the footer: flat water with a fleet sailing across at different speeds and a barrel, drawn back to front
@@ -89,9 +104,10 @@
       + `<mask id="fsm" maskUnits="userSpaceOnUse" x="-400" y="-400" width="${W + 800}" height="${H + 800}"><rect x="0" y="-400" width="${W}" height="${H + 800}" fill="url(#fsf)"/></mask></defs>`
       + `<g mask="url(#fsm)"><g fill="none" stroke="${ROYAL}">${layer(rows)}</g></g></svg>`
       + `<div class="fleet fade" aria-hidden="true">`
-      + `<div class="sail l s2">${vessel('ship-medium-l', 0, 150, 1, H, true)}</div>`
+      // guns ride with the sailing ships; their shots splash into the sea
+      + `<div class="sail l s2">${vessel('ship-medium-l', 0, 150, 1, H, true)}${shot(10, 118, -260, 196, 70, 8, 2.2, false)}</div>`
       + vessel('barrel', 340, 165, 4, H)
-      + `<div class="sail r s1">${vessel('ship-large-r', 0, 190, 0, H, true)}</div>`
+      + `<div class="sail r s1">${vessel('ship-large-r', 0, 190, 0, H, true)}${shot(190, 140, 520, 200, 80, 8, 6.3, false)}</div>`
       + `<div class="sail l s4">${vessel('rowboat-l', 0, 198, 3, H, true)}</div>`
       + `<div class="sail r s3">${vessel('ship-small-r', 0, 205, 2, H, true)}</div></div></div>`;
   }

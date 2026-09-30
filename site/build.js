@@ -7,10 +7,14 @@ const readMdDir = sub => Object.fromEntries(readDir(path.join(R, sub), '.md').ma
 const readIf = p => fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
 
 const cards = [], problems = [];
+// numbers for the methodology section, counted from the data itself
+const stats = { providers: 0, tiers: 0, quoted: 0, sources: new Set() };
 for (const f of readDir(path.join(R, 'cards'), '.json')) {
   try {
     const c = JSON.parse(fs.readFileSync(path.join(R, 'cards', f), 'utf8'));
     if (!c.id || !Array.isArray(c.modes)) { problems.push(`${f}: missing id or modes`); continue; }
+    stats.providers++; stats.tiers += c.modes.filter(m => m && !(m.flags || []).includes('legacy')).length;
+    for (const e of Object.values(c.feature_evidence || {})) if (e && e.quote && e.source) { stats.quoted++; try { stats.sources.add(new URL(e.source).href.split('#')[0]); } catch {} }
     // quoted evidence per feature stays in the cards (and the public repo); the page doesn't show it, so it doesn't ship
     delete c.feature_evidence;
     cards.push(c);
@@ -41,6 +45,7 @@ const cleanDir = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, c
 const cardIds = new Set(cards.map(c => c.id));
 const data = {
   asOf: '2026-09-28', cards, perfRef,
+  stats: { providers: stats.providers, tiers: stats.tiers, quoted: stats.quoted, pages: stats.sources.size },
   regimes: cleanDir(readMdDir('regimes')),
   // only the per-provider verification write-ups (not our fix logs or engine notes)
   verify: cleanDir(Object.fromEntries(Object.entries(readMdDir('verify')).filter(([k]) => cardIds.has(k)))),
@@ -57,7 +62,7 @@ const ASSETS = { ships: Object.fromEntries(fs.readdirSync(path.join(__dirname, '
 // The hero and footer scenery are rendered here, into the HTML, so they are in the very first paint instead of
 // waiting for the page's scripts. The page itself only needs the rowboat (slider handle) at runtime.
 globalThis.BOAT_ASSETS = ASSETS; require('./theme.js');
-html = html.replace('<div id="heroSea"></div>', () => `<div id="heroSea">${globalThis.BoatTheme.hero('PriceMogged')}</div>`);
+html = html.replace('<div id="heroSea"></div>', () => `<div id="heroSea">${globalThis.BoatTheme.hero('Battleships')}</div>`);
 html = html.replace('<div class="bfoot-sea" id="footSea"></div>', () => `<div class="bfoot-sea" id="footSea">${globalThis.BoatTheme.footer()}</div>`);
 // the boat images, once, as symbols both scenes <use> (placed first in the hero so they exist before the scenes paint)
 html = html.replace('<div id="heroSea">', () => `${globalThis.BoatTheme.sprites()}<div id="heroSea">`);

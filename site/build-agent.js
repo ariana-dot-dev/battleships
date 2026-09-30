@@ -1,4 +1,4 @@
-// Agent-readable static layer for PriceMogged: llms.txt, llms-full.txt, JSON/Markdown per provider, feature definitions,
+// Agent-readable static layer for Battleships: llms.txt, llms-full.txt, JSON/Markdown per provider, feature definitions,
 // presets, the pricing engine. All static (no query endpoint to abuse); rankings per preset are added by rankings.mjs.
 // usage: node build-agent.js   ->   dist/agent/**
 const fs = require('fs'), path = require('path');
@@ -43,7 +43,7 @@ fs.writeFileSync(path.join(OUT, 'data', 'features.json'), JSON.stringify(Object.
 fs.writeFileSync(path.join(OUT, 'data', 'presets.json'), JSON.stringify(PRESETS.map(p => ({ id: p.k, name: p.n, description: p.why, required: p.req || [], workload: p.w, ranking: `${SITE}/data/rankings/${p.k}.json` })), null, 1));
 fs.copyFileSync(path.join(__dirname, 'engine.js'), path.join(OUT, 'engine.js'));
 // ---- llms.txt (short map) and llms-full.txt (every provider in a paragraph)
-const llms = `# PriceMogged
+const llms = `# Battleships
 
 > Monthly cost of ${cards.length} cloud sandbox, VM and agent-runtime providers for a given AI-agent workload, from each provider's public pricing, with features checked against their docs (quoted sources). Built by the boat.dev team; boat.dev is held to the same rules as everyone.
 
