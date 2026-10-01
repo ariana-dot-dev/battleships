@@ -22,7 +22,7 @@
     wake_on_request: 'wake on request', live_resize: 'live resize', fork_running: 'live fork (no pause)',
     memory_snapshot_fork: 'memory fork', webhooks: 'webhooks', scheduled_wakeups: 'scheduled runs (cron)',
     audit_logs: 'audit logs', eu_data_residency: 'EU data residency', zero_data_retention: 'zero data retention',
-    scoped_api_keys: 'scoped API keys', spend_limits: 'spend limits', mcp_server: 'MCP server',
+    scoped_api_keys: 'scoped API keys', spend_limits: 'spend limits', mcp_server: 'MCP server', usage_api: 'usage per sandbox (API)',
     // agent infrastructure (feature pass 2026-09-29): see FEAT_WHY in the page for what each one means
     snapshot_auto: 'automatic snapshots', snapshot_on_demand: 'snapshots on demand', harness_api: 'agent harness API',
     own_agent_api: 'hosted agent API (their own agent)', fast_boot: 'fast boot (benchmarked)', strong_isolation: 'gVisor or VM (no shared kernel)',

@@ -459,7 +459,8 @@
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
     "own_agent_api": false,
-    "open_internet": true
+    "open_internet": true,
+    "usage_api": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -819,6 +820,14 @@
       "quote": "It must be possible to over commit CPU, memory and other resources, with each function consuming only the resources it needs, not the resources it is entitled to... In Lambda, CPU, network, and storage throughput is allocated to functions proportionally to their configured memory limit... Oversubscription is fundamentally a statistical bet: the platform must ensure that resources are kept as busy as possible.",
       "note": "AWS's own Firecracker paper (co-authored by the Lambda team, cited from Lambda's docs) states Lambda uses 'soft allocation' -- CPU is proportionally entitled per configured memory but oversubscribed/over-committed across MicroVMs on the same host, i.e. no guaranteed dedicated core, matching the 'shared' definition. AWS's public docs (gettingstarted-limits.html, lambda-runtime-environment.html) only ever describe memory-proportional CPU allocation, never a dedicated-core guarantee or a published burst baseline %, so 'burstable:NN' does not apply. This applies identically to on-demand, on-demand-arm64, both Savings Plan modes (same underlying Firecracker execution environment, just a different discount), and provisioned concurrency (kept warm/initialized on the same oversubscribed Firecracker fleet -- provisioning concurrency changes billing/availability, not the CPU allocation model). Lambda Managed Instances (mode 'managed-instances') is different: it runs customer functions as containers directly on customer-owned EC2 Nitro instances (c7g.xlarge, c7i.xlarge, m7i.xlarge per the card) -- none of these are in EC2's T-family burstable-instance line (confirmed via AWS's EC2 burstable-performance-instances doc, which names only T8i/T4g/T3a/T3/T2 as burstable), so their vCPUs are standard non-burstable EC2 vCPUs, i.e. dedicated to the instance (shared only in the ordinary EC2 sense of no CPU-credit throttling, not oversubscribed the way Lambda's Firecracker fleet is).",
       "checked": "2026-09-30"
+    },
+    "usage_api": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_GetMetricStatistics.html",
+      "quote": "GetMetricStatistics API returns CloudWatch metrics (Duration, Invocations) per Lambda function; Cost Explorer API breaks costs down by resource tag/label enabling per-function cost tracking",
+      "note": "granularity: per-sandbox; cost: yes; CloudWatch metrics API (GetMetricStatistics, GetMetricData) reports billable usage (Duration in ms, Invocations count) per individual Lambda function. AWS Cost Explorer API and Cost and Usage Report API break costs down by Lambda function tags/dimensions. Together these provide complete per-sandbox usage and cost visibility.",
+      "confidence": "high",
+      "checked": "2026-10-01"
     }
   }
 }
