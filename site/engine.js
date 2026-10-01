@@ -30,6 +30,48 @@
     secret_proxy_any: 'secret proxy for any API', volume_attach: 'extra volumes', volume_shared: 'shared volumes',
   };
 
+  // ---- regions --------------------------------------------------------------
+  // card.locations = [{country (ISO 3166-1), state, city, self_serve, choosable}] from the provider's own region docs;
+  // card.locations_everywhere = true for edge platforms that run everywhere. Each location belongs to the filters below:
+  // its country, US East / Central / West by state, EU (EU, EEA and Switzerland), Middle East, Latin America, Africa, Asia.
+  const US_EAST = new Set('CT DE DC FL GA ME MD MA NH NJ NY NC PA RI SC VT VA WV OH MI IN KY TN AL'.split(' '));
+  const US_WEST = new Set('WA OR CA NV AZ UT ID MT WY CO NM AK HI'.split(' '));
+  const EU_EEA = new Set('AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE IS LI NO CH'.split(' '));
+  const MIDDLE_EAST = new Set('AE SA IL QA BH KW OM JO'.split(' '));
+  const LATAM = new Set('BR MX CL CO AR PE UY'.split(' '));
+  const AFRICA = new Set('ZA NG KE EG MA GH'.split(' '));
+  const ASIA = new Set('SG IN JP KR HK CN TW ID MY TH PH VN'.split(' '));
+  const REGION_LABELS = { us: 'US', 'us-east': 'US East', 'us-central': 'US Central', 'us-west': 'US West', ca: 'Canada', br: 'Brazil', mx: 'Mexico',
+    latam: 'Latin America', eu: 'EU', uk: 'UK', 'middle-east': 'Middle East', za: 'South Africa', africa: 'Africa', sg: 'Singapore', in: 'India',
+    jp: 'Japan', kr: 'South Korea', hk: 'Hong Kong', cn: 'China (mainland)', tw: 'Taiwan', id: 'Indonesia', asia: 'Asia', au: 'Australia', nz: 'New Zealand' };
+  function regionCodes(loc) {
+    const c = String((loc && loc.country) || '').toUpperCase(), st = String((loc && loc.state) || '').toUpperCase(), out = [];
+    if (!c) return out;
+    out.push(c === 'GB' ? 'uk' : c.toLowerCase());
+    if (c === 'US' && st) out.push(US_EAST.has(st) ? 'us-east' : US_WEST.has(st) ? 'us-west' : 'us-central');
+    if (EU_EEA.has(c)) out.push('eu');
+    if (MIDDLE_EAST.has(c)) out.push('middle-east');
+    if (LATAM.has(c)) out.push('latam');
+    if (AFRICA.has(c)) out.push('africa');
+    if (ASIA.has(c)) out.push('asia');
+    return out;
+  }
+  // the coarse region a precise one falls under, for cards still on the old us / eu / asia list
+  const coarseRegion = code => /^us/.test(code) ? 'us' : ['eu', 'uk'].includes(code) ? 'eu' : (code === 'asia' || ASIA.has(code.toUpperCase())) ? 'asia' : 'other';
+  // can you run this card's machines in `code`, self-serve? true / false, 'sales' (only through sales) or null (not published)
+  function regionMatch(card, code) {
+    if (!code || code === 'any') return true;
+    if (card.locations_everywhere) return true;
+    const locs = Array.isArray(card.locations) ? card.locations : [];
+    if (locs.length) {
+      const hit = locs.filter(l => regionCodes(l).includes(code));
+      return hit.some(l => l.self_serve !== false) ? true : hit.length ? 'sales' : false;
+    }
+    const rg = card.features && card.features.regions;
+    if (Array.isArray(rg) && rg.length) return rg.includes(code) ? true : rg.includes(coarseRegion(code)) ? null : false;
+    return null;
+  }
+
   // ---- features -------------------------------------------------------------
   const FEATURE_TESTS = {
     // a custom starting image is either a Docker/OCI image or a saved machine you start new ones from (snapshot):
@@ -396,9 +438,12 @@
       if (!modeOS(card, m).includes(W.os)) { skipped.push(`no ${W.os === 'macos' ? 'macOS' : W.os === 'windows' ? 'Windows' : 'Linux'}`); continue; }
       if (!wantGpu && isGpuOnly(m)) continue;
       if (opts.region && opts.region !== 'any') {
-        const rg = m.regions !== undefined ? m.regions : (card.features && card.features.regions);
-        if (Array.isArray(rg) && !rg.includes(opts.region)) { skipped.push(`no ${opts.region.toUpperCase()} region`); continue; }
-        if (rg === null && m.regions === null) { skipped.push(`${m.label}: region not guaranteed`); continue; }
+        const lab = REGION_LABELS[opts.region] || opts.region.toUpperCase();
+        // a regime priced for one coarse region (us / eu / asia) only sells there
+        if (Array.isArray(m.regions) && !m.regions.includes(coarseRegion(opts.region)) && !m.regions.includes(opts.region)) { skipped.push(`no ${lab} region`); continue; }
+        if (m.regions === null) { skipped.push(`${m.label}: region not guaranteed`); continue; }
+        const rm = regionMatch(card, opts.region);
+        if (rm !== true) { skipped.push(rm === 'sales' ? `${lab} region only through sales` : rm === false ? `no ${lab} region` : `not confirmed: ${lab} region`); continue; }
       }
       const f = modeFeatures(card, m);
       if (W.arch === 'arm64' && !f.arm64) { skipped.push('no arm64'); continue; }
@@ -916,7 +961,8 @@
     if (has('shape')) add(`capped at ${r.shape && r.shape.label ? r.shape.label : 'its largest size'}`, SEVERITY.shape);
     if (has('gpu')) { const n = (r.caveats || []).find(x => /priced with|sold as/.test(x)); add(n || 'different GPU', SEVERITY.gpu); }
     if (has('arch')) add('no arm64', SEVERITY.arch);
-    if (has('region')) add(`no ${String(opts.region).toUpperCase()} region`, SEVERITY.region);
+    if (has('region')) { const lab = REGION_LABELS[opts.region] || String(opts.region).toUpperCase(), rm = regionMatch(card, opts.region);
+      add(rm === 'sales' ? `${lab} region only through sales` : rm === null ? `unverified: ${lab} region` : `no ${lab} region`, rm === null ? SEVERITY.unverified : SEVERITY.region); }
     if (has('state')) add("can't keep state between sessions", SEVERITY.state);
     if (has('ipv4')) add('no dedicated IPv4', SEVERITY.ipv4);
     if (has('net')) add(netCompromise(card, W), SEVERITY.net);
@@ -964,5 +1010,6 @@
     return { meets, soft, noPrice: dedupe(noPrice), offTopic: dedupe(offTopic) };
   }
 
-  root.PM = { priceCard, priceSoft, rankRows, testFeature, flagsOf, productClass, altIgnored, modeFeatures, CLASS_LABEL, FEATURE_LABELS, HOURS_MONTH, sumB };
+  root.PM = { priceCard, priceSoft, rankRows, testFeature, flagsOf, productClass, altIgnored, modeFeatures, CLASS_LABEL, FEATURE_LABELS, HOURS_MONTH, sumB,
+    regionCodes, regionMatch, REGION_LABELS };
 })(typeof window !== 'undefined' ? window : globalThis);

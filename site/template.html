@@ -1166,6 +1166,21 @@ const REQ_GROUPS=[
   ['Compliance',['soc2','hipaa','sso','audit_logs','eu_data_residency','zero_data_retention']],
 ];
 const REQS=REQ_GROUPS.flatMap(g=>g[1]);
+// ---- region filter: the regions providers really offer (self-serve, from their own region docs), each with its count;
+// a region shows only when at least 3 providers have it
+const regLab=v=>PM.REGION_LABELS[v]||String(v).toUpperCase();
+// "US (East, West) · DE · SG": the countries a provider runs in, US split by coast; "everywhere" for edge platforms
+const locSummary=c=>{ if(c.locations_everywhere) return 'everywhere';
+  const L=(c.locations||[]).filter(l=>l.self_serve!==false); if(!L.length) return ((c.features||{}).regions||[]).join(', ');
+  const by=new Map(); L.forEach(l=>{ const k=l.country==='GB'?'UK':l.country; if(!by.has(k)) by.set(k,new Set()); if(k==='US'){ const z=PM.regionCodes(l).find(x=>/^us-/.test(x)); if(z) by.get(k).add(regLab(z).replace('US ','')); } });
+  return [...by].map(([k,z])=>k+(z.size?` (${[...z].join(', ')})`:'')).join(' · '); };
+const REGION_ORDER=['us','us-east','us-central','us-west','ca','latam','br','mx','eu','uk','middle-east','africa','za','asia','sg','in','jp','kr','hk','tw','id','cn','au','nz'];
+// a group (Africa, Latin America…) that holds exactly the same providers as one of its countries adds nothing: dropped
+const REGION_GROUPS={africa:['za'],latam:['br','mx'],asia:['sg','in','jp','kr','hk','tw','id','cn']};
+(()=>{ const sel=$('#region'), ids=c=>CARDS.filter(card=>PM.regionMatch(card,c)===true).map(x=>x.id).join(),
+    opts=REGION_ORDER.map(c=>[c,CARDS.filter(card=>PM.regionMatch(card,c)===true).length]).filter(([,n])=>n>=3)
+      .filter(([c])=>!(REGION_GROUPS[c]||[]).some(m=>ids(m)===ids(c)));
+  sel.innerHTML='<option value="any">Anywhere</option>'+opts.map(([c,n])=>`<option value="${c}">${esc(regLab(c))} · ${n}</option>`).join(''); })();
 const GPUS=[...new Set(CARDS.flatMap(c=>(c.modes||[]).flatMap(m=>Object.keys(m.gpu||{}))))].sort();
 $('#gpu').innerHTML='<option value="none">None</option>'+GPUS.map(g=>`<option>${esc(g)}</option>`).join('');
 const req=new Set();
@@ -1479,7 +1494,7 @@ function run(){
   $('#sumAll').textContent=`${$('#sumMachine').textContent} · ${nf(hrs)} h`;
   $('#sumBusy').textContent=`${Math.round(W.cpuUtil*100)}% CPU · ${(W.ramUtil*W.ram).toFixed(1)} GiB`;
   $('#sumState').textContent=[W.snapshotGiB?`${nf(W.snapshotGiB)} GiB kept`:'',W.egress?`${nf(W.egress)} GiB out`:''].filter(Boolean).join(' · ')||'none';
-  $('#sumReq').textContent=req.size?(req.size<=2?[...req].map(k=>PM.FEATURE_LABELS[k]||k).join(' · '):`${req.size} selected`):($('#region').value!=='any'?$('#region').value.toUpperCase():'none');
+  $('#sumReq').textContent=req.size?(req.size<=2?[...req].map(k=>PM.FEATURE_LABELS[k]||k).join(' · '):`${req.size} selected`):($('#region').value!=='any'?regLab($('#region').value):'none');
   $('#sumAssume').textContent=`${['self-serve','+ verify','+ upfront','+ email','+ sales'][+$('#maxAccess').value]} · ${['credits','amortize','perf','allowSpot','allowSales','allowAlt','allowPromo'].filter(id=>$('#'+id).checked).length} on`;
   // at-a-glance: which scenario, and which filters decide who can compete
   { const pp=PRESETS.find(p=>p.k===curPreset), sopt=(SCEN[curPreset]||{}).opt||[];
@@ -1493,7 +1508,7 @@ const extra=[...req].filter(k=>!(pp&&pp.req||[]).includes(k)&&!sopt.includes(k))
 const ks=[...new Set([...(pp&&pp.req||[]),...sopt,...extra])], on=ks.filter(k=>req.has(k)).length;
 $('#scFeatN').textContent=`${on} feature${on===1?'':'s'} out of ${ks.length} enabled`;
 return ks.map(k=>{ const chip=`<button class="mhk" data-k="${k}" aria-pressed="${req.has(k)}">${esc(PM.FEATURE_LABELS[k]||k)}</button>`;
-  return FEAT_WHY[k]?`<span class="mhw">${chip}${ic('why','?',FEAT_WHY[k])}</span>`:chip; }).join('');})()+($('#region').value!=='any'?`<button class="mhk mhr" aria-pressed="true">${esc($('#region').value.toUpperCase())} region</button>`:'');
+  return FEAT_WHY[k]?`<span class="mhw">${chip}${ic('why','?',FEAT_WHY[k])}</span>`:chip; }).join('');})()+($('#region').value!=='any'?`<button class="mhk mhr" aria-pressed="true">${esc(regLab($('#region').value))} region</button>`:'');
     $('#scFeatSec').hidden=!$('#scchips').innerHTML;
     $('#scenario').innerHTML=`${pp&&pp.why?`<p class="why">${esc(pp.why)}</p>`:''}${(()=>{ const ch=pp?changes():[]; if(!ch.length) return ''; const N=4, rest=ch.slice(N);
       return `<div class="adj"><span>Changed: ${esc(ch.slice(0,N).join(' · '))}${rest.length?` · <span class="adjmore" tabindex="0" data-tip="${esc(rest.join('\n'))}">+${rest.length} more</span>`:''}</span> <button type="button" id="scReset">Reset</button></div>`; })()}${W.sessions>0&&W.concurrency>W.sessions?`<div class="adj">Only ${nf(W.sessions)} sessions a month, so at most ${nf(Math.ceil(W.sessions))} can run at once: priced that way.</div>`:''}${W.sessions>sessFit?`<div class="adj">${nf(W.concurrency)} at once can only fit ${nf(Math.floor(sessFit))} sessions of this length in a month, not ${nf(W.sessions)}: priced that way.</div>`:''}`;
@@ -2082,7 +2097,7 @@ LAZY.providers=()=>{ if(ids.length) showProv(ids.includes('boat')?'boat':ids[0])
 // values (yes / no / unknown, or the real values: isolation kinds, snapshot types, secret-proxy scope...). A provider
 // shows when, for every filtered column, it has one of the ticked values. Active filters are chips: "Snapshots: memory ×".
 const MK=['fast_boot','strong_isolation','vm_isolation','image_oci','docker_inside','nested_virt','desktop','browser','browser_and_desktop','computer_use','anti_bot','captcha_solving','residential_ip','ssh','snapshot','snapshot_auto','snapshot_on_demand','fork','fork_running','memory_snapshot_fork','pause_resume','wake_on_request','persistent_disk','volume_attach','volume_shared','auto_stop_idle','live_resize','custom_image','image_snapshot','agent_harnesses','harness_api','own_agent_api','mcp_server','lang_python','lang_node','open_internet','public_ipv4','inbound_https','ingress_rules','egress_allowlist','egress_http_rules','guest_firewall','secret_proxy','static_egress_ip','gpu','windows','macos','arm64','self_host','byoc','open_source','soc2','hipaa','sso','audit_logs','eu_data_residency','scoped_api_keys','spend_limits','usage_api'];
-const CO_COLS={accel:'Backing',stage:'Stage',raised:'Raised',revenue:'Revenue'};
+const CO_COLS={accel:'Backing',stage:'Stage',raised:'Raised',revenue:'Revenue',region:'Regions'};
 const bucket=x=>!x?'Unknown':x.v<1e6?'Under $1M':x.v<1e7?'$1M to $10M':x.v<5e7?'$10M to $50M':x.v<2.5e8?'$50M to $250M':'$250M or more';
 const FL=k=>{ const s=CO_COLS[k]||(k==='iso'?'Isolation':k==='session'?'Max session':k==='snapshot'?'snapshot type':PM.FEATURE_LABELS[k]||k.replace(/_/g,' ')); return /^[a-z]/.test(s)&&!/^(arm64|macOS)/.test(s)?s[0].toUpperCase()+s.slice(1):s; };
 // isolation classes a provider offers, across the card and every product (mode): microVM, VM, gVisor, container, isolate...
@@ -2096,13 +2111,15 @@ const tok=v=>v===true?'Yes':v===false||v==='none'?'No':v==null?'Unknown':VAL_NAM
 // every column's values for one provider (isolation can have several)
 const tokensOf=(c,k)=>{ const f=c.features||{};
   if(k==='iso'){ const cl=isoClasses(c); return cl.length?cl:['Unknown']; }
+  if(k==='region'){ if(c.locations_everywhere) return ['Everywhere']; const L=(c.locations||[]).filter(l=>l.self_serve!==false);
+    const codes=[...new Set(L.flatMap(l=>PM.regionCodes(l)))].filter(x=>REGION_ORDER.includes(x)); return codes.length?codes.map(regLab):['Unknown']; }
   if(k==='accel'){ const a=(c.co&&c.co.acc)||[]; return a.length?[...new Set(a.map(x=>ACC_SHORT(x.n)))]:['None found']; }
   if(k==='stage') return [c.co&&c.co.own==='acquired'?'Acquired':c.co&&(c.co.own==='subsidiary'||c.co.stage==='subsidiary')?STAGE.subsidiary:STAGE[(c.co||{}).stage]||'Unknown'];
   if(k==='raised') return [bucket(c.co&&c.co.raised)];
   if(k==='revenue') return [bucket(c.co&&c.co.rev)];
   if(k==='session'){ const h=f.max_session_h; return [h==null?(f.max_session_unlimited?'no limit':'Unknown'):h<1?'under 1 h':h<24?'1 to 24 h':'24 h or more']; }
   return [tok(cellVal(f,k))]; };
-const PROPS=['accel','stage','raised','revenue','iso','session',...MK];
+const PROPS=['accel','stage','raised','revenue','region','iso','session',...MK];
 const ORDER=['Yes','No'];
 const valuesOf=k=>{ const n=new Map(); CARDS.forEach(c=>tokensOf(c,k).forEach(t=>n.set(t,(n.get(t)||0)+1)));
   return [...n].sort((a,b)=>(a[0]==='Unknown')-(b[0]==='Unknown')||((ORDER.indexOf(a[0])+1||9)-(ORDER.indexOf(b[0])+1||9))||b[1]-a[1]); };
@@ -2146,12 +2163,12 @@ function renderMatrix(){
   const th=(k,label,cls)=>'<th class="'+cls+' '+on(k)+'" data-k="'+k+'"'+(on(k)?' data-tip="Filtered: '+esc(mf[k].join(', '))+'"':'')+'><span class="fs">'+(on(k)?'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 2h9L7 6.5V10L5 11V6.5z"/></svg>':'')+'</span>'+esc(label)+'</th>';
   const amtCell=(k,x)=>'<td class="num cn '+on(k)+'">'+(x?(x.src?'<a href="'+esc(x.src)+'" target="_blank" rel="noopener">':'')+(x.s==='estimated'?'~':'')+money(x.v)+(x.src?'</a>':'')+(x.s==='estimated'?' <span class="estv">est.</span>':''):'<span class="u">?</span>')+'</td>';
   $('#matrix').innerHTML='<table><thead><tr><th class="pn" data-sort="1">Provider '+(msortD>0?'↑':'↓')+'</th>'+['accel','stage','raised','revenue'].map(k=>th(k,FL(k),'fh')).join('')+th('iso','Isolation','fh')+th('session','Max session','fh')
-    +MK.map(k=>th(k,FL(k),'fh')).join('')+'<th>GPU types</th><th>Regions</th></tr></thead><tbody>'
+    +MK.map(k=>th(k,FL(k),'fh')).join('')+'<th>GPU types</th>'+th('region','Regions','')+'</tr></thead><tbody>'
     +rows.map(c=>{const f=c.features||{}, o=c.co||{}; return '<tr><td class="pn">'+esc(c.name)+'</td>'
       +'<td class="cw '+on('accel')+'">'+((o.acc||[]).length?esc(o.acc.map(a=>ACC_SHORT(a.n)+(batchShort(a.b)?' '+batchShort(a.b):'')).join(' · ')):'')+'</td>'
       +'<td class="cw '+on('stage')+'">'+esc(tokensOf(c,'stage')[0]==='Unknown'?'':c.co&&(o.own==='subsidiary'||o.own==='acquired')?stageOf(c):tokensOf(c,'stage')[0])+'</td>'
       +amtCell('raised',o.raised)+amtCell('revenue',o.rev)
-      +'<td class="cw '+on('iso')+'">'+esc(isoOf(c))+'</td><td class="num '+on('session')+'">'+(f.max_session_h==null?(f.max_session_unlimited?'no limit':'<span class="u">?</span>'):f.max_session_h<1?Math.max(1,Math.round(f.max_session_h*60))+' min':(+f.max_session_h.toFixed(1))+' h')+'</td>'+MK.map(k=>cell(k,cellVal(f,k))).join('')+'<td class="wrap">'+esc((f.gpu_types||[]).join(', '))+'</td><td class="wrap">'+esc((f.regions||[]).join(', '))+'</td></tr>';}).join('')
+      +'<td class="cw '+on('iso')+'">'+esc(isoOf(c))+'</td><td class="num '+on('session')+'">'+(f.max_session_h==null?(f.max_session_unlimited?'no limit':'<span class="u">?</span>'):f.max_session_h<1?Math.max(1,Math.round(f.max_session_h*60))+' min':(+f.max_session_h.toFixed(1))+' h')+'</td>'+MK.map(k=>cell(k,cellVal(f,k))).join('')+'<td class="wrap">'+esc((f.gpu_types||[]).join(', '))+'</td><td class="wrap">'+esc(locSummary(c))+'</td></tr>';}).join('')
     +'</tbody></table>'+(rows.length?'':'<div class="empty">No provider matches these filters.</div>');
   $$('#matrix th[data-k]').forEach(t=>t.onclick=()=>{ tip(); openPop(t,t.dataset.k); });
   $('#matrix th.pn').onclick=()=>{ msortD=-msortD; renderMatrix(); };
