@@ -185,8 +185,6 @@ input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px var(--fil
 @media (prefers-reduced-motion:reduce){.bootsk i{animation:none}}
 /* stuck 1px under the tab bar's top edge: its top border lands on the tab bar's bottom border and they read as one line.
    --navh is the tab bar's real height (set from script; 46px until then) */
-/* the feature sections are generated into #reqs; it adds no box of its own, so they sit like the other sections */
-.reqgrps{display:contents}
 /* the settings panel folds into one section only when it stacks above the results (see the 980px block) */
 .ctlfold>summary{display:none}
 aside.controls{position:sticky;top:calc(var(--navh,46px) - 1px);max-height:calc(100vh - var(--navh,46px) - 7px);overflow:auto}
@@ -199,7 +197,8 @@ details.grp>summary::-webkit-details-marker{display:none}
 details.grp>summary::after{content:"";width:12px;height:12px;background:var(--chev) no-repeat center;flex:none;transition:transform .15s}
 details.grp[open]>summary::after{transform:rotate(180deg)}
 details.grp[open]>summary{margin-bottom:12px}
-.sumval{font-size:var(--t4);color:var(--ink-2);text-align:right;margin-left:auto}
+/* one line, cut with an ellipsis when it doesn't fit: every closed section has the same height */
+.sumval{font-size:var(--t4);color:var(--ink-2);text-align:right;margin-left:auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 details.grp[open] .sumval{visibility:hidden}
 .results{min-width:0;border-left:0}
 
@@ -1196,8 +1195,10 @@ const GRP_ICON={'State':'<ellipse cx="8" cy="3.5" rx="5.5" ry="2"/><path d="M2.5
   'Agent tooling':'<path d="M5 4.5 1.5 8 5 11.5M11 4.5 14.5 8 11 11.5M9.5 2.5l-3 11"/>',
   'Platform':'<rect x="2.5" y="2.5" width="11" height="4"/><rect x="2.5" y="9.5" width="11" height="4"/><path d="M5 4.5h.01M5 11.5h.01"/>',
   'Compliance':'<rect x="3" y="1.5" width="10" height="13"/><path d="M5.5 8 7.3 10l3.2-3.8"/>'};
-$('#reqs').innerHTML=REQ_GROUPS.map(([h,ks],gi)=>`<details class="grp" data-g="${gi}"><summary><h3><svg viewBox="0 0 16 16">${GRP_ICON[h]||''}</svg> ${esc(h)}</h3><span class="sumval" data-gsum="${gi}"></span></summary><div class="chips">${ks.map(k=>`<button class="chip" data-k="${k}" aria-pressed="false"${FEAT_WHY[k]?` data-tip="${esc(FEAT_WHY[k])}"`:''}>${esc(PM.FEATURE_LABELS[k]||k)}</button>`).join('')}</div></details>`).join('');
-$$('#reqs .chip').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); b.setAttribute('aria-pressed',req.has(k)); dirty(); run();});
+$('#reqs').innerHTML=REQ_GROUPS.map(([h,ks],gi)=>`<details class="grp reqgrp" data-g="${gi}"><summary><h3><svg viewBox="0 0 16 16">${GRP_ICON[h]||''}</svg> ${esc(h)}</h3><span class="sumval" data-gsum="${gi}"></span></summary><div class="chips">${ks.map(k=>`<button class="chip" data-k="${k}" aria-pressed="false"${FEAT_WHY[k]?` data-tip="${esc(FEAT_WHY[k])}"`:''}>${esc(PM.FEATURE_LABELS[k]||k)}</button>`).join('')}</div></details>`).join('');
+// unwrap: the sections become direct siblings of the panel's other sections (borders and phone striping count siblings)
+{ const box=$('#reqs'); box.replaceWith(...box.children); }
+$$('.reqgrp .chip').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); b.setAttribute('aria-pressed',req.has(k)); dirty(); run();});
 // each preset is a whole scenario: fleet size, load, state, what you're shopping for — say so on hover
 const PROFS=(U&&U.profiles)||[];
 const SHOPNAME={any:'anything',sandbox:'a sandbox API',interp:'a code interpreter',agent:'agent machines',machine:'a machine',ci:'CI runners',gpu:'GPU instances',desktop:'desktops / browsers',browser:'browser infrastructure',stealth:'stealth browser infrastructure',mac:'macOS machines',rl:'a rollout fleet'};
@@ -1294,7 +1295,7 @@ let curPreset=null;
 function applyPreset(k){const p=PRESETS.find(x=>x.k===k); curPreset=k; foreverOn=false; foreverStash=null; const sc=+($('#scale')||{}).value||1; const w=Object.assign({gpu:'none',gpuCount:1,os:'linux'},p.w);
   if(sc!==1){ w.sessions=Math.round(w.sessions*sc); w.concurrency=w.concurrency?Math.max(1,Math.round(w.concurrency*sc)):0; w.alwaysOn=w.alwaysOn?Math.max(1,Math.round(w.alwaysOn*sc)):0; w.seats=Math.max(1,Math.round(w.seats*Math.sqrt(sc))); }
   FIELDS.forEach(f=>$('#'+f).value=w[f]); $('#gpu').value=GPUS.includes(w.gpu)?w.gpu:'none'; $('#os').value=w.os; $('#internet').value=p.net||'open'; $('#persistentDisk').checked=!!w.persistentDisk; $('#pooled').checked=!!p.pool; $('#sizing').value=p.sizing||'min'; $('#shopping').value=p.shop||'any'; ['allowSpot','allowSales','allowAlt','allowPromo'].forEach(k=>{$('#'+k).checked=!!(p.opts&&p.opts[k]);});
-  req.clear(); (p.req||[]).forEach(r=>req.add(r)); $$('#reqs .chip').forEach(b=>b.setAttribute('aria-pressed',req.has(b.dataset.k)));
+  req.clear(); (p.req||[]).forEach(r=>req.add(r)); $$('.reqgrp .chip').forEach(b=>b.setAttribute('aria-pressed',req.has(b.dataset.k)));
   $('#category').value='all'; $('#maxAccess').value=String(p.access??3);
   const hasProf=PROFS.some(x=>x.id===p.prof);
   $('#profile').value=hasProf?p.prof:'custom';
@@ -1533,7 +1534,7 @@ return ks.map(k=>{ const chip=`<button class="mhk" data-k="${k}" aria-pressed="$
     syncDials(); $('#scDialSec').hidden=!$('#dials').innerHTML; $('.scframe').hidden=!$('#scenario').innerHTML.trim()&&$('#scFeatSec').hidden&&$('#scDialSec').hidden;
     // every feature chip is a toggle: same state as the feature sections in the panel
     $$('#scchips .mhr').forEach(b=>b.onclick=()=>{$('#region').value='any'; run();});
-    $$('#scchips .mhk:not(.mhr)').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); dirty(); $$('#reqs .chip').forEach(x=>x.setAttribute('aria-pressed',req.has(x.dataset.k))); run();}); }
+    $$('#scchips .mhk:not(.mhr)').forEach(b=>b.onclick=()=>{const k=b.dataset.k; req.has(k)?req.delete(k):req.add(k); dirty(); $$('.reqgrp .chip').forEach(x=>x.setAttribute('aria-pressed',req.has(x.dataset.k))); run();}); }
   const perRegime=$('#perRegime').checked;
   // the first ranking is priced in small slices at boot (see prewarm) so the page never freezes; use those rows once
   const pre=prewarm&&prewarm.key===pwKey(W,O,perRegime)?prewarm.m:null; prewarm=null;
@@ -1746,7 +1747,7 @@ function whyNot(r){ const W=lastWO.W, out=new Set();
 const FIXES=()=>{ const {W,O}=lastWO, f=[];
   f.push({label:'Show offers with no usage price', w:{showZero:true}, go:()=>{$('#showZero').checked=true;}});
   if(!(O.allowSales&&O.allowSpot&&O.allowPromo&&O.allowAlt)) f.push({label:'Allow sales, spot, promo & adjacent offers', o:{allowSales:true,allowSpot:true,allowPromo:true,allowAlt:true}, go:()=>['allowSales','allowSpot','allowPromo','allowAlt'].forEach(k=>$('#'+k).checked=true)});
-  for(const k of O.required) f.push({label:'Don’t require “'+(PM.FEATURE_LABELS[k]||k)+'”', o:{required:O.required.filter(x=>x!==k)}, go:()=>{req.delete(k); $$('#reqs .chip').forEach(b=>b.setAttribute('aria-pressed',req.has(b.dataset.k)));}});
+  for(const k of O.required) f.push({label:'Don’t require “'+(PM.FEATURE_LABELS[k]||k)+'”', o:{required:O.required.filter(x=>x!==k)}, go:()=>{req.delete(k); $$('.reqgrp .chip').forEach(b=>b.setAttribute('aria-pressed',req.has(b.dataset.k)));}});
   if(O.region&&O.region!=='any') f.push({label:'Any region', o:{region:'any'}, go:()=>{$('#region').value='any';}});
   if(W.classes) f.push({label:'Shop for any kind of product', w:{classes:null}, go:()=>{$('#shopping').value='any';}});
   if(O.maxAccess<4) f.push({label:'Allow talking to sales', o:{maxAccess:4}, go:()=>{$('#maxAccess').value='4';}});
@@ -2207,7 +2208,7 @@ setBoats($('#boats').checked);
 // methodology numbers, counted from the data at build time
 $$('[data-stat]').forEach(e=>{ const v=(D.stats||{})[e.dataset.stat]; if(v!=null) e.textContent=v.toLocaleString('en-US'); });
 // "See all features": open every feature section in the panel and bring the first into view
-$('#scMoreFeat').onclick=()=>{ $('#ctlFold').open=true; const gs=$$('#reqs details'); gs.forEach(g=>g.open=true); if(gs[0]) gs[0].scrollIntoView({block:'start',behavior:'smooth'}); };
+$('#scMoreFeat').onclick=()=>{ $('#ctlFold').open=true; const gs=$$('.reqgrp'); gs.forEach(g=>g.open=true); if(gs[0]) gs[0].scrollIntoView({block:'start',behavior:'smooth'}); };
 // fill the controls now, but price after the first paint and in slices, so the header, hero and skeleton show at once
 holdRun=true; applyPreset('fullstack'); holdRun=false;
 const t0=(location.hash||'').slice(1)||store.get('tab','estimate'); if($(`#tabs button[data-tab="${t0}"]`)) showTab(t0);
