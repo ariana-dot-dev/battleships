@@ -1386,6 +1386,10 @@ let dialsFor=null;
 function syncDials(){
   const s=SCEN[curPreset], el=$('#dials');
   if(!s||!s.dials){ el.innerHTML=''; dialsFor=null; return; }
+  // a vCPU slider moves RAM with it, at the use case's own RAM per vCPU (unless the use case has its own memory slider):
+  // 2 vCPU with the 16 GB of an 8 vCPU runner would only fit an 8 vCPU machine
+  const ownRam=s.dials.some(x=>x[0]==='ram'), pw=(PRESETS.find(x=>x.k===curPreset)||{}).w||{}, ramPerCpu=pw.vcpu?pw.ram/pw.vcpu:2;
+  const dialTxt=(d,v)=>d[0]==='vcpu'&&!ownRam?`${dialFmt(d[4],v)} · ${+(+$('#ram').value).toFixed(1)} GB`:dialFmt(d[4],v);
   if(dialsFor!==curPreset){
     el.innerHTML=s.dials.map((d,i)=>`<label class="dial"><span class="dh"><span class="dl">${esc(d[1])}</span><b class="dv"></b></span><input type="range" min="0" max="1000" step="1" data-i="${i}" aria-label="${esc(d[1])}"></label>`).join('');
     dialsFor=curPreset;
@@ -1395,8 +1399,9 @@ function syncDials(){
       else { f.value=dialRound(d[4],fromPos(d,+inp.value,Math.min(cur,d[3])));
         // a count of sessions means sessions end again; more agents at once while "forever" = more always-on machines
         if(d[0]==='sessions'&&foreverOn){ foreverOn=false; $('#alwaysOn').value=0; }
-        if(d[0]==='concurrency'&&isForever()) $('#alwaysOn').value=Math.max(1,+f.value||1); }
-      inp.closest('.dial').querySelector('.dv').textContent=isSess(d)&&isForever()?'forever (24/7)':dialFmt(d[4],parseFloat(f.value)||0);
+        if(d[0]==='concurrency'&&isForever()) $('#alwaysOn').value=Math.max(1,+f.value||1);
+        if(d[0]==='vcpu'&&!ownRam) $('#ram').value=+((parseFloat(f.value)||1)*ramPerCpu).toFixed(2); }
+      inp.closest('.dial').querySelector('.dv').textContent=isSess(d)&&isForever()?'forever (24/7)':dialTxt(d,parseFloat(f.value)||0);
       inp.style.setProperty('--p',(inp.value/10)+'%');
       f.dispatchEvent(new Event('input',{bubbles:true}));
     }));
@@ -1405,7 +1410,7 @@ function syncDials(){
   }
   // the panel is the source of truth: every run puts each slider where its field is
   $$('#dials .dial').forEach((lab,i)=>{ const d=s.dials[i], v=parseFloat($('#'+d[0]).value)||0, inp=lab.querySelector('input'), fe=isSess(d)&&isForever();
-    if(document.activeElement!==inp) inp.value=fe?1000:Math.round(toPos(d,v)); inp.style.setProperty('--p',(inp.value/10)+'%'); lab.querySelector('.dv').textContent=fe?'forever (24/7)':dialFmt(d[4],v);
+    if(document.activeElement!==inp) inp.value=fe?1000:Math.round(toPos(d,v)); inp.style.setProperty('--p',(inp.value/10)+'%'); lab.querySelector('.dv').textContent=fe?'forever (24/7)':dialTxt(d,v);
   });
 }
 // Re-ranking 366 providers takes ~100 ms: while a value is being dragged or typed, update the controls instantly and
