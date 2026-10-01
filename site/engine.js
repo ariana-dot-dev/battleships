@@ -542,7 +542,8 @@
     const startsMin = startsHourCap / 60;
     const burstMin = Math.min(steadyMin, startsDay);
     let bestPlan = null; const planErrs = [];
-    const knownConcs = plans.filter(p => p && known(p.concurrency) && known(p.fee) && !p.trial_only).map(p => p.concurrency);
+    // (a 0 means "not available on this plan" (Cloudflare's Workers Free), not a cap its sibling plans share)
+    const knownConcs = plans.filter(p => p && known(p.concurrency) && p.concurrency > 0 && known(p.fee) && !p.trial_only).map(p => p.concurrency);
     const siblingConc = knownConcs.length ? Math.max(...knownConcs) : null;
     // a regime may only be sold on certain plans (mode.plans = [plan names])
     const allowedPlans = best.modes.map(r => r.mode.plans || (r.mode.requires_plan ? [].concat(r.mode.requires_plan) : null)).filter(Array.isArray);
