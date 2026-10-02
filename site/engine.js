@@ -6,7 +6,7 @@
 
   const FEATURE_LABELS = {
     snapshot_any: 'snapshots', snapshot_mem: 'memory snapshots', fork: 'fork/clone', pause_resume: 'pause/resume',
-    persistent_disk: 'persistent disk', volumes: 'volumes', auto_stop_idle: 'idle auto-stop', long_sessions: '≥24 h sessions',
+    persistent_disk: 'persistent disk', whole_disk: 'whole disk survives a stop', persist_scope: 'what survives a stop', volumes: 'volumes', auto_stop_idle: 'idle auto-stop', long_sessions: '≥24 h sessions',
     custom_image: 'custom image (Docker or snapshot)', image_snapshot: 'start from your own snapshot', image_oci: 'your own Docker/OCI image',
     vm_isolation: 'full VM (own kernel)', docker_inside: 'Docker inside', nested_virt: 'nested virtualization', root: 'root', systemd: 'systemd',
     browser: 'browser', desktop: 'desktop GUI', computer_use: 'computer-use API', code_interpreter: 'code interpreter',
@@ -28,6 +28,8 @@
     own_agent_api: 'hosted agent API (their own agent)', fast_boot: 'fast boot (benchmarked)', strong_isolation: 'gVisor or VM (no shared kernel)',
     ingress_rules: 'inbound access rules', guest_firewall: 'firewall inside (nftables)', secret_proxy: 'secret proxy',
     secret_proxy_any: 'secret proxy for any API', volume_attach: 'extra volumes', volume_shared: 'shared volumes',
+    // 2026-10-02, from Modal's Runtime launches (VM Sandboxes GA, Sandbox Sidecars)
+    sidecar: 'sidecar containers', fuse: 'FUSE mounts', kernel_features: 'kernel features (eBPF, mounts, cgroups)', burst: 'burst above your CPU/RAM request',
   };
 
   // ---- regions --------------------------------------------------------------
@@ -80,9 +82,18 @@
     // a real VM boundary (own kernel): microVMs and VMs yes; containers, gVisor, isolates no
     vm_isolation: f => { const i = String(f.isolation || ''); if (!i) return null;
       return /firecracker|cloud-hypervisor|qemu|kata|hyper-v|microvm|bare-metal|apple-vm|dedicated|\bvm\b/.test(i) ? true : /container|gvisor|isolate|wasm/.test(i) ? false : null; },
-    custom_image: f => { const ci = f.custom_image, img = ci === true || f.image_oci === true || (typeof ci === 'string' && ci !== 'none'), snap = f.snapshot != null && f.snapshot !== 'none';
-      return img || snap ? true : (ci === false || ci === 'none') && f.snapshot === 'none' ? false : null; },
-    image_snapshot: f => f.snapshot == null ? null : f.snapshot !== 'none',
+    // a snapshot of one folder (snapshot_scope "folder") is a data backup: you can't start a machine from it
+    custom_image: f => { const ci = f.custom_image, img = ci === true || f.image_oci === true || (typeof ci === 'string' && ci !== 'none'), snap = f.snapshot != null && f.snapshot !== 'none' && f.snapshot_scope !== 'folder';
+      return img || snap ? true : (ci === false || ci === 'none') && (f.snapshot === 'none' || f.snapshot_scope === 'folder') ? false : null; },
+    image_snapshot: f => f.snapshot == null ? null : f.snapshot !== 'none' && f.snapshot_scope !== 'folder',
+    // files survive a stop: the whole disk or one folder/volume. A saved browser profile (cookies, logins) is not a disk.
+    persistent_disk: f => { const s = f.persist_scope; if (s === 'whole' || s === 'folder') return true; if (s === 'profile' || s === 'none') return false;
+      return f.persistent_disk == null ? null : !!f.persistent_disk; },
+    // everything on the disk survives, installed packages included, not just one folder: published as persist_scope,
+    // or implied by a whole-machine snapshot taken automatically on stop
+    whole_disk: f => { const s = f.persist_scope; if (s) return s === 'whole';
+      if (f.snapshot_auto === true && (f.snapshot === 'fs' || f.snapshot === 'mem') && f.snapshot_scope !== 'folder') return true;
+      return f.persistent_disk === false && f.snapshot === 'none' ? false : null; },
     // agents can drive both a browser and a whole desktop (not just one of them)
     browser_and_desktop: f => { const b = f.browser_control ?? f.browser, d = f.desktop_control ?? f.computer_use; return b === true && d === true ? true : (b === false || d === false) ? false : null; },
     residential_ip: f => f.egress_ip_type == null ? null : /residential|mobile/.test(String(f.egress_ip_type)),
@@ -102,6 +113,10 @@
     guest_firewall: f => f.guest_firewall != null ? f.guest_firewall === true
       : (FEATURE_TESTS.vm_isolation(f) === true && f.root === true ? true : null),
     volumes: f => f.volume_attach === true || f.volume_shared === true ? true : f.volumes == null ? (f.volume_attach === false && f.volume_shared === false ? false : null) : !!f.volumes,
+    // a kernel of its own (VM / microVM) mounts FUSE and loads eBPF; gVisor and language isolates don't. Shared-kernel
+    // containers depend on privileges the provider grants, so they stay unknown unless the card says.
+    fuse: f => f.fuse != null ? !!f.fuse : FEATURE_TESTS.vm_isolation(f) === true && f.root !== false ? true : /gvisor|isolate|wasm/.test(String(f.isolation || '')) ? false : null,
+    kernel_features: f => f.kernel_features != null ? !!f.kernel_features : FEATURE_TESTS.vm_isolation(f) === true ? true : /gvisor|isolate|wasm/.test(String(f.isolation || '')) ? false : null,
   };
   function testFeature(features, key) {
     const f = features || {};
@@ -123,6 +138,10 @@
     const cls = productClass(card, m);
     const isVM = ['vm', 'dedicated'].includes(cls) || (f.root === true && VM_ISOLATION.test(String(f.isolation || card.isolation || '')));
     if (isVM) for (const k of ['docker_inside', 'root']) if (f[k] === null || f[k] === undefined) f[k] = true;
+    // a plain VM or server with a persistent disk keeps that whole disk (its boot disk is the disk)
+    if (['vm', 'dedicated'].includes(cls) && f.persist_scope == null && f.persistent_disk === true) f.persist_scope = 'whole';
+    // billed max(request, used): the machine may use more than it reserved, paying only for what it used
+    if (f.burst == null && m && (m.cpu_basis === 'max' || m.ram_basis === 'max')) f.burst = true;
     Object.freeze(f);
     featCache.set(key, { card, cf: card.features, mf: m && m.features, f });
     return f;
@@ -534,7 +553,7 @@
     }
     if (W.snapshotGiB > 0) {
       const f = modeFeatures(card, best.modes[0].mode);
-      if (f.snapshot === 'none' && !(f.persistent_disk === true && W.persistentDisk)) reasons.push('cannot retain state (no snapshots)');
+      if (f.snapshot === 'none' && !(testFeature(f, 'persistent_disk') === true && W.persistentDisk)) reasons.push('cannot retain state (no snapshots)');
       else if (f.snapshot === 'none') caveats.push('state kept on the persistent disk (no snapshots)');
       else if (known(kb.snapRate) || known(st.snapshot_gib_month)) b.snapshots = Math.max(0, W.snapshotGiB - num(st.snapshot_free_gib_account)) * (known(kb.snapRate) ? kb.snapRate : st.snapshot_gib_month);
       else caveats.push('snapshot storage price unknown');
@@ -844,7 +863,13 @@
       if (isFinite(capH) && needH > capH + 1e-9 && !(r.planLimits || []).some(x => /sessions capped/.test(x)))
         c.push({ t: `sessions end after ${capH < 1 ? Math.round(capH * 60) + ' min' : capH + ' h'}: needs restarts${needH >= HOURS_MONTH ? ' to run 24/7' : ''}`, s: capH < 24 ? 3 : 1 });
       const mf = ms.length ? modeFeatures(card, ms[0]) : (card.features || {});
-      if (W.persistentDisk && mf.persistent_disk === false && (!mf.snapshot || mf.snapshot === 'none') && mf.pause_resume !== true) c.push({ t: 'no persistent disk: files lost when it stops or sleeps', s: 2 });
+      const pd = testFeature(mf, 'persistent_disk');
+      if (W.persistentDisk && pd === false && (!mf.snapshot || mf.snapshot === 'none') && mf.pause_resume !== true)
+        c.push({ t: mf.persist_scope === 'profile' ? 'only the browser profile (cookies, logins) survives a stop: files are lost' : 'no persistent disk: files lost when it stops or sleeps', s: 2 });
+      // "persistent" that is really one folder: the code there survives, but packages and tools installed anywhere else
+      // are gone after a stop. A dev box or always-on agent rebuilds its setup every time.
+      else if (W.persistentDisk && pd === true && mf.persist_scope === 'folder' && !(opts.required || []).includes('whole_disk'))
+        c.push({ t: `files survive a stop only in ${mf.persist_path ? mf.persist_path : 'one folder'}: packages installed elsewhere reset`, s: num(W.alwaysOn) > 0 ? 2 : 1 });
       // a concurrency cap that exists but isn't published (Codespaces)
       if ((r.planObj || {}).concurrency_unpublished && W.concurrency + num(W.alwaysOn) > 5) c.push({ t: 'has a concurrency cap, value not published', s: 1 });
       // no published limit on machines at once is unknown, not unlimited. Above the typical published limit (concRef: the
@@ -937,7 +962,9 @@
       const t = applied.filter(x => x !== id), rr = build(t);
       if (rr.eligible) { applied = t; r = rr; }
     }
-    const f = card.features || {}, comp = [];
+    // features of the regime actually priced (a mode can add what the card's default lacks, e.g. a VM runtime with Docker)
+    const pm = (card.modes || []).find(m => (r.modeKeys || []).includes(m.key));
+    const f = pm ? modeFeatures(card, pm) : (card.features || {}), comp = [];
     const add = (t, s) => comp.push({ t, s });
     const has = id => applied.includes(id);
     if (has('plan')) for (const x of (r.planLimits || []).slice(0, 2)) add(x, SEVERITY.plan);
@@ -983,10 +1010,16 @@
       if ((b.compute || 0) + (b.memory || 0) + (b.gpu || 0) + (b.fees || 0) <= 0.01) { r.eligible = false; r.reasons = ['no usable compute price for this workload']; } }
     const priced = rows.filter(r => r.eligible), offTopic = rows.filter(r => !r.eligible && r.offTopic), noPrice = rows.filter(r => !r.eligible && !r.offTopic);
     const byProv = new Map();
-    for (const r of priced) { const k = r.card.id; if (!byProv.has(k)) byProv.set(k, []); byProv.get(k).push(r); }
+    // cards of one provider split by runtime (card.family: Modal and Modal (VM Sandboxes)) rank as one provider: the VM
+    // card shows where it matches better, and an equal row of the default runtime isn't repeated
+    const fam = r => r.card.family || r.card.id;
+    for (const r of priced) { const k = fam(r); if (!byProv.has(k)) byProv.set(k, []); byProv.get(k).push(r); }
     const kept = [];
-    for (const list of byProv.values()) {
-      list.sort((a, b) => (a.soft ? 1 : 0) - (b.soft ? 1 : 0) || (a.severity || 0) - (b.severity || 0) || a.total - b.total);
+    for (const [k, list] of byProv) {
+      // at an equal price, the row missing fewer things first ("missing desktop GUI, browser" counts two)
+      const misses = r => (r.compromises || []).reduce((n, c) => n + String(c.t || c).split(', ').length, 0);
+      list.sort((a, b) => (a.soft ? 1 : 0) - (b.soft ? 1 : 0) || (a.severity || 0) - (b.severity || 0) || a.total - b.total
+        || misses(a) - misses(b) || (a.card.id === k ? 0 : 1) - (b.card.id === k ? 0 : 1));
       const fits = list.some(r => r.shape && r.shape.vcpu && r.shape.vcpu <= 2 * W.vcpu);
       // a bigger machine than needed is noise when the same provider sells a smaller one that fits for about the same price
       const fitsReq = r => r.shape && known(r.shape.vcpu) && known(r.shape.ram) && r.shape.vcpu >= W.vcpu && r.shape.ram >= W.ram - 1e-9;

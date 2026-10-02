@@ -1,13 +1,14 @@
 {
-  "id": "modal",
-  "name": "Modal",
+  "id": "modal-vm",
+  "name": "Modal (VM Sandboxes)",
+  "family": "modal",
   "url": "https://modal.com/pricing",
   "category": "agent-sandbox",
-  "isolation": "gvisor",
+  "isolation": "cloud-hypervisor",
   "modes": [
     {
       "key": "on-demand",
-      "label": "Sandbox (gVisor), request = size, any region",
+      "label": "VM Sandbox, request = size",
       "pricing": "resource",
       "vcpu_h": 0.141912,
       "ram_gib_h": 0.024012,
@@ -34,38 +35,32 @@
       "boot_overhead_s": null,
       "multiplier": 1,
       "windows_vcpu_h": null,
-      "gpu": {
-        "T4": 0.5904,
-        "L4": 0.7992,
-        "A10": 1.1016,
-        "L40S": 1.9512,
-        "A100-40GB": 2.0988,
-        "A100-80GB": 2.4984,
-        "RTX-PRO-6000": 3.0312,
-        "H100": 3.9492,
-        "H200": 4.5396,
-        "B200": 6.2496,
-        "B300": 7.0992
-      },
-      "note": "Card vCPU = 1 Modal `cpu` unit = 1 CPU the guest sees (nproc). Modal lists $0.00003942 per 'physical core (2 vCPU equivalent)' per second and bills that per `cpu` unit, so $0.141912 per card-vCPU-h; memory $0.00000667/GiB-s. A '4 vCPU / 8 GiB' sandbox = cpu=(4,4), memory 8192 = $0.759744/h. Measured: cpu=N with cpuLimit=N gives nproc N and N CPUs of throughput (hpc-sandbox-benchmarks PR #121). Rates already include the 3x non-preemptible multiplier over Function rates. Billed per second on max(request, actual): at request = W.vcpu, low utilisation saves nothing. Set cpuLimit = request: without it the soft limit is request + 16 cores, the guest sees ceil(limit) CPUs (17 observed at default request) and bursting is billed. GPU sandboxes are preemptible. Basis verified 2026-09-28: 'You pay for `max(request, actual)`' (modal.com/docs/guide/sandbox-resources); 'charged based on whichever is higher: your request or actual usage' (modal.com/docs/guide/resources).",
+      "gpu": null,
+      "note": "Card vCPU = 1 Modal `cpu` unit = 1 CPU the guest sees (nproc). Modal lists $0.00003942 per 'physical core (2 vCPU equivalent)' per second and bills that per `cpu` unit, so $0.141912 per card-vCPU-h; memory $0.00000667/GiB-s. A '4 vCPU / 8 GiB' sandbox = cpu=(4,4), memory 8192 = $0.759744/h. Measured: cpu=N with cpuLimit=N gives nproc N and N CPUs of throughput (hpc-sandbox-benchmarks PR #121). Rates already include the 3x non-preemptible multiplier over Function rates. Billed per second on max(request, actual): at request = W.vcpu, low utilisation saves nothing. Set cpuLimit = request: without it the soft limit is request + 16 cores, the guest sees ceil(limit) CPUs (17 observed at default request) and bursting is billed. GPU sandboxes are preemptible. Basis verified 2026-09-28: 'You pay for `max(request, actual)`' (modal.com/docs/guide/sandbox-resources); 'charged based on whichever is higher: your request or actual usage' (modal.com/docs/guide/resources). VM runtime (runtime=\"vm\"): same per-second CPU and memory rates as the gVisor sandboxes; \"CPU/memory bursting capabilities as previously\" (GA post, https://modal.com/blog/vm-sandboxes-agent-computers).",
       "regions": null,
       "gpu_only": false,
       "flags": [],
       "perf": {
-        "cpu_runs_s": 12.79,
-        "cold_start_ms": 548.91,
-        "burst_tti_ms": 907.55,
-        "dax_s": 111.42
+        "cpu_runs_s": 15.54,
+        "cold_start_ms": null,
+        "burst_tti_ms": null,
+        "dax_s": null
       },
       "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
       "features": {
-        "isolation": "gvisor"
+        "isolation": "cloud-hypervisor",
+        "docker_inside": true,
+        "systemd": true,
+        "gpu": false,
+        "nested_virt": true,
+        "fuse": true,
+        "kernel_features": true
       },
       "cpu_class": "dedicated"
     },
     {
       "key": "low-request-burst",
-      "label": "Sandbox, minimal request + burst (billed ~ on usage; burst capacity not guaranteed)",
+      "label": "VM Sandbox, minimal request + burst",
       "pricing": "resource",
       "vcpu_h": 0.141912,
       "ram_gib_h": 0.024012,
@@ -92,160 +87,29 @@
       "boot_overhead_s": null,
       "multiplier": 1,
       "windows_vcpu_h": null,
-      "gpu": {
-        "T4": 0.5904,
-        "L4": 0.7992,
-        "A10": 1.1016,
-        "L40S": 1.9512,
-        "A100-40GB": 2.0988,
-        "A100-80GB": 2.4984,
-        "RTX-PRO-6000": 3.0312,
-        "H100": 3.9492,
-        "H200": 4.5396,
-        "B200": 6.2496,
-        "B300": 7.0992
-      },
-      "note": "The request is set to the minimum (cpu 0.125 = 0.125 card-vCPU; 128 MiB) and cpu/memory limits are set to the workload size, so the guest sees W.vcpu CPUs (nproc = ceil(limit)). Billing is max(request, actual) per second, so it tracks usage. active_floor 0.03125 = 0.125 / 4 vCPU (the exact floor is 0.125/W.vcpu). Burst capacity is NOT guaranteed (it needs spare host capacity), so the workload may be throttled. The memory limit is a hard OOM. Optimistic regime. Floor verified 2026-09-28: 'minimum of 0.125 cores per container' (modal.com/pricing); 'a default request of 0.125 CPU cores and 128 MiB of memory' (modal.com/docs/guide/resources). Docs do not say whether page cache counts toward memory usage. ASSUMES a small CPU/memory request (0.125 core / 128 MiB): guaranteed capacity is only that request; anything above it is best-effort burst. Memory above the request is not guaranteed either: Modal can EVICT a sandbox that exceeds its memory request (docs recommend requesting p90-95 of memory), so the RAM half of this regime is optimistic and can kill the session; only CPU is safe to under-request.",
+      "gpu": null,
+      "note": "The request is set to the minimum (cpu 0.125 = 0.125 card-vCPU; 128 MiB) and cpu/memory limits are set to the workload size, so the guest sees W.vcpu CPUs (nproc = ceil(limit)). Billing is max(request, actual) per second, so it tracks usage. active_floor 0.03125 = 0.125 / 4 vCPU (the exact floor is 0.125/W.vcpu). Burst capacity is NOT guaranteed (it needs spare host capacity), so the workload may be throttled. The memory limit is a hard OOM. Optimistic regime. Floor verified 2026-09-28: 'minimum of 0.125 cores per container' (modal.com/pricing); 'a default request of 0.125 CPU cores and 128 MiB of memory' (modal.com/docs/guide/resources). Docs do not say whether page cache counts toward memory usage. ASSUMES a small CPU/memory request (0.125 core / 128 MiB): guaranteed capacity is only that request; anything above it is best-effort burst. Memory above the request is not guaranteed either: Modal can EVICT a sandbox that exceeds its memory request (docs recommend requesting p90-95 of memory), so the RAM half of this regime is optimistic and can kill the session; only CPU is safe to under-request. VM runtime (runtime=\"vm\"): same per-second CPU and memory rates as the gVisor sandboxes; \"CPU/memory bursting capabilities as previously\" (GA post, https://modal.com/blog/vm-sandboxes-agent-computers).",
       "regions": null,
       "gpu_only": false,
       "flags": [],
       "perf": {
-        "cpu_runs_s": 12.79,
-        "cold_start_ms": 548.91,
-        "burst_tti_ms": 907.55,
-        "dax_s": 111.42
+        "cpu_runs_s": 15.54,
+        "cold_start_ms": null,
+        "burst_tti_ms": null,
+        "dax_s": null
       },
       "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
       "features": {
-        "isolation": "gvisor",
+        "isolation": "cloud-hypervisor",
+        "docker_inside": true,
+        "systemd": true,
+        "gpu": false,
+        "nested_virt": true,
+        "fuse": true,
+        "kernel_features": true,
         "burst": true
       },
       "cpu_class": "shared"
-    },
-    {
-      "key": "region-broad",
-      "label": "Sandbox pinned to broad region (us / eu / ap)",
-      "pricing": "resource",
-      "vcpu_h": 0.141912,
-      "ram_gib_h": 0.024012,
-      "cpu_basis": "max",
-      "ram_basis": "max",
-      "active_floor": 0,
-      "ram_per_vcpu": [
-        null,
-        null
-      ],
-      "ram_fixed_per_vcpu": null,
-      "vcpu_options": null,
-      "min_vcpu": 0.125,
-      "max_vcpu": null,
-      "max_ram_gib": null,
-      "sizes": null,
-      "pool_tiers": null,
-      "requires_always_on": false,
-      "always_on_month_per_instance": null,
-      "commit_note": null,
-      "min_billed_seconds": 0,
-      "granularity_s": 1,
-      "start_fee": 0,
-      "boot_overhead_s": null,
-      "multiplier": 1.15,
-      "windows_vcpu_h": null,
-      "gpu": {
-        "T4": 0.5904,
-        "L4": 0.7992,
-        "A10": 1.1016,
-        "L40S": 1.9512,
-        "A100-40GB": 2.0988,
-        "A100-80GB": 2.4984,
-        "RTX-PRO-6000": 3.0312,
-        "H100": 3.9492,
-        "H200": 4.5396,
-        "B200": 6.2496,
-        "B300": 7.0992
-      },
-      "note": "1.15x applies to all resource charges incl. GPU. Required for data residency (e.g. 'eu'). Memory-snapshot sandboxes cannot be region-pinned.",
-      "regions": [
-        "us",
-        "eu",
-        "asia"
-      ],
-      "gpu_only": false,
-      "flags": [],
-      "perf": {
-        "cpu_runs_s": 12.79,
-        "cold_start_ms": 548.91,
-        "burst_tti_ms": 907.55,
-        "dax_s": 111.42
-      },
-      "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
-      "features": {
-        "isolation": "gvisor"
-      },
-      "cpu_class": "dedicated"
-    },
-    {
-      "key": "region-narrow",
-      "label": "Sandbox pinned to narrow region (us-west, uk, jp ...)",
-      "pricing": "resource",
-      "vcpu_h": 0.141912,
-      "ram_gib_h": 0.024012,
-      "cpu_basis": "max",
-      "ram_basis": "max",
-      "active_floor": 0,
-      "ram_per_vcpu": [
-        null,
-        null
-      ],
-      "ram_fixed_per_vcpu": null,
-      "vcpu_options": null,
-      "min_vcpu": 0.125,
-      "max_vcpu": null,
-      "max_ram_gib": null,
-      "sizes": null,
-      "pool_tiers": null,
-      "requires_always_on": false,
-      "always_on_month_per_instance": null,
-      "commit_note": null,
-      "min_billed_seconds": 0,
-      "granularity_s": 1,
-      "start_fee": 0,
-      "boot_overhead_s": null,
-      "multiplier": 1.75,
-      "windows_vcpu_h": null,
-      "gpu": {
-        "T4": 0.5904,
-        "L4": 0.7992,
-        "A10": 1.1016,
-        "L40S": 1.9512,
-        "A100-40GB": 2.0988,
-        "A100-80GB": 2.4984,
-        "RTX-PRO-6000": 3.0312,
-        "H100": 3.9492,
-        "H200": 4.5396,
-        "B200": 6.2496,
-        "B300": 7.0992
-      },
-      "note": "1.75x applies to all resource charges incl. GPU. Narrow regions: us-east/central/south/west, eu-west/north/south, ap-*, jp, au, uk, ca, me, sa, af, mx.",
-      "regions": [
-        "us",
-        "eu",
-        "asia",
-        "other"
-      ],
-      "gpu_only": false,
-      "flags": [],
-      "perf": {
-        "cpu_runs_s": 12.79,
-        "cold_start_ms": 548.91,
-        "burst_tti_ms": 907.55,
-        "dax_s": 111.42
-      },
-      "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
-      "features": {
-        "isolation": "gvisor"
-      },
-      "cpu_class": "dedicated"
     }
   ],
   "storage": {
@@ -331,21 +195,9 @@
     "windows": false,
     "macos": false,
     "arm64": false,
-    "gpu": true,
-    "gpu_types": [
-      "T4",
-      "L4",
-      "A10",
-      "L40S",
-      "A100-40GB",
-      "A100-80GB",
-      "RTX-PRO-6000",
-      "H100",
-      "H200",
-      "B200",
-      "B300"
-    ],
-    "snapshot": "mem",
+    "gpu": false,
+    "gpu_types": [],
+    "snapshot": "fs",
     "pause_resume": false,
     "fork": true,
     "persistent_disk": true,
@@ -353,8 +205,8 @@
     "auto_stop_idle": true,
     "max_session_h": 24,
     "custom_image": true,
-    "docker_inside": false,
-    "nested_virt": false,
+    "docker_inside": true,
+    "nested_virt": true,
     "root": true,
     "systemd": true,
     "browser": false,
@@ -402,7 +254,7 @@
     "scoped_api_keys": null,
     "spend_limits": null,
     "mcp_server": false,
-    "isolation": "gvisor",
+    "isolation": "cloud-hypervisor",
     "image_oci": true,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
@@ -422,9 +274,10 @@
     "usage_api": null,
     "persist_scope": "folder",
     "persist_path": "Volumes",
-    "fuse": false,
-    "kernel_features": false,
-    "sidecar": true
+    "fuse": true,
+    "kernel_features": true,
+    "sidecar": true,
+    "snapshot_mem": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -479,37 +332,32 @@
     }
   ],
   "caveats": [
+    "Generally available since 2026-10-01, announced at Modal's Runtime conference: \"Today we’re making VM Sandboxes generally available on Modal, built for those who need to give their agents the power of a full computer.\" (https://modal.com/blog/vm-sandboxes-agent-computers). Early customers (Linear Coding Sessions, Legora evals, Snorkel simulations) launched over 20 million VMs before GA.",
+    "Same API and prices as the gVisor sandboxes (card \"Modal\"); split out because the runtimes differ: real Linux 7.2 kernel here (Docker, FUSE, eBPF, systemd, nested cgroups), GPUs and self-serve memory snapshots only on gVisor.",
+    "No GPUs: \"GPU Sandboxes are only supported with runtime=\\\"gvisor\\\"\".",
+    "Nested virtualization: Team and Enterprise plans only, on request.",
+    "Memory snapshots on VMs are invite-only (\"a set of enabled customers\") and such sandboxes cannot mount Volumes; filesystem snapshots work for everyone and include /var/lib/docker.",
+    "Sidecars (beta) work on VMs but not with memory bursting: sidecar memory is reserved up front.",
+    "Sandboxes run 24 h at most; use filesystem snapshots to continue longer work.",
     "free.monthly_credit ($30) IS the Starter plan's included_usd, so don't subtract both. Team replaces it with $100 included.",
-    "Billing is max(request, actual). The on-demand mode assumes request = workload size, so cpu_util gives no saving. Low-request-burst is optimistic: burst depends on spare host capacity, and its active_floor (0.03125) is exact only for 4 vCPU (0.125 / W.vcpu).",
-    "CPU unit: card vCPU = 1 Modal `cpu` unit = 1 guest-visible CPU, priced at the per-'physical core' rate ($0.00003942/s = $0.141912/h). The pricing page and sandbox-resources guide say '1 core = 2 vCPU', but measurements (hpc-sandbox-benchmarks PR #121; HPC + ComputeSDK DAX runs) show cpu=N gives nproc N and N CPUs of throughput, i.e. the same capacity other cards call N vCPU. Modal does not disclose whether hosts run SMT; under the literal '2 vCPU equivalent' reading (cpu = W.vcpu/2) the same '4 vCPU' would cost half as much ($0.476/h at 4/8) but the guest sees only half the CPUs; that regime was removed (2026-09-28) because it is not the same machine. Evidence: research/verify/modal-cpu.md.",
     "Uncapped burst can bill MORE than the requested size (default soft limit is request + 16 cores) and the gVisor guest then reports ceil(limit) CPUs (ComputeSDK DAX 2026-07-17 at SDK defaults: nproc 17). The engine can't model this; set cpu=(req, limit).",
     "Egress at $0.04/GiB is charged only from 2026-10-01 (tracked, not billed, in Sep 2026). The allowance is plan-dependent (Starter 1 TiB, Team 10 TiB, Enterprise 100 TiB) and counts private container-to-container traffic and Cloud Bucket Mount uploads.",
-    "Snapshot storage (filesystem/directory/memory) price is not published, so snapshot_gib_month is null. Filesystem snapshots default to a 30-day TTL (configurable/indefinite). Memory snapshots (alpha) expire after 7 days and terminate the source sandbox.",
-    "Ephemeral disk: 512 GiB default quota, max 3 TiB. An explicit disk request is billed by raising the memory request to disk/20 GiB, so it costs extra only when disk/20 > the memory request. disk_gib_month is null because it is not a flat rate.",
-    "No pause/stopped state. Default timeout is 5 min, max 24 h. Idle sandboxes pay the full request until idle_timeout terminates them.",
     "GPU sandboxes are preemptible. GPU concurrency is 10 (Starter) and 50 (Team). H100->H200 and A100-40->80 auto-upgrades are billed at the requested type's price.",
-    "Volumes cost $0.09/GiB-month beyond 1 TiB free (not modelled in the storage block).",
     "Enterprise discounts and reservations are unpublished. Startup credits are unpublished. Academic grants are up to $10k one-time (not in free.one_time_credit).",
-    "Max vCPU/RAM per sandbox is not published (the docs say a max is enforced). A third-party snippet cites 64 cores / 336 GB per container.",
-    "Adjacent option not in modes: running the same code as a preemptible Modal Function costs 1/3 of the sandbox rate ($0.04716/vCPU-h per cpu unit, $0.007992/GiB-h), but it isn't a sandbox.",
-    "perf is mode-level (card-level nulled): gVisor modes 9.56 runs/s (HPC), cold 549 ms, burst 908 ms, DAX 111.4 s (ComputeSDK); vm-sandbox 15.07 runs/s (HPC). The 15.1 runs/s on boat.dev/compare is the VM runtime, not the default gVisor sandbox. Both HPC runs and ComputeSDK DAX passed cpu=4/cpuLimit=4 and observed nproc=4; the card now prices exactly that shape as '4 vCPU' ($0.759744/h at 8 GiB). boat.dev/compare's $0.476/h is the half-cores price (2 CPUs), not what was measured. See research/perf-costs.md.",
-    "GPU counts (https://modal.com/docs/guide/gpu): A10 max 4 per container; T4/L4/L40S/A100/H100/H200/B200/B300 max 8; RTX PRO 6000 count unverified. H100 requests may be upgraded to H200 (billed as H100), B200 to B300 (billed as B200). GPU charge is not reduced by CPU utilisation in the low-request-burst mode.",
     "Egress: not charged in September 2026 (usage shown only). From 2026-10-01 egress is $0.04/GiB beyond 1 TiB (Starter) / 10 TiB (Team) / 100 TiB (Enterprise) per workspace per billing cycle; first invoice 2026-11-01. Card uses the current (free) rate; switch egress_gib to 0.04 on 2026-10-01 and add plan egress_free_gib 10240 on Team. https://modal.com/docs/guide/network-egress-billing",
     "GPU concurrency caps: Starter 10, Team 50, Enterprise custom (modal.com/pricing, 2026-09-28). The engine plan concurrency is the container cap (100 / 5,000); a workload with >10 concurrent GPU sandboxes needs Team.",
-    "Snapshot storage re-checked 2026-09-28 (modal.com/docs/guide/sandbox-snapshots): retention is documented (filesystem/directory 30 days default, memory 7 days) but no price; snapshot_gib_month stays null.",
-    "Features check 2026-09-28: card.features.docker_inside true -> null for the default gVisor runtime. Current docs only document Docker via VM Sandboxes (\"VM Sandboxes are also the recommended method to run Docker in Sandboxes\", modal.com/docs/guide/vm-sandboxes); no current doc statement that Docker runs under gVisor. vm-sandbox mode keeps docker_inside true. nested_virt stays false in all modes: VM Sandboxes \"Nested KVM virtualization is disabled by default. Please reach out to us if you'd like access.\"",
-    "Included compute ($30 Starter / $100 Team) applies to Functions, Sandboxes and Notebooks CPU/memory/GPU; Volumes have their own 1 TiB; Shared Endpoint tokens are billed from the first request (since 2026-09-01). Whether egress overage is covered by included compute is not stated.",
-    "Volumes: storage is sampled once a day and deleted data may still be billed for up to 4 days.",
-    "Sidecars (public alpha, Sep 2026) share the Sandbox's CPU/memory request; there is no separate sidecar charge but the request must cover all containers.",
-    "VM Sandboxes (real kernel: Docker, FUSE, eBPF; GA 2026-10-01, same prices, no GPU) are the separate card \"Modal (VM Sandboxes)\"."
+    "Included compute ($30 Starter / $100 Team) applies to Functions, Sandboxes and Notebooks CPU/memory/GPU; Volumes have their own 1 TiB; Shared Endpoint tokens are billed from the first request (since 2026-09-01). Whether egress overage is covered by included compute is not stated."
   ],
   "sources": [
+    "https://modal.com/blog/vm-sandboxes-agent-computers",
+    "https://modal.com/blog/runtime-product-update-sandbox-endpoints",
+    "https://modal.com/docs/guide/vm-sandboxes",
+    "https://modal.com/docs/guide/sandbox-sidecars",
+    "https://modal.com/docs/guide/sandbox-snapshots",
     "https://modal.com/pricing",
     "https://modal.com/docs/guide/sandbox-resources",
     "https://modal.com/docs/guide/resources",
     "https://modal.com/docs/guide/sandboxes",
-    "https://modal.com/docs/guide/vm-sandboxes",
-    "https://modal.com/docs/guide/sandbox-snapshots",
     "https://modal.com/docs/guide/region-selection",
     "https://modal.com/docs/guide/preemption",
     "https://modal.com/docs/guide/gpu",
@@ -518,9 +366,7 @@
     "https://modal.com/docs/guide/budgets",
     "https://modal.com/docs/reference/changelog",
     "https://github.com/AnicetNgrt/hpc-sandbox-benchmarks/pull/121",
-    "https://github.com/computesdk/benchmarks/tree/main/results/sandbox-dax",
-    "https://modal.com/blog/vm-sandboxes-agent-computers",
-    "https://modal.com/blog/runtime-product-update-sandbox-endpoints"
+    "https://github.com/computesdk/benchmarks/tree/main/results/sandbox-dax"
   ],
   "fleet": {
     "default_max_instances": 100,
@@ -590,7 +436,7 @@
       "value": true,
       "source": "https://modal.com/docs/guide/vm-sandboxes.md",
       "quote": "This gives\neach Sandbox a real Linux kernel",
-      "note": "VM runtime only: see the card \"Modal (VM Sandboxes)\".",
+      "note": "Derived for the VM runtime (beta; runtime=\"vm\" in SDK 1.6.0) with root. Default runtime is gVisor (root, own netstack); iptables support there is not documented.",
       "checked": "2026-09-29",
       "derived": true
     },
@@ -616,11 +462,10 @@
       "checked": "2026-09-29"
     },
     "docker_inside": {
-      "value": false,
-      "source": "https://modal.com/docs/guide/sandboxes.md",
-      "quote": "Use the VM runtime to run Docker in a Sandbox. Start `dockerd` as the Sandbox entrypoint and run containers with `sb.exec`.",
-      "note": "True only under the opt-in VM Sandbox runtime (beta, runtime=\"vm\"); the default gVisor runtime is not documented to support running Docker/dockerd inside it. Card-level value reflects the default runtime; the vm-sandbox mode already carries docker_inside:true.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://modal.com/docs/guide/vm-sandboxes",
+      "quote": "Use the VM runtime to run Docker in a Sandbox. Start dockerd as the Sandbox entrypoint and run containers with sb.exec.",
+      "checked": "2026-10-02"
     },
     "anti_bot": {
       "value": false,
@@ -723,10 +568,10 @@
       "checked": "2026-09-30"
     },
     "nested_virt": {
-      "value": false,
+      "value": true,
       "source": "https://modal.com/docs/guide/vm-sandboxes",
-      "quote": "Nested virtualization is also available on the Team and Enterprise plans",
-      "note": "Only on the VM runtime (card \"Modal (VM Sandboxes)\"), not on gVisor.",
+      "quote": "Nested virtualization is also available on the Team and Enterprise plans; to request access, reach out via Slack or email us at support@modal.com.",
+      "note": "Team and Enterprise plans only, on request.",
       "checked": "2026-10-02"
     },
     "ssh": {
@@ -810,8 +655,6 @@
     "cpu_class": {
       "value": {
         "on-demand": "dedicated",
-        "region-broad": "dedicated",
-        "region-narrow": "dedicated",
         "low-request-burst": "shared"
       },
       "source": "https://modal.com/docs/guide/sandbox-resources",
@@ -841,24 +684,42 @@
       "note": "Only Volumes survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
       "checked": "2026-10-01"
     },
-    "fuse": {
-      "value": false,
+    "isolation": {
+      "value": "cloud-hypervisor",
       "source": "https://modal.com/blog/vm-sandboxes-agent-computers",
-      "quote": "Reach for runtime=\"vm\" when you butt against the walls of userspace: Docker, FUSE filesystems, or niche Linux kernel features.",
-      "note": "On gVisor FUSE does not mount (Legora: \"running code sandboxes as bare processes because FUSE wouldn’t mount\"); use the VM card.",
+      "quote": "Starting from the Rust-based Cloud Hypervisor project, we layered on a half dozen innovations spanning our host filesystems, lazy image loading, memory bursting, and snapshotting tech.",
+      "checked": "2026-10-02"
+    },
+    "fuse": {
+      "value": true,
+      "source": "https://modal.com/docs/guide/vm-sandboxes",
+      "quote": "Use the VM runtime for workloads that expect a full Linux environment, such as running Docker inside the Sandbox, mounting FUSE filesystems, or managing resources with nested cgroups.",
       "checked": "2026-10-02"
     },
     "kernel_features": {
+      "value": true,
+      "source": "https://modal.com/blog/product-updates-sidecars-models-dashboard",
+      "quote": "They run a real Linux kernel, so they can support workloads that run Docker containers within the Sandbox, or that require Linux features like eBPF, systemd, cgroups, or custom filesystem mounts.",
+      "checked": "2026-10-02"
+    },
+    "gpu": {
       "value": false,
-      "source": "https://modal.com/blog/vm-sandboxes-agent-computers",
-      "quote": "Reach for runtime=\"vm\" when you butt against the walls of userspace: Docker, FUSE filesystems, or niche Linux kernel features.",
+      "source": "https://modal.com/docs/guide/vm-sandboxes",
+      "quote": "GPU Sandboxes are only supported with runtime=\"gvisor\".",
+      "checked": "2026-10-02"
+    },
+    "snapshot": {
+      "value": "fs",
+      "source": "https://modal.com/docs/guide/sandbox-snapshots",
+      "quote": "Memory Snapshots for Sandboxes that specify runtime=\"vm\" are only available to a set of enabled customers.",
+      "note": "Filesystem and directory snapshots for everyone (/var/lib/docker included); memory snapshots invite-only on VMs, so not counted.",
       "checked": "2026-10-02"
     },
     "sidecar": {
       "value": true,
       "source": "https://modal.com/docs/guide/sandbox-sidecars",
       "quote": "Sandbox Sidecars let you run additional containers alongside your main Sandbox container, on the same host.",
-      "note": "Beta. Each sidecar \"runs in a separate, sandboxed process isolated from the main Sandbox container\", reachable by name over an internal bridge network; up to 250 per sandbox, sharing the sandbox’s CPU/memory. CPU-only even when the sandbox has a GPU.",
+      "note": "Beta. Works on VMs, but \"cannot be combined with memory bursting\": reserve sidecar memory up front (vm_sidecar_memory_reserve_mib).",
       "checked": "2026-10-02"
     },
     "burst": {

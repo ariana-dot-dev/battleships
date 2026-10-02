@@ -1158,17 +1158,24 @@ const FEAT_WHY={
   guest_firewall:'nftables / iptables work inside the machine (root plus its own kernel or network namespace):\n• The agent can set up networking the way it will run in production, or build and test firewall and network tools.\n• Not a security boundary: an agent with root can undo its own rules. To contain an agent, use provider-side egress rules.',
   secret_proxy:'A proxy adds your credentials to outbound requests, so the real secret never enters the machine:\n• A prompt-injected or compromised agent can’t read or leak the key: it only ever sees a placeholder.\n• Some providers cover any HTTP API you register, others only model-provider (LLM) keys.\n• Database passwords and other non-HTTP secrets usually can’t be proxied this way.',
   secret_proxy_any:'A secret proxy that covers any HTTP API you register (GitHub, Stripe, your own services), not only LLM keys:\n• The agent calls those APIs normally; the proxy adds the real credential on the way out.\n• The secret never enters the machine, so a compromised agent can’t leak it.',
+  persistent_disk:'Files are still there after the machine stops, sleeps or times out:\n• On a VM that is the whole disk. On many sandboxes it is only one folder or an attached volume, such as /workspace: see "Whole disk survives a stop".\n• A saved browser profile (cookies, logins) does not count: it keeps no files.',
+  whole_disk:'Everything on the disk survives a stop, not just one folder:\n• Packages, tools and settings you installed are still there next time, so a dev box or always-on agent does not rebuild its setup on every start.\n• Many sandboxes advertise a persistent disk that is really one folder (/workspace, /home) on top of a disk that resets: your code survives there, apt and pip installs elsewhere do not.',
+  persist_scope:'What is still there after a stop: the whole disk, only one folder or volume (named in the table), only a browser profile (cookies, logins), or nothing.',
+  sidecar:'Run your own extra containers next to the sandbox, on the same host but isolated from it:\n• Keep credentials, a proxy or the agent harness in the sidecar, where the agent\u2019s code can\u2019t read them, and still talk to it locally with no network round trip.\n• Run a database or service for the sandbox without packing it into the same image.',
+  fuse:'Mount FUSE filesystems inside the machine (s3fs, gcsfuse, rclone mount, sshfs):\n• Work on a bucket or a remote disk as if it were a local folder.\n• Needs a kernel of its own: VMs and microVMs have it; gVisor sandboxes don\u2019t.',
+  kernel_features:'Linux features that need a kernel of its own: eBPF, custom filesystem mounts, nested cgroups, network namespaces:\n• Profilers, tracers and security tools work; agents can split CPU and memory between their own processes.\n• VMs and microVMs have them; gVisor and isolates don\u2019t.',
+  burst:'The machine can use more CPU or memory than you reserved, and you pay per second for what it actually used:\n• Reserve small, so a mostly idle fleet costs little, and still let a build or test run grab more when it needs it.\n• Bursting is not guaranteed capacity: reserve the full size for steady heavy work.',
   volume_attach:'Extra persistent volumes on top of the root disk:\n• Grow storage for datasets, caches and repositories without recreating the machine.\n• Detach a volume and attach it to another machine later.',
   volume_shared:'One volume mounted by many machines at the same time:\n• Share a dataset, model weights or a build cache across the fleet instead of copying it into each machine.\n• Hand files between agents without going through object storage.',
   usage_api:'The API reports what each sandbox used (running time, compute or cost), per sandbox or per tag you put on it:\n• Give each of your customers their own sandboxes, then bill them from that usage, under your own brand.\n• An invoice or a dashboard for the whole account doesn’t count; neither do live CPU/memory graphs.',
   audit_logs:'A log of who did what on the account: which person or API key created, opened or deleted which sandbox, and when:\n• Lets you show your customers when (and whether) anyone on your team accessed their sandbox.\n• Needed for most compliance reviews.',
 };
 const REQ_GROUPS=[
-  ['State',['fast_boot','snapshot_any','snapshot_auto','snapshot_on_demand','snapshot_mem','fork','fork_running','memory_snapshot_fork','pause_resume','wake_on_request','persistent_disk','volume_attach','volume_shared','long_sessions','live_resize','scheduled_wakeups']],
-  ['Network & security',['ssh','public_ipv4','inbound_https','custom_domain','ingress_rules','egress_allowlist','egress_http_rules','guest_firewall','secret_proxy','secret_proxy_any','static_egress_ip','private_network','scoped_api_keys']],
+  ['State',['fast_boot','snapshot_any','snapshot_auto','snapshot_on_demand','snapshot_mem','fork','fork_running','memory_snapshot_fork','pause_resume','wake_on_request','persistent_disk','whole_disk','volume_attach','volume_shared','long_sessions','live_resize','scheduled_wakeups']],
+  ['Network & security',['ssh','public_ipv4','inbound_https','custom_domain','ingress_rules','egress_allowlist','egress_http_rules','guest_firewall','secret_proxy','secret_proxy_any','sidecar','static_egress_ip','private_network','scoped_api_keys']],
   ['Browser & desktop',['browser','desktop','browser_and_desktop','browser_control','desktop_control','computer_use','anti_bot','captcha_solving','residential_ip','gpu_desktop']],
   ['Agent tooling',['code_interpreter','agent_harnesses','harness_api','mcp_server','lang_python','lang_node','lang_go','lang_rust','lang_java']],
-  ['Platform',['strong_isolation','vm_isolation','image_oci','custom_image','image_snapshot','docker_inside','nested_virt','root','self_host','byoc','open_source','webhooks','spend_limits','usage_api']],
+  ['Platform',['strong_isolation','vm_isolation','image_oci','custom_image','image_snapshot','docker_inside','nested_virt','fuse','kernel_features','burst','root','self_host','byoc','open_source','webhooks','spend_limits','usage_api']],
   ['Compliance',['soc2','hipaa','sso','audit_logs','eu_data_residency','zero_data_retention']],
 ];
 const REQS=REQ_GROUPS.flatMap(g=>g[1]);
@@ -1344,19 +1351,19 @@ const DIAL_SETS={
   browsers:[['concurrency','Browsers open at once',1,5000,'n'],['sessions','Tasks a month',100,5000000,'n'],['sessionMin','Length of a task',1,120,'min'],['egress','Data downloaded a month',1,100000,'gib']],
 };
 const SCEN={
-  fullstack:{opt:['nested_virt','snapshot_auto','snapshot_mem','pause_resume','fork','agent_harnesses','harness_api','secret_proxy','egress_allowlist','volume_shared','ssh','eu_data_residency'],dials:[...DIAL_SETS.agents,['idleShare','Time the machine sits idle',0,100,'pct'],['cpuUtil','How busy the CPU is',1,100,'pct'],['snapshotGiB','Saved workspaces',0,20000,'gib']]},
+  fullstack:{opt:['nested_virt','fuse','sidecar','snapshot_auto','snapshot_mem','pause_resume','fork','agent_harnesses','harness_api','secret_proxy','egress_allowlist','volume_shared','ssh','eu_data_residency'],dials:[...DIAL_SETS.agents,['idleShare','Time the machine sits idle',0,100,'pct'],['cpuUtil','How busy the CPU is',1,100,'pct'],['snapshotGiB','Saved workspaces',0,20000,'gib']]},
   employees:{opt:['wake_on_request','auto_stop_idle','snapshot_auto','snapshot_mem','scheduled_wakeups','secret_proxy_any','harness_api','agent_harnesses','desktop','computer_use','egress_allowlist','inbound_https','ssh'],dials:[['alwaysOn','AI employees',1,5000,'n'],['idleShare','Time each one sits idle',0,100,'pct'],['vcpu','vCPU each',0.5,16,'cpu'],['ram','Memory each',1,64,'gib']]},
   interp:{opt:['code_interpreter','lang_python','lang_node','egress_allowlist','snapshot_mem'],dials:[['sessions','Code runs a month',1000,50000000,'n'],['sessionMin','Length of a run',1,60,'min'],['concurrency','Runs at once',1,20000,'n'],['vcpu','vCPU per run',0.5,16,'cpu']]},
-  platform:{opt:['custom_image','pause_resume','snapshot_auto','fork','inbound_https','ingress_rules','egress_allowlist','secret_proxy','harness_api','scoped_api_keys','spend_limits','usage_api','audit_logs'],dials:[['sessions','User sessions a month',100,5000000,'n'],['sessionMin','Length of a session',1,480,'min'],['concurrency','Users active at once',1,20000,'n'],['vcpu','vCPU per sandbox',0.5,16,'cpu']]},
+  platform:{opt:['custom_image','sidecar','burst','pause_resume','snapshot_auto','fork','inbound_https','ingress_rules','egress_allowlist','secret_proxy','harness_api','scoped_api_keys','spend_limits','usage_api','audit_logs'],dials:[['sessions','User sessions a month',100,5000000,'n'],['sessionMin','Length of a session',1,480,'min'],['concurrency','Users active at once',1,20000,'n'],['vcpu','vCPU per sandbox',0.5,16,'cpu']]},
   rl:{opt:['fast_boot','gpu','fork','snapshot_on_demand','snapshot_mem','memory_snapshot_fork','volume_shared','custom_image','docker_inside'],dials:[['sessions','Rollouts a month',1000,100000000,'n'],['sessionMin','Length of a rollout',1,120,'min'],['concurrency','Rollouts at once',1,50000,'n'],['vcpu','vCPU per rollout',0.5,16,'cpu']]},
-  ci:{opt:['docker_inside','nested_virt','custom_image','root','volume_shared','egress_allowlist'],dials:[['sessions','Jobs a month',100,1000000,'n'],['sessionMin','Length of a job',1,240,'min'],['concurrency','Jobs at once',1,5000,'n'],['vcpu','vCPU per runner',1,64,'cpu']]},
-  devbox:{opt:['persistent_disk','volume_attach','snapshot_on_demand','wake_on_request','public_ipv4','custom_domain','ingress_rules','docker_inside','nested_virt'],dials:[['alwaysOn','Dev boxes',1,1000,'n'],['idleShare','Time it sits idle',0,100,'pct'],['cpuUtil','How busy the CPU is',1,100,'pct'],['vcpu','vCPU per box',1,64,'cpu'],['ram','Memory per box',1,256,'gib']]},
+  ci:{opt:['docker_inside','nested_virt','kernel_features','custom_image','root','volume_shared','egress_allowlist'],dials:[['sessions','Jobs a month',100,1000000,'n'],['sessionMin','Length of a job',1,240,'min'],['concurrency','Jobs at once',1,5000,'n'],['vcpu','vCPU per runner',1,64,'cpu']]},
+  devbox:{opt:['persistent_disk','whole_disk','volume_attach','snapshot_on_demand','wake_on_request','public_ipv4','custom_domain','ingress_rules','docker_inside','nested_virt'],dials:[['alwaysOn','Dev boxes',1,1000,'n'],['idleShare','Time it sits idle',0,100,'pct'],['cpuUtil','How busy the CPU is',1,100,'pct'],['vcpu','vCPU per box',1,64,'cpu'],['ram','Memory per box',1,256,'gib']]},
   cua:{opt:['computer_use','desktop_control','browser_control','gpu_desktop','residential_ip','secret_proxy_any'],dials:DIAL_SETS.browsers},
   browseruse:{opt:['anti_bot','captcha_solving','residential_ip','secret_proxy_any'],dials:DIAL_SETS.browsers},
   scrape:{opt:['anti_bot','captcha_solving','residential_ip','static_egress_ip'],dials:[['sessions','Page visits a month',1000,10000000,'n'],['concurrency','Browsers at once',1,5000,'n'],['sessionMin','Minutes per visit',0.5,30,'min'],['egress','Data downloaded a month',1,100000,'gib']]},
   scrapemass:{opt:['static_egress_ip','browser_control'],dials:[['sessions','Page visits a month',100000,500000000,'n'],['concurrency','Browsers at once',10,50000,'n'],['sessionMin','Minutes per visit',0.5,30,'min'],['egress','Data downloaded a month',10,1000000,'gib']]},
-  evals:{opt:['fast_boot','docker_inside','image_snapshot','snapshot_on_demand','fork','egress_allowlist'],dials:[['sessions','Eval tasks a month',100,10000000,'n'],['sessionMin','Length of a task',1,240,'min'],['concurrency','Tasks at once',1,20000,'n'],['vcpu','vCPU per task',0.5,16,'cpu']]},
-  redteam:{opt:['browser_control','computer_use','desktop','egress_allowlist','nested_virt','docker_inside','ingress_rules','guest_firewall','private_network','audit_logs','fork'],dials:[['concurrency','Attack agents at once',1,5000,'n'],['sessions','Attack runs a month',10,1000000,'n'],['sessionMin','Length of a run',1,480,'min'],['vcpu','vCPU per agent',0.5,32,'cpu']]},
+  evals:{opt:['fast_boot','docker_inside','kernel_features','image_snapshot','snapshot_on_demand','fork','egress_allowlist'],dials:[['sessions','Eval tasks a month',100,10000000,'n'],['sessionMin','Length of a task',1,240,'min'],['concurrency','Tasks at once',1,20000,'n'],['vcpu','vCPU per task',0.5,16,'cpu']]},
+  redteam:{opt:['browser_control','sidecar','kernel_features','computer_use','desktop','egress_allowlist','nested_virt','docker_inside','ingress_rules','guest_firewall','private_network','audit_logs','fork'],dials:[['concurrency','Attack agents at once',1,5000,'n'],['sessions','Attack runs a month',10,1000000,'n'],['sessionMin','Length of a run',1,480,'min'],['vcpu','vCPU per agent',0.5,32,'cpu']]},
   gpu:{opt:['custom_image','docker_inside','persistent_disk','volume_shared'],dials:[['sessions','Eval jobs a month',1,100000,'n'],['sessionMin','Length of a job',1,1440,'min'],['concurrency','Jobs at once',1,1000,'n'],['gpuCount','GPUs per job',1,8,'gpu']]},
   mac:{opt:['ssh','desktop','computer_use'],dials:[['concurrency','Macs at once',1,500,'n'],['sessions','Sessions a month',10,100000,'n'],['sessionMin','Length of a session',5,1440,'min']]},
 };
@@ -2123,7 +2130,7 @@ LAZY.providers=()=>{ if(ids.length) showProv(ids.includes('boat')?'boat':ids[0])
 // ---- matrix: Notion-style filters. "+ Filter" (or a column title) opens a picker: choose a column, tick any of its
 // values (yes / no / unknown, or the real values: isolation kinds, snapshot types, secret-proxy scope...). A provider
 // shows when, for every filtered column, it has one of the ticked values. Active filters are chips: "Snapshots: memory ×".
-const MK=['fast_boot','strong_isolation','vm_isolation','image_oci','docker_inside','nested_virt','desktop','browser','browser_and_desktop','computer_use','anti_bot','captcha_solving','residential_ip','ssh','snapshot','snapshot_auto','snapshot_on_demand','fork','fork_running','memory_snapshot_fork','pause_resume','wake_on_request','persistent_disk','volume_attach','volume_shared','auto_stop_idle','live_resize','custom_image','image_snapshot','agent_harnesses','harness_api','own_agent_api','mcp_server','lang_python','lang_node','open_internet','public_ipv4','inbound_https','ingress_rules','egress_allowlist','egress_http_rules','guest_firewall','secret_proxy','static_egress_ip','gpu','windows','macos','arm64','self_host','byoc','open_source','soc2','hipaa','sso','audit_logs','eu_data_residency','scoped_api_keys','spend_limits','usage_api'];
+const MK=['fast_boot','strong_isolation','vm_isolation','image_oci','docker_inside','nested_virt','fuse','kernel_features','sidecar','burst','desktop','browser','browser_and_desktop','computer_use','anti_bot','captcha_solving','residential_ip','ssh','snapshot','snapshot_auto','snapshot_on_demand','fork','fork_running','memory_snapshot_fork','pause_resume','wake_on_request','persist_scope','persistent_disk','volume_attach','volume_shared','auto_stop_idle','live_resize','custom_image','image_snapshot','agent_harnesses','harness_api','own_agent_api','mcp_server','lang_python','lang_node','open_internet','public_ipv4','inbound_https','ingress_rules','egress_allowlist','egress_http_rules','guest_firewall','secret_proxy','static_egress_ip','gpu','windows','macos','arm64','self_host','byoc','open_source','soc2','hipaa','sso','audit_logs','eu_data_residency','scoped_api_keys','spend_limits','usage_api'];
 const CO_COLS={accel:'Backing',stage:'Stage',raised:'Raised',revenue:'Revenue',region:'Regions'};
 const bucket=x=>!x?'Unknown':x.v<1e6?'Under $1M':x.v<1e7?'$1M to $10M':x.v<5e7?'$10M to $50M':x.v<2.5e8?'$50M to $250M':'$250M or more';
 const FL=k=>{ const s=CO_COLS[k]||(k==='iso'?'Isolation':k==='session'?'Max session':k==='snapshot'?'snapshot type':PM.FEATURE_LABELS[k]||k.replace(/_/g,' ')); return /^[a-z]/.test(s)&&!/^(arm64|macOS)/.test(s)?s[0].toUpperCase()+s.slice(1):s; };
@@ -2131,9 +2138,16 @@ const FL=k=>{ const s=CO_COLS[k]||(k==='iso'?'Isolation':k==='session'?'Max sess
 const isoClasses=c=>[...new Set([c.isolation,(c.features||{}).isolation,...(c.modes||[]).map(m=>PM.modeFeatures(c,m).isolation)]
   .filter(Boolean).map(i=>(ISO_NAME(i)||[])[0]).filter(Boolean))];
 const isoOf=c=>isoClasses(c).join(' · ');
-const DERIVED=['custom_image','vm_isolation','strong_isolation','image_oci','guest_firewall'];
+const DERIVED=['custom_image','vm_isolation','strong_isolation','image_oci','guest_firewall','persistent_disk','image_snapshot','fuse','kernel_features'];
+// per-product features (set on a mode, not the card): yes when any of the provider's products has it
+const MODE_KEYS=['burst'];
+const anyMode=(c,k)=>{ const v=(c.modes||[]).map(m=>PM.testFeature(PM.modeFeatures(c,m),k)); return v.includes(true)?true:v.includes(null)?null:false; };
 const cellVal=(f,k)=>(f[k]===undefined||DERIVED.includes(k))?PM.testFeature(f,k):f[k];
-const VAL_NAME={'any-http':'any API','ai-only':'LLM keys only',mem:'memory',fs:'disk only',disk:'disk only'};
+// what survives a stop, with the VM default (a VM keeps its whole disk) that only the engine's per-product view applies
+const scopeOf=c=>{ const fs=(c.modes||[]).map(m=>PM.modeFeatures(c,m)); for(const f of fs) if(f.persist_scope) return f.persist_scope;
+  if(fs.some(f=>PM.testFeature(f,'whole_disk')===true)) return 'whole';
+  const f=c.features||{}; return f.persistent_disk===false&&f.snapshot==='none'?'none':null; };
+const VAL_NAME={'any-http':'any API','ai-only':'LLM keys only',mem:'memory',fs:'disk only',disk:'disk only',whole:'whole disk',folder:'one folder',profile:'browser profile'};
 const tok=v=>v===true?'Yes':v===false||v==='none'?'No':v==null?'Unknown':VAL_NAME[v]||String(v);
 // every column's values for one provider (isolation can have several)
 const tokensOf=(c,k)=>{ const f=c.features||{};
@@ -2145,6 +2159,9 @@ const tokensOf=(c,k)=>{ const f=c.features||{};
   if(k==='raised') return [bucket(c.co&&c.co.raised)];
   if(k==='revenue') return [bucket(c.co&&c.co.rev)];
   if(k==='session'){ const h=f.max_session_h; return [h==null?(f.max_session_unlimited?'no limit':'Unknown'):h<1?'under 1 h':h<24?'1 to 24 h':'24 h or more']; }
+  if(k==='persist_scope') return [tok(scopeOf(c))];
+  if(MODE_KEYS.includes(k)) return [tok(anyMode(c,k))];
+  if(k==='snapshot'&&f.snapshot_scope==='folder'&&f.snapshot&&f.snapshot!=='none') return ['one folder'];
   return [tok(cellVal(f,k))]; };
 const PROPS=['accel','stage','raised','revenue','region','iso','session',...MK];
 const ORDER=['Yes','No'];
@@ -2195,7 +2212,10 @@ function renderMatrix(){
       +'<td class="cw '+on('accel')+'">'+((o.acc||[]).length?esc(o.acc.map(a=>ACC_SHORT(a.n)+(batchShort(a.b)?' '+batchShort(a.b):'')).join(' · ')):'')+'</td>'
       +'<td class="cw '+on('stage')+'">'+esc(tokensOf(c,'stage')[0]==='Unknown'?'':c.co&&(o.own==='subsidiary'||o.own==='acquired')?stageOf(c):tokensOf(c,'stage')[0])+'</td>'
       +amtCell('raised',o.raised)+amtCell('revenue',o.rev)
-      +'<td class="cw '+on('iso')+'">'+esc(isoOf(c))+'</td><td class="num '+on('session')+'">'+(f.max_session_h==null?(f.max_session_unlimited?'no limit':'<span class="u">?</span>'):f.max_session_h<1?Math.max(1,Math.round(f.max_session_h*60))+' min':(+f.max_session_h.toFixed(1))+' h')+'</td>'+MK.map(k=>cell(k,cellVal(f,k))).join('')+'<td class="wrap">'+esc((f.gpu_types||[]).join(', '))+'</td><td class="wrap">'+esc(locSummary(c))+'</td></tr>';}).join('')
+      +'<td class="cw '+on('iso')+'">'+esc(isoOf(c))+'</td><td class="num '+on('session')+'">'+(f.max_session_h==null?(f.max_session_unlimited?'no limit':'<span class="u">?</span>'):f.max_session_h<1?Math.max(1,Math.round(f.max_session_h*60))+' min':(+f.max_session_h.toFixed(1))+' h')+'</td>'+MK.map(k=>{ if(k==='persist_scope'){ const s=scopeOf(c); return s==='folder'?'<td class="'+on(k)+'">'+(f.persist_path?'only '+esc(f.persist_path):'one folder')+'</td>':cell(k,s); }
+        if(k==='snapshot'&&f.snapshot_scope==='folder'&&f.snapshot&&f.snapshot!=='none') return cell(k,'one folder');
+        if(MODE_KEYS.includes(k)) return cell(k,anyMode(c,k));
+        return cell(k,cellVal(f,k)); }).join('')+'<td class="wrap">'+esc((f.gpu_types||[]).join(', '))+'</td><td class="wrap">'+esc(locSummary(c))+'</td></tr>';}).join('')
     +'</tbody></table>'+(rows.length?'':'<div class="empty">No provider matches these filters.</div>');
   $$('#matrix th[data-k]').forEach(t=>t.onclick=()=>{ tip(); openPop(t,t.dataset.k); });
   $('#matrix th.pn').onclick=()=>{ msortD=-msortD; renderMatrix(); };
