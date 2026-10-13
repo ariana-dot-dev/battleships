@@ -44,6 +44,8 @@ cd site && node build.js   # builds site/dist/index.html
 node check.js              # prices every provider under the use cases
 ```
 
+Resource pricing modes may set `min_charge_hour_usd` to a published minimum for one running sandbox-hour. The engine floors the combined CPU, memory, and running-disk charge at that amount before comparing modes and applying plan credits, prorated by billed running time. The minimum excludes GPU, licence, and start fees; omitting the field preserves normal resource pricing. `active_floor` instead means a minimum utilization fraction for active or peak billing.
+
 Want a provider added? Open an issue with its pricing page.
 
 ## Layout
