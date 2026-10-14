@@ -913,7 +913,7 @@
     },
     {
       "key": "harness-runtime-preview",
-      "label": "Managed Agents / Harness Runtime microVM sandbox (public preview, RIC1 only), per-second, 25% of allocated vCPU + peak RAM",
+      "label": "Managed Agents / Harness Runtime microVM sandbox (public preview, RIC1 only), per-second, CPU on actual use + allocated RAM",
       "flags": [
         "beta"
       ],
@@ -944,10 +944,10 @@
         "spend_limits": false
       },
       "pricing": "resource",
-      "vcpu_h": 0.011,
+      "vcpu_h": 0.044,
       "ram_gib_h": 0.0095,
-      "cpu_basis": "alloc",
-      "ram_basis": "peak",
+      "cpu_basis": "active",
+      "ram_basis": "alloc",
       "active_floor": 0,
       "vcpu_options": [
         1,
@@ -967,7 +967,70 @@
       "start_fee": 0,
       "boot_overhead_s": null,
       "multiplier": 1,
-      "note": "Launched 2026-09-21 (public preview). List rate $0.044/vCPU-h on ACTUAL CPU used is 'coming soon'; until then CPU is billed at 25% of allocated vCPUs (= $0.011 per allocated vCPU-h, modelled here). RAM $0.0095/GB-h on peak memory used. Sizes: mars-1vcpu-1gb (50 GB disk) $0.0535/h at full allocation, mars-2vcpu-2gb $0.107, mars-2vcpu-4gb (default, 100 GB) $0.126, mars-4vcpu-8gb (250 GB) $0.252, mars-16vcpu-32gb (500 GB) $1.008; today 2/4 = $0.060/h, 4/8 = $0.120/h with RAM at peak. Paused = $0 compute (memory+disk state preserved, resume ~200 ms); idle auto-pause after 15 min; input to a paused session resumes it. Session storage $0.05/GiB-month (peak), snapshots/checkpoints $0.05/GiB-month (billed while paused), BYOT OCI templates $0.05/GiB-month, egress $0.01/GiB (no free allowance). Requires a positive PREPAID balance; sessions pause at $0 (hard stop, no per-session spend limit). Up to 100 active sessions per team 'depending on your tier' (per-tier numbers unpublished); paused sessions still occupy a slot. 744 h active compute cap per session per month. Only datacenter: RIC1. Isolation: \"hardware-isolated microVM\", hypervisor not named (modelled as vm). Action Gateway tools $0.10 per 1,000 calls extra."
+      "note": "Launched 2026-09-21 (public preview). Pricing page (updated 2026-10-13): CPU $0.044/vCPU-h on 'Actual CPU consumed' (the interim 25%-of-allocated rule is gone; an agent waiting with no CPU pays $0 CPU), memory $0.0095/GB-h on 'Actual memory allocated over time' (allocation, no longer peak). Sizes: mars-1vcpu-1gb (50 GB disk) $0.0535/h at full utilisation, mars-2vcpu-2gb $0.107, mars-2vcpu-4gb (default, 100 GB) $0.126, mars-4vcpu-8gb (250 GB) $0.252, mars-16vcpu-32gb (500 GB) $1.008. Paused = $0 compute (memory+disk state preserved, resume ~200 ms); idle auto-pause after 15 min (LangGraph 10 min); input to a paused session resumes it. Session storage $0.05/GiB-month, snapshots/checkpoints $0.05/GiB-month (billed while paused), BYOT OCI templates $0.05/GiB-month, egress $0.01/GiB (no free allowance). Needs funds in a balance (Agent Droplets subscription, promo credit, Inference and Agents balance, or account prepayment); sessions pause when all are empty, no per-session spend limit. Optional Agent Droplets plans (Pro $50 / Team $200, 15% / 20% off) are modelled as plans scoped to this mode. Up to 100 active sessions per team 'depending on your resource tier'. 744 h active compute cap per session per month. Only datacenter: RIC1 (availability table, generated 2026-10-14). Harnesses include Claude Code, Codex, OpenCode, Hermes, LangGraph, CrewAI (2026-10-06) and OpenHands (2026-10-12). Isolation: \"hardware-isolated microVM\", hypervisor not named (modelled as vm). Action Gateway tools billed per call extra."
+    },
+    {
+      "key": "microvms-preview",
+      "label": "MicroVMs (public preview, MKC1 only), per-second while running, auto-pause on idle",
+      "flags": [
+        "beta"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": [
+        "us"
+      ],
+      "gpu_only": false,
+      "product_class": "sandbox-api",
+      "features": {
+        "isolation": "vm",
+        "pause_resume": true,
+        "snapshot": "mem",
+        "fork": true,
+        "memory_snapshot_fork": true,
+        "auto_stop_idle": true,
+        "wake_on_request": true,
+        "custom_image": true,
+        "image_oci": true,
+        "inbound_https": true,
+        "ssh": false,
+        "public_ipv4": false,
+        "raw_tcp_inbound": false,
+        "private_network": true,
+        "egress_allowlist": false,
+        "live_resize": false,
+        "agent_harnesses": false,
+        "browser": false,
+        "webhooks": false,
+        "spend_limits": false
+      },
+      "pricing": "resource",
+      "vcpu_h": 0.022,
+      "ram_gib_h": 0.0085,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "vcpu_options": [
+        1,
+        2,
+        8,
+        16
+      ],
+      "ram_per_vcpu": [
+        2,
+        2
+      ],
+      "ram_fixed_per_vcpu": 2,
+      "min_vcpu": 1,
+      "max_vcpu": 16,
+      "max_ram_gib": 32,
+      "min_billed_seconds": null,
+      "granularity_s": 1,
+      "start_fee": 0,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "note": "Launched 2026-10-09 (public preview, MKC1 only). One container image (linux/amd64, public or DOCR) per VM with its own kernel. vCPU $0.022/h + memory $0.0085/GiB-h, billed per second only while running ('Time a MicroVM spends creating, pausing, resuming, or paused does not accrue compute charges'). Sizes fixed at 2 GiB per vCPU: 1/2 GiB $0.039/h (50 GB disk), 2/4 $0.078 (80 GB), 8/16 $0.312 (320 GB), 16/32 $0.624 (400 GB); some sizes not on every plan. Auto-pause after an idle timeout (default 5 min, max 4 h, cannot be turned off); the next HTTP request, exec or console resumes it with memory, files and processes intact; paused MicroVMs never expire. Storage $0.05/GiB-month on used disk (running or paused) and on checkpoints (memory + disk; new MicroVMs start from a checkpoint already running), egress $0.01/GiB with no free allowance. Authenticated HTTPS endpoint per MicroVM (HTTP port only), shared NAT egress or VPC; no public IP, IPv6 or Cloud Firewalls. Team limit on total MicroVMs (running + paused) unpublished."
     }
   ],
   "storage": {
@@ -1000,6 +1063,44 @@
       "max_ram_gib": null,
       "sizes_allowed": null,
       "note": "No platform fee. Trust tiers per team: Tier 1 (default, no prepay) 3 Droplets, Basic shared only up to $48/mo, 0 GPU; Tier 2 ($50 prepay) 10; Tier 3 ($250) 15; Tier 4 ($1,000) 25, all types; Tier 5 ($4,000) 100 Droplets, 16 GPU Droplets. Prepayment unlocks a tier immediately; successful non-zero invoices raise tiers automatically; manual increase requests also possible. Max 10 Droplets per simultaneous create request. New teams are auto-charged mid-month when the balance reaches the tier's auto-charge amount ($25 at Tier 1)."
+    },
+    {
+      "name": "Agent Droplets Pro",
+      "fee": 50,
+      "flags": [
+        "beta"
+      ],
+      "fee_is_credit": false,
+      "included_usd": 58.82,
+      "included_applies_to_modes": [
+        "harness-runtime-preview"
+      ],
+      "per_seat": 0,
+      "concurrency": 3,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "Agent Droplets plan (public preview): $50/mo billed in advance funds a subscription balance; eligible Managed Agents usage (Harness Runtime CPU, memory, session storage, checkpoints, BYOT storage, egress, DO-hosted inference, Action Gateway) is 15% off, so the fee covers $58.82 of standard-rate usage; beyond it usage bills at standard rates. Unused balance expires monthly (first month carries over). 'Unlimited agents, subject to fair use'; concurrency kept at the team-tier default like Pay as you go. Only useful with the Harness Runtime mode."
+    },
+    {
+      "name": "Agent Droplets Team",
+      "fee": 200,
+      "flags": [
+        "beta"
+      ],
+      "fee_is_credit": false,
+      "included_usd": 250,
+      "included_applies_to_modes": [
+        "harness-runtime-preview"
+      ],
+      "per_seat": 0,
+      "concurrency": 3,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "Agent Droplets plan (public preview): $200/mo billed in advance funds a subscription balance; eligible Managed Agents usage (Harness Runtime CPU, memory, session storage, checkpoints, BYOT storage, egress, DO-hosted inference, Action Gateway) is 20% off, so the fee covers $250.00 of standard-rate usage; beyond it usage bills at standard rates. Unused balance expires monthly (first month carries over). 'Unlimited agents, subject to fair use'; concurrency kept at the team-tier default like Pay as you go. Only useful with the Harness Runtime mode."
     }
   ],
   "extras": [
@@ -1041,7 +1142,10 @@
       "H100",
       "H200",
       "MI300X",
-      "MI325X"
+      "MI325X",
+      "B300",
+      "MI350X",
+      "MI355X"
     ],
     "snapshot": "fs",
     "pause_resume": false,
@@ -1142,8 +1246,11 @@
     "Monthly caps apply per surviving instance ID; destroying and replacing VMs cannot pool caps across replacements.",
     "2026-09-28: GPU Droplet mode removed from this card: it duplicated the digitalocean-gpu card (same $4.41 H100 rate) under a wrong RTX/L40S size label. GPU pricing lives only on digitalocean-gpu.",
     "Boot time not published (docs/droplets/details/limits has only the 10-simultaneous-create cap) and not measured in benchmarks.json; boot_overhead_s left unset. DIY VM: no sandbox API, you install and operate the guest.",
-    "Harness Runtime (Managed Agents, preview since 2026-09-21) is DigitalOcean's real sandbox product: microVM per session, pause/resume/fork with memory state, prepaid-balance only, RIC1 only. Consider splitting it into its own card (digitalocean-managed-agents) since Droplet card-level features/storage (snapshot $0.06, fs snapshots, no pause) do not apply to it.",
-    "Bandwidth doc says Droplet seconds are 'rounded to the nearest minute' (while the pricing docs say per-second with a 60 s / $0.01 minimum); effective granularity may be 60 s. Negligible for bills."
+    "Harness Runtime (Managed Agents, preview since 2026-09-21) is DigitalOcean's agent sandbox product: microVM per session, pause/resume/fork with memory state, prepaid balances only, still RIC1 only (availability table 2026-10-14). Since the 2026-10-13 pricing update CPU bills on actual CPU consumed ($0.044/vCPU-h) and memory on allocation. Consider splitting it into its own card (digitalocean-managed-agents) since Droplet card-level features/storage/egress (snapshot $0.06, 5,000 GiB free egress, fs snapshots, no pause) do not apply to it.",
+    "Bandwidth doc says Droplet seconds are 'rounded to the nearest minute' (while the pricing docs say per-second with a 60 s / $0.01 minimum); effective granularity may be 60 s. Negligible for bills.",
+    "MicroVMs (public preview since 2026-10-09, MKC1 only) are modelled as mode microvms-preview, but card-level storage and network fields belong to Droplets: the engine applies $0.10/GiB-month disk and the 5,000 GiB free egress allowance to it, while MicroVMs bill $0.05/GiB-month on used disk and checkpoints and $0.01/GiB egress with no allowance. Compute is exact; heavy egress or disk is understated / misstated. Deserves its own card (digitalocean-microvms). See .work/engine-needs/digitalocean.md.",
+    "Agent Droplets plans (Pro $50 = 15% off, Team $200 = 20% off, public preview) are modelled as included_usd = fee / (1 - discount) scoped to the Harness Runtime mode. Third-party models are not discounted but still draw from the subscription balance at standard rates; unused balance expires monthly. The plans list concurrency 3 to mirror the team tier; the engine cannot restrict a plan to one mode, so they are never chosen for Droplet workloads only because they add no benefit there.",
+    "GPU types MI350X and HGX B300 are sales-reserved ('Contact sales to reserve capacity'); MI355X is Spot-only in MEM1. See the digitalocean-gpu card for GPU pricing."
   ],
   "sources": [
     "https://www.digitalocean.com/pricing/droplets",
@@ -1164,7 +1271,18 @@
     "https://docs.digitalocean.com/release-notes/",
     "https://docs.digitalocean.com/products/droplets/details/live-migration/",
     "https://docs.digitalocean.com/products/networking/firewalls/",
-    "https://news.ycombinator.com/item?id=46998532"
+    "https://news.ycombinator.com/item?id=46998532",
+    "https://www.digitalocean.com/products/gpu-droplets",
+    "https://docs.digitalocean.com/products/managed-agents/agent-harness-runtime/details/pricing/",
+    "https://docs.digitalocean.com/products/managed-agents/agent-harness-runtime/details/availability/",
+    "https://docs.digitalocean.com/products/managed-agents/agent-harness-runtime/details/limits/",
+    "https://docs.digitalocean.com/products/managed-agents/agent-harness-runtime/how-to/pay-for-harness-runtime/",
+    "https://docs.digitalocean.com/products/microvms/details/features/",
+    "https://docs.digitalocean.com/products/microvms/details/pricing/",
+    "https://docs.digitalocean.com/products/microvms/details/limits/",
+    "https://docs.digitalocean.com/products/microvms/concepts/lifecycle/",
+    "https://docs.digitalocean.com/products/microvms/concepts/checkpoints/",
+    "https://docs.digitalocean.com/products/microvms/concepts/networking-access/"
   ],
   "fleet": {
     "default_max_instances": 3,
@@ -1461,6 +1579,43 @@
       "note": "granularity: per-sandbox; cost: yes; The /v2/billing/{account_urn}/insights/{start_date}/{end_date} endpoint returns cost per resource (Droplet) with SKU, description, region, and total_amount in USD. Supports per-resource queries by name and tags (as of 2026-07-01 in CSV export). Cost-based billing (not vCPU-hours or GB-hours raw metrics).",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "gpu_types": {
+      "value": [
+        "RTX 4000 Ada",
+        "RTX 6000 Ada",
+        "L40S",
+        "H100",
+        "H200",
+        "MI300X",
+        "MI325X",
+        "B300",
+        "MI350X",
+        "MI355X"
+      ],
+      "source": "https://www.digitalocean.com/products/gpu-droplets",
+      "quote": "AMD Instinct™ MI350X * 288 GB 256 GiB 24 720 GiB NVMe 5 TiB NVMe CDNA 4™ ... NVIDIA HGX B300 * 288 GB 448 GiB 28 720 GiB NVMe 5 TiB NVMe Blackwell ... * Contact sales to reserve capacity.",
+      "note": "MI350X and HGX B300 (1- and 8-GPU) are listed on the GPU Droplets page but marked \"Contact sales to reserve capacity\". MI355X is Spot only: \"AMD Instinct MI355X GPUs are now available in MEM1 as Spot GPU Droplets in 1- and 8-GPU configurations.\" (https://docs.digitalocean.com/release-notes/, 2026-08-10). GPU pricing lives on the digitalocean-gpu card.",
+      "checked": "2026-10-14"
+    },
+    "harness_runtime_billing": {
+      "value": {
+        "cpu_basis": "active",
+        "vcpu_h": 0.044,
+        "ram_basis": "alloc",
+        "ram_gib_h": 0.0095
+      },
+      "source": "https://docs.digitalocean.com/products/managed-agents/agent-harness-runtime/details/pricing/",
+      "quote": "Each session is billed per second of active compute based on actual CPU consumption and memory allocated over time for the sandbox utilized for the session. When an agent is waiting and consuming no CPU, its CPU charge falls to zero.",
+      "note": "Table: 'CPU | $0.044 per vCPU-hour | Actual CPU consumed'; 'Memory | $0.0095 per GB-hour | Actual memory allocated over time'. Replaces the card's earlier interim rule (25% of allocated vCPU, RAM at peak). Availability still RIC1 only: the availability table ticks only RIC1 ('Harness Runtime | ... | ✓' under RIC1).",
+      "checked": "2026-10-14"
+    },
+    "microvms": {
+      "value": "mode microvms-preview",
+      "source": "https://docs.digitalocean.com/products/microvms/details/pricing/",
+      "quote": "Compute charges for vCPU and memory accrue per second, only while a MicroVM is running. Storage charges accrue whether the MicroVM is running or paused, so a paused MicroVM incurs storage charges only.",
+      "note": "Features page: 'A MicroVM pauses after an idle timeout, which defaults to 5 minutes and can be up to 4 hours. The next HTTP request, command, or console session resumes it, with its memory, files, and running processes intact.' and 'A checkpoint captures a MicroVM’s memory and disk.' Limits: 'MicroVMs are available only in MKC1.'",
+      "checked": "2026-10-14"
     }
   },
   "locations": [

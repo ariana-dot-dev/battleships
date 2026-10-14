@@ -37,7 +37,7 @@
       ],
       "min_vcpu": 2,
       "max_vcpu": 32,
-      "max_ram_gib": 128,
+      "max_ram_gib": 512,
       "sizes": null,
       "pool_tiers": null,
       "requires_always_on": false,
@@ -54,7 +54,7 @@
     },
     {
       "key": "gpu-monthly",
-      "label": "Confidential GPU enclave (monthly contract)",
+      "label": "Confidential GPU enclave (monthly commitment)",
       "flags": [
         "alt",
         "sales"
@@ -66,18 +66,20 @@
       "ram_gib_h": 0.01,
       "requires_always_on": true,
       "gpu": {
-        "H200": 2.74,
-        "B200": 6.85
+        "H200": 6.17,
+        "B200": 8.22,
+        "B300": 10.96
       },
       "min_billed_seconds": 3600,
       "granularity_s": 3600,
-      "note": "GPU is a monthly contract: H200 $2,000/mo, B200 $5,000/mo per GPU (hourly figures = /730, derived); enclaves only 1 or 8 GPUs; 'Request access'."
+      "note": "Hourly GPU rates from the pricing page data (h200_gpu_per_hour 6.17, b200 8.22, b300 10.96) on top of CPU/RAM; 'GPUs are priced hourly but require a monthly commitment.' Pricing data lists 1/2/4/8 GPUs, the limits doc says public shapes are 'CPU-only, `gpus: 1`, or `gpus: 8`'; GPU access must be enabled for your organization ('Request GPU Access').",
+      "commit_note": "GPUs are priced hourly but require a monthly commitment."
     }
   ],
   "storage": {
     "included_disk_gib": null,
-    "disk_gib_month": null,
-    "disk_billed_when_stopped": null,
+    "disk_gib_month": 0.3,
+    "disk_billed_when_stopped": true,
     "snapshot_gib_month": null,
     "paused_ram_billed": null
   },
@@ -111,7 +113,7 @@
       "concurrency": 10,
       "max_session_h": null,
       "max_vcpu": 32,
-      "max_ram_gib": 128,
+      "max_ram_gib": 512,
       "sizes_allowed": null,
       "note": "$20/mo base fee on top of usage ('$20 /mo + usage rates'), not a usage credit; an active container subscription is required to create or start containers; 10 container instances per org (contact to raise); GPU access must be enabled by Tinfoil."
     }
@@ -136,7 +138,7 @@
     "custom_image": true,
     "docker_inside": false,
     "nested_virt": false,
-    "root": null,
+    "root": true,
     "systemd": null,
     "browser": false,
     "desktop": false,
@@ -159,7 +161,8 @@
     "sso": true,
     "gpu_types": [
       "H200",
-      "B200"
+      "B200",
+      "B300"
     ],
     "regions": null,
     "lang_python": true,
@@ -210,18 +213,24 @@
     "dax_s": null
   },
   "caveats": [
-    "Containers pricing is published: $20/mo base + $0.06/h per core + $0.01/h per GB, billed per hour; GPUs are monthly contracts (H200 $2,000/mo, B200 $5,000/mo), access on request. Token inference and $20/mo Chat are separate products.",
+    "Containers pricing is published: $20/mo base + $0.06/h per core + $0.01/h per GB, billed per hour; GPUs are hourly (H200 $6.17, B200 $8.22, B300 $10.96 per GPU-h) but require a monthly commitment, access on request. Volumes $0.30/GB-month (GB-hours on provisioned size). Token inference and $20/mo Chat are separate products.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "Deployment model: tinfoil-config.yml must live in a public GitHub repo and releases are measured/published; resources are fixed in the config ('create, start, and relaunch requests cannot override them'). No load balancing; each container instance is one enclave. Not an SDK-per-call ephemeral sandbox.",
-    "Stopped containers keep saved config; whether stopped containers or stopped/unattached volumes are billed is not published. 'Stopped and unattached volumes still count toward your storage allocation'.",
-    "Researchers can get discounted pricing (contact). Enterprise: dedicated infrastructure, SLAs, invoiced billing, custom pricing."
+    "Volume storage (checked 2026-10-14, https://tinfoil.sh/pricing): 'Persistent volumes are billed separately on provisioned capacity in GB-hours, prorated for elapsed time until deleted.' Rate storage_gib_per_hour 0.000410959 x 730 = $0.30/GB-month. The enclave root filesystem is a ramdisk (counted in RAM), so no disk is included. Stopped containers keep saved config. Volumes are billed on provisioned capacity until deleted, attached or not, and keep accruing after cancellation ('Retained volumes continue accruing storage charges after cancellation'). Volumes are billed per decimal GB (10^9 bytes); the card uses $0.30 per GiB-month, about 7% under a strict GiB conversion.",
+    "Researchers can get discounted pricing (contact). Enterprise: dedicated infrastructure, SLAs, invoiced billing, custom pricing.",
+    "Memory comes in fixed steps with an 8 GB minimum (limits doc: 8, 16, 32, 64, 128, 256, 512 GB), so a 2 vCPU / 4 GiB workload really bills 2 vCPU / 8 GB; the engine cannot express a RAM minimum or RAM steps, so small shapes are under-priced by up to $0.04/h each.",
+    "Size conflict: the docs list cpus 2-32 and memory up to 512 GB; the pricing calculator data lists available_cpus up to 64 (56, 64) and available_memory_gb [8,16,32,64,128,768]. The card follows the docs (32 vCPU / 512 GiB)."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/tinfoil",
     "https://tinfoil.sh/",
     "https://tinfoil.sh/pricing",
-    "https://tinfoil.sh/llms.txt"
+    "https://tinfoil.sh/llms.txt",
+    "https://docs.tinfoil.sh/containers/limits.md",
+    "https://docs.tinfoil.sh/containers/config-runtime.md",
+    "https://docs.tinfoil.sh/containers/overview.md",
+    "https://docs.tinfoil.sh/containers/config-networking.md"
   ],
   "top-level status": "Active. Tinfoil Containers launched 2026-03-10 (blog 'Introducing Tinfoil Containers'); latest blog post 2026-09-14.",
   "audit_2026_09_29": {
@@ -575,6 +584,31 @@
       "quote": "A managed volume is a disk owned by your organization. It lives on one host, attaches to one container instance at a time, and survives container deletion.",
       "note": "Only attached volumes survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
       "checked": "2026-10-01"
+    },
+    "gpu_types": {
+      "value": [
+        "H200",
+        "B200",
+        "B300"
+      ],
+      "source": "https://tinfoil.sh/pricing",
+      "quote": "\"b200_gpu_per_hour\":8.22,\"b300_gpu_per_hour\":10.96,...,\"h200_gpu_per_hour\":6.17",
+      "note": "From the pricing page's containerPricing.rates (Next.js payload; the Containers tab is client-rendered). FAQ: 'GPUs are priced hourly but require a monthly commitment.' The earlier $2,000/$5,000 per-GPU monthly figures are no longer on the page.",
+      "checked": "2026-10-14"
+    },
+    "root": {
+      "value": true,
+      "source": "https://docs.tinfoil.sh/containers/config-runtime.md",
+      "quote": "A container with `cvm_admin: true` is exempt from these defaults: it runs privileged, as root, with a writable root filesystem.",
+      "note": "Only the admin container. Regular workload containers start with zero capabilities (cap_add limited to IPC_LOCK, NET_BIND_SERVICE, SYS_NICE), `privileged` and `devices` are rejected, and the root filesystem is read-only by default. cvm_admin grants administration of the whole enclave, including other workloads and their secrets.",
+      "checked": "2026-10-14"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://docs.tinfoil.sh/containers/config-networking.md",
+      "quote": "An administrator workspace can expose SSH directly.",
+      "note": "Off by default: 'No SSH access by default. Since your container runs in a secure enclave, you can't shell into it by default.' (https://docs.tinfoil.sh/containers/overview.md). Two routes: debug mode (a separate instance that does not pass attestation) or direct admin SSH with `cvm_admin: true`, inbound port 22 and a 22:22 mapping (attested SSH, beta).",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],

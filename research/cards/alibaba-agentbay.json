@@ -3,7 +3,7 @@
   "name": "Alibaba Cloud AgentBay",
   "url": "https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions",
   "category": "agent-sandbox",
-  "isolation": "container",
+  "isolation": "vm",
   "modes": [
     {
       "key": "on-demand",
@@ -15,7 +15,7 @@
       "regions": null,
       "gpu_only": false,
       "features": {
-        "isolation": "container"
+        "isolation": "vm"
       },
       "pricing": "resource",
       "vcpu_h": 0.027,
@@ -190,7 +190,7 @@
     "scoped_api_keys": null,
     "spend_limits": null,
     "mcp_server": true,
-    "isolation": "container",
+    "isolation": "vm",
     "image_oci": true,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
@@ -204,7 +204,7 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "datacenter",
-    "guest_firewall": true,
+    "guest_firewall": null,
     "max_session_unlimited": true,
     "open_internet": true,
     "usage_api": false
@@ -227,7 +227,9 @@
     "State retention priced at the Context storage overage $0.000045/GiB-h (= $0.0329/GiB-month) beyond the plan quota (100 GiB Basic, 1 TiB Pro/Ultra; engine uses the Basic 100 GiB). Context storage persists context data and session replays; full-VM snapshot semantics are not documented.",
     "Egress set to 0: each instance gets free basic bandwidth (10 Mbps peak, no SLA); premium SLA bandwidth $0.123/GB is billed on inbound traffic. Throughput-capped, not unlimited.",
     "Sandbox system-disk size and price not published (billing page and CodeSpace docs, 2026-09-28); disk beyond 0 GiB shows as unknown. SSH access not documented.",
-    "Pro and Ultra plans: up to 50 custom images, 5 enabled concurrently. Pro can upgrade to Ultra (prorated difference over remaining days/30); Ultra cannot downgrade to Pro. New users get 100 free trial points for environment compute (USD value of a point not published)."
+    "Pro and Ultra plans: up to 50 custom images, 5 enabled concurrently. Pro can upgrade to Ultra (prorated difference over remaining days/30); Ultra cannot downgrade to Pro. New users get 100 free trial points for environment compute (USD value of a point not published).",
+    "Domain-name egress rules are Windows-only (\"This feature is currently only supported for sandboxes with a Windows operating system.\", security white paper, 2026-10-14). Linux sandboxes, including the priced CodeSpace mode, can only filter egress by IP/CIDR/port security-group rules.",
+    "Session Link (HTTPS URLs to ports in the sandbox) is Pro/Ultra only: \"The Session Link feature is an exclusive premium feature for paid subscription users (Pro/Ultra).\" Only ports 30100-30199 are open by default; others need a whitelist request. On Basic ($0) there is no inbound access to services in the sandbox (session-link-access.md, 2026-10-14)."
   ],
   "sources": [
     "https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions",
@@ -290,8 +292,8 @@
       "value": true,
       "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
       "quote": "It supports configuring the direction (inbound or outbound), action (allow or deny), priority, protocol type, port range, authorization object (IP address or CIDR block), and rule description. By combining rules with different scopes and priorities, administrators can achieve fine-grained, whitelist-based network access control.",
-      "note": "Admin/org-level security-group policies (IP/CIDR/port) plus domain-name control policies ('add a rule that denies access to \"*\" with the lowest priority' for allowlist mode, up to 300 rules). Domain rules: 'This feature is currently only supported for sandboxes with a Windows operating system.' Aliyun domains (*.aliyun.com, *.aliyuncs.com, ...) are always allowed. Source is the security white paper, not a how-to page; per-session API control not in SDK. SDK 'Network (Beta)' is local-egress redirection, not a filter.",
-      "checked": "2026-09-29",
+      "note": "Admin/org-level security-group policies (IP/CIDR/port) plus domain-name control policies ('add a rule that denies access to \"*\" with the lowest priority' for allowlist mode, up to 300 rules). Domain rules: 'This feature is currently only supported for sandboxes with a Windows operating system.' Aliyun domains (*.aliyun.com, *.aliyuncs.com, ...) are always allowed. Source is the security white paper, not a how-to page; per-session API control not in SDK. SDK 'Network (Beta)' is local-egress redirection, not a filter. Level 'both' is product-wide; on Linux (the priced mode) only IP/CIDR/port rules apply.",
+      "checked": "2026-10-14",
       "level": "both"
     },
     "ingress_rules": {
@@ -459,8 +461,8 @@
       "value": true,
       "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/advanced/session-link-access.md",
       "quote": "Web Application Access - Access web services running in cloud sessions ... result = await session.get_link(\"https\", port) ... link = result.data  # https://gateway.../request_ai/.../path/",
-      "note": "HTTPS access to ports on the sandbox is via get_link() gateway URLs; default open port range [30100, 30199], other ports require whitelist approval; feature is Pro/Ultra-only.",
-      "checked": "2026-09-30"
+      "note": "HTTPS access to ports on the sandbox is via get_link() gateway URLs; 'Default open range: [30100, 30199]; other ports require whitelist approval'; 'The Session Link feature is an exclusive premium feature for paid subscription users (Pro/Ultra).' Not available on Basic; the schema can't gate a feature by plan (see caveat).",
+      "checked": "2026-10-14"
     },
     "egress_http_rules": {
       "value": false,
@@ -470,11 +472,27 @@
       "checked": "2026-09-30"
     },
     "guest_firewall": {
-      "value": true,
+      "value": null,
+      "corrected_from": true,
       "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
       "quote": "Each sandbox instance runs in a virtual machine with an independent guest operating system kernel.",
-      "note": "derived: sandboxes are full VMs with an independent kernel and root access confirmed inside (file-operations.md: \"User: root\"), so nftables/iptables should work inside the guest; not separately documented.",
-      "checked": "2026-09-30"
+      "note": "Own kernel, but root inside the Linux sandboxes is not documented: file-operations.md lists \"User: root\" only for mobile_latest (Android); linux_latest runs as \"User: wuying\". Whether nftables/iptables can be set from inside depends on sudo, which is undocumented. The earlier true rested on misreading the mobile section.",
+      "checked": "2026-10-14"
+    },
+    "isolation": {
+      "value": "vm",
+      "corrected_from": "container",
+      "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
+      "quote": "Each sandbox instance runs in a virtual machine with an independent guest operating system kernel.",
+      "note": "Hypervisor type not named.",
+      "checked": "2026-10-14"
+    },
+    "root": {
+      "value": null,
+      "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/basics/file-operations.md",
+      "quote": "Working Directory: /home/wuying\nUser: wuying",
+      "note": "That is the linux_latest section. \"User: root\" appears only for mobile_latest (Android); Windows runs as Administrator. code_latest (the priced CodeSpace mode) has no section. Sudo for the wuying user is not documented, so root stays unknown.",
+      "checked": "2026-10-14"
     },
     "static_egress_ip": {
       "value": false,

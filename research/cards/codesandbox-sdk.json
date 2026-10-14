@@ -3,6 +3,7 @@
   "name": "CodeSandbox SDK",
   "url": "https://codesandbox.io/docs/sdk/pricing",
   "category": "agent-sandbox",
+  "status": "deprecated: succeeded by Together's together-sandbox SDK; still sold self-serve through CodeSandbox accounts and on Together custom plans",
   "isolation": "firecracker",
   "modes": [
     {
@@ -413,8 +414,8 @@
         "on-demand",
         "enterprise-bulk"
       ],
-      "why": "VMs bill full credits while running idle until hibernationTimeoutSeconds fires (docs example 300 s); hibernated VMs consume no credits, and HTTP/WebSocket traffic auto-wakes them. Factor = (session + timeout) / session, e.g. 5 min on 15-min sessions = 1.33x.",
-      "source": "https://codesandbox.io/docs/sdk/create"
+      "why": "VMs bill full credits while running idle until hibernationTimeoutSeconds fires: SDK default 300 s on free workspaces, 1800 s on paid ones (max 86400 s); hibernated VMs consume no credits, and HTTP/WebSocket traffic auto-wakes them. Factor = (session + timeout) / session, e.g. the paid 30-min default on 30-min sessions = 2x, 5 min on 15-min sessions = 1.33x. Default 1 assumes you hibernate explicitly or set a short timeout.",
+      "source": "https://github.com/codesandbox/codesandbox-sdk/blob/main/src/types.ts"
     },
     {
       "id": "resume_rounding",
@@ -442,15 +443,17 @@
     "Per-started-minute billing (min 60 s per run); short resume/exec/hibernate cycles are heavily rounded up.",
     "Pico spec conflict: SDK docs 2 cores/1 GB vs pricing page 1 core/2 GB.",
     "Hibernated/shut-down sandboxes consume no credits and no storage fee is documented (snapshot_gib_month 0 assumed from the documented 2-component billing model: credits + plan). Hibernated sandboxes are archived after ~7 days (resume 20-60 s).",
-    "Idle tail billed at full rate until hibernationTimeoutSeconds (docs example 300 s); automatic wake-up on HTTP/WebSocket restarts billing.",
+    "Idle tail billed at full rate until hibernationTimeoutSeconds; SDK default is 300 s on free and 1800 s on paid workspaces (src/types.ts: 'Defaults to 300 seconds for free users, 1800 seconds for pro users. Maximum is 86400 seconds (1 day).', checked 2026-10-14). Scale/Pro VMs left on the default bill 30 idle minutes after every session unless hibernate() is called or the timeout lowered; the hibernation_tail knob defaults to 1x. Automatic wake-up on HTTP/WebSocket restarts billing.",
     "Egress not metered or published (null). No public IPv4.",
     "Enterprise-bulk mode uses the maximum published discount (50%); actual discount negotiated. Pro add-on pack discounts unpublished; legacy Pro fee unpublished.",
-    "Regions not published / not selectable (features.regions null).",
+    "Regions: no selectable or guaranteed region. StartSandboxOpts.ipcountry is a best-effort scheduling hint (src/types.ts: 'Country, served as a hint on where you want the sandbox to be scheduled. For example, if \"NL\" is given as a country, the sandbox will be scheduled in a cluster inside Europe. Note that this is not a guarantee'), so a European cluster exists but features.regions stays null and eu_data_residency false. Checked 2026-10-14.",
     "perf from benchmarks.json providers.codesandbox (computesdk): cold start median 2,329 ms, burst 7,658 ms, dax 81.23 s (dax last run success rate 0; value from 2026-08-28 run). No hpc CPU benchmark.",
     "Verified 2026-09-28 by rendering https://codesandbox.io/pricing, /docs/sdk/pricing, /docs/learn/credit-usage/credits, /docs/learn/plans/subscriptions, /docs/learn/plans/pricing-faq in headless Chrome: size table, $0.01486 (docs) vs $0.015 (page), per-started-minute billing, 400 / 1,000 subscription credits, Scale $170 + 160 h credits + $0.15/h on-demand, 10/10/250 concurrency, Build 4/8, Pro/Scale 16/32, Enterprise 64/128 and up to 50% off packs all confirmed.",
     "Re-checked 2026-09-28 (docs/sdk/faq and docs/sdk/pricing via headless Chrome): no SSH access and no egress/bandwidth price documented for SDK VMs (access is via the SDK Terminals/Commands API). ssh stays null, egress null.",
     "Resume from an archived sandbox takes 10-60 s (resume docs) and archived forks 20-60 s (create docs); sandboxes are archived 'after period of inactivity' (no day count on current pages; the old ~7 days figure could not be re-verified: /docs/sdk/hibernate now shows the SDK intro).",
-    "Pro and Scale fees are shown as 'From $12' / 'From $170' per month per workspace; the monthly-vs-annual split behind 'From' is not published on the page (annual plans exist per the Mar 2024 changelog). Card uses the 'From' price."
+    "Pro and Scale fees are shown as 'From $12' / 'From $170' per month per workspace; the monthly-vs-annual split behind 'From' is not published on the page (annual plans exist per the Mar 2024 changelog). Card uses the 'From' price.",
+    "Deprecated product (checked 2026-10-14, https://docs.together.ai/docs/together-code-sandbox-legacy): 'This page covers the deprecated code sandbox SDK. Use the together-sandbox SDK for new integrations.' / 'The together-sandbox SDK is the successor to this offering.' / 'The legacy code sandbox is available on Together's custom plans.' / 'A self-serve option is available by creating an account with CodeSandbox.' Still sold at the same $0.01486/credit, so it stays priced. Last SDK release 2.4.2 (2025-12-04, CHANGELOG). The successor (https://docs.together.ai/docs/together-code-sandbox) is a separate product and not covered by this card.",
+    "codesandbox.io pages were behind a Cloudflare bot check on 2026-10-14 (headless Chrome and WebFetch got 'Just a moment...'); that day's checks used Together docs and the SDK GitHub repo."
   ],
   "sources": [
     "https://codesandbox.io/pricing",
@@ -464,7 +467,9 @@
     "https://codesandbox.io/docs/sdk/create",
     "https://codesandbox.io/docs/sdk/resume",
     "https://codesandbox.io/docs/sdk/lifecycle",
-    "https://codesandbox.io/docs/sdk/specs"
+    "https://codesandbox.io/docs/sdk/specs",
+    "https://docs.together.ai/docs/together-code-sandbox-legacy",
+    "https://github.com/codesandbox/codesandbox-sdk/blob/main/src/types.ts"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -609,14 +614,14 @@
       "value": false,
       "source": "https://codesandbox.io/legal",
       "quote": "CodeSandbox may process personal data in countries within the European Economic Area (“EEA”). Transfer to countries outside of the EEA is also permitted, provided that the provisions of the GDPR are complied with.",
-      "note": "No region selection is offered for Sandboxes (card features.regions is null/not selectable), and the Data Processing Agreement explicitly permits transferring data outside the EEA, so there is no guaranteed EU-only residency option for customers.",
+      "note": "No guaranteed region: the SDK only takes a best-effort ipcountry scheduling hint (src/types.ts: 'Note that this is not a guarantee, and the sandbox might end up in a different region based on availability and scheduling decisions'), and the Data Processing Agreement explicitly permits transferring data outside the EEA, so there is no guaranteed EU-only residency option for customers. Re-checked 2026-10-14.",
       "checked": "2026-09-30"
     },
     "max_session_h": {
       "value": "none",
       "source": "https://codesandbox.io/docs/sdk/create",
       "quote": "hibernationTimeoutSeconds: How quickly the sandbox should hibernate after inactivity. With active lifecycle management this is recommended to be set to 24 hours ... Set maximum hibernation timeout of 86400 and do manual hibernation",
-      "note": "There is no documented maximum wall-clock lifetime for a running Sandbox; the only automatic stop mechanism is the idle hibernation timeout (configurable, default example 300s, recommended max 86400s), which is about inactivity, not a hard session-length cap. A continuously-used (non-idle) Sandbox can in principle keep running indefinitely, so treated as 'none' (no hard max session length), distinct from the idle-hibernation behavior.",
+      "note": "There is no documented maximum wall-clock lifetime for a running Sandbox; the only automatic stop mechanism is the idle hibernation timeout (configurable; SDK default 300 s free / 1800 s paid, maximum 86400 s per src/types.ts), which is about inactivity, not a hard session-length cap. A continuously-used (non-idle) Sandbox can in principle keep running indefinitely, so treated as 'none' (no hard max session length), distinct from the idle-hibernation behavior.",
       "checked": "2026-09-30"
     },
     "desktop": {

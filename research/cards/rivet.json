@@ -56,7 +56,7 @@
         "browser": null
       },
       "max_ram_gib": 4,
-      "note": "rivet.dev/agentos (2026-09-29): \"Powered by WebAssembly and V8 isolates\", runs \"in-process with no VM boot, network hop, or disk image\"; each agent gets a persistent POSIX filesystem, Bash, Node.js and Python. Defaults: V8 heap 128 MiB, JS CPU time 30 s, Python timeout 5 min, WASM memory 128 MiB, 256 sockets (rivet.dev/agentos/docs/resource-limits). On Rivet Cloud it runs as Actors, billed like them: from $0.0000330/vCPU-s + $0.0000029/GiB-s while awake plus $0.05 per 1k Awake Actor Hours; no separate agentOS price is published. Claude Code / Codex agents and browser automation are marked beta."
+      "note": "rivet.dev/agentos (2026-09-29): \"Powered by WebAssembly and V8 isolates\", runs \"in-process with no VM boot, network hop, or disk image\"; each agent gets a persistent POSIX filesystem, Bash, Node.js and Python. Defaults: V8 heap 128 MiB, JS CPU time 30 s, Python timeout 5 min, WASM memory 128 MiB, 256 sockets (rivet.dev/agentos/docs/resource-limits). On Rivet Cloud it runs as Actors, billed like them: from $0.0000330/vCPU-s + $0.0000029/GiB-s while awake plus $0.05 per 1k Awake Actor Hours; no separate agentOS price is published. Hosted agent harness is Pi via Rivet Agents (rivet.dev/agents/docs, 2026-10-14)."
     },
     {
       "os": [
@@ -119,7 +119,7 @@
       "default": "configurable",
       "evidence": [
         {
-          "quote": "Network access is governed by the VM permission policy. By default the guest cannot reach the network; grant it, or allow only specific destinations:",
+          "quote": "Outbound access is limited to the sidecar's default allowlist unless the `network` permission scope allows more.",
           "url": "https://rivet.dev/agentos/docs/networking/"
         },
         {
@@ -292,6 +292,7 @@
     "Memory cap: the pricing calculator stops at 4 GiB; agentOS defaults are 128 MiB V8 heap and 128 MiB WASM memory (configurable).",
     "Free plan is capped at $5/month of compute and 1 vCPU with no overage, so it is left out of pricing.",
     "Also from Rivet, not compute: the open-source Sandbox Agent SDK (github.com/rivet-dev/sandbox-agent) drives coding agents inside other providers' sandboxes (E2B, Daytona, ...); it is not hosted compute and is not priced here.",
+    "Rivet Agents run with no sandbox by default: file tools work on the Actor's SQLite database and \"`bash` returns an error\". A shell is opt-in via `agentOSProvider()` or an E2B, Daytona or Freestyle provider (rivet.dev/agents/docs/sandboxes/); third-party sandboxes are billed by those providers, not here.",
     "Null values mean unknown, not free/unlimited."
   ],
   "sources": [
@@ -302,7 +303,9 @@
     "https://rivet.dev/agentos/docs/",
     "https://rivet.dev/agentos/docs/resource-limits/",
     "https://rivet.dev/llms.txt",
-    "https://www.ycombinator.com/companies/rivet"
+    "https://www.ycombinator.com/companies/rivet",
+    "https://rivet.dev/agents/docs/",
+    "https://rivet.dev/agents/docs/sandboxes/"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -329,32 +332,32 @@
     },
     "harness_api": {
       "value": true,
-      "source": "https://rivet.dev/agentos/docs/agents/claude.md",
-      "quote": "await agent.sessions.open({\n\tagent: \"claude\",\n\tenv: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY! },\n});\n\nconst result = await agent.sessions.prompt({",
-      "note": "First-party ACP-based sessions API: sessions.open / sessions.prompt, conn.on(\"sessionEvent\") streaming, listSessions / readHistory / getSession, resume after sleep (\"Native ACP `session/resume`\"), permission requests (ask/allow_all/reject_all), dashboard Transcript tab. Harnesses: Pi (default), Claude Code (beta), Codex (beta), OpenCode, custom agents. Source for listing: https://rivet.dev/agentos/docs/sessions.md \"Also SQLite-only reads: `getSession`, `listSessions`, `getSessionConfig`\".",
-      "checked": "2026-09-29"
+      "source": "https://rivet.dev/agents/docs/session-lifecycle/",
+      "quote": "While a run is in progress, `prompt(text, { whenBusy })` decides what happens to the new prompt: ... \"steer\" | The agent reads the message after its current tool calls finish, before its next model call. ... To cancel a run, call `conversation.abort(id)`.",
+      "note": "First-party sessions API in Rivet Agents (agents run as Actors): prompt with whenBusy followUp/steer/reject, conversation.abort(id), conversation.compact(id), streamed events, multiple conversations per agent. The former agentOS pages (agentos/docs/agents/claude.md, agentos/docs/sessions.md) now return 404.",
+      "checked": "2026-10-14"
     },
     "egress_allowlist": {
       "value": true,
       "source": "https://rivet.dev/agentos/docs/permissions.md",
-      "quote": "For `network`, a pattern matches a resource, not a bare hostname: `dns://<host>` for name resolution and `tcp://<host>:<port>` for the connection. Allowing a host needs both, and `*` matches any port. The operations are `fetch`, `http`, `dns`, and `listen`.",
-      "note": "Default-deny network (\"External DNS and network connections are denied until you opt in\"); rules are host(+port) patterns enforced by the trusted sidecar/kernel outside the V8/WASM executor, with DNS pinning and blocking of restricted ranges (architecture/networking). Patterns are host:port; IP/CIDR patterns are not documented explicitly, so level = domain (ports also filterable). Set by the trusted host config, not by the guest.",
-      "checked": "2026-09-29",
+      "quote": "network: {\n\t\tdefault: \"deny\",\n\t\trules: [\n\t\t\t{\n\t\t\t\tmode: \"allow\",\n\t\t\t\toperations: [\"*\"],\n\t\t\t\tpatterns: [\"dns://api.example.com\", \"tcp://api.example.com:*\"],",
+      "note": "Default: \"outbound network access is limited to the sidecar's default allowlist\" (not a flat deny); the `network` scope can be \"allow\", \"deny\", or a rule set with a default mode and dns://host / tcp://host:port patterns, enforced by the trusted sidecar outside the guest. IP/CIDR patterns are not documented, so level = domain (ports also filterable). Set by the host config, not by the guest.",
+      "checked": "2026-10-14",
       "level": "domain"
     },
     "egress_http_rules": {
       "value": false,
       "source": "https://rivet.dev/agentos/docs/permissions.md",
-      "quote": "Every non-`fs` scope matches by `patterns` instead of `paths`. For `network`, a pattern matches a resource, not a bare hostname: `dns://<host>` for name resolution and `tcp://<host>:<port>` for the connection.",
-      "note": "Network policy matches only dns/tcp host:port resources; no method/path/header rules documented. Custom HTTP-level mediation would have to be built with host functions.",
-      "checked": "2026-09-29"
+      "quote": "A scope can be `\"allow\"`, `\"deny\"`, or a rule set with a `default` mode and `rules` that match operations and target patterns.",
+      "note": "Network rules match dns:// and tcp://host:port patterns only; no method/path/header rules documented. Custom HTTP-level mediation would have to be built with host functions.",
+      "checked": "2026-10-14"
     },
     "ingress_rules": {
       "value": true,
       "source": "https://rivet.dev/agentos/docs/networking.md",
-      "quote": "Preview URLs are port forwarding for VM services: a time-limited, public URL that proxies HTTP to a port inside the VM, for browser or external access (use `httpRequest` for server-to-server). Preview creation is intentionally actor-only through the native `createPreviewUrl` and `expirePreviewUrl` actions",
-      "note": "Guest listeners are loopback-only by default; exposure is per port via signed, expiring, revocable preview tokens (max lifetime configurable, default cap 24 h) or trusted per-port loopbackExemptPorts; server-to-server access via authenticated actor httpRequest. Actor connections authenticated in onBeforeConnect.",
-      "checked": "2026-09-29"
+      "quote": "Hosted VMs can expose any port through an expiring preview. A preview is a signed URL path that proxies HTTP to a port inside the VM until it expires or is revoked. `config.preview.defaultTtlMs` sets the default lifetime.",
+      "note": "Guest listeners and loopback traffic stay inside the VM; exposure is per port via signed, expiring, revocable previews served through the VM gateway with a token (e.g. a scoped JWT). Lifetime set by config.preview.defaultTtlMs or per-preview ttlMs; no maximum lifetime is stated. Server-to-server access via fetch/httpRequest.",
+      "checked": "2026-10-14"
     },
     "guest_firewall": {
       "value": false,
@@ -505,17 +508,17 @@
     },
     "agent_harnesses": {
       "value": true,
-      "source": "https://rivet.dev/agentos/docs/agents/claude.md",
-      "quote": "await agent.sessions.open({\n\tagent: \"claude\",\n\tenv: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY! },\n});",
-      "note": "Pi (default), Claude Code (beta), Codex (beta), and OpenCode are offered as installable agent harnesses inside agentOS VMs.",
-      "checked": "2026-09-30"
+      "source": "https://rivet.dev/agents/docs/",
+      "quote": "Bring your harness. Rivet runs existing agent harnesses, starting with Pi, instead of asking you to rewrite your agent for a new framework.",
+      "note": "Hosted harness today: Pi (\"Pi Durable\", rivet.dev/agents/docs/pi/). Claude Code, Codex, OpenCode, Amp, Cursor and Pi pages now live under rivet.dev/sandbox-agent/docs/agents/*, the Sandbox Agent SDK that drives agents inside other providers' sandboxes (not Rivet-hosted compute). The older agentOS harness list (Claude Code beta, Codex beta, OpenCode) is gone; its page returns 404.",
+      "checked": "2026-10-14"
     },
     "own_agent_api": {
       "value": false,
-      "source": "https://rivet.dev/agentos/docs/agents/claude.md",
-      "quote": "await agent.sessions.open({\n\tagent: \"claude\", ... });",
-      "note": "not offered: Rivet's sessions API drives third-party/coding harnesses you choose (Pi, Claude Code, Codex, OpenCode) via ACP, not a first-party Rivet-branded browser/computer-use/research agent.",
-      "checked": "2026-09-30"
+      "source": "https://rivet.dev/agents/docs/",
+      "quote": "Bring your harness. Rivet runs existing agent harnesses, starting with Pi, instead of asking you to rewrite your agent for a new framework.",
+      "note": "not offered: Rivet Agents runs existing third-party harnesses (Pi first), not a first-party Rivet-branded browser/computer-use/research agent.",
+      "checked": "2026-10-14"
     },
     "mcp_server": {
       "value": true,
@@ -527,16 +530,16 @@
     "public_ipv4": {
       "value": false,
       "source": "https://rivet.dev/agentos/docs/networking.md",
-      "quote": "Preview URLs are port forwarding for VM services: a time-limited, public URL that proxies HTTP to a port inside the VM, for browser or external access",
+      "quote": "Hosted VMs can expose any port through an expiring preview. A preview is a signed URL path that proxies HTTP to a port inside the VM until it expires or is revoked. `config.preview.defaultTtlMs` sets the default lifetime.",
       "note": "Machines are reached only through Rivet's proxying endpoints/preview URLs and anycast routing, not a dedicated public IPv4 address per machine.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "inbound_https": {
       "value": true,
       "source": "https://rivet.dev/agentos/docs/networking.md",
-      "quote": "Preview URLs are port forwarding for VM services: a time-limited, public URL that proxies HTTP to a port inside the VM, for browser or external access",
-      "note": "HTTPS preview URLs proxy to a port inside the agentOS VM; Actors are likewise reached via HTTPS through the Rivet edge/gateway.",
-      "checked": "2026-09-30"
+      "quote": "Hosted VMs can expose any port through an expiring preview. A preview is a signed URL path that proxies HTTP to a port inside the VM until it expires or is revoked. `config.preview.defaultTtlMs` sets the default lifetime.",
+      "note": "Previews proxy HTTP to a port inside the agentOS VM via https://api.rivet.dev/gateway/{vm_id}@{token}/request{path}; Actors are likewise reached via HTTPS through the Rivet gateway.",
+      "checked": "2026-10-14"
     },
     "static_egress_ip": {
       "value": false,

@@ -77,8 +77,8 @@
           "url": "https://instavm.io/pricing"
         },
         {
-          "quote": "Network egress is deny-by-default and configurable per-session or per-VM",
-          "url": "https://instavm.io/docs/concepts/sandboxes"
+          "quote": "Outbound traffic is blocked unless explicitly allowed. Whitelist specific domains, CIDR ranges, or enable package managers per session or VM.",
+          "url": "https://instavm.io/solutions/code-execution"
         }
       ]
     }
@@ -143,7 +143,7 @@
     "arm64": false,
     "gpu": false,
     "gpu_types": [],
-    "snapshot": "fs",
+    "snapshot": "mem",
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
@@ -171,7 +171,9 @@
     "self_host": false,
     "byoc": false,
     "open_source": false,
-    "regions": null,
+    "regions": [
+      "us"
+    ],
     "soc2": true,
     "hipaa": false,
     "sso": false,
@@ -186,7 +188,7 @@
     "wake_on_request": true,
     "live_resize": true,
     "fork_running": true,
-    "memory_snapshot_fork": false,
+    "memory_snapshot_fork": true,
     "webhooks": true,
     "scheduled_wakeups": null,
     "audit_logs": true,
@@ -227,19 +229,24 @@
     "Snapshot storage price unpublished (null); volumes bill on ALLOCATED quota at $0.0002/GB-h ($0.146/GB-mo at 730 h) after 10 GB included; disk_gib_month here is that volume rate.",
     "Egress per-GB price unpublished; Free egress restricted to package managers + AI APIs.",
     "Browser session quotas per plan (100 / 5,000 / unlimited); overage price unpublished.",
-    "Max 8 vCPU / 8 GB per VM (docs). GPU not offered/mentioned.",
-    "Regions, compliance certifications, billing granularity minimum unpublished. No benchmark data (vendor claims <200 ms boot).",
+    "Max 8 vCPU / 8 GB per VM (OpenAPI: 'memory_mb: VM memory in MB (128-8192)'; run-any-oci page: '1–8 vCPU Per VM'). GPU not offered/mentioned.",
+    "Region: US only per the privacy policy ('All data is stored on cloud servers located in the United States.'); no state, city or region choice published. Billing granularity minimum unpublished. No benchmark data (vendor claims <200 ms boot).",
     "Re-checked 2026-09-28: instavm.io/pricing publishes vCPU, RAM and volume rates only; no per-GB egress price and no snapshot storage price (both stay null).",
     "VM lifetime is capped per plan (vm_lifetime_seconds accepts \"max\" = plan cap); cap values unpublished, so max_session_h stays null.",
-    "Pro advertises 'Increased usage quotas' and 'Higher rate limits' but no numbers are published (creation rate limits unknown on both plans)."
+    "Pro advertises 'Increased usage quotas' and 'Higher rate limits' but no numbers are published (creation rate limits unknown on both plans).",
+    "OCI-image VMs: the run-any-oci page advertises '3 GB Max disk', but the OpenAPI SnapshotBuildArgs.disk_size_gb says 'Root filesystem size in GB (1-16) ... minimum 3GB, maximum 16GB'. The two disagree and the engine has no per-VM root-disk cap field, so it is not modelled; more storage goes on volumes ($0.0002/GB-h after 10 GB).",
+    "Re-checked 2026-10-14: every instavm.io/docs page (including /docs and /docs/quickstart, still listed in llms.txt) returns 404; evidence now cites the /solutions pages, the pricing page, blog posts and the OpenAPI spec."
   ],
   "sources": [
     "https://instavm.io/pricing",
-    "https://instavm.io/docs/concepts/sandboxes",
-    "https://instavm.io/docs/concepts/sessions",
-    "https://instavm.io/docs/concepts/snapshots",
-    "https://instavm.io/docs/concepts/shares",
-    "https://instavm.io/docs/sdks/python/vm-management",
+    "https://instavm.io/solutions/code-execution",
+    "https://instavm.io/solutions/live-vm-clone",
+    "https://instavm.io/solutions/run-any-oci",
+    "https://instavm.io/solutions/shares-deploy",
+    "https://instavm.io/solutions/ssh-instavm-dev",
+    "https://instavm.io/solutions/computer-use",
+    "https://api.instavm.io/openapi.json",
+    "https://instavm.io/privacy",
     "https://instavm.io/blog/introducing-volumes-on-instavm-sandboxes"
   ],
   "fleet": {
@@ -266,37 +273,37 @@
       "value": true,
       "source": "https://api.instavm.io/openapi.json",
       "quote": "Explicitly auto-suspend (Tier B) a running VM: snapshot to a managed\nsnapshot, free host resources, and park it as ``suspended``. It is restored\non the next request (share/execute/pty/ssh) only if the session opted into\n``auto_resume``",
-      "note": "Two opt-in mechanisms. (1) auto_suspend / auto_resume flags on VM create/update (OpenAPI VMCreateRequest; SDK README 0.26.1: 'Suspend parks a running VM by snapshotting its **memory + disk** to a managed snapshot ... resume restores it (memory and filesystem intact). Resume mints a fresh vm_id'; 'Requires the auto-suspend feature to be enabled on your InstaVM deployment'). Memory included; auto_resume wakes it on execute/pty/ssh/share traffic. The idle trigger/timeout for automatic suspend is not documented publicly (workspace/devbox runs use auto_suspend=True). (2) snapshot_on_terminate=true (docs/concepts/snapshots) snapshots disk state automatically when the VM terminates or its vm_lifetime_seconds expires; restore is NOT automatic (create a new VM with snapshot_id). Default is off for both: without them, lifetime expiry destroys all state.",
-      "checked": "2026-09-29"
+      "note": "Two opt-in mechanisms. (1) auto_suspend / auto_resume flags on VM create/update (OpenAPI VMCreateRequest; SDK README 0.26.1: 'Suspend parks a running VM by snapshotting its **memory + disk** to a managed snapshot ... resume restores it (memory and filesystem intact). Resume mints a fresh vm_id'; 'Requires the auto-suspend feature to be enabled on your InstaVM deployment'). Memory included; auto_resume wakes it on execute/pty/ssh/share traffic. The idle trigger/timeout for automatic suspend is not documented publicly (workspace/devbox runs use auto_suspend=True). (2) snapshot_on_terminate=true (VMCreateRequest field in the OpenAPI spec; the docs/concepts/snapshots page that described it is now 404) snapshots state automatically when the VM terminates or its vm_lifetime_seconds expires; restore is NOT automatic (create a new VM with snapshot_id). Default is off for both: without them, lifetime expiry destroys all state.",
+      "checked": "2026-10-14"
     },
     "snapshot_on_demand": {
       "value": true,
-      "source": "https://instavm.io/docs/concepts/snapshots",
-      "quote": "Snapshots capture VM disk state plus snapshot metadata so new VMs can boot from a prebuilt environment in milliseconds.",
-      "note": "POST /v1/vms/{vm_id}/snapshot of a running VM (CLI `instavm snapshot create`), or build from an OCI image (POST /v1/snapshots). Disk only (no memory). New VMs boot from it (`instavm create --snapshot snap_...`). Also `clone` of a running VM (vm-management page: 'Create a copy of a running VM'). Explicit suspend (POST /v1/vms/{id}/suspend) is an on-demand memory+disk snapshot, but it only resumes the same VM (new vm_id), not a fork. Volumes also have on-demand checkpoints.",
-      "checked": "2026-09-29"
+      "source": "https://instavm.io/solutions/live-vm-clone",
+      "quote": "vms.clone(vm_id=...) snapshots a live VM and boots a copy. The source keeps running.",
+      "note": "POST /v1/vms/{vm_id}/snapshot snapshots a running VM, POST /v1/snapshots builds one from an OCI image (run-any-oci page: 'snapshots.create(oci_image=...) pulls any OCI image'), and POST /v1/vms/{vm_id}/clone snapshots a live VM and boots a copy; the clone page gives its scope as 'Disk + memory'. Whether a plain POST /snapshot also captures memory is not stated now that the docs pages are 404. New VMs boot from a snapshot with vms.create(snapshot_id=...). Explicit suspend (POST /v1/vms/{id}/suspend) is an on-demand memory+disk snapshot that resumes the same VM. Volumes also have on-demand checkpoints.",
+      "checked": "2026-10-14"
     },
     "egress_allowlist": {
       "value": true,
-      "source": "https://instavm.io/docs/concepts/egress-policies",
-      "quote": "Block all outbound traffic by default\n Allow specific domains (e.g., api.openai.com )\n Permit package managers (pip, apt, npm) while blocking everything else\n Control HTTP vs HTTPS independently\n Define CIDR-based allow lists for private networks",
-      "note": "Per-session or per-VM policies (allowed_domains, allowed_cidrs, allow_http, allow_https, allow_package_managers), set via API and updatable on a running VM; 'Network egress is deny-by-default' (sandboxes page). Plan-gated: Free = only package managers + AI APIs; Pro = 'Unrestricted egress or granular domain/CIDR allowlists' (pricing). Enforced by the platform egress proxy outside the VM.",
-      "checked": "2026-09-29",
+      "source": "https://instavm.io/solutions/code-execution",
+      "quote": "Outbound traffic is blocked unless explicitly allowed. Whitelist specific domains, CIDR ranges, or enable package managers per session or VM.",
+      "note": "Per-session or per-VM policies via POST /v1/egress/session/{session_id} and /v1/egress/vm/{vm_id} (OpenAPI EgressPolicyRequest: allowed_domains, allowed_cidrs, allow_http, allow_https, allow_public_repos, tls_interception); egress_policy is also accepted on VM create. Plan-gated: Free = only package managers + AI APIs; Pro = 'Unrestricted egress or granular domain/CIDR allowlists' (pricing). Enforced by the platform egress proxy outside the VM.",
+      "checked": "2026-10-14",
       "level": "both"
     },
     "ingress_rules": {
       "value": true,
-      "source": "https://instavm.io/docs/concepts/shares",
-      "quote": "Public shares are accessible by anyone with the URL.\n Private shares require an access token or a later visibility change.",
-      "note": "Ports are only exposed when you create a share for a specific port; shares default to private (token) and can be switched public/private or revoked; custom domains via CNAME. No IP allowlists documented. SSH access via registered keys.",
-      "checked": "2026-09-29"
+      "source": "https://instavm.io/solutions/shares-deploy",
+      "quote": "Expose any listening port on the VM. Returns a share_id and URL. Private shares require an access_token header.",
+      "note": "Ports are only exposed when you create a share for a specific port; shares can be private (access_token) or public, flipped with shares.update(is_public=True) or revoked with revoke=True; custom domains via CNAME to edge.instavm.site. No IP allowlists documented. SSH access via account-level registered keys.",
+      "checked": "2026-10-14"
     },
     "guest_firewall": {
       "value": true,
       "source": null,
       "quote": null,
-      "note": "Each sandbox is a Firecracker microVM with its own kernel and network stack; docs say 'Root access inside the sandbox does not grant access to the host', implying root inside. Not documented explicitly.",
-      "checked": "2026-09-29",
+      "note": "Each sandbox is a Firecracker microVM with its own kernel and network stack (code-execution page: 'Own kernel, filesystem, memory, and network stack'), and you SSH in as root (ssh-instavm-dev page: 'ssh root@vm-abc123.instavm.io'), so an in-guest firewall is under your control. Not documented explicitly.",
+      "checked": "2026-10-14",
       "derived": true
     },
     "secret_proxy": {
@@ -308,10 +315,10 @@
     },
     "volume_attach": {
       "value": true,
-      "source": "https://instavm.io/docs/concepts/volumes",
-      "quote": "Volumes are persistent block storage for VMs. Use them when data must outlive a VM/session lifecycle.",
-      "note": "Mount at create or hot-plug on a running VM (mount_path + mode rw/ro); volume file APIs without mounting; volume checkpoints. Blog says volumes are 'backed by object storage'. Billed on allocated quota, $0.0002/GB-h after 10 GB included.",
-      "checked": "2026-09-29"
+      "source": "https://instavm.io/blog/introducing-volumes-on-instavm-sandboxes",
+      "quote": "A Volume is durable storage you mount into a sandbox at a path. The agent reads and writes it like any directory, and the data stays after the VM is gone.",
+      "note": "Mount at create (VMCreateRequest.volumes: volume_id, mount_path, mode rw/ro, checkpoint_id) or on a running VM (POST /v1/vms/{vm_id}/volumes 'Mount Vm Volume'); volume file APIs without mounting; volume checkpoints. Blog says volumes are 'backed by object storage'. Billed on allocated quota, $0.0002/GB-h after 10 GB included.",
+      "checked": "2026-10-14"
     },
     "volume_shared": {
       "value": true,
@@ -322,38 +329,38 @@
     },
     "docker_inside": {
       "value": true,
-      "source": "https://instavm.io/docs/concepts/sandboxes",
-      "quote": "Each sandbox gets its own kernel, filesystem, and network stack... Root access inside the sandbox does not grant access to the host",
-      "note": "Not explicitly documented. Derived: each sandbox is a full Firecracker microVM with its own dedicated guest kernel and root access (features.root=true), which is the standard requirement for running a Docker/containerd daemon (cgroups+overlayfs) inside a microVM. No InstaVM page explicitly confirms or denies running Docker inside the guest.",
-      "checked": "2026-09-30"
+      "source": "https://instavm.io/solutions/code-execution",
+      "quote": "Each sandbox runs inside a Firecracker microVM — not a container. Own kernel, filesystem, memory, and network stack.",
+      "note": "Not explicitly documented. Derived: each sandbox is a full Firecracker microVM with its own guest kernel and root SSH access (features.root=true), the standard requirement for running a Docker/containerd daemon inside a microVM. No InstaVM page explicitly confirms or denies running Docker inside the guest.",
+      "checked": "2026-10-14"
     },
     "nested_virt": {
       "value": false,
-      "source": "https://instavm.io/docs/concepts/sandboxes",
-      "quote": "A sandbox is a lightweight virtual machine that boots in under 200ms... A Linux kernel (based on Firecracker microVMs)",
+      "source": "https://instavm.io/solutions/code-execution",
+      "quote": "Each client.execute() call runs inside a Firecracker microVM with its own kernel and filesystem.",
       "note": "Not documented. Derived: Firecracker microVMs do not expose /dev/kvm or hardware virtualization extensions to the guest, so nested virtualization (running VMs/emulators inside the sandbox) is not available, matching the same architecture on comparable Firecracker providers (e.g. E2B).",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "anti_bot": {
       "value": false,
-      "source": "https://instavm.io/docs/guides/browser-automation",
-      "quote": "Control headless browsers on InstaVM for web scraping, testing, and automated workflows.",
-      "note": "not offered: outside the product's scope. The browser automation docs describe a plain headless-browser API (navigate, fill, click, screenshot, extract) with no stealth/fingerprinting/anti-detection features mentioned anywhere in the docs, blog, or OpenAPI spec.",
-      "checked": "2026-09-30"
+      "source": "https://instavm.io/solutions/computer-use",
+      "quote": "browser.create_session() gives you navigate(), click(), fill(), screenshot(), and extract_elements(). CSS selectors, configurable timeouts.",
+      "note": "not offered: outside the product's scope. The computer-use page describes a plain browser API (navigate, fill, click, screenshot, extract_elements) with no stealth/fingerprinting/anti-detection features; none in the pricing page or OpenAPI spec either.",
+      "checked": "2026-10-14"
     },
     "captcha_solving": {
       "value": false,
-      "source": "https://instavm.io/docs/guides/browser-automation",
-      "quote": "Control headless browsers on InstaVM for web scraping, testing, and automated workflows.",
-      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature is mentioned in the browser automation docs, pricing page, or API reference.",
-      "checked": "2026-09-30"
+      "source": "https://instavm.io/solutions/computer-use",
+      "quote": "browser.create_session() gives you navigate(), click(), fill(), screenshot(), and extract_elements(). CSS selectors, configurable timeouts.",
+      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature is mentioned on the computer-use page, pricing page, or in the OpenAPI spec.",
+      "checked": "2026-10-14"
     },
     "egress_ip_type": {
       "value": "datacenter",
-      "source": "https://instavm.io/docs/concepts/egress-policies",
-      "quote": "Egress policies control what outbound network connections a sandbox can make.",
-      "note": "Not explicitly named. Derived: InstaVM is a general-purpose code-execution/sandbox cloud running on its own infrastructure with an egress proxy; there is no mention of residential or mobile IP pools anywhere in the docs, so outbound IPs are ordinary datacenter IPs.",
-      "checked": "2026-09-30"
+      "source": "https://instavm.io/solutions/code-execution",
+      "quote": "Outbound traffic is blocked unless explicitly allowed. Whitelist specific domains, CIDR ranges, or enable package managers per session or VM.",
+      "note": "Not explicitly named. Derived: InstaVM is a general-purpose code-execution/sandbox cloud with a platform egress proxy; there is no mention of residential or mobile IP pools anywhere on the site or in the OpenAPI spec, so outbound IPs are ordinary datacenter IPs.",
+      "checked": "2026-10-14"
     },
     "live_resize": {
       "value": true,
@@ -371,10 +378,10 @@
     },
     "harness_api": {
       "value": false,
-      "source": "https://instavm.io/docs/api",
-      "quote": "Sessions Create and manage execution sessions. Execution Execute code synchronously or asynchronously.",
-      "note": "not offered: outside the product's scope. The documented REST API drives raw code execution/VM/browser sessions, not a specific coding harness (Claude Code/Codex/OpenCode) with prompt/stream/follow-up semantics. The undocumented agents-api (agent-builder, environments, invoke) seen in the OpenAPI spec drives InstaVM's own generic agent-builder product, not a coding harness.",
-      "checked": "2026-09-30"
+      "source": "https://instavm.io/solutions/code-execution",
+      "quote": "Pass any string of Python or Bash. Returns stdout, stderr, and execution_time.",
+      "note": "not offered: outside the product's scope. The public API drives raw code execution/VM/browser sessions, not a specific coding harness (Claude Code/Codex/OpenCode) with prompt/stream/follow-up semantics. The agents-api (agent-builder, environments, invoke) in the OpenAPI spec drives InstaVM's own generic agent-builder product, not a coding harness.",
+      "checked": "2026-10-14"
     },
     "own_agent_api": {
       "value": true,
@@ -392,17 +399,17 @@
     },
     "egress_http_rules": {
       "value": false,
-      "source": "https://instavm.io/docs/concepts/egress-policies",
-      "quote": "allow_http bool Allow outbound HTTP (port 80) allow_https bool Allow outbound HTTPS (port 443) allowed_domains list[str] ... allowed_cidrs list[str]",
-      "note": "not offered: egress policy controls are at the protocol (HTTP vs HTTPS) and domain/CIDR level only; no HTTP method or URL-path level egress rules are documented.",
-      "checked": "2026-09-30"
+      "source": "https://api.instavm.io/openapi.json",
+      "quote": "EgressPolicyRequest: {\"allow_public_repos\":{\"type\":\"boolean\"},\"allow_http\":{\"type\":\"boolean\"},\"allow_https\":{\"type\":\"boolean\"},\"tls_interception\":{\"type\":\"boolean\"},\"allowed_domains\":{\"type\":\"array\"},\"allowed_cidrs\":{\"type\":\"array\"}}",
+      "note": "not offered: egress policy controls are at the protocol (HTTP vs HTTPS) and domain/CIDR level only; no HTTP method or URL-path level egress rules in the policy schema.",
+      "checked": "2026-10-14"
     },
     "static_egress_ip": {
       "value": false,
-      "source": "https://instavm.io/docs/concepts/egress-policies",
-      "quote": "Egress policies control what outbound network connections a sandbox can make... Define CIDR-based allow lists for private networks",
-      "note": "not offered: outside the product's scope. Egress policy docs describe domain/CIDR allowlisting through a shared proxy; no fixed/dedicated outbound IP address feature is mentioned anywhere in the docs or pricing page.",
-      "checked": "2026-09-30"
+      "source": "https://instavm.io/solutions/code-execution",
+      "quote": "Outbound traffic is blocked unless explicitly allowed. Whitelist specific domains, CIDR ranges, or enable package managers per session or VM.",
+      "note": "not offered: outside the product's scope. Egress is domain/CIDR allowlisting through a shared proxy; no fixed/dedicated outbound IP address feature is mentioned on the site, pricing page or OpenAPI spec.",
+      "checked": "2026-10-14"
     },
     "arm64": {
       "value": false,
@@ -449,45 +456,46 @@
     "persistent_disk": {
       "value": true,
       "corrected_from": false,
-      "source": "https://instavm.io/docs/concepts/volumes",
-      "quote": "Volumes are persistent block storage for VMs. Use them when data must outlive a VM/session lifecycle.",
-      "note": "Contradiction confirmed and resolved in favor of persistence. The card's own feature_evidence already documents it: (1) Volumes are first-party persistent block storage, mountable at create or hot-plugged onto a running VM, billed on allocated GB-hours (10 GB included) — this alone makes 'files survive stop/start' true via an opt-in persistent volume. (2) Explicit suspend/resume (SDK/CLI 0.26+) snapshots a running VM's memory + disk to a managed snapshot and restores it later 'memory and filesystem intact' (SDK README, quoted in feature_evidence.snapshot_auto). Default behavior without volumes/suspend: ephemeral — 'When the session ends, session filesystem state is destroyed' (how-it-works) and lifetime expiry destroys state unless snapshot_on_terminate. So persistent_disk should be true, with the caveat that the default is delete-on-stop; persistence requires opting into volumes and/or suspend/snapshot_on_terminate.",
-      "checked": "2026-09-30"
+      "source": "https://instavm.io/blog/introducing-volumes-on-instavm-sandboxes",
+      "quote": "A Volume is durable storage you mount into a sandbox at a path. The agent reads and writes it like any directory, and the data stays after the VM is gone.",
+      "note": "True via opt-in persistence. (1) Volumes are first-party durable storage, mountable at create or onto a running VM, billed on allocated GB-hours (10 GB included). (2) Explicit suspend/resume (SDK/CLI 0.26+) snapshots a running VM's memory + disk and restores it later (feature_evidence.snapshot_auto). Default without volumes/suspend is ephemeral: code-execution page 'State persists across calls within a session, then tears down automatically', and lifetime expiry destroys state unless snapshot_on_terminate.",
+      "checked": "2026-10-14"
     },
     "memory_snapshot_fork": {
-      "value": false,
-      "source": "https://instavm.io/docs/concepts/snapshots",
-      "quote": "Snapshots capture VM disk state plus snapshot metadata so new VMs can boot from a prebuilt environment in milliseconds.",
-      "note": "On-demand snapshots (the only mechanism that can spawn new/forked VMs, via `instavm create --snapshot snap_...` or `clone`) are disk-only, not memory-inclusive — confirmed by the card's own feature_evidence.snapshot_on_demand note: 'Disk only (no memory). New VMs boot from it... Explicit suspend... is an on-demand memory+disk snapshot, but it only resumes the same VM (new vm_id), not a fork.' No InstaVM doc describes forking a new, independently-running VM from a memory+disk (process-inclusive) snapshot. False is correct.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://instavm.io/solutions/live-vm-clone",
+      "quote": "vms.clone(vm_id=...) snapshots a live VM and boots a copy. The source keeps running.",
+      "note": "The live clone page lists the clone's scope as 'Full state' / 'Disk + memory' and 'Source unchanged' / 'Non-destructive'; each clone is 'its own isolated Firecracker VM' with a new vm_id and session_id (POST /v1/vms/{vm_id}/clone in the OpenAPI spec). The earlier false came from the now-404 docs/concepts/snapshots page, which described on-demand snapshots as disk state; that page is gone and the clone page supersedes it. Explicit suspend (POST /v1/vms/{vm_id}/suspend) also snapshots memory + disk but resumes the same VM.",
+      "checked": "2026-10-14",
+      "corrected_from": false
     },
     "public_ipv4": {
       "value": false,
-      "source": "https://instavm.io/docs/concepts/ssh",
-      "quote": "ssh_host = vm . get ( 'ssh_host' ) ssh_user = vm . get ( 'ssh_user' ) ssh_port = vm . get ( 'ssh_port' , 22 )",
-      "note": "VMs are reached via a platform-issued ssh_host/hostname (and via share URLs / custom-domain CNAMEs per docs/concepts/shares), not a dedicated public IPv4 address assigned to the VM. No InstaVM page mentions per-VM public IPv4 addresses or an IPv4 add-on; all inbound access is proxied through InstaVM's gateway (shares, SSH gateway, custom domains). Consistent with the card's network.ipv4_available: false. Confirmed false, medium confidence since the pages describe the access model but don't explicitly say 'no public IPv4'.",
-      "checked": "2026-09-30"
+      "source": "https://instavm.io/solutions/ssh-instavm-dev",
+      "quote": "vms.create() returns ssh_host, ssh_user, and ssh_port. Connect with standard ssh -i ~/.ssh/id_rsa user@host -p port.",
+      "note": "VMs are reached via a platform-issued ssh_host (e.g. vm-abc123.instavm.io) and via share URLs / custom-domain CNAMEs (shares-deploy page), not a dedicated public IPv4 address. No InstaVM page mentions per-VM public IPv4 addresses or an IPv4 add-on. Consistent with network.ipv4_available: false. Medium confidence: the pages describe the access model but don't explicitly say 'no public IPv4'.",
+      "checked": "2026-10-14"
     },
     "gpu": {
       "value": false,
-      "source": "https://instavm.io/docs/getting-started/how-it-works",
-      "quote": "InstaVM uses Firecracker microVMs. Each sandbox gets: A dedicated Linux kernel, Isolated filesystem, memory, and CPU, Network stack with configurable egress",
-      "note": "Product is explicitly a Firecracker-microVM CPU sandbox platform (code execution, browser/computer-use, volumes); no GPU, GPU type, or GPU pricing is mentioned anywhere on pricing/docs/solutions pages, and the pricing page's compute rates are vCPU/RAM only. Plainly outside current product scope, so confirmed false at medium confidence per the rule for features outside what the product is.",
-      "checked": "2026-09-30"
+      "source": "https://instavm.io/pricing",
+      "quote": "$0.000014/s per vCPU (~$0.05/hr) $0.0000045/s per GB RAM (~$0.02/hr)",
+      "note": "Firecracker-microVM CPU sandbox platform (code execution, browser/computer-use, volumes); no GPU, GPU type, or GPU pricing is mentioned on the pricing or solutions pages, and compute rates are vCPU/RAM only. Outside current product scope, confirmed false at medium confidence.",
+      "checked": "2026-10-14"
     },
     "windows": {
       "value": false,
       "source": "https://instavm.io/solutions/computer-use",
       "quote": "Full Linux desktop for agent automation. Each VM runs a Linux desktop accessible via noVNC viewer URL.",
-      "note": "Sandboxes are Firecracker Linux microVMs (docs/getting-started/how-it-works: 'A dedicated Linux kernel'); the desktop/computer-use product is explicitly a Linux desktop, not Windows. No Windows machine type or OS option is offered anywhere on the site. Confirmed false, medium confidence (feature is outside what the product is).",
-      "checked": "2026-09-30"
+      "note": "Sandboxes are Firecracker Linux microVMs (code-execution page: 'Each client.execute() call runs inside a Firecracker microVM with its own kernel'); the desktop/computer-use product is explicitly a Linux desktop. No Windows machine type or OS option is offered anywhere on the site. Confirmed false, medium confidence.",
+      "checked": "2026-10-14"
     },
     "macos": {
       "value": false,
-      "source": "https://instavm.io/docs/getting-started/how-it-works",
-      "quote": "InstaVM uses Firecracker microVMs. Each sandbox gets: A dedicated Linux kernel",
-      "note": "Firecracker is a Linux-only KVM-based microVM technology; InstaVM's own architecture docs and computer-use page ('Full Linux desktop') describe Linux-only sandboxes. No macOS machine type is offered or mentioned. Confirmed false, medium confidence (outside what the product is).",
-      "checked": "2026-09-30"
+      "source": "https://instavm.io/solutions/computer-use",
+      "quote": "Full Linux desktop for agent automation. Each VM runs a Linux desktop accessible via noVNC viewer URL.",
+      "note": "Firecracker is a Linux-only KVM-based microVM technology; the code-execution and computer-use pages describe Linux-only sandboxes. No macOS machine type is offered or mentioned. Confirmed false, medium confidence.",
+      "checked": "2026-10-14"
     },
     "open_source": {
       "value": false,
@@ -506,14 +514,24 @@
     "usage_api": {
       "value": false,
       "source": "https://instavm.io/pricing",
-      "quote": "Pro plan includes Advanced analytics & monitoring; pricing page shows usage-based billing ($0.000014/vCPU-s, $0.0000045/GB-s) but no API endpoint documented in REST API Reference for per-sandbox usage retrieval; API reference sections (Sessions, VMs, Snapshots, Volumes, etc.) do not include Usage or",
-      "note": "granularity: account-only; cost: no; Pricing is usage-based, suggesting detailed usage tracking exists internally. Dashboard shows 'Advanced analytics & monitoring' (Pro plan), but access appears limited to account-level dashboard/invoice, not per-sandbox API. No CLI command or SDK method for usage data found in docs.",
+      "quote": "Advanced analytics & monitoring",
+      "note": "granularity: account-only; cost: no. Pro lists 'Advanced analytics & monitoring' (dashboard). The OpenAPI spec (https://api.instavm.io/openapi.json) has no usage or billing endpoint, so per-sandbox usage is not retrievable by API.",
       "confidence": "medium",
-      "checked": "2026-01-20"
+      "checked": "2026-10-14"
     }
   },
-  "locations": [],
-  "locations_source": null,
-  "locations_quote": null,
-  "locations_checked": "2026-10-01"
+  "locations": [
+    {
+      "country": "US",
+      "state": null,
+      "city": null,
+      "provider_region": null,
+      "self_serve": true,
+      "choosable": false
+    }
+  ],
+  "locations_source": "https://instavm.io/privacy",
+  "locations_quote": "All data is stored on cloud servers located in the United States.",
+  "locations_checked": "2026-10-14",
+  "locations_note": "Privacy policy section 5.1 (Data Location). No region list, region selector, state, city or cloud provider is published."
 }

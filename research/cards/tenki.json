@@ -253,7 +253,7 @@
       "max_vcpu": 4,
       "max_ram_gib": 8,
       "sizes_allowed": null,
-      "note": "$100 one-time sign-up credit (first workspace only). 5 members, 5 concurrent sessions (shared by runner jobs and sandboxes), 100 GiB storage pool. Balance-gated: prepaid top-ups min $20, purchased credits never expire; optional daily spending limit."
+      "note": "$100 one-time credit per account (first workspace): $50 on sign-up with no card, plus $50 'the first time you add a payment method' (https://tenki.cloud/docs/account/free-credits.md). 5 members, 5 concurrent sessions (shared by runner jobs and sandboxes), 100 GiB storage pool. Balance-gated: prepaid top-ups min $20, purchased credits never expire; optional daily spending limit."
     },
     {
       "name": "Team (monthly)",
@@ -267,7 +267,7 @@
       "max_vcpu": 16,
       "max_ram_gib": 64,
       "sizes_allowed": null,
-      "note": "$250/month billed monthly; $100/month credits, no rollover; 50 members; 100 concurrent; 1,000 GiB storage pool; priority support. Upgrading drains any remaining Starter sign-up credit."
+      "note": "$250/month billed monthly; $100/month credits, no rollover; 50 members; 100 concurrent; 1,000 GiB storage pool; priority support. Pricing FAQ: on upgrade 'the month's $100 in credits is added right away, and your free credits carry over.'"
     },
     {
       "name": "Team (annual)",
@@ -353,8 +353,8 @@
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
-    "credential_injection": null,
-    "egress_http_rules": false,
+    "credential_injection": true,
+    "egress_http_rules": true,
     "wake_on_request": false,
     "live_resize": false,
     "fork_running": false,
@@ -375,7 +375,7 @@
     "egress_allowlist_level": "both",
     "ingress_rules": true,
     "guest_firewall": true,
-    "secret_proxy": false,
+    "secret_proxy": "any-http",
     "volume_attach": true,
     "volume_shared": false,
     "anti_bot": false,
@@ -400,14 +400,14 @@
     "Two storage meters: 'Sandbox Disk' $0.00000003/GiB-s (= $0.000108/GiB-h, $0.07884/GiB-month at 730 h) beyond 5 GiB free per session, presumably while the session exists/runs (engine charges per month); and 'Storage' $0.20/GiB-month from the first byte ($0.000000076/GiB-s on the pricing page) for snapshots, volumes, runner caches and paused-session state, one pool per workspace capped at 100 GiB (Starter) / 1,000 GiB (Team).",
     "Whether 'Sandbox Disk' keeps billing while a session is paused is undocumented; card assumes paused state is billed only via the $0.20 storage pool (disk_billed_when_stopped false).",
     "No idle auto-pause: the --idle-timeout option was removed on 2026-09-18 because it 'never had any effect'. Non-sticky sessions pause at their max duration (since 2026-09-11); the default max duration value is unpublished. Sticky sessions bill until terminated.",
-    "Pricing-page plan cards now show '$100 sign-up credit' for Starter, but the pricing-page FAQ still says 'Starter's $10/month goes to your oldest workspace'; docs (llms-full billing section) say the $100 sign-up credit is a one-time grant per account (first workspace, no card) and pre-existing workspaces 'no longer receive the $10 monthly Starter credit'. Card uses $100 one-time.",
+    "Starter credit is $100 one-time but split since 2026-10-02: 'Lowered the sign-up credit for new workspaces to a one-time $50 credit and discontinued the $10 monthly starter credit' and 'Added a one-time $50 credit when a workspace owner adds a payment method' (changelog). docs/pricing.md: '$100 in free credits: $50 on signup + $50 with a payment method'. Without a card only $50 is available; card uses the $100 total (free.one_time_credit). Accounts that got the earlier $100 sign-up credit are not eligible for the card credit.",
     "Team is $250/month billed monthly or $200/month billed yearly (docs pricing table); the pricing page shows $200 with '20% Saved'. Team's $100/month credit is separate from the fee (fee_is_credit false) and does not roll over.",
     "Other one-time credits: $10 for sharing a Tenki Runners post (one per user); startup program up to $50K credits and grants.",
     "Runner modes are CI minutes (product class ci-runner, not flagged alt): they rank in CI questions and show as a different kind of product elsewhere. Runner RAM and disk are bundled in the per-core price, so $/h is higher than the sandbox rate for the same 4c/8g ($0.48 vs $0.3312).",
     "Egress/ingress pricing not published (null): re-checked 2026-09-28 on https://tenki.cloud/pricing and https://tenki.cloud/docs/pricing.md, neither lists any network/egress charge (not stated as free either). No public IPv4; HTTPS preview URLs (20 per workspace plan) and SSH.",
     "Region: docs mention a default 'US region' for the SSH gateway; other regions not documented. Owned hardware (Luxor Technology); hypervisor not named.",
     "Starter per-session limit 4 cores / 8 GB; Team 16 / 64 GB; runners on Team only up to 16c/32g.",
-    "Outbound allowlists (features.egress_allowlist) are not self-serve: 'Tenki must enable session egress policies for your workspace first' (contact support).",
+    "Outbound allowlists are on by default in every workspace since 2026-09-25 (changelog: 'Enabled outbound allowlists for sessions by default in all existing and new workspaces.'); docs/sandbox/sessions.md still carries the older 'Tenki must enable session egress policies for your workspace first' line. Named egress policies with HTTP method/path rules and HTTPS inspection added 2026-10-09.",
     "Named preview-URL slugs (a stable wildcard under *.sb.tenki.sh) are Team-plan only, one per workspace."
   ],
   "sources": [
@@ -420,7 +420,12 @@
     "https://tenki.cloud/docs/sandbox/sessions.md",
     "https://tenki.cloud/docs/sandbox/chrome.md",
     "https://tenki.cloud/llms-full.txt",
-    "https://www.computesdk.com/benchmarks/sandboxes/"
+    "https://www.computesdk.com/benchmarks/sandboxes/",
+    "https://tenki.cloud/docs/changelog.md",
+    "https://tenki.cloud/docs/sandbox/secrets.md",
+    "https://tenki.cloud/docs/secrets/request-policies.md",
+    "https://tenki.cloud/docs/account/free-credits.md",
+    "https://tenki.cloud/docs/sandbox/base-image.md"
   ],
   "fleet": {
     "default_max_instances": 5,
@@ -461,15 +466,15 @@
       "value": false,
       "source": "https://tenki.cloud/docs/sandbox/sdk.md",
       "quote": "OpenCode then runs inside the session. The SDKs enable it at create time but do not expose an API for driving it programmatically once the session is running.",
-      "note": "enableOpenCode/openCodeProvider only installs and wires OpenCode at create time. Prebuilt images for Grok, Droid (droid exec), Pi and Anchor are driven through the generic exec API. The Tenki MCP server (@tenkicloud/mcp, plus hosted OAuth MCP) runs the other way round: an outside agent drives sandboxes, not an agent inside them.",
-      "checked": "2026-09-29"
+      "note": "enableOpenCode/openCodeProvider only installs and wires OpenCode at create time. Claude Code, Codex and opencode ship in the base image; prebuilt images for Grok, Droid (droid exec), Pi, Amp and Prime Agent are driven through the generic exec API. The Tenki MCP server (@tenkicloud/mcp, plus hosted OAuth MCP) runs the other way round: an outside agent drives sandboxes, not an agent inside them.",
+      "checked": "2026-10-14"
     },
     "egress_allowlist": {
       "value": true,
-      "source": "https://tenki.cloud/docs/sandbox/sessions.md",
-      "quote": "Set allowed domains or IPv4 CIDRs when you create a session to restrict its outbound destinations.\nTenki must enable session egress policies for your workspace first.",
-      "note": "Per-session allowDomains (hostnames, *. wildcards) and allowCidrs (IPv4) are create-time only. allowOutbound:false blocks all outbound. Workspace-level network restrictions sit on top: 'An allowlist cannot override disabled outbound access or widen workspace network permissions.' Not self-serve: support has to enable it for the workspace, otherwise create fails with failed_precondition. Enforcement mechanism (SNI vs DNS vs IP) is not documented.",
-      "checked": "2026-09-29",
+      "source": "https://tenki.cloud/docs/changelog.md",
+      "quote": "Enabled outbound allowlists for sessions by default in all existing and new workspaces.",
+      "note": "Changelog 2026-09-25: self-serve now. https://tenki.cloud/docs/sandbox/sessions.md still says 'Tenki must enable session egress policies for your workspace first.' (stale, conflicts with the changelog). Per-session allowDomains (hostnames, single-label *. wildcards) and allowCidrs (IPv4) are create-time only; allowOutbound:false blocks all outbound. Workspace-level restrictions sit on top: 'An allowlist cannot override disabled outbound access or widen workspace network permissions.' Since 2026-10-09 named workspace egress policies add HTTP method/path rules and HTTPS inspection (Host must match SNI).",
+      "checked": "2026-10-14",
       "level": "both"
     },
     "ingress_rules": {
@@ -477,7 +482,7 @@
       "source": "https://tenki.cloud/docs/sandbox/sessions.md",
       "quote": "`allow_inbound` enables inbound exposure workflows; with `allow_inbound=false`, port exposure is rejected",
       "note": "Ports are exposed one at a time by explicit call (preview-url create/expose), with an optional TTL (added 2026-09-18) and unbind/delete. There is no public IPv4. BUT preview URLs carry no auth: chrome.md says the preview URL 'is the only thing standing between the public internet and full keyboard and mouse control ... Treat it as a bearer secret'. No IP allowlist and no private/authenticated preview mode. A private alternative is dial(), a byte stream to a guest Unix socket over the authenticated data plane ('nothing is published on the internet'). SSH goes through Tenki's SSH gateway using authorized keys.",
-      "checked": "2026-09-29"
+      "checked": "2026-10-14"
     },
     "guest_firewall": {
       "value": true,
@@ -488,11 +493,12 @@
       "derived": true
     },
     "secret_proxy": {
-      "value": false,
-      "source": "https://tenki.cloud/docs/sandbox/sessions.md",
-      "quote": "Environment variables are plaintext configuration, not a secret-management channel.\nDo not pass long-lived credentials through `env`.",
-      "note": "No credential-injecting proxy. Runtime secrets can only go in as env vars or files (the Anchor blog passes ANCHOR_API_KEY via --env). Template buildSecrets are encrypted and 'never reach the runtime', but they cover builds only. The githubToken create option is documented as letting 'private clones work without provisioning credentials inside the guest'; whether this is proxied is not explained. Runners: 'Tenki does not operate a secrets store' (GitHub Actions secrets).",
-      "checked": "2026-09-29"
+      "value": "any-http",
+      "corrected_from": false,
+      "source": "https://tenki.cloud/docs/sandbox/secrets.md",
+      "quote": "Transparent injection replaces a placeholder in outgoing HTTPS requests, outside the sandbox.",
+      "note": "Added 2026-10-02 (changelog: 'Added reusable workspace secret policies that inject secrets into HTTPS headers, query parameters, and JSON fields without exposing their values to sandbox processes.'). Any API: a request policy rule takes 'An HTTPS origin such as `https://api.example.com`. Use an exact hostname, without a path, wildcard, or explicit port.' (https://tenki.cloud/docs/secrets/request-policies.md), plus allowed methods, a path prefix and one of header / queryParameter / jsonPointer. The guest sends a secrets://NAME placeholder; Tenki substitutes it only on matching requests (otherwise '403 secret_injection_denied'). Requires an image with Tenki's managed HTTPS trust (CA). JSON injection limited to bodies up to 256 KiB. Secret files and env delivery are also offered, but those put the real value in the guest.",
+      "checked": "2026-10-14"
     },
     "volume_attach": {
       "value": true,
@@ -558,11 +564,12 @@
       "checked": "2026-09-30"
     },
     "egress_http_rules": {
-      "value": false,
-      "source": "https://tenki.cloud/docs/sandbox/sessions.md",
-      "quote": "Domains must be hostnames such as pypi.org, without a URL scheme, path, or port. ... CIDRs must be IPv4 prefixes, such as 203.0.113.10/32 for one address.",
-      "note": "Session egress allowlists operate only at the domain/CIDR level; there is no HTTP method- or path-level rule support documented.",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://tenki.cloud/docs/changelog.md",
+      "quote": "Added HTTP rules to egress policies, so every request on ports 80 and 443 must match an allowed domain, method, and path or be refused.",
+      "note": "Changelog 2026-10-09, same release as named workspace egress policies ('saved once per workspace and pinned when creating a sandbox') and 'HTTPS inspection for sandbox egress policies, which blocks requests whose Host does not match the TLS server name.' The sessions.md page still documents only domain/CIDR allowlists; no dedicated egress-policy docs page found on 2026-10-14.",
+      "checked": "2026-10-14"
     },
     "static_egress_ip": {
       "value": true,
@@ -714,6 +721,20 @@
       "note": "granularity: account-only; cost: no; Tenki provides usage information only through the web dashboard UI (Usage tab showing quota and preview URL usage, Billing page with balance usage charts) and monthly invoices. No REST API endpoint, SDK method, or CLI command exists to programmatically retrieve billable usage by resource, tag, or project. The SDKs (@tenkicloud/sandbox TypeScript, tenki Python, tenki-sdk-go Go) support session lifecycle, volumes, snapshots, and registry operations but have no usage/billing methods.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "credential_injection": {
+      "value": true,
+      "source": "https://tenki.cloud/docs/secrets/request-policies.md",
+      "quote": "Your application sends a placeholder such as `secrets://GITHUB_TOKEN`. Tenki replaces it with the token only in outgoing HTTPS requests allowed by a policy.",
+      "note": "Workspace secrets (added 2026-09-25) plus request policies (2026-10-02). Rotation applies to subsequent requests; revoking denies further requests.",
+      "checked": "2026-10-14"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "source": "https://tenki.cloud/docs/sandbox/base-image.md",
+      "quote": "| Claude Code  | `claude`   | 2.1.267 |",
+      "note": "Base image section 'Coding agents': 'Tenki Sandbox bakes in the major terminal coding agents so you can drive them directly inside a session' (Claude Code, OpenAI Codex 0.154.0, opencode 1.17.20). Pre-built images add Grok, Droid, Pi, Amp and Prime Agent. No API to drive them once running (harness_api false, sdk.md).",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],

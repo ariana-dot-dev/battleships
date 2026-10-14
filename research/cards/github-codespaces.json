@@ -123,7 +123,7 @@
       "included_usd": 10.8,
       "per_seat": 0,
       "concurrency": null,
-      "max_session_h": null,
+      "max_session_h": 12,
       "max_vcpu": 32,
       "max_ram_gib": 128,
       "sizes_allowed": null,
@@ -137,7 +137,7 @@
       "included_usd": 16.2,
       "per_seat": 0,
       "concurrency": null,
-      "max_session_h": null,
+      "max_session_h": 12,
       "max_vcpu": 32,
       "max_ram_gib": 128,
       "sizes_allowed": null,
@@ -151,7 +151,7 @@
       "included_usd": 0,
       "per_seat": 4,
       "concurrency": null,
-      "max_session_h": null,
+      "max_session_h": 12,
       "max_vcpu": 32,
       "max_ram_gib": 128,
       "sizes_allowed": null,
@@ -165,7 +165,7 @@
       "included_usd": 0,
       "per_seat": 21,
       "concurrency": null,
-      "max_session_h": null,
+      "max_session_h": 12,
       "max_vcpu": 32,
       "max_ram_gib": 128,
       "sizes_allowed": null,
@@ -189,7 +189,7 @@
     "persistent_disk": true,
     "volumes": false,
     "auto_stop_idle": true,
-    "max_session_h": null,
+    "max_session_h": 12,
     "custom_image": true,
     "docker_inside": true,
     "nested_virt": false,
@@ -253,7 +253,7 @@
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
     "own_agent_api": false,
-    "max_session_unlimited": true,
+    "max_session_unlimited": false,
     "open_internet": true,
     "usage_api": false
   },
@@ -313,10 +313,11 @@
     "Personal free quota is carried as plan included_usd (compute only), not free.monthly_credit, to avoid double counting; it is per personal account, so a team of N developers each billing their own account gets N quotas (engine sees one).",
     "No benchmark data in this research set (perf all null). Cold create without prebuild takes tens of seconds to minutes (unmeasured).",
     "Per-user caps exist but are unpublished: docs (Creating a codespace for a repository, 2026-09-28) say \"There are limits to the number of codespaces you can create, and the number of codespaces you can run at the same time. These limits vary based on a number of factors.\" A fleet of dozens of concurrent codespaces on one personal account is unlikely to be allowed; org-owned codespaces spread over many users are the realistic route. Numbers unknown, so plan.concurrency stays null.",
-    "Idle timeout: default 30 min, configurable 5-240 min (4 h). Activity = typing/mouse or terminal input or output; a background process with no terminal output does not count, so an unattended agent that prints nothing stops after at most 4 h idle. No hard session cap otherwise (not encoded as max_session_h because a loop that writes to a terminal stays active).",
+    "Idle timeout: default 30 min, configurable 5-240 min (4 h). Activity = typing/mouse or terminal input or output; a background process with no terminal output does not count, so an unattended agent that prints nothing stops after at most 4 h idle.",
     "GPU machine type was deprecated by 2025-08-29 (NCv3 retirement); features.gpu=false is correct and should cite this.",
     "Org policy 'Maximum codespaces per user' can cap org-billed codespaces per user (active + stopped); separately 'The number of organization-billed codespaces someone can create is governed by a limit to the total number of codespaces that they can create across all repositories they can access. This limit is set by GitHub.' (value unpublished).",
-    "Prebuild storage is a separate billing SKU (codespaces_prebuild_storage) from codespaces_storage; both at the $0.07/GB-month storage rate and both count toward the Codespaces budget."
+    "Prebuild storage is a separate billing SKU (codespaces_prebuild_storage) from codespaces_storage; both at the $0.07/GB-month storage rate and both count toward the Codespaces budget.",
+    "Hard 12-hour maximum lifetime (docs, Understanding the codespace lifecycle, checked 2026-10-14): \"A codespace has a maximum lifetime of 12 hours, regardless of your idle timeout policy or settings. This limit applies even while you are actively using the codespace.\" Data is saved and the codespace stops; it can be restarted (disk kept, processes lost). Encoded as max_session_h = 12 on every plan, which the engine treats as a hard block for always-on or >12 h sessions; in reality 24/7 is reachable with a restart script every 12 h (each restart = a new VM, tens of seconds to minutes)."
   ],
   "sources": [
     "https://docs.github.com/en/billing/concepts/product-billing/github-codespaces",
@@ -336,7 +337,8 @@
     "https://docs.github.com/en/billing/concepts/budgets-and-alerts",
     "https://docs.github.com/en/billing/how-tos/set-up-budgets",
     "https://docs.github.com/en/rest/codespaces/codespaces",
-    "https://github.com/orgs/community/discussions/145944"
+    "https://github.com/orgs/community/discussions/145944",
+    "https://docs.github.com/en/codespaces/about-codespaces/understanding-the-codespace-lifecycle"
   ],
   "audit_2026_09_29": {
     "applied": 4,
@@ -506,11 +508,11 @@
       "checked": "2026-09-30"
     },
     "max_session_h": {
-      "value": "none",
-      "source": "https://docs.github.com/en/codespaces/setting-your-user-preferences/setting-your-timeout-period-for-github-codespaces",
-      "quote": "the codespace will stop automatically after a period of inactivity... you can change the default period of 30 minutes to be as long as 240 minutes",
-      "note": "There is no published hard maximum wall-clock session length; a codespace keeps running as long as it stays active (e.g. terminal output resets the idle timer), and is only stopped by the configurable idle timeout (5-240 min) or explicit user/API stop, not a fixed session cap.",
-      "checked": "2026-09-30"
+      "value": 12,
+      "source": "https://docs.github.com/en/codespaces/about-codespaces/understanding-the-codespace-lifecycle",
+      "quote": "A codespace has a maximum lifetime of 12 hours, regardless of your idle timeout policy or settings. This limit applies even while you are actively using the codespace.",
+      "note": "Hard wall-clock cap on every plan, even while active (was 'none' on 2026-09-30). At the limit: 'Your data is saved, then the codespace automatically stops.' / 'To continue working, restart the codespace.' Restart keeps the disk but not processes, so 24/7 use needs a restart script (start via CLI/REST API) every 12 h. Also on the timeout-settings page: 'Regardless of your idle timeout setting, a codespace has a maximum lifetime of 12 hours.'",
+      "checked": "2026-10-14"
     },
     "fork": {
       "value": false,

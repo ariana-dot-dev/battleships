@@ -99,7 +99,7 @@
   },
   "network": {
     "egress_free_gib": null,
-    "egress_gib": null,
+    "egress_gib": 0,
     "ipv4_month": null,
     "ipv4_available": false,
     "internet": {
@@ -124,12 +124,12 @@
       "fee_is_credit": false,
       "included_usd": 0,
       "per_seat": 0,
-      "concurrency": null,
+      "concurrency": 200,
       "max_session_h": null,
       "max_vcpu": 16,
       "max_ram_gib": 32,
       "sizes_allowed": null,
-      "note": "Billing model 'metered_active_compute' via a hosted checkout (billing status 'requires_checkout' until a payment method/subscription exists). No base fee, plan tiers, free tier or trial are published; fee 0 assumes pure metering. No per-org sandbox limit (fleet capacity bound); 1,000 API requests / 5 s per org per edge location; max 100 named environments per org. Limits (sandbox.mosaicos.com/llms.txt, 2026-09-28): \"There is no per-organization sandbox limit; what a burst meets is fleet capacity\"; API 1,000 requests per 5-second window per org (429 + Retry-After); batch tasks up to 4,000 concurrent; sync exec ceiling 15 min; up to 4 volumes per sandbox. concurrency null = no published cap (fleet-bound), not guaranteed unlimited.",
+      "note": "Billing model 'metered_active_compute' via a hosted checkout (billing status 'requires_checkout' until a payment method/subscription exists). No base fee, plan tiers, free tier or trial are published; fee 0 assumes pure metering. Concurrency (checked 2026-10-14): pricing page 'Up to 200 sandboxes at once per organization.' / 'Sandboxes alive at once, hibernated ones included 200 Per organization, across all keys Self-serve · Contact us to raise it'; llms.txt 'An organization may have up to 200 sandboxes alive at once across all of its keys, hibernated ones included' (429 organization_sandbox_limit_reached past it; a key's max_active_sandboxes can only narrow it). 1,000 API requests / 5 s per org per edge location; max 100 named environments per org; batch tasks up to 4,000 concurrent; sync exec ceiling 15 min; up to 4 volumes per sandbox.",
       "max_starts_per_min": null,
       "api_requests_per_5s": 1000
     }
@@ -217,7 +217,7 @@
     "max_session_unlimited": true,
     "fast_boot": false,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -249,15 +249,16 @@
     "Unit confirmed 2026-09-28 on sandbox.mosaicos.com/pricing and docs: 1 billing unit = 2 vCPU / 4 GB at $0.05/h ($0.00001389/s); 1 vCPU / 2 GB still bills as 1 unit; 4/8 = 2 units, 8/16 = 4, 16/32 = 8.",
     "'Includes RAM and storage' and '$0 while hibernated': storage and snapshot costs set to 0. Archived sandboxes (persist:true, 7-day retention), named environments (reclaimed after ~30 days unused) and Mosaic Object Storage volumes have no published price; assumed free, unverified.",
     "Larger shapes (4/8 and up) are cold boots because only the default shape is kept warm.",
-    "Egress/IPv4 prices not published (null). No public IPv4 (HTTPS previews + SSH).",
+    "Egress is $0 (pricing: 'Network egress Outbound traffic from the sandbox $0 No per-GB charge'; llms.txt: 'egress is priced at $0: outbound traffic has no separate charge; only awake sandbox time is billed', checked 2026-10-14). No public IPv4 (HTTPS previews + SSH), so no IPv4 price.",
     "No published plans, free tier, minimums, or volume discounts; checkout required before use.",
     "Regions: US only (Silicon Valley, Northern Virginia).",
     "Awake time is metered from the host record; if unreachable, billing falls back to wall-clock lifetime ('estimated' accounting status).",
     "Pricing page: 'RBAC, SSO, and audit logs included' (sso=true); no SOC 2 / HIPAA claim found.",
-    "Plan/concurrency: no plan tiers and no per-org sandbox cap are published (fleet-capacity bound); API rate limit 1,000 req / 5 s per org. Large bursts (e.g. 100 concurrent) are not guaranteed capacity (checked 2026-09-28).",
+    "Plan/concurrency: no plan tiers; up to 200 sandboxes alive at once per organization, hibernated ones included, across all keys ('Self-serve · Contact us to raise it', pricing page, checked 2026-10-14). API rate limit 1,000 req / 5 s per org. Fleet capacity can still refuse a create (429 capacity_unavailable).",
     "Pricing page now says 'One SKU for everyone, at three sizes' and lists only 1/2 GB, 2/4 GB (default) and 4/8 GB; the 8/16 and 16/32 shapes (base template only, 4 and 8 units) are still in the docs /v1/limits body and on the roadmap 'Shipped' list, so they stay in the card.",
     "Volumes (/mnt/data, Mosaic Object Storage) hold files up to 78 GiB; still no published storage price. Archived (persist:true) sandboxes 'accrue no CPU metering' and are reclaimed after 7 days unresumed.",
-    "Roadmap 'Now': 'A published concurrency ceiling, derived from the deployed fleet' (the no-per-org-limit statement may be replaced by a published cap). 'Later': GPU-backed sandboxes, an EU region and more regions. Per-organization tariffs exist in the metering model (usage segments capture the 'organization/resource-profile tariff'), so negotiated rates are possible, but no discount is published."
+    "Roadmap: the 'published concurrency ceiling' item has shipped (200 per org, see plan). 'Later': GPU-backed sandboxes, an EU region and more regions. Per-organization tariffs exist in the metering model (usage segments capture the 'organization/resource-profile tariff'), so negotiated rates are possible, but no discount is published.",
+    "Docker inside runs only on the `base` template; node-20, node-22 and python-3.11 list docker under unavailable_tools (llms.txt, checked 2026-10-14)."
   ],
   "sources": [
     "https://sandbox.mosaicos.com/",
@@ -265,7 +266,8 @@
     "https://sandbox.mosaicos.com/docs/",
     "https://sandbox.mosaicos.com/llms.txt",
     "https://sandbox.mosaicos.com/start/",
-    "https://pypi.org/project/mosaic-sandbox/"
+    "https://pypi.org/project/mosaic-sandbox/",
+    "https://sandbox.mosaicos.com/roadmap/"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -531,12 +533,19 @@
       "checked": "2026-09-25"
     },
     "usage_api": {
-      "value": false,
-      "source": "https://sandbox.mosaicos.com/docs/",
-      "quote": "GET /v1/limits exposes effective resource/fork/runtime limits for authenticated organization. No public universal new-account instance/vCPU/GPU quotas or increase route/turnaround identified.",
-      "note": "granularity: none; cost: no; Mosaic Sandbox uses metered billing based on awake_seconds tracked by the host, but the REST API (documented in llms.txt) shows no endpoint to query billable usage per sandbox or per tag. GET /v1/limits queries resource quotas, not usage/cost. Billing requires a Stripe checkout payment method but no programmatic usage API is documented.",
-      "confidence": "medium",
-      "checked": "2026-10-01"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "GET /v1/usage — what the organization is holding now (`sandboxes.active`, `billing_units.active`) and what the calendar month has cost; requires `billing:read`",
+      "note": "granularity: organization; cost: yes (calendar-month cost). Roadmap 'Shipped' also lists 'Stripe checkout, a self-serve billing portal, a public status page, audit events and export, and a usage endpoint' (https://sandbox.mosaicos.com/roadmap/). Keys with billing:read also get x-mosaic-billing-units-active response headers. No per-sandbox or per-tag usage breakdown documented.",
+      "checked": "2026-10-14"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://sandbox.mosaicos.com/llms.txt",
+      "quote": "POST /v1/sandboxes with `template: \"base\"` — the guest can run Docker itself: `docker run`, `docker build`, compose. ... `node-20`, `node-22` and `python-3.11` list `docker` under `unavailable_tools` in `/v1/limits`.",
+      "note": "Docker works only on the `base` template; the node-20, node-22 and python-3.11 templates do not ship it. Containers share the sandbox's own memory and vCPU.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [

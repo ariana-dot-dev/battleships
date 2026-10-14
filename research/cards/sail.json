@@ -42,13 +42,13 @@
       "always_on_month_per_instance": null,
       "commit_note": null,
       "min_billed_seconds": 0,
-      "granularity_s": 15,
+      "granularity_s": 60,
       "start_fee": 0.01,
       "boot_overhead_s": 0,
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Size (s = 1 vCPU, m = 4 vCPU default, l = 8 vCPU) is a ceiling, not a reservation. vCPU billed on guest /proc/stat CPU time; RAM billed on guest MemTotal minus MemAvailable (page cache excluded), both sampled ~every 15 s. Used NVMe disk (statfs used bytes on /) $0.0007/GiB-h only while running (put in storage.disk_gib_month as 0.0007 x 730). Sleeping, paused, checkpointing and cold-starting time are not billed. Autosleep default: 30 s fully idle (no CPU, no timers, no open connections except outbound requests awaiting a reply with >= 5 min timeout). Creation fee on Free plan only: S $0.005 / M $0.01 / L $0.012 (start_fee uses M); waived on Pro/Enterprise. Memory ceiling per size: s 2-64 GiB, m 8-128 GiB, l 16-256 GiB. [basis verified 2026-09-28] Docs: vCPU \"Guest /proc/stat CPU time, sampled about every 15 s\"; memory \"Guest MemTotal minus MemAvailable, sampled about every 15 s\"; \"Sleeping, paused, checkpointing, and cold-starting time is not sampled and not billed\" (docs.sailresearch.com/sailboxes-pricing). MemAvailable counts reclaimable page cache as available, so cache is mostly NOT billed. Autosleep: \"By default it is 30 seconds\" (sailboxes-autosleep). No floor documented."
+      "note": "Size (s = 1 vCPU, m = 4 vCPU default, l = 8 vCPU) is a ceiling, not a reservation. vCPU billed on CPU time of the Sailbox's virtual CPUs; RAM billed on memory the Sailbox holds resident. Usage is measured every second and billed in one-minute increments (granularity_s 60). Used NVMe disk $0.0007/GiB-h only while running (put in storage.disk_gib_month as 0.0007 x 730). Sleeping, paused, checkpointing and cold-starting time are not billed. Autosleep default: 30 s fully idle (no CPU, no timers, no open connections except outbound requests awaiting a reply with >= 5 min timeout). Creation fee on Free plan only: S $0.005 / M $0.01 / L $0.012 (start_fee uses M); waived on Pro/Enterprise. Ceilings per size (default, settable range): memory s 16 GiB (2-64), m 32 GiB (8-128), l 64 GiB (16-256); disk s 32 GiB (8-128), m 128 GiB (32-512), l 256 GiB (64-1024). [basis verified 2026-10-14] Docs: \"Used vCPU/hour\" tooltip \"CPU time of the Sailbox's virtual CPUs\"; \"Used RAM (GiB)/hour\" tooltip \"Memory the Sailbox holds resident\"; \"Usage accrues only while a Sailbox is running. Sleeping, paused, checkpointing, and cold-starting time is not billed. Usage is measured every second and added to your bill in one-minute increments.\" (docs.sailresearch.com/sailboxes-pricing). Autosleep: \"By default it is 30 seconds\" (sailboxes-autosleep). No floor documented."
     }
   ],
   "storage": {
@@ -230,12 +230,12 @@
     }
   ],
   "caveats": [
-    "Usage basis cited (docs.sailresearch.com/sailboxes-pricing, re-checked 2026-09-28): \"Used vCPU/hour\" = \"Guest /proc/stat CPU time, sampled about every 15 s\" ($0.015); \"Used RAM (GiB)/hour\" = \"Guest MemTotal minus MemAvailable, sampled about every 15 s\" ($0.008); \"Usage accrues only while a Sailbox is running.\" So ram_basis active is the documented meter, not an assumption.",
-    "Both CPU and RAM are billed on observed usage, not allocation: engine uses cpu_util and ram_util. RAM 'used' = MemTotal - MemAvailable, so reclaimable page cache is not billed; ram_util should be the working set, not the allocation.",
+    "Usage basis cited (docs.sailresearch.com/sailboxes-pricing, re-checked 2026-10-14): \"Used vCPU/hour\" = \"CPU time of the Sailbox's virtual CPUs\" ($0.015); \"Used RAM (GiB)/hour\" = \"Memory the Sailbox holds resident\" ($0.008); \"Usage accrues only while a Sailbox is running.\" So ram_basis active is the documented meter, not an assumption. The older /proc/stat and MemTotal-minus-MemAvailable meter definitions are no longer on the page.",
+    "Both CPU and RAM are billed on observed usage, not allocation: engine uses cpu_util and ram_util. RAM 'used' is resident memory; the docs no longer say whether reclaimable page cache counts (earlier docs used MemTotal - MemAvailable, which excluded it), so set ram_util to the working set plus any cache you expect to stay resident.",
     "Used NVMe disk ($0.0007/GiB-h = $0.511/GiB-month at 730 h) accrues only while running; the engine charges disk_gib_month per month, which over-counts disk for part-time sandboxes (true cost = GiB x running hours x $0.0007). Disk is 'used bytes on /' so the image footprint counts.",
     "Sleeping/paused state (memory + disk checkpoint) is free per docs, hence snapshot_gib_month 0. Storage price for explicit checkpoints (default 7-day TTL) is not published. Volumes cost $0.000411/GiB-h (~$0.30/GiB-month) for every hour they exist, even while Sailboxes sleep (not modelled).",
     "Creation fee depends on size (S .005 / M .01 / L .012) and applies on Free only (Pro/Enterprise set waives_start_fee); start_fee uses the M fee.",
-    "Granularity: usage sampled ~every 15 s; exact rounding not documented. No minimum billed time published.",
+    "Granularity: \"Usage is measured every second and added to your bill in one-minute increments\" (sailboxes-pricing) and \"Usage is metered per minute while a Sailbox runs\" (usage API, 2026-10-14), so granularity_s is 60. The docs don't say whether a partial final minute rounds up; the engine rounds each session up to the minute, so sub-minute runs may be slightly over-priced. No minimum billed time published.",
     "Credits are prepaid and org-wide, shared with Sail's LLM inference API. Pro's included $100/month is not a fee credit (fee_is_credit false); first month adds $150.",
     "Free plan's $5/month requires a payment method on file (free.monthly_credit = Free plan included_usd; don't subtract both).",
     "Egress/ingress pricing not published (null). No public IPv4; published ports serve HTTP or raw TCP (with source allowlist).",
@@ -255,7 +255,8 @@
     "https://docs.sailresearch.com/harbor",
     "https://docs.sailresearch.com/sailbox-sdk",
     "https://docs.sailresearch.com/llms-full.txt",
-    "https://www.computesdk.com/benchmarks/sandboxes/"
+    "https://www.computesdk.com/benchmarks/sandboxes/",
+    "https://docs.sailresearch.com/security"
   ],
   "fleet": {
     "default_max_instances": 100,
@@ -395,8 +396,8 @@
       "value": false,
       "source": "https://docs.sailresearch.com/sailbox-sdk",
       "quote": "`memory_limit_gib` | `None` | Memory ceiling in whole GiB, within the size's range: 2-64 for `\"s\"`, 8-128 for `\"m\"`, 16-256 for `\"l\"`. The size's default when omitted.",
-      "note": "Size and its memory/disk ceilings are parameters of Sailbox creation only (CreateSailboxRequest); no update/resize endpoint or SDK method to change a running Sailbox's vCPU/RAM ceiling was found in the API reference or SDK docs.",
-      "checked": "2026-09-30"
+      "note": "Size and its memory/disk ceilings are parameters of Sailbox creation only (CreateSailboxRequest; billing overview: \"Pass `memory_limit_gib` or `disk_limit_gib` at create time to set a ceiling, within the range shown\"); no update/resize endpoint or SDK method to change a running Sailbox's vCPU/RAM ceiling was found in the API reference or SDK docs. Defaults per size: s 16 GiB memory / 32 GiB disk, m 32 / 128, l 64 / 256; disk ceilings range 8-128 (s), 32-512 (m), 64-1024 (l).",
+      "checked": "2026-10-14"
     },
     "own_agent_api": {
       "value": false,
@@ -517,10 +518,29 @@
       "note": "granularity: per-sandbox; cost: yes; Sail provides GET /sailboxes/spend API endpoint that returns billable usage (vcpu_seconds, memory_gib_seconds, state_disk_gib_seconds) and costs (finalized_cost_usd_nanos, estimated_active_cost_usd_nanos) per Sailbox or filtered by app_id. Also supports GET /sailboxes/{id}/usage/timeline for resource usage timeseries. Part of the broader Usage API (https://docs.sailresearch.com/usage.md) for programmatic access to spend and usage.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "soc2": {
+      "value": true,
+      "source": "https://docs.sailresearch.com/security",
+      "quote": "Sail is SOC 2 Type I compliant. You can request the independent auditor report through our [Trust Center](https://trust.sailresearch.com/).",
+      "note": "Type I today; the same page says \"Sail's SOC 2 Type II compliance takes effect August 25, 2026.\" (date already passed on 2026-10-14, page not updated to say Type II is held).",
+      "checked": "2026-10-14"
+    },
+    "hipaa": {
+      "value": true,
+      "source": "https://docs.sailresearch.com/security",
+      "quote": "Enterprise customers can sign a business associate agreement (BAA) with Sail for HIPAA-regulated workloads.",
+      "note": "BAA on Enterprise only; Free and Pro have no BAA.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],
   "locations_source": "https://docs.sailresearch.com/sailboxes-security",
   "locations_quote": "By default, Sail uses service providers in multiple regions, so customer data may be processed or stored outside the United States.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_10_14": {
+    "applied": 3,
+    "source": "checked against the provider's live pricing, billing and security pages",
+    "reviewed": 3
+  }
 }

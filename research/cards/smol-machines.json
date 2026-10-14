@@ -87,12 +87,12 @@
       "fee_is_credit": false,
       "included_usd": 0,
       "per_seat": null,
-      "concurrency": null,
+      "concurrency": 20,
       "max_session_h": null,
       "max_vcpu": 8,
       "max_ram_gib": 16,
       "sizes_allowed": null,
-      "note": "20 machines; up to 8 vCPU / 16 GB per machine; 'idle apps scale to zero and wake on the next request' (always-on apps only on Pro/Startup). No card."
+      "note": "20 machines; up to 8 vCPU / 16 GB per machine; 'idle apps scale to zero and wake on the next request' (always-on apps only on Pro/Startup). No card. Running cap 20: \"concurrency limit reached: your Standard plan allows 20 machines running at once\" (api-reference, 2026-10-14)."
     },
     {
       "name": "Pro",
@@ -101,12 +101,12 @@
       "fee_is_credit": false,
       "included_usd": 0,
       "per_seat": null,
-      "concurrency": null,
+      "concurrency": 100,
       "max_session_h": null,
       "max_vcpu": 16,
       "max_ram_gib": 24,
       "sizes_allowed": null,
-      "note": "100 machines; up to 16 vCPU / 24 GB / 200 GB disk per machine; always-on apps allowed. $20/month fee is added on top of usage (not credit)."
+      "note": "100 machines; up to 16 vCPU / 24 GB / 200 GB disk per machine; always-on apps allowed. $20/month fee is added on top of usage (not credit). Running cap taken as 100: the pricing page publishes only the held-machine count, which bounds running machines (stopped ones count too); Standard's published running cap equals its machine count."
     },
     {
       "name": "Startup",
@@ -115,12 +115,12 @@
       "fee_is_credit": false,
       "included_usd": 0,
       "per_seat": null,
-      "concurrency": null,
+      "concurrency": 1000,
       "max_session_h": null,
       "max_vcpu": 32,
       "max_ram_gib": 32,
       "sizes_allowed": null,
-      "note": "1,000 machines; up to 32 vCPU / 32 GB / 200 GB disk per machine; always-on apps, priority support. $150/month fee is added on top of usage (not credit)."
+      "note": "1,000 machines; up to 32 vCPU / 32 GB / 200 GB disk per machine; always-on apps, priority support. $150/month fee is added on top of usage (not credit). Running cap taken as 1,000: the pricing page publishes only the held-machine count, which bounds running machines (stopped ones count too); Standard's published running cap equals its machine count."
     },
     {
       "name": "Enterprise",
@@ -209,7 +209,7 @@
     "harness_api": false,
     "egress_allowlist_level": "both",
     "ingress_rules": true,
-    "secret_proxy": "any-http",
+    "secret_proxy": false,
     "volume_attach": false,
     "volume_shared": false,
     "anti_bot": false,
@@ -233,11 +233,12 @@
     "One-minute minimum initially at requested size; longer lifetimes use sampled CPU/RSS and second-level metering. Fork fanout pays minimum once, not per clone.",
     "Engine cannot express per-running-instance base fee or initial allocated-resource minimum with later active usage. Card deliberately has null CPU/RAM rates to prevent underpricing. Native rates are retained in provider extras.",
     "Disk is used bytes at $0.0001/GB-hour, including stopped state; scale-to-zero removes base and CPU/RAM. Beta discount: 10% only on spend above $2,000/month; threshold may change.",
-    "Pro/Startup are pure fees, not credits. Standard 20 stored machines, Pro 100, Startup 1000; limits need not equal running concurrency.",
+    "Pro/Startup are pure fees, not credits. Machine caps (Standard 20, Pro 100, Startup 1,000) count stopped machines too until deleted; running-at-once caps are modelled as the same numbers (Standard's 20 is published). Stopped-but-kept machines beyond the cap are not modelled.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "Re-checked 2026-09-28 on smolmachines.com/pricing: rates unchanged ($0.04/machine-h base, 1-min minimum; $0.05/active vCPU-h; $0.0162/active RSS GB-h; $0.0001/GB-h disk; $0.05/GB egress). Still unpriced: the engine has no per-running-instance hourly fee field, and folding the $0.04 base into vcpu_h/ram_gib_h would misprice every size. Per-machine limits: Standard 8 vCPU/16 GB, Pro 16/24, Startup 32/32.",
-    "Beta volume discount: 10% off spend above $2,000/month ('threshold and rate may still change'). Prepaid credits (top-ups) expire 12 months after purchase and are non-refundable after 14 days; rates may change on 14 days' notice."
+    "Beta volume discount: 10% off spend above $2,000/month ('threshold and rate may still change'). Prepaid credits (top-ups) expire 12 months after purchase and are non-refundable after 14 days; rates may change on 14 days' notice.",
+    "Credential substitution (secret proxy for HTTPS headers) exists only in open-source smolvm run locally or self-hosted; smol cloud machines get plaintext env secrets. Card features describe the cloud product (checked 2026-10-14)."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/smol-machines",
@@ -245,7 +246,12 @@
     "https://smolmachines.com/faq",
     "https://smolmachines.com/docs/",
     "https://smolmachines.com/",
-    "https://smolmachines.com/llms.txt"
+    "https://smolmachines.com/llms.txt",
+    "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
+    "https://smolmachines.com/docs/cloud/api-reference",
+    "https://smolmachines.com/pricing.md",
+    "https://smolmachines.com/openapi.json",
+    "https://smolmachines.com/docs/introduction/concepts/isolation-networking-credentials"
   ],
   "fleet": {
     "default_max_instances": 20,
@@ -255,11 +261,13 @@
     "raise_time_days": null,
     "verification": "$100 introductory credits without card; paid subscriptions plus usage.",
     "tiers": "Standard 20 machines; Pro ($20/month) 100; Startup ($150/month) 1,000; Enterprise custom.",
-    "notes": "Current pricing explicitly publishes machine limits missing from source card. 10 fits Standard, 50 Pro, 300/1,000 Startup, subject to available capacity. Whether stopped machines consume the count is not stated. Public health endpoint reported a small cluster (nodesTotal 4, nodesReady 4 on 2026-09-29), and the OpenAPI PlanInfo has separate maxMachines and maxConcurrentMachines, so plan machine counts may be stored-machine caps with an unpublished concurrency cap.",
+    "notes": "Plan limits (api-reference): machines held, counted across every state (\"a stopped machine still occupies a slot until it is deleted\"), and machines running at once (\"counted over started and creating\"); Standard's running cap is 20 (\"your Standard plan allows 20 machines running at once\"). 10 fits Standard, 50 Pro, 300/1,000 Startup, subject to available capacity. Public health endpoint reported a small cluster (nodesTotal 4, nodesReady 4 on 2026-09-29).",
     "sources": [
-      "https://smolmachines.com/pricing"
+      "https://smolmachines.com/pricing",
+      "https://smolmachines.com/docs/cloud/api-reference",
+      "https://smolmachines.com/pricing.md"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-10-14"
   },
   "audit_2026_09_29": {
     "applied": 18,
@@ -300,15 +308,16 @@
       "value": true,
       "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
       "quote": "Set public: true only when the service should be reachable without the caller’s API authorization.",
-      "note": "Choose up to four published guest ports; public:false reaches ports only via the API-token-authenticated connect route /v1/machines/{id}/connect/{port}/ (WebSocket too); scoped share links also mentioned in API reference. No IP allowlist documented.",
-      "checked": "2026-09-29"
+      "note": "Up to 16 published guest ports per machine (\"Each cloud machine can publish up to 16 guest ports.\"); public:false reaches ports only via the API-token-authenticated connect route /v1/machines/{id}/connect/{port}/ (WebSocket too); scoped share links also mentioned in API reference. No IP allowlist documented.",
+      "checked": "2026-10-14"
     },
     "secret_proxy": {
-      "value": "any-http",
-      "source": "https://raw.githubusercontent.com/smol-machines/docs/main/introduction/concepts/isolation-networking-credentials.md",
-      "quote": "The guest receives an opaque placeholder in the environment variable it expects; the host replaces the placeholder with the real value only on HTTPS requests to the binding's allowed hosts, and only inside a request header.",
-      "note": "OSS smolvm (local/self-hosted) only: `--credential NAME=ENV_VAR@HOST[,HOST]`, shipped per smolvm v1.19.0 release notes ('Honor --credential when creating a machine from a pack'); HTTPS port 443 only, header only, needs virtio-net backend; no DB/SSH (SSH-agent forwarding is separate, git/ssh via agent socket). NOT in smol cloud: CreateMachineRequest has no credential field, and the LIVE website page still says 'HTTP credential brokering that swaps guest placeholders for host-held secrets is under development and is not a shipped product surface.' Cloud secrets = plaintext env vars. For a cloud-only view treat as false.",
-      "checked": "2026-09-29"
+      "value": false,
+      "was": "any-http",
+      "source": "https://smolmachines.com/docs/introduction/concepts/isolation-networking-credentials",
+      "quote": "Secret injection resolves a host environment variable or file and places the value inside the guest. The value is plaintext from the guest’s perspective. Code running in the machine can read it.",
+      "note": "Credential substitution (placeholder swapped on HTTPS headers to allowed hosts) is documented only for local/self-hosted smolvm (`smolvm machine create --credential ...`). The cloud CreateMachineRequest (https://smolmachines.com/openapi.json) has no credential field (properties: autoStopSeconds, env, ephemeral, mounts, name, network, resources, source, ttlSeconds, workdir); the only credential route is /v1/nodes/{id}/credential, a node credential. Priced smol cloud: no secret proxy; secrets are plaintext env.",
+      "checked": "2026-10-14"
     },
     "volume_attach": {
       "value": false,
@@ -425,9 +434,9 @@
     "public_ipv4": {
       "value": false,
       "source": "https://smolmachines.com/docs/cloud/lifecycle-storage-networking",
-      "quote": "Each cloud machine can publish up to four guest ports. A published port is a guest port declaration; use the returned URL or authenticated connect route to reach it.",
+      "quote": "Each cloud machine can publish up to 16 guest ports. A published port is a guest port declaration; use the returned URL or authenticated connect route to reach it.",
       "note": "Machines are reached through a provider-issued URL / authenticated connect route (or public:true HTTPS ingress), not a dedicated public IPv4 address per machine.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "egress_http_rules": {
       "value": false,
@@ -536,6 +545,17 @@
       "quote": "They keep their contents across exec calls while the machine runs, and are empty again after a stop and start — including a stop triggered by autoStopSeconds.",
       "note": "The whole disk survives a stop, installed packages included.",
       "checked": "2026-10-01"
+    },
+    "concurrency": {
+      "value": {
+        "Standard": 20,
+        "Pro": 100,
+        "Startup": 1000
+      },
+      "source": "https://smolmachines.com/docs/cloud/api-reference",
+      "quote": "How many may run at once — counted over started and creating . ... concurrency limit reached: your Standard plan allows 20 machines running at once; upgrade at https://smolmachines.com/pricing",
+      "note": "Three plan ceilings: machines held (\"counted across every state, not just running ones, so a stopped machine still occupies a slot until it is deleted\"), machines running at once, and per-machine size. Pricing (https://smolmachines.com/pricing.md) lists Machines 20 / 100 / 1,000 for standard / pro / startup; only Standard's running cap is stated as a number (20); Pro/Startup set to their held-machine count, which is an upper bound on running.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],

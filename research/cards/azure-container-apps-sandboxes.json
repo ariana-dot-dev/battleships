@@ -338,10 +338,10 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": false,
+    "docker_inside": true,
     "nested_virt": false,
     "root": true,
-    "systemd": false,
+    "systemd": true,
     "browser": false,
     "desktop": false,
     "computer_use": false,
@@ -444,11 +444,12 @@
     "Isolation: \"per-sandbox microVM\" (hypervisor not named); isolation enum set to firecracker for lack of a generic microvm value.",
     "GitHub Copilot cloud sandboxes are built on this service (GitHub docs).",
     "Programmatic custom sizes (any vCPU up to 16 at 2 GiB/vCPU) are represented by 8/16 and 16/32 presets inside the tiers regime; odd sizes between them price at the next preset up.",
-    "Default auto-suspend is 300 s: a sandbox left idle keeps billing its full tier for 5 minutes before it stops (unless the client calls stop or sets a shorter idle timeout, e.g. 60 s).",
+    "Default auto-suspend is 300 s: a sandbox left idle keeps billing its full tier for 5 minutes before it stops (unless the client calls stop or sets a shorter idle timeout, e.g. 60 s). Source (checked 2026-10-14): https://sandboxes.azure.com/docs/sandboxes/sandboxes defaults table \"auto_suspend_seconds 300 Suspend after 5 minutes idle.\" (the lifecycle page only shows a 60 s example).",
     "Quota: 500 concurrent active cores per organization (typical; per subscription+region) and 3,000 API requests/minute; increases by support request, may need review.",
     "No availability SLA and no availability-zone support; single-region service.",
     "Mixed GA/preview status: GA announced 2026-09-23, but the Learn lifecycle page (updated 2026-09-23) still says sandboxes are in preview and titles lifecycle/snapshots '(preview)'; the aca CLI reports 1.0.0-preview.1; Connectors and Triggers are preview.",
     "Memory-mode suspend is unavailable when a Data Disk volume is attached (disk-only suspend; processes restart on resume).",
+    "Docker and systemd depend on the disk image: 'azure-dev' ships Docker on systemd and 'copilot' runs systemd as PID 1, but the default 'ubuntu' image uses /bin/bash as entrypoint and offers only Buildah for Dockerfile builds (https://sandboxes.azure.com/docs/sandboxes/disk-images, 2026-10-14).",
     "Private Endpoint (inbound from your VNet) adds Container Apps 'Environment Private Endpoint' $0.10/h (~$73/month, eastus) plus Azure Private Link charges."
   ],
   "sources": [
@@ -617,11 +618,20 @@
       "checked": "2026-09-30"
     },
     "docker_inside": {
-      "value": false,
+      "value": true,
+      "corrected_from": false,
       "source": "https://sandboxes.azure.com/docs/sandboxes/disk-images",
-      "quote": "azure-dev Full Azure development environment Systemd-based Ubuntu 26.04 environment with Azure CLI, Azure Developer CLI, Bicep, Azure Functions Core Tools, .NET 10, Node.js 24, Python and uv, Go, Java 17 and Maven, Docker, GitHub Copilot CLI, and Visual Studio Code CLI.",
-      "note": "reviewed: proposed correction rejected (The first-party 'azure-dev' public disk image ships Docker for use inside the sandbox; the 'ubuntu' image also includes Buildah for in-sandbox Dockerfile builds. Each sandbox is its own microVM with root access, so Docker/containers running inside is supported and documented.)",
-      "checked": "2026-09-30"
+      "quote": "Systemd-based Ubuntu 26.04 environment with Azure CLI, Azure Developer CLI, Bicep, Azure Functions Core Tools, .NET 10, Node.js 24, Python and uv, Go, Java 17 and Maven, Docker, GitHub Copilot CLI, and Visual Studio Code CLI.",
+      "note": "The first-party 'azure-dev' public disk image ships Docker; the 'ubuntu' image: \"Includes Buildah for in-sandbox Dockerfile builds\". Each sandbox is its own microVM with its own kernel and root. The earlier false value contradicted its own evidence. Docker comes preinstalled only on azure-dev (or a custom disk image), not on the default ubuntu image.",
+      "checked": "2026-10-14"
+    },
+    "systemd": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://sandboxes.azure.com/docs/sandboxes/disk-images",
+      "quote": "Uses systemd as PID 1 and includes GitHub Copilot CLI, GitHub CLI, Node.js 24, Python 3, and nodemon.",
+      "note": "The 'copilot' public image runs systemd as PID 1 and 'azure-dev' is a \"Systemd-based Ubuntu 26.04 environment\". The default 'ubuntu' image \"Uses /bin/bash as the entrypoint\", so systemd depends on picking one of these images.",
+      "checked": "2026-10-14"
     },
     "nested_virt": {
       "value": false,

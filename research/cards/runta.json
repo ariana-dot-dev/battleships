@@ -104,13 +104,13 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": true,
+    "docker_inside": null,
     "nested_virt": null,
     "root": null,
     "systemd": null,
     "browser": true,
     "desktop": true,
-    "computer_use": true,
+    "computer_use": null,
     "code_interpreter": null,
     "agent_harnesses": true,
     "ssh": true,
@@ -162,7 +162,7 @@
     "anti_bot": false,
     "captcha_solving": false,
     "own_agent_api": true,
-    "guest_firewall": true,
+    "guest_firewall": null,
     "max_session_unlimited": true,
     "egress_ip_type": "datacenter",
     "open_internet": true,
@@ -180,10 +180,10 @@
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
     "SSH: docs overview lists an SSH gateway (\"the stable SSH gateway host key\") and attaching SSH keys to runtimes -> ssh true (verified 2026-09-28).",
-    "Desktop: runtimes expose a VNC desktop (\"Enable the runtime VNC desktop\"; Cloud Agent computer sessions = \"runtime's desktop through VNC over WebSocket\") -> desktop true. No bundled browser or computer-use (screenshot/mouse) API is documented: browser and computer_use stay null (unverified).",
+    "Desktop: runtimes expose a VNC desktop (\"Enable the runtime VNC desktop\"; Cloud Agent computer sessions = \"runtime's desktop through VNC over WebSocket\") -> desktop true. Browser true via the Cloud Agent runtime (\"The runtime supplies the computer, browser, filesystem, and model routing\"). No computer-use (screenshot/mouse/keyboard) API for your own agent is documented, only the VNC viewer ticket: computer_use stays null (unverified, re-checked 2026-10-14).",
     "Snapshot/checkpoint storage and egress prices are not published (pricing page + checkpoints + egress docs re-checked 2026-09-28): snapshot_gib_month and egress_gib stay null (unknown, not free).",
     "Free trial accounts share limits of 32 vCPU and 64 GiB memory (pricing page); paid-account limits unpublished.",
-    "Runtime disk is 16-256 GiB (API minimum 16 GiB), so every runtime pays at least 16 GiB at the disk rate.",
+    "Runtime disk is 32-256 GiB at creation (openapi.yaml CreateRuntimeResourceRequests.disk_gib \"Requested overlay virtual capacity in GiB.\", minimum 32, maximum 256; growth only while fully shut down), so every runtime pays at least 32 GiB at the disk rate (~$2.52/month per kept runtime). The engine bills the workload disk with no provider floor, so scenarios under 32 GiB are slightly under-priced (checked 2026-10-14).",
     "Auto-suspend (preview): idle threshold from 1 s, but the scan runs every 60 s, so suspension can happen ~1 scan after the threshold (a 30 s timeout can take ~90 s) and that tail is billed. Checkpoint restore creates a new runtime."
   ],
   "sources": [
@@ -193,7 +193,9 @@
     "https://runta.com/docs/runtime/memory-auto-scaling/",
     "https://runta.com/docs/runtime/auto-suspend-and-wake-up/",
     "https://runta.com/docs/runtime/egress/",
-    "https://runta.com/docs/cloud-agents/computer-sessions/"
+    "https://runta.com/docs/cloud-agents/computer-sessions/",
+    "https://runta.com/openapi.yaml",
+    "https://runta.com/docs/cloud-agents/"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -262,7 +264,7 @@
       "value": false,
       "source": "https://runta.com/openapi.yaml",
       "quote": null,
-      "note": "The full public OpenAPI contract (runtimes, checkpoints, secrets, images, files, agents) has no volume resource; storage is the runtime's own disk (16-256 GiB, resizable disk_gib). Not explicitly denied in prose.",
+      "note": "The full public OpenAPI contract (runtimes, checkpoints, secrets, images, files, agents) has no volume resource; storage is the runtime's own disk (32-256 GiB at creation, resizable disk_gib). Not explicitly denied in prose.",
       "checked": "2026-09-29"
     },
     "volume_shared": {
@@ -322,11 +324,12 @@
       "checked": "2026-09-30"
     },
     "guest_firewall": {
-      "value": true,
+      "value": null,
       "source": "https://runta.com/docs/overview/",
       "quote": "Runta is an execution layer for AI agents. It provides scalable, governed runtimes with strong control over state, access, credentials, and execution.",
-      "note": "derived: runtimes are isolated VMs with SSH access and Docker-inside support, which typically implies guest-level root/sudo access sufficient to run iptables/nftables; not independently confirmed by Runta docs.",
-      "checked": "2026-09-30"
+      "note": "Previously derived from SSH + Docker-inside support implying root; Docker-inside is not documented and root is unverified, so the ability to run iptables/nftables inside the guest is unverified.",
+      "checked": "2026-10-14",
+      "was": true
     },
     "static_egress_ip": {
       "value": false,
@@ -433,6 +436,22 @@
       "note": "granularity: account-only; cost: no; No API endpoint exists to programmatically retrieve billable usage (vCPU-seconds, memory-hours, disk-hours, cost) per sandbox/runtime or per tag/label. The dashboard shows balance/usage but this is for human consumption only. Runta offers prepaid usage-based billing ($5 minimum top-up, $50 trial credit, automatic top-ups optional) but no API-accessible billing or usage export.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "docker_inside": {
+      "value": null,
+      "was": true,
+      "source": "https://runta.com/openapi.yaml",
+      "quote": "Build a private Runtime Image from a Dockerfile",
+      "note": "Dockerfiles are only used to build Runtime Images; the overview, runtime basics and the OpenAPI contract never say a Docker daemon runs inside a runtime (no docker daemon, root/sudo, systemd or kvm wording). Unverified.",
+      "checked": "2026-10-14"
+    },
+    "computer_use": {
+      "value": null,
+      "was": true,
+      "source": "https://runta.com/docs/cloud-agents/",
+      "quote": "Computer session Expiring authorization to connect to the runtime’s VNC desktop.",
+      "note": "Computer sessions hand out an expiring VNC-over-WebSocket ticket for a viewer (noVNC); no screenshot/mouse/keyboard API for your own agent is documented. The managed Pi agent drives the computer itself (own_agent_api). Unverified as a computer-use API.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],

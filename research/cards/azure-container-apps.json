@@ -395,7 +395,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Consumption: no fee; Dedicated/private endpoints/planned maintenance add $0.10/h per environment. Dynamic sessions: max 600 concurrent per pool (earlier research)."
+      "note": "Consumption: no fee; Dedicated/private endpoints/planned maintenance add $0.10/h per environment. Dynamic sessions: code interpreter pools max 600 concurrent sessions per pool (session-pool doc, 2026-10-14: 'The maximum value is 600.'); custom container pools state no maximum ('The maximum number of sessions that can be allocated at the same time.')."
     }
   ],
   "free": {
@@ -433,7 +433,7 @@
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": true,
-    "raw_tcp_inbound": false,
+    "raw_tcp_inbound": true,
     "egress_allowlist": true,
     "static_egress_ip": true,
     "private_network": true,
@@ -535,12 +535,15 @@
     "Consumption-only (legacy) environments cap apps at 2 vCPU / 4 GiB; the 4 vCPU / 8 GiB max needs a workload-profiles environment (the default). Max 1,000 replicas per revision. Express apps (new, 2026) and Sandboxes use the same Consumption meters and free grant with no environment fee; Sandboxes+Express limited to 2,000 cores (support request to raise).",
     "KEDA default cool-down period is 300 s: a scale-to-zero app keeps its last replica billed at the active rate ~5 min after the last event (configurable). Not modelled.",
     "Flexible workload profile (preview): billed like Consumption plus the $0.10/h environment management fee, single-tenant pool, no scale to zero, limited regions. Not modelled as a mode.",
-    "Environment fee: the new 'Environment Management Hour' / 'Environment Private Endpoint' / 'Environment Planned Maintenance Hour' meters (effective 2026-09-01) are region-priced: $0.10 eastus/eastus2/westus2/westus3/centralus, $0.13 westus/swedencentral/germanywestcentral, $0.143 northeurope/westeurope, $0.145 japaneast, $0.155 eastasia, up to $0.23 brazilsoutheast; the legacy 'Dedicated Plan Management' meter stays $0.10 in almost every region. So the $73/month dedicated fee is ~$104/month in North Europe if the new meter is the one charged (unclear which meter applies)."
+    "Environment fee: the new 'Environment Management Hour' / 'Environment Private Endpoint' / 'Environment Planned Maintenance Hour' meters (effective 2026-09-01) are region-priced: $0.10 eastus/eastus2/westus2/westus3/centralus, $0.13 westus/swedencentral/germanywestcentral, $0.143 northeurope/westeurope, $0.145 japaneast, $0.155 eastasia, up to $0.23 brazilsoutheast; the legacy 'Dedicated Plan Management' meter stays $0.10 in almost every region. So the $73/month dedicated fee is ~$104/month in North Europe if the new meter is the one charged (unclear which meter applies).",
+    "Session pool lifecycle (learn.microsoft.com/azure/container-apps/session-pool, 2026-10-14): 'Timed' (default, all pool types) deletes a session after cooldownPeriodInSeconds without requests; 'OnContainerExit' keeps a session 'active until the container exits on its own or the maximum alive period is reached' (maxAlivePeriodInSeconds). So custom container sessions can run long-lived, not only until the 300-3600 s cooldown. The 600-session cap is documented for code interpreter pools only."
   ],
   "sources": [
     "https://azure.microsoft.com/en-us/pricing/details/container-apps/",
     "https://learn.microsoft.com/en-us/azure/container-apps/billing",
     "https://learn.microsoft.com/en-us/azure/container-apps/sessions-code-interpreter",
+    "https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview",
+    "https://learn.microsoft.com/en-us/azure/container-apps/session-pool",
     "https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Azure Container Apps'",
     "https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Bandwidth'"
   ],
@@ -570,8 +573,8 @@
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/sessions-usage",
       "quote": "Once there are no requests to the session after the cooldown period has elapsed, the session is automatically destroyed.",
-      "note": "Dynamic sessions are destroyed after the cooldown (300-3600 s) or on container exit; app replicas scaling to zero lose container state (only EmptyDir/replica-scoped or Azure Files persist). Snapshots exist only in the separate ACA Sandboxes product (id azure-container-apps-sandboxes, sandboxes-snapshots-state-management).",
-      "checked": "2026-09-29"
+      "note": "Dynamic sessions are not snapshotted: with the default Timed lifecycle they are destroyed after the cooldown (300-3600 s); custom container pools can instead use the OnContainerExit lifecycle (session-pool doc, 2026-10-14: 'a session remains active until the container exits on its own or the maximum alive period is reached', set by maxAlivePeriodInSeconds), after which the session is deleted. App replicas scaling to zero lose container state (only EmptyDir/replica-scoped or Azure Files persist). Snapshots exist only in the separate ACA Sandboxes product (id azure-container-apps-sandboxes, sandboxes-snapshots-state-management).",
+      "checked": "2026-10-14"
     },
     "snapshot_on_demand": {
       "value": false,
@@ -856,6 +859,14 @@
       "note": "granularity: per-resource; cost: yes; Azure hyperscaler provides Cost Details API, Exports API, and Cost Management Query API that return vCPU-seconds, GiB-seconds, GPU-seconds, and HTTP requests per resource. Data can be filtered by resource ID, tags, or resource groups. APIs return both quantities and costs in currency (USD). Supported for all subscription types (Pay-As-You-Go, Enterprise Agreement, Microsoft Customer Agreement).",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "raw_tcp_inbound": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview",
+      "quote": "Container Apps supports TCP-based protocols other than HTTP or HTTPS. For example, you can use TCP ingress to expose a container app that uses the Redis protocol.",
+      "note": "Ingress supports 'two protocols for ingress: HTTP and TCP.' Limits: 'External TCP ingress is only supported for Container Apps environments that use a virtual network.' (custom VNet environment; without one TCP ingress is internal only); one main port plus 'a maximum of five additional ports per app' (support request for more); externally exposed TCP ports 'must be unique across the entire Container Apps environment'. Custom-container session pools also allow 'any TCP protocol you choose to expose' (learn.microsoft.com/azure/container-apps/sessions), though only via the pool management endpoint. No dedicated public IPv4 (public_ipv4 stays false).",
+      "checked": "2026-10-14"
     },
     "persist_scope": {
       "value": "folder",

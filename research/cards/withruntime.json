@@ -89,13 +89,13 @@
     }
   ],
   "storage": {
-    "included_disk_gib": null,
-    "disk_gib_month": 0,
+    "included_disk_gib": 10,
+    "disk_gib_month": 0.08589934592,
     "disk_billed_when_stopped": true,
     "snapshot_gib_month": 0.08589934592,
     "paused_ram_billed": false,
     "volume_gib_month": 0.11169,
-    "volume_backup_gb_month": 0.012
+    "volume_backup_gb_month": 0.02
   },
   "network": {
     "egress_free_gib": 100,
@@ -114,19 +114,19 @@
       "fee_is_credit": false,
       "included_usd": 0,
       "per_seat": 0,
-      "concurrency": 50,
+      "concurrency": 100,
       "max_session_h": null,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "New account C=50 until 7 days after first settled top-up or $50 usage settled. Aggregate 200 vCPU / 400 GiB starting quota."
+      "note": "Full paid limits from the first top-up: 100 sandboxes at once (200 with auto top-up), 200 vCPU / 400 GiB memory / 400 GiB disk across running sandboxes (twice that with auto top-up). 50 at once only after a disputed payment, suspension or abuse report."
     }
   ],
   "free": {
     "monthly_credit": null,
     "one_time_credit": null,
     "trial_hours": 100,
-    "conditions": "100 aggregate sandbox-hours; 8 running at once (company-domain users share the 8), 2 vCPU/4 GiB and 10 GiB disk maximum per sandbox, 1-hour session maximum, 5 GiB/day aggregate traffic, 7-day paused retention; no card."
+    "conditions": "Free usage: 100 GiB-hours of memory and 25 vCPU-hours of active CPU (\"100 free hours of a 1 GB machine\"), once across the first 30 days, then every month (renewed on the 1st, UTC) once the account has paid; also 10 GB of saved copies and 5 GB of volumes. Without credit: 4 sandboxes at once, 2 vCPU/4 GiB/10 GiB disk each, 8 vCPU / 16 GiB across running sandboxes, 10 sandboxes kept, 50 created per 24 h; no card."
   },
   "features": {
     "linux": true,
@@ -219,30 +219,37 @@
     "Public list pricing. Active CPU has absolute 0.05-vCPU floor per sandbox, not a fixed utilization percentage. Memory is reserved, not utilization. Decimal GB is explicit for snapshots and egress; rates converted to GiB with 1.073741824.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
-    "Disk: \"Included while running\" (llms-full.txt, 2026-09-28), so running disk is encoded as $0. A persistent sandbox (persistent: true) instead pays its whole disk at the reserved-disk rate, 153 microdollars/GiB-hour (~$0.11/GiB per 30-day month), also while stopped - not modelled here (would need a persistent-only disk rate). Paused sandboxes, snapshots and images: $0.08 per decimal GB-month.",
+    "Disk: a running sandbox's first 10 GiB is included; past it, the blocks its disk alone holds are billed at the paused-storage rate, $0.08 per decimal GB per 30-day month, measured every 30 s (llms-full.txt, 2026-10-14; sandboxes made before 5 October 2026 keep their old terms). The engine bills provisioned disk past 10 GiB, so it overcounts a disk that is mostly empty. A stopped sandbox keeps its disk \"billed as paused storage\"; the engine still subtracts the 10 GiB there, a small undercount. persistent: true no longer has its own disk rate (\"its disk is billed as any sandbox's\"). Largest disk is 400 GiB with credit, 10 GiB without.",
     "Desktop: \"Start a Linux desktop in any sandbox and drive it with clicks, keys and screenshots, or watch it live\"; first start installs it (~90 s, ~1 GB disk) and a browser follows (~1 min, ~0.5 GB). Desktop recordings to MP4 are supported.",
-    "Default idle pause is 60 seconds (configurable 10–86,400 or disabled). Compute stops at pause; the saved disk+memory blocks then cost $0.08/decimal-GB-month. Paid retention defaults 30 days and is configurable 1–365; trial retention is 7 days.",
-    "Free trial is an hours bucket, not a USD credit, so the card's free-dollar fields cannot represent it. Eight sandboxes consume the 100 hours eight times as fast; trial requests never fall back to paid credit.",
+    "Default idle pause is 60 seconds (configurable 10–86,400 or disabled). Compute stops at pause; the saved disk+memory blocks then cost $0.08/decimal-GB-month. Paid retention defaults 30 days and is configurable 1–365; trial retention is 7 days. Resize (memoryMiB) is possible only while paused.",
+    "Free usage is a resource bucket (100 GiB-hours of memory + 25 vCPU-hours of active CPU, ~$1.38 at list rates), not a USD credit, so the card's free-dollar fields cannot represent it. It is once in the first 30 days, then monthly once the account has paid; the monthly renewal is not modelled.",
     "Paid network cap is 500 GiB/day in+out per sandbox. Trial has 5 GiB/day total in+out. Egress billing itself is account-wide: first 100 GiB/month free, then $0.02 per decimal GB.",
-    "Storage charging began 2026-09-23. The first 3 images and first 10 GiB of volumes made under the trial remain free even after adding credit; snapshots are excluded."
+    "Storage charging began 2026-09-23. The first 3 images and first 10 GiB of volumes made under the trial remain free even after adding credit; snapshots are excluded.",
+    "Volume backup is $0.02 per decimal GB-month (\"Volume backup | $0.02 per decimal GB per 30-day month; one made before this price keeps $0.012 until 7 November 2026\", pricing.md 2026-10-14); the card uses the new $0.02.",
+    "Agent harnesses: the AI SDK harness adapter was verified only against a fake Runtime API; Runtime's own page says \"No bridge harness (Claude Code, Codex) has run on Runtime yet.\""
   ],
   "sources": [
     "https://withruntime.com/pricing",
-    "https://withruntime.com/llms-full.txt"
+    "https://withruntime.com/llms-full.txt",
+    "https://withruntime.com/pricing.md",
+    "https://withruntime.com/docs/limits.md",
+    "https://withruntime.com/llms.txt",
+    "https://withruntime.com/docs/sandbox-environment.md"
   ],
   "fleet": {
-    "default_max_instances": 8,
-    "default_max_vcpu": null,
+    "default_max_instances": 4,
+    "default_max_vcpu": 200,
     "default_max_gpus": null,
-    "raise": "automatic",
+    "raise": "ticket",
     "raise_time_days": null,
-    "verification": "Trial no card; paid prepaid card top-up $10–$10,000. Automatic age/spend step uses settled payment/use, not promotional credit.",
-    "tiers": "Trial 8 at max 2 vCPU/4 GiB each; new paid account 50; becomes 100 after 7 days from first cleared top-up or $50 settled paid usage, whichever first. Paid aggregate 200 vCPU/400 GiB.",
-    "notes": "10/50 require paid funding; 300/1,000 require writing support with requested numbers. 7 days is eligibility window, not support turnaround (raise_time_days null). At 4 vCPU/8 GiB the resource pool limits paid fleet to 50 even after the count rises to 100.",
+    "verification": "Trial no card; paid prepaid card top-up $10-$10,000. Full paid limits apply from the first top-up; auto top-up doubles them.",
+    "tiers": "Without credit 4 at once, max 2 vCPU/4 GiB/10 GiB each, 8 vCPU/16 GiB total; paid from the first top-up 100 at once, 200 vCPU/400 GiB memory/400 GiB disk across running sandboxes; with auto top-up 200 at once and twice the vCPU/memory/disk. Disputed payment, suspension or abuse report: 50 at once.",
+    "notes": "Past the limits: write to support@withruntime.com with the numbers; \"usually the same day\" (raise_time_days left null). Auto top-up doubles the limits self-serve. At 4 vCPU/8 GiB the 200-vCPU pool limits a paid fleet to 50 even though the count allows 100; 300 or 1,000 at once needs support.",
     "sources": [
-      "https://withruntime.com/pricing"
+      "https://withruntime.com/pricing.md",
+      "https://withruntime.com/docs/limits.md"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-10-14"
   },
   "audit_2026_09_29": {
     "applied": 22,
@@ -268,8 +275,8 @@
       "value": true,
       "source": "https://withruntime.com/docs/vercel-ai-sdk.md",
       "quote": "Run an AI SDK harness agent (Claude Code, Codex, OpenCode, Pi and the rest) in a Runtime sandbox, or give any AI SDK model call four sandbox tools.",
-      "note": "First-party adapter only: withruntime/ai-harness createRuntimeSandbox() is a sandbox provider for Vercel's AI SDK HarnessAgent (sessions, prompts, resume via pauseOnStop); the harness-driving API itself is Vercel's AI SDK, not a native Runtime endpoint. Harnesses: Claude Code, Codex, OpenCode, Deep Agents (bridge over WebSocket preview port), Pi. No native Runtime agent-run API found.",
-      "checked": "2026-09-29"
+      "note": "First-party adapter only: withruntime/ai-harness createRuntimeSandbox() is a sandbox provider for Vercel's AI SDK HarnessAgent (sessions, prompts, resume via pauseOnStop); the harness-driving API itself is Vercel's AI SDK, not a native Runtime endpoint. Harnesses: Claude Code, Codex, OpenCode, Deep Agents (bridge over WebSocket preview port), Pi. No native Runtime agent-run API found. Caveat: the adapter was verified against a fake of the Runtime API; the page says \"No bridge harness (Claude Code, Codex) has run on Runtime yet.\" (llms-full.txt, Vercel AI SDK page).",
+      "checked": "2026-10-14"
     },
     "egress_allowlist": {
       "value": true,
@@ -361,8 +368,8 @@
       "value": true,
       "source": "https://withruntime.com/docs/vercel-ai-sdk.md",
       "quote": "Run an AI SDK harness agent (Claude Code, Codex, OpenCode, Pi and the rest) in a Runtime sandbox, or give any AI SDK model call four sandbox tools.",
-      "note": "Also ready MCP configs/plugins for Claude Code, Codex, Cursor, Windsurf, VS Code and Gemini CLI documented in llms-full.txt.",
-      "checked": "2026-09-30"
+      "note": "Also ready MCP configs/plugins for Claude Code, Codex, Cursor, Windsurf, VS Code and Gemini CLI documented in llms-full.txt. Caveat: the adapter was verified against a fake of the Runtime API; the page says \"No bridge harness (Claude Code, Codex) has run on Runtime yet.\" (llms-full.txt, Vercel AI SDK page).",
+      "checked": "2026-10-14"
     },
     "own_agent_api": {
       "value": false,
@@ -464,10 +471,10 @@
     },
     "live_resize": {
       "value": false,
-      "source": "https://withruntime.com/llms-full.txt",
-      "quote": "`POST /v1/sandboxes/{id}:update` Change `name`, `labels`, `autoWake`, `idlePauseSeconds`, `persistent`, `maxTotalCostMicros`",
-      "note": "vcpu and memoryMiB are set only at create (or from an image/snapshot); the :update endpoint's field list has no vcpu/memory entry, so a running sandbox's CPU/RAM cannot be changed without recreating it. The only documented 'resize' verb applies to pty terminal cols/rows, not the machine's resources.",
-      "checked": "2026-09-30"
+      "source": "https://withruntime.com/docs/sandbox-environment.md",
+      "quote": "resize this one while it is paused (POST /v1/sandboxes/{id}:resize with memoryMiB)",
+      "note": "Memory can be changed only while the sandbox is paused, not while it runs, so live resize stays false. The :update endpoint still has no vcpu/memory field.",
+      "checked": "2026-10-14"
     },
     "usage_api": {
       "value": true,

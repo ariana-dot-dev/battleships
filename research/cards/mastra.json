@@ -89,6 +89,27 @@
       "note": "First 250 CPU hours/month included."
     },
     {
+      "key": "enterprise-cpu-time",
+      "label": "Mastra Platform Enterprise CPU-time meter",
+      "flags": [
+        "alt"
+      ],
+      "plans": [
+        "Enterprise"
+      ],
+      "pricing": "sizes",
+      "sizes": [
+        {
+          "name": "CPU hour (hardware entitlement undisclosed)",
+          "vcpu": null,
+          "ram_gib": null,
+          "disk_gib": null,
+          "hour": 0.288
+        }
+      ],
+      "note": "Pricing page: Enterprise CPU Time 'Custom' included, 'add-on $0.00008/sec' (= $0.288/hour) beyond it. Included allowance is negotiated, so not modeled."
+    },
+    {
       "key": "persistent-server",
       "label": "Persistent Server 24/7 uptime add-on",
       "flags": [
@@ -261,14 +282,21 @@
   "caveats": [
     "Starter $0 with 24 CPU-hours then $0.35/hour; Teams $250 with 250 CPU-hours then $0.25/hour. Persistent 24/7 server add-on $100/project. Runs, traces, storage, gateway tokens and databases add separate fees. CPU-hour is not a guaranteed vCPU-hour or 8GB configuration; do not multiply by four without docs.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
-    "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate."
+    "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
+    "Enterprise CPU time: 'Custom' included hours, then 'add-on $0.00008/sec' (about $0.29/hour).",
+    "Sandbox size behind the CPU-hour rate is not selectable on the default provider: 'Railway currently ignores `cpuCount()` and `memoryMB()`'; on the E2B provider templates 'default to 2 CPUs and 1,024 MB' (PlatformSandbox reference). So a CPU hour cannot be mapped to a vCPU/RAM shape.",
+    "Isolation 'dedicated-vm' is the PlatformSandbox (Railway VM). Mastra Server deploys, which the Persistent Server add-on covers, run as an 'API server container' built from a generated Dockerfile.",
+    "PlatformSandbox stop() only releases the client's lease: 'The VM keeps running under the environment's idle policy', so a stopped sandbox keeps consuming CPU time until idle timeout or destroy()."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/mastra",
     "https://mastra.ai/",
     "https://mastra.ai/pricing",
     "https://mastra.ai/docs",
-    "https://mastra.ai/llms.txt"
+    "https://mastra.ai/llms.txt",
+    "https://mastra.ai/reference/workspace/platform-sandbox.md",
+    "https://mastra.ai/docs/mastra-platform/workspaces.md",
+    "https://mastra.ai/docs/mastra-platform/deploy.md"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -293,8 +321,8 @@
       "value": true,
       "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
       "quote": "Checkpoint recovery constructs a brand new sandbox and restores its filesystem from the latest checkpoint the platform captured for the previous sandbox with that `id`. Running processes and any filesystem writes made after the last checkpoint aren't restored.",
-      "note": "Mastra platform workspace sandboxes (PlatformSandbox, backed by Railway or E2B). Opt-in: only when you pass a stable id. The platform captures filesystem checkpoints itself ('stop() tears down the remote sandbox while preserving its recovery checkpoint', workspaces page) and the next start() with that id boots from it; idle timeout destroys the sandbox. Filesystem only, no memory. Exact capture trigger/frequency not documented. Mastra Server deploys sleep after ~10 min without outbound traffic, but no state snapshot is described.",
-      "checked": "2026-09-29"
+      "note": "Mastra platform workspace sandboxes (PlatformSandbox, backed by Railway or E2B). Opt-in: only when you pass a stable id. The platform captures filesystem checkpoints itself and the next start() with that id boots from it ('Pass a stable `id` to preserve a sandbox's filesystem across sessions or across a `destroy()`/`start()` cycle'); idle timeout destroys the sandbox. stop() does not stop the VM: 'stop() releases this process's lease without touching the remote sandbox. The VM keeps running under the environment's idle policy' (workspaces page), so it keeps billing until idle timeout or destroy(). On Railway, destroy() 'also deletes the recovery checkpoint associated with a caller-supplied recovery `id`'. Filesystem only, no memory. Exact capture trigger/frequency not documented. Mastra Server deploys sleep after ~10 min without outbound traffic, but no state snapshot is described.",
+      "checked": "2026-10-14"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -363,8 +391,8 @@
       "value": "dedicated-vm",
       "source": "https://mastra.ai/integrations/sandboxes/railway.md",
       "quote": "Each sandbox is an isolated Debian Linux VM provisioned on demand through the Railway TypeScript SDK.",
-      "note": "PlatformSandbox (Mastra's own hosted sandbox) defaults to the Railway provider, which runs each sandbox as its own dedicated VM; exact hypervisor (Firecracker/KVM/etc.) not disclosed. The 'e2b' alternate provider uses E2B's Firecracker microVMs, but Railway is the documented default.",
-      "checked": "2026-09-30"
+      "note": "PlatformSandbox (Mastra's own hosted sandbox) defaults to the Railway provider, which runs each sandbox as its own dedicated VM; exact hypervisor (Firecracker/KVM/etc.) not disclosed. The 'e2b' alternate provider uses E2B's Firecracker microVMs, but Railway is the documented default. Applies to PlatformSandbox only: `mastra deploy` Server deploys (what the Persistent Server add-on keeps up) run as a container built from a generated Dockerfile ('in-process inside the API server container', deploy page), not a dedicated VM.",
+      "checked": "2026-10-14"
     },
     "image_oci": {
       "value": false,

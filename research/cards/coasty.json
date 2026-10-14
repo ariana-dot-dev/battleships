@@ -3,7 +3,7 @@
   "name": "Coasty",
   "url": "https://coasty.ai/pricing",
   "category": "agent-sandbox",
-  "isolation": "vm",
+  "isolation": null,
   "modes": [
     {
       "key": "linux-running-default",
@@ -15,7 +15,7 @@
       "regions": null,
       "gpu_only": false,
       "features": {
-        "isolation": "vm"
+        "isolation": null
       },
       "pricing": "sizes",
       "sizes": [
@@ -50,7 +50,7 @@
       "regions": null,
       "gpu_only": false,
       "features": {
-        "isolation": "vm"
+        "isolation": null
       },
       "pricing": "sizes",
       "sizes": [
@@ -146,7 +146,7 @@
   "features": {
     "linux": true,
     "windows": true,
-    "macos": true,
+    "macos": false,
     "arm64": false,
     "gpu": false,
     "snapshot": "fs",
@@ -157,7 +157,7 @@
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": true,
+    "docker_inside": null,
     "nested_virt": false,
     "root": null,
     "systemd": null,
@@ -208,7 +208,7 @@
     "captcha_solving": false,
     "egress_ip_type": "datacenter+residential",
     "ip_note": "Machines run on AWS/Daytona/Azure (datacenter egress); proxy {mode:'managed'} routes via Coasty's residential upstream, or bring your own http/https/socks5 proxy; no per-GB price published.",
-    "isolation": "vm",
+    "isolation": null,
     "image_oci": false,
     "snapshot_on_demand": true,
     "own_agent_api": true,
@@ -217,7 +217,7 @@
     "volume_attach": false,
     "volume_shared": false,
     "ingress_rules": false,
-    "guest_firewall": true,
+    "guest_firewall": null,
     "secret_proxy": false,
     "max_session_unlimited": true,
     "open_internet": true,
@@ -240,14 +240,19 @@
     "Marketing claims of benchmark superiority and comparison prices are not used as pricing evidence.",
     "Machine size re-checked 2026-09-28: docs expose cpu_cores 1-16, memory_gb 1-64, storage_gb 8-500 (\"auto\" default, capped by tier) but no default size; public price feed (coasty.ai/api/pricing) lists a flat 5 credits/h Linux, 9 credits/h Windows ($0.01/credit), 1 credit/h stopped. Whether the rate varies with size is only in the authenticated /v1/machines/pricing feed, so sizes stay unpublished (vcpu/ram null).",
     "Consumer subscriptions (separate consumer-credit balance, not the API wallet, and currently not offered for self-serve purchase): Starter $19/mo 200 credits, 1 machine; Plus $50/mo 600 credits, 2 machines; Unlimited $99/mo fair-use. Credit boosts (paid subscription required): 150/$19, 500/$49, 1,200/$99 (coasty.ai/api/pricing).",
-    "Agent inference meters are billed on top of machine runtime: predict $0.05, session create $0.10, session predict $0.04, ground $0.03, managed run step $0.05 (v1 $0.08). Surcharges: trajectory screenshot +$0.02 each, high-res image +$0.01, v1 engine +$0.03/request, prompt >500 chars +$0.01 (coasty.ai/docs pricing)."
+    "Agent inference meters are billed on top of machine runtime: predict $0.05, session create $0.10, session predict $0.04, ground $0.03, managed run step $0.05 (v1 $0.08). Surcharges: trajectory screenshot +$0.02 each, high-res image +$0.01, v1 engine +$0.03/request, prompt >500 chars +$0.01 (coasty.ai/docs pricing).",
+    "Machine backend varies (checked 2026-10-14, coasty.ai/docs/llms.txt \"Choosing a backend\"): auto sends desktop/Windows tasks to Daytona (AWS fallback) and headless tasks to Azure containers; provider can be pinned to aws, daytona or azure. Isolation is therefore left unknown, against the pricing page's \"true VM-level isolation\" claim.",
+    "macOS is supported only as a caller-operated external machine (POST /v1/machines/external); managed machines are linux or windows.",
+    "Positioning shift (checked 2026-10-14): the coasty.ai homepage now reads \"Models, environments, data and evaluation for frontier AI labs\" (title \"Coasty — Advancing computer use\") and links to CoArena; the YC listing is now CoArena (S26, ycombinator.com/companies/coarena). The \"Coasty AI Employee\" self-serve product survives only in coasty.ai/pricing structured data, while the machine API and rate card remain in the docs. The card stays agent-sandbox (a computer-use model API with rented machines); the self-serve offer may be winding down."
   ],
   "sources": [
     "https://coasty.ai/pricing",
     "https://coasty.ai/docs?section=pricing",
     "https://coasty.ai/docs/llms.txt",
     "https://coasty.ai/api/pricing",
-    "https://coasty.ai/v1/machines/pricing"
+    "https://coasty.ai/v1/machines/pricing",
+    "https://coasty.ai/",
+    "https://www.ycombinator.com/companies/coarena"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -390,11 +395,12 @@
       "checked": "2026-09-30"
     },
     "guest_firewall": {
-      "value": true,
+      "value": null,
+      "was": true,
       "source": "https://coasty.ai/docs/llms.txt",
-      "quote": "SSH usernames: `ubuntu` (Linux), `Administrator` (Windows). ... `POST /v1/machines/{id}/terminal` Scope `terminal:exec` Shell command.",
-      "note": "derived: full Linux/Windows VM with root-equivalent SSH/terminal access implies nftables/iptables (or Windows Firewall) work inside, per the card's isolation model.",
-      "checked": "2026-09-30"
+      "quote": "`daytona` | Always a Daytona sandbox. | | `azure` | Always an Azure container. |",
+      "note": "Was derived from the VM isolation model. With container/sandbox backends possible, nftables/iptables inside is not guaranteed; no doc covers it, so unknown.",
+      "checked": "2026-10-14"
     },
     "secret_proxy": {
       "value": false,
@@ -446,18 +452,19 @@
       "checked": "2026-09-30"
     },
     "docker_inside": {
-      "value": true,
+      "value": null,
+      "was": true,
       "source": "https://coasty.ai/docs/llms.txt",
-      "quote": "SSH usernames: `ubuntu` (Linux), `Administrator` (Windows). ... `POST /v1/machines/{id}/terminal` Scope `terminal:exec` Shell command.",
-      "note": "derived: machines are full Linux/Windows VMs reachable over SSH/terminal as a root-equivalent user (ubuntu/Administrator); a standard cloud VM with that access can install and run Docker/containers. Not explicitly documented either way.",
-      "checked": "2026-09-30"
+      "quote": "`daytona` | Always a Daytona sandbox. | | `azure` | Always an Azure container. |",
+      "note": "Was derived from the machine being a full VM. Machines can land on a Daytona sandbox or an Azure container, where Docker inside is not documented either way, so unknown.",
+      "checked": "2026-10-14"
     },
     "nested_virt": {
       "value": false,
       "source": "https://coasty.ai/docs/llms.txt",
       "quote": "`cpu_cores` int|null no auto 1-16. Capped by tier. `memory_gb` int|null no auto 1-64. Capped by tier.",
-      "note": "derived: provisioning only exposes generic vCPU/RAM sizing on a VM the provider says runs on AWS/Daytona/Azure; no /dev/kvm, nested-virtualization, or bare-metal option is documented, and standard cloud guest VMs of this kind typically do not expose nested virtualization to the tenant.",
-      "checked": "2026-09-30"
+      "note": "derived: provisioning only exposes generic vCPU/RAM sizing; machines run on AWS EC2, Daytona sandboxes or Azure containers (\"Choosing a backend\" in the docs), none documented with /dev/kvm or nested virtualization, and the container backends cannot offer it.",
+      "checked": "2026-10-14"
     },
     "arm64": {
       "value": false,
@@ -494,6 +501,22 @@
       "note": "granularity: per-sandbox; cost: yes; Two endpoints: /v1/usage (account-level monthly summary) and /v1/billing/active (live per-machine breakdown with billable costs and rates)",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "isolation": {
+      "value": null,
+      "was": "vm",
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`auto` (default) | Coasty chooses. A desktop or Windows task goes to Daytona, falling back to AWS when Daytona is disabled; a headless task goes to Azure. | | `aws` | Always AWS EC2. | | `daytona` | Always a Daytona sandbox. | | `azure` | Always an Azure container. |",
+      "note": "Backend-dependent: a machine can be an AWS EC2 VM, a Daytona sandbox or an Azure container (machine.provider on /v1/tasks). POST /v1/machines still says \"Provision a VM\" but takes no provider field, and the pricing page's structured data still claims \"Isolated VM per session, destroyed after\" and \"true VM-level isolation, not just containers in a shared pool\". The docs are more specific, so isolation is left unknown rather than vm.",
+      "checked": "2026-10-14"
+    },
+    "macos": {
+      "value": false,
+      "was": true,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`os_type` | string | no | `linux` | `linux` or `windows`. Windows costs more to run. ... Enroll a caller-operated Windows, macOS, Linux, or other machine with:",
+      "note": "Managed (rented) machines are Linux or Windows only. macOS appears only as a caller-operated external machine you enroll and run yourself (POST /v1/machines/external), which Coasty does not host or bill as runtime.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],

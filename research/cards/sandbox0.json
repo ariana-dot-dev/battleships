@@ -44,12 +44,12 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "$0.015 per GiB-hour of the configured memory limit (~$0.000004167/GiB-s), billed per second, no 1-hour minimum; there is no CPU line. CPU is 'platform-derived from memory' and not user-settable; the ratio is unpublished. ram_per_vcpu [2,null] is inferred from the vendor's own comparison row (2 vCPU / 4 GiB) and the ComputeSDK DAX host view (8 CPUs / 16 GiB), not a documented rule. Paused = compute stops; filesystem-only by default. Funded by top-ups: running sandboxes are auto-paused once unpaid usage reaches 10% of the last top-up. [basis verified 2026-09-28] Allocation confirmed: \"billed by the second using the configured memory limit\"; \"No separate CPU charge; CPU limits still apply\"; \"Paused sandboxes stop compute charges\" (sandbox0.ai/pricing). Auto-pause: \"ttl | Soft runtime timeout. Expiry requests the same planned pause transaction\" (docs/sandbox/pause-resume.md) - docs describe it as pause after idle time; exact idle definition unstated.",
+      "note": "$0.015 per GiB-hour of the configured memory limit (~$0.000004167/GiB-s), billed per second, no 1-hour minimum; there is no CPU line. CPU is 'platform-derived from memory' and not user-settable; the ratio is unpublished. ram_per_vcpu [2,null] is inferred from the vendor's own comparison row (2 vCPU / 4 GiB) and the ComputeSDK DAX host view (8 CPUs / 16 GiB), not a documented rule. Paused = compute stops; filesystem-only by default. [storage re-checked 2026-10-14] \"Persistent storage Free RootFS, snapshots, and retained memory checkpoints\"; \"Persistent storage and paused sandboxes are free.\" (sandbox0.ai/pricing). Funded by top-ups: running sandboxes are auto-paused once unpaid usage reaches 10% of the last top-up. [basis verified 2026-09-28] Allocation confirmed: \"billed by the second using the configured memory limit\"; \"No separate CPU charge; CPU limits still apply\"; \"Paused sandboxes stop compute charges\" (sandbox0.ai/pricing). Auto-pause: \"ttl | Soft runtime timeout. Expiry requests the same planned pause transaction\" (docs/sandbox/pause-resume.md) - docs describe it as pause after idle time; exact idle definition unstated.",
       "cpu_class": "dedicated"
     },
     {
       "key": "managed-agents",
-      "label": "Managed Agents (Sandpi Platform): sandbox runtime free, pay model tokens + 5% top-up fee",
+      "label": "Sandpi Platform (managed coding-agent runs): fixed 2 vCPU / 4 GiB Sandbox runtime, per second; model usage billed by your provider",
       "flags": [
         "alt"
       ],
@@ -62,7 +62,7 @@
         "agent_harnesses": true,
         "isolation": "gvisor"
       },
-      "pricing": "resource",
+      "pricing": "sizes",
       "vcpu_h": 0,
       "ram_gib_h": 0,
       "cpu_basis": "alloc",
@@ -77,27 +77,37 @@
       "min_vcpu": null,
       "max_vcpu": null,
       "max_ram_gib": null,
-      "sizes": null,
+      "sizes": [
+        {
+          "name": "Sandpi Platform Environment (fixed 2 vCPU / 4 GiB)",
+          "vcpu": 2,
+          "ram_gib": 4,
+          "disk_gib": null,
+          "hour": 0.1,
+          "month_cap": null
+        }
+      ],
       "pool_tiers": null,
       "requires_always_on": false,
       "always_on_month_per_instance": null,
-      "commit_note": "Prepaid credit required to create/fork Environments and submit Runs; a 5% fee applies to every credit top-up.",
+      "commit_note": null,
       "min_billed_seconds": 0,
-      "granularity_s": null,
+      "granularity_s": 1,
       "start_fee": 0,
       "boot_overhead_s": null,
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Different product: hosted coding-agent runs (Codex, Claude Code, Pi, Kimi Code, ZCode). 'No additional Platform sandbox charge'; you pay model tokens at official provider rates plus a 5% fee on credit top-ups. Only applies when the workload is agent runs on their harness, not raw sandboxes. Sandbox sizes/limits on this platform unpublished; the $0 sandbox cost here excludes LLM token spend, which the engine does not model.",
-      "cpu_class": "dedicated"
+      "note": "Different product: hosted coding-agent runs (Codex, Claude Code, Pi, Kimi Code, ZCode) via api on sandpi.ai. [re-checked 2026-10-14] \"Sandbox runtime is billed by the second. The fixed 2 vCPU / 4 GiB rate is equivalent to $ 0.10 per hour.\" \"Paused time is free.\" \"Your provider or gateway bills model usage directly. Sandpi does not resell model tokens. Credit top-ups have no fee.\" (sandpi.ai/platform). One Sandbox per Environment is shared by all its Sessions (\"New Sessions reuse that Sandbox without a separate runtime charge\"); Runs in an Environment execute serially. Model spend is BYO and not modelled. The old sandbox0.ai/managed-agents page (free runtime + 5% top-up fee) now 404s.",
+      "cpu_class": "dedicated",
+      "product_class": "agent-platform"
     }
   ],
   "storage": {
     "included_disk_gib": 0,
-    "disk_gib_month": 0.02,
-    "disk_billed_when_stopped": true,
-    "snapshot_gib_month": 0.02,
+    "disk_gib_month": 0,
+    "disk_billed_when_stopped": false,
+    "snapshot_gib_month": 0,
     "paused_ram_billed": false
   },
   "network": {
@@ -136,7 +146,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "No plan fee, no published free credit. Default team quotas: 20 running sandboxes (paused ones don't count), 5 claims/s, 100 API req/s (burst 200). Quota increases are free on request (contact@sandbox0.ai), subject to approval. Top-up minimum unpublished."
+      "note": "No plan fee, no published free credit. Default team quotas: 20 running sandboxes (paused ones don't count), 2,000 retained paused sandboxes (at the limit new sandboxes and forks are blocked), 5 claims/s, 100 API req/s (burst 200). Quota increases are free on request (contact@sandbox0.ai), subject to approval. Top-up minimum unpublished."
     }
   ],
   "free": {
@@ -233,25 +243,27 @@
   "caveats": [
     "CPU is not billed and not user-settable: it is derived from the memory limit by an unpublished ratio. ram_per_vcpu [2,null] is inferred (vendor comparison row 2 vCPU/4 GiB, DAX host view 8 CPU/16 GiB); if the real ratio gives fewer vCPU per GiB, a CPU-hungry workload needs more memory and costs more.",
     "Egress is free 'for now' (explicitly temporary); ingress and object-store GET/PUT free.",
-    "Persistent rootfs and rootfs snapshots are billed as byte-time at $0.02/GiB-month prorated hourly over 730 h, whether the sandbox is running or paused. Default rootfs size 8 GiB (300 MiB-1 TiB); whether billing is on provisioned size or bytes written is not stated (engine uses workload disk/snapshot GiB). Experimental memory-pause checkpoints: storage billing not documented.",
+    "Persistent storage is free (checked 2026-10-14): \"Persistent storage Free RootFS, snapshots, and retained memory checkpoints\". Default rootfs size 8 GiB (300 MiB-1 TiB). Paused sandboxes are free but capped by a default quota of 2,000 retained per team: \"At the limit, new sandboxes and forks are blocked; existing compute can still pause.\" Increases free on request, subject to approval.",
     "Default quota 20 running sandboxes per team; increases free on request but subject to approval.",
     "Top-up funded: running sandboxes auto-pause (filesystem-only, processes lost) when unpaid usage reaches 10% of the last top-up.",
     "Burst start at 100 concurrent is slow (median ~14.9 s, ComputeSDK score 0) although single cold start is ~0.8 s.",
     "Self-hosting: Apache-2.0 core on your own Nomad + PostgreSQL + S3, no licence fee published and no paid support/enterprise tier found; cost = your own infra (not modelled).",
-    "Managed Agents (Sandpi Platform) mode excludes LLM token spend and the 5% top-up fee, which the engine does not model.",
+    "Sandpi Platform mode is a fixed 2 vCPU / 4 GiB Sandbox at $0.10/h (sandpi.ai/platform); model usage is billed by your own provider or gateway and not modelled. Credit top-ups have no fee (the earlier 5% top-up fee and free runtime are gone).",
     "Regions not published (docs examples use aws-us-east-1); no GPUs, no public IPv4, no free tier or credits found.",
-    "vCPU derivation re-checked 2026-09-28: template docs say \"CPU is platform-derived from memory and is intentionally absent from the public API\" (ratio unpublished); the vendor's own comparison table on sandbox0.ai/pricing lists Sandbox0 allocation as \"2 vCPU / 4 GiB\" at $10.95 per GiB-month, which supports ram_per_vcpu [2,null] (a 4 vCPU request is billed as 8 GiB). Compute shows $0 because the only meter is memory; the whole bill is in the memory line."
+    "vCPU derivation re-checked 2026-09-28: template docs say \"CPU is platform-derived from memory and is intentionally absent from the public API\" (ratio unpublished); the vendor's own comparison table on sandbox0.ai/pricing lists Sandbox0 allocation as \"2 vCPU / 4 GiB\" at $10.95 per GiB-month, which supports ram_per_vcpu [2,null] (a 4 vCPU request is billed as 8 GiB). Compute shows $0 because the only meter is memory; the whole bill is in the memory line.",
+    "Docker inside: /var/lib/docker is ephemeral runtime storage (images, containers, volumes discarded when the runtime is replaced, not kept by pause/snapshots), Docker bridge/NAT is disabled (use --network=host), and Docker state counts against sandbox memory."
   ],
   "sources": [
     "https://sandbox0.ai/pricing",
     "https://sandbox0.ai/",
-    "https://sandbox0.ai/managed-agents",
+    "https://sandpi.ai/platform",
     "https://sandbox0.ai/llms.txt",
     "https://sandbox0.ai/docs/sandbox/pause-resume.md",
     "https://sandbox0.ai/docs/sandbox/template/configuration.md",
     "https://sandbox0.ai/docs/sandbox/self-hosted.md",
     "https://github.com/sandbox0-ai/sandbox0",
-    "https://www.computesdk.com/benchmarks/sandboxes/"
+    "https://www.computesdk.com/benchmarks/sandboxes/",
+    "https://sandbox0.ai/docs/sandbox/docker-in-sandbox.md"
   ],
   "fleet": {
     "default_max_instances": 20,
@@ -261,7 +273,7 @@
     "raise_time_days": null,
     "verification": null,
     "tiers": "PAYG 20 running sandboxes/team; free-to-request increases subject to approval, ordinary usage fees still apply.",
-    "notes": "Paused sandboxes do not count toward running limit. Creation/request and retained template/volume quotas additional; 50/300/1,000 need reviewed increase, not an automatically approved form. No timing/verification checklist published.",
+    "notes": "Paused sandboxes do not count toward running limit, but retention is capped at 2,000 paused sandboxes per team by default (at the limit new sandboxes and forks are blocked; free increase on request, checked 2026-10-14). Creation/request and retained template/volume quotas additional; 50/300/1,000 need reviewed increase, not an automatically approved form. No timing/verification checklist published.",
     "sources": [
       "https://sandbox0.ai/pricing"
     ],
@@ -289,10 +301,10 @@
     },
     "harness_api": {
       "value": true,
-      "source": "https://sandbox0.ai/managed-agents",
-      "quote": "Sandpi Platform runs coding-agent harnesses in persistent Sandbox0 Environments. You integrate tasks, Sessions, events, files, and usage through an API. Sandpi manages harness execution and the underlying sandbox lifecycle.",
-      "note": "Harnesses: Codex, Claude Code, Pi, Kimi Code, ZCode. Sessions keep native conversation history across Runs (follow-ups), stream/replay Run events, stop a Run, roll back latest Run, fork Environments. Delivered as a sister product 'Sandpi Platform' (api.sandpi.ai, own API token, prepaid credit + 5% top-up fee, sandbox free) - not part of the raw Sandbox0 sandbox API; Sandbox0 itself only offers generic contexts/supervised sessions.",
-      "checked": "2026-09-29"
+      "source": "https://sandpi.ai/platform",
+      "quote": "Add coding-agent work to your product with headless Sessions and Runs. Sandpi runs the native harness and persistent Sandbox; you bring the model API key and compatible provider or gateway.",
+      "note": "Harnesses: Codex, Claude Code, Pi, Kimi Code, ZCode. Environment -> Session -> Run; Sessions keep native conversation history across Runs, stream Run events, collect results and file changes. Delivered as the sister product Sandpi Platform (sandpi.ai, linked as \"Managed Agents\" from the Sandbox0 nav; the old sandbox0.ai/managed-agents page 404s). Billing: fixed 2 vCPU / 4 GiB Sandbox runtime at $0.10/h per second, BYO model key, no top-up fee. Not part of the raw Sandbox0 sandbox API.",
+      "checked": "2026-10-14"
     },
     "egress_allowlist": {
       "value": true,
@@ -367,10 +379,10 @@
     },
     "own_agent_api": {
       "value": false,
-      "source": "https://sandbox0.ai/managed-agents",
-      "quote": "Sandpi Platform runs coding-agent harnesses in persistent Sandbox0 Environments. You integrate tasks, Sessions, events, files, and usage through an API. Sandpi manages harness execution and the underlying sandbox lifecycle.",
+      "source": "https://sandpi.ai/platform",
+      "quote": "Sandpi runs the native harness and persistent Sandbox; you bring the model API key and compatible provider or gateway.",
       "note": "not offered: outside the product's scope. Sandbox0's own first-party API drives generic sandboxes (contexts/sessions/files); its harness API (Sandpi/Managed Agents) drives third-party coding harnesses (Codex, Claude Code, Pi, Kimi Code, ZCode) you choose — there is no Sandbox0-branded browser/computer-use/research agent of its own.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "mcp_server": {
       "value": false,
@@ -553,6 +565,20 @@
       "note": "granularity: account-only; cost: no; Runtime metrics API (GET /api/v1/sandboxes/{id}/metrics) provides CPU/memory/network monitoring data only, not billable usage. The observability docs mention a metering usage ledger but expose no public API endpoint to access it. The dashboard (/dashboard/settings/quotas) displays team quotas and effective limits but is not machine-readable API. Compute is billed by the second using memory × runtime, but no endpoint documents billable usage aggregation per sandbox or per tag.",
       "confidence": "medium",
       "checked": "2026-10-01"
+    },
+    "persistent_disk": {
+      "value": true,
+      "source": "https://sandbox0.ai/pricing",
+      "quote": "Persistent storage Free RootFS, snapshots, and retained memory checkpoints",
+      "note": "RootFS, named snapshots and retained memory checkpoints carry no storage charge (previously $0.02/GiB-month byte-time). Paused sandboxes also free; default retention quota 2,000 paused sandboxes per team.",
+      "checked": "2026-10-14"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://sandbox0.ai/docs/sandbox/docker-in-sandbox.md",
+      "quote": "`/var/lib/docker` uses ephemeral runtime storage. Images, containers, layers, and Docker-managed volumes are discarded when the sandbox runtime is replaced or deleted.",
+      "note": "Docker runs inside the gVisor guest under the privileged security class; the startup helper \"disables Docker bridge/NAT\" (Cloud examples use --network=host), uses the vfs image store, and Docker state counts against sandbox memory. kind is not supported.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],

@@ -131,7 +131,7 @@
           "vcpu": 16,
           "ram_gib": 32,
           "disk_gib": null,
-          "hour": 0.4824,
+          "hour": 0.72,
           "month_cap": null
         }
       ],
@@ -146,12 +146,12 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "cpu-2 = 2 reserved PHYSICAL cores + 8 GiB ($0.003/min = $0.18/h); cpu-8 = 8 physical cores on one NUMA node + 32 GiB ($0.00804/min = $0.4824/h, shown with \"33% off (CPU node launch pricing)\" - unclear if already discounted). vcpu encoded as 2 x physical cores (assumption). A node keeps billing through a 15-min idle window after its last command unless stopped; stopped nodes park their disk and cost nothing. Friday 32% (cpu-2) / weekend 20% off per calendar knob. Container nodes for batch/ingest work, not a sandbox API.",
+      "note": "cpu-2 = 2 reserved PHYSICAL cores + 8 GiB ($0.003/min = $0.18/h); cpu-8 = 8 physical cores on one NUMA node + 32 GiB ($0.012/min = $0.72/h; the earlier \"33% off (CPU node launch pricing)\" $0.00804/min rate is gone from the live table, checked 2026-10-14). vcpu encoded as 2 x physical cores (assumption). A node keeps billing through a 15-min idle window after its last command unless stopped ($0.045 / $0.18 at most); stopped nodes park their disk and cost nothing. Friday 32% (cpu-2) / 33% (cpu-8), weekend 20% off per calendar knob. Container nodes for batch/ingest work, not a sandbox API.",
       "cpu_class": "dedicated"
     },
     {
       "key": "h100-node",
-      "label": "Autoresearch interactive H100 node, on demand (h100-1 = 1 GPU $3.96/h; h100-8 = 8 GPUs)",
+      "label": "Autoresearch interactive H100 node, on demand (h100-1 = 1 GPU $5.04/h; h100-8 = 8 GPUs)",
       "flags": [
         "stock"
       ],
@@ -196,9 +196,9 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {
-        "H100": 3.96
+        "H100": 5.04
       },
-      "note": "Per GPU: h100-1 $0.066/min = $3.96/h; h100-8 $0.528/min = $31.68/h (= $3.96/GPU-h). CPU/RAM included. Idle window keeps billing 15 min (1x, $0.99 max) / 20 min (8x, $10.56 max) after the last command unless stopped; no minimum charge. Stopped node parks its encrypted disk at $0. Friday 33% / weekend 20% off (calendar knob), applied to minutes run on those days (US Pacific).",
+      "note": "Per GPU: h100-1 $0.084/min = $5.04/h; h100-8 $0.672/min = $40.32/h (= $5.04/GPU-h). CPU/RAM included. Idle window keeps billing 15 min (1x, $1.26 max) / 20 min (8x, $13.44 max) after the last command unless stopped; no minimum charge. Stopped node parks its encrypted disk at $0. Friday 33% / weekend 20% off (calendar knob), applied to minutes run on those days (US Pacific). [live table checked 2026-10-14: \"h100-1 $0.084/min ($5.04/hr)\", \"h100-8 $0.672/min ($40.32/hr)\"]",
       "stock_note": "queued provisioning: create_node joins a queue and quotes an ETA; not an instant-capacity guarantee",
       "cpu_class": "shared"
     },
@@ -244,9 +244,9 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {
-        "H100": 2.97
+        "H100": 3.78
       },
-      "note": "$0.0495/min per GPU = $2.97/GPU-h, 25% below interactive. Queued time free; checkpoints survive preemption. Calendar discount reaches jobs only when cheaper still (Friday interactive $2.65 < $2.97; weekends $3.17 do not move jobs). Batch jobs capped at 85% of fleet.",
+      "note": "$0.063/min per GPU = $3.78/GPU-h, \"25% below interactive\" (live table, checked 2026-10-14). Queued time free; checkpoints survive preemption. Calendar discount reaches jobs only when cheaper still (Friday interactive $3.38 < $3.78 moves jobs; weekends $4.03 do not - matches llms.txt \"At today's numbers Friday moves a job and the weekend does not\"). Batch jobs capped at 85% of fleet.",
       "cpu_class": "shared"
     },
     {
@@ -622,14 +622,14 @@
         "cpu-node",
         "h100-node"
       ],
-      "why": "Autoresearch nodes: Fridays 33% off (cpu-2: 32%), Sat/Sun 20% off, applied to the minutes that run on those days. Not applied to sandboxes."
+      "why": "Autoresearch nodes: Fridays 33% off (cpu-2: 32%), Sat/Sun 20% off, applied to the minutes that run on those days. Not applied to sandboxes. Batch jobs only move on Fridays at current rates (not modeled; batch-h100 not in this knob)."
     }
   ],
   "caveats": [
     "Two products under one card: (1) the SF Compute GPU market (8-GPU node-hours bought/resold on an orderbook; reserved or spot; no list price, so GPU rates are null), and (2) Autoresearch/givemeanode (fixed per-minute list prices for sandboxes, CPU and H100 nodes, batch jobs). Benchmarks measured the Autoresearch sandboxes.",
     "Sandbox rate is per GiB of RAM; vCPU is priced implicitly via a 4 GiB/core floor, so CPU-heavy/low-RAM shapes are expensive (4 vCPU/8 GiB bills as 16 GiB = $0.73/h flat-out). Parking can cut this by up to ~99% for idle-heavy agent loops (knob).",
-    "Autoresearch H100 list rate is $3.96/GPU-h ($0.066/min) on the live pricing table; llms.txt still implies $3.60 (\"$0.90 at the H100 list rate\" for a 15-min window) and the CLI example shows $0.0666/min - stale docs.",
-    "cpu-node vcpu = 2 x physical cores (assumption). cpu-8 \"33% off (CPU node launch pricing)\" - unclear whether $0.4824/h is pre- or post-discount.",
+    "Autoresearch H100 list rate rose to $5.04/GPU-h ($0.084/min) on the live pricing table (was $3.96, $0.066/min); batch jobs to $3.78 ($0.063/min) and cpu-8 to $0.72/h ($0.012/min, launch discount ended). llms.txt now agrees (\"$13.44 at the H100 list rate\" for the h100-8 20-min window) and the home-page CLI sample shows \"tulip running, $0.084/min\". (checked 2026-10-14)",
+    "cpu-node vcpu = 2 x physical cores (assumption).",
     "Sandbox egress price unpublished; SF Compute specs page says \"No ingress/egress fees\" for GPU clusters, applied card-wide (egress_gib 0). Public IPv4 on market VMs is optional at create; price unpublished.",
     "Sandbox snapshots: $0.10/GiB-month resident (deduplicated), $0.05/GiB-month cold in object store (first fork after cold pays a one-time rehydrate delay); live until deleted unless an expiry is set. Encoded at $0.10.",
     "Market VMs: no persistent storage (terminate deletes data), boot up to ~10 min, billed per node-minute including boot; compute limits in node-hours per account. Market prices vary by SKU, zone and window; third-party reports ~$1.49-1.68/GPU-h H100 averages in Feb-Mar 2026 (spheron.network) - not official.",
@@ -641,7 +641,8 @@
     "Market compute limits are in node-hours (compute_max_total_node_hours, account-wide and per-SKU; resting buy orders count before they fill). Raising them is not self-serve: verify the org, then contact SFC. The card's fleet block describes Autoresearch limits only.",
     "Market buy orders hold credit for the worst case (limit price x full window x node count) until filled; unused hold released after fill/cancel.",
     "Elastic InfiniBand Partitions for market VMs entered public preview 2026-09-25 (opt-in 'sf preview set infiniband-preview=true'); specs page still says IB on VMs 'in Q3 2026'. No separate price published.",
-    "Autoresearch queue has paid priority tiers ('folks who buy priority are ordered as if they had been waiting a while'); tier prices are not published. Every account's first node gets the largest head start."
+    "Autoresearch queue has paid priority tiers ('folks who buy priority are ordered as if they had been waiting a while'); tier prices are not published. Every account's first node gets the largest head start.",
+    "Fork fan-out: the home page says \"One fork per sample, up to a thousand at once. Forking is free. 50ms per fork, 100ms per delete.\", while llms.txt still documents fork_sandbox as \"clone 1..=256 running sandboxes\" per call - likely ~1000 concurrent forks reached over several calls. Not a priced field. (checked 2026-10-14)"
   ],
   "sources": [
     "https://autoresearch.sfcompute.com/",
@@ -1037,5 +1038,10 @@
   ],
   "locations_source": "https://docs.sfcompute.com/llms-full.txt",
   "locations_quote": "SF Compute market VMs/reserved capacity are offered in an EU region (europe-north1 / EU North)",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_10_14": {
+    "applied": 4,
+    "source": "checked against https://autoresearch.sfcompute.com/ live pricing table and llms.txt",
+    "reviewed": 4
+  }
 }

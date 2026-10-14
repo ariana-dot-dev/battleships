@@ -44,7 +44,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "$0.000014/vCPU-s and $0.0000045/GiB-s (effective 2026-06-17 per public billing API). Memory is 'allocated memory, billed per second of active runtime'. Shape is fixed per template: 1-4 vCPU, 256-4096 MiB RAM, 1-8 GiB disk (platform ceiling); new teams capped at 2 vCPU / 2 GiB until support raises it. Paused = no compute. Auto-pause (timeoutSeconds, max 7 d) is off by default and counts active time, not idleness: a forgotten sandbox bills until paused/killed. Basis check 2026-09-28: vCPU 'Per-second billing. Pay only while sandboxes are running.'; memory 'Allocated memory, billed per second of active runtime.' (https://superserve.ai/pricing): 'active runtime' means the running state, not CPU use, so alloc/alloc. Auto-pause 'is a cap on active time, not idle time' and is off by default (https://docs.superserve.ai/sandbox/lifecycle), so auto_stop_idle stays false."
+      "note": "$0.000014/vCPU-s and $0.0000045/GiB-s (effective 2026-06-17 per public billing API). Memory is 'allocated memory, billed per second of active runtime'. Shape is fixed per template: docs build-spec lists 1-4 vCPU, 256-4096 MiB RAM, 1-8 GiB disk, but the OpenAPI ceiling is 10 vCPU / 20480 MiB / 65536 MiB (used here); new teams capped at 2 vCPU / 2 GiB until support raises it. Paused = no compute. Auto-pause (timeoutSeconds, max 7 d) is off by default and counts active time, not idleness: a forgotten sandbox bills until paused/killed. Basis check 2026-09-28: vCPU 'Per-second billing. Pay only while sandboxes are running.'; memory 'Allocated memory, billed per second of active runtime.' (https://superserve.ai/pricing): 'active runtime' means the running state, not CPU use, so alloc/alloc. Auto-pause 'is a cap on active time, not idle time' and is off by default (https://docs.superserve.ai/sandbox/lifecycle), so auto_stop_idle stays false."
     }
   ],
   "storage": {
@@ -86,7 +86,7 @@
       "max_vcpu": 10,
       "max_ram_gib": 20,
       "sizes_allowed": null,
-      "note": "No fee, no card to start. Per-team active-sandbox limit exists (429 too_many_sandboxes) but its value is unpublished; raise via support. New teams capped at 2 vCPU / 2 GiB per sandbox."
+      "note": "No fee, no card to start. Per-team active-sandbox limit (429 too_many_sandboxes) defaults to 20 for new teams: not on the pricing page or docs, but set in vendor source (team.max_sandboxes DEFAULT 20, migration 20260612000001) and printed in the 429 message ('team has reached the limit of %d sandboxes'). Paused sandboxes do not count; raise via support. New teams capped at 2 vCPU / 2 GiB per sandbox."
     },
     {
       "name": "Enterprise (on-prem)",
@@ -208,6 +208,7 @@
     "Egress/ingress not metered in the public rate card (only vcpu, memory_gib, storage_gib meters exist); not stated as free, so null.",
     "Billing granularity per second; minimum billed time not published. Regions not documented (API is cell-based).",
     "Rates are identical to E2B's list rates.",
+    "Active-sandbox cap of 20 per team (concurrency) is from vendor source and the 429 message, not the pricing page or docs; support can raise it, with no published higher tier or turnaround, so 50+ parallel scenarios show as not fitting self-serve.",
     "Other per-team limits: 100 snapshots per team, 20 per sandbox, 4 in flight (docs, raisable via support); API request rate 50 req/s with burst 150 per team (vendor source ratelimit.go, not documented).",
     "Vendor source (migration 20260929000001_prospective_storage_billing) adds a per-team storage-billing activation cutoff; the public billing API still marks storage billable:false, so the listed $0.000108/GiB-h storage may start being invoiced team by team."
   ],
@@ -221,6 +222,7 @@
     "https://docs.superserve.ai/errors",
     "https://raw.githubusercontent.com/superserve-ai/sandbox/refs/heads/main/api/openapi.yaml",
     "https://github.com/superserve-ai/sandbox/pull/454",
+    "https://github.com/superserve-ai/sandbox/blob/main/supabase/migrations/20260612000001_lower_default_limits.sql",
     "https://www.computesdk.com/benchmarks/sandboxes/"
   ],
   "fleet": {
@@ -231,10 +233,12 @@
     "raise_time_days": null,
     "verification": "No credit card to start.",
     "tiers": null,
-    "notes": "Official error docs explicitly enforce per-team active sandbox count (429 too_many_sandboxes) and say pause/delete or contact support. Numeric default and higher limits unpublished; no guaranteed 10/50/300/1,000 fleet or review SLA.",
+    "notes": "Official error docs enforce a per-team active sandbox count (429 too_many_sandboxes: pause/delete or contact support); paused sandboxes do not count (OpenAPI). The numeric default (20) is not in public docs; it comes from vendor source (supabase/migrations/20260612000001_lower_default_limits.sql: 'ALTER TABLE team ALTER COLUMN max_sandboxes SET DEFAULT 20;', unchanged by later migrations; new-team creation inserts only name/home_region) and is echoed in the 429 message. Higher limits unpublished; no guaranteed 50/300/1,000 fleet or review SLA. Checked 2026-10-14.",
     "sources": [
       "https://superserve.ai/pricing",
-      "https://docs.superserve.ai/errors"
+      "https://docs.superserve.ai/errors",
+      "https://github.com/superserve-ai/sandbox/blob/main/supabase/migrations/20260612000001_lower_default_limits.sql",
+      "https://github.com/superserve-ai/sandbox/blob/main/internal/api/handlers.go"
     ],
     "researched": "2026-09-28"
   },
@@ -244,6 +248,13 @@
     "reviewed": 15
   },
   "feature_evidence": {
+    "concurrency": {
+      "value": 20,
+      "source": "https://github.com/superserve-ai/sandbox/blob/main/supabase/migrations/20260612000001_lower_default_limits.sql",
+      "quote": "-- max_sandboxes default 100 -> 20; bumps rows still on the old default. Templates default in code.\nALTER TABLE team ALTER COLUMN max_sandboxes SET DEFAULT 20;",
+      "note": "Vendor source, not a public pricing/docs page. The 429 handler prints the team's value: \"team has reached the limit of %d sandboxes; delete some or contact support@superserve.ai for higher\" (internal/api/handlers.go). Public docs (https://docs.superserve.ai/errors) only say: \"Team has reached its active sandbox count limit. Pause/delete one or contact support.\" OpenAPI: 'paused sandboxes do not count'. No later migration changes the default and create_team_with_signup_trial inserts only name/home_region, so new teams get 20. Raise via support (no published higher tier).",
+      "checked": "2026-10-14"
+    },
     "snapshot_auto": {
       "value": true,
       "source": "https://docs.superserve.ai/sandbox/lifecycle.md",

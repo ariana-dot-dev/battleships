@@ -155,9 +155,10 @@
     },
     {
       "key": "review",
-      "label": "Review Runner",
+      "label": "Review Runner (code review jobs, private beta)",
       "flags": [
-        "beta"
+        "beta",
+        "alt"
       ],
       "pricing": "sizes",
       "sizes": [
@@ -170,7 +171,8 @@
         }
       ],
       "granularity_s": 60,
-      "min_billed_seconds": 60
+      "min_billed_seconds": 60,
+      "note": "Private beta, access on request. Optimized for code review jobs on 'a blend of CPUs selected for cost'; StarSling says to use the CPU runners for builds, tests and other CI jobs, so it is opt-in (alt) rather than the default 4 vCPU shape. $0.004/min per compute-sizing and the Review Runners product page; the pricing page says they 'bill at these same CPU rates' ($0.008/min for 4 vCPU). See caveats."
     }
   ],
   "storage": {
@@ -295,19 +297,26 @@
     "dax_s": null
   },
   "caveats": [
-    "GitHub Actions/Review Runners, not always-on generic VM (engine classifies the \"ci\" regime as a CI runner, so non-CI workloads see it as a different kind of product; no alt flag). Ubuntu 24.04, 5th-gen AMD EPYC. Advertised unlimited concurrency; job/session maximum not verified.",
+    "GitHub Actions/Review Runners, not always-on generic VM (engine classifies the \"ci\" regime as a CI runner, so non-CI workloads see it as a different kind of product; no alt flag). Ubuntu 26.04 (default) or Ubuntu 24.04 labels at the same prices, 5th-gen AMD EPYC. Advertised unlimited concurrency; job/session maximum not verified.",
     "GPU rates include 4 vCPU/16 GB/100 GB host, not add-on rates. GPU access requires contacting provider; H100 coming soon, excluded from numerical rate list.",
     "Do not apply advertised performance/TFLOPS savings as universal wall-clock discounts.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
-    "2,000 free runner minutes in the first month (no card; no rollover)."
+    "2,000 free runner minutes in the first month (no card; no rollover).",
+    "Review Runner price conflict (2026-10-14): https://docs.starsling.dev/runners/compute-sizing.md lists starsling-review at \"$0.004\" per minute, \"half the price of the equivalent 4 vCPU CPU runner\", and https://starsling.dev/products/review-runners says \"at $0.004 a minute\"; https://starsling.dev/pricing says \"StarSling Review Runners bill at these same CPU rates\" (4 vCPU = $0.008/min). The card keeps $0.004 (two pages) and flags the mode alt, since it is a private-beta runner for code review jobs on cost-selected CPUs.",
+    "Afterburner (private beta): during CPU/memory pressure a job may get up to 25% more CPU cores and 50% more RAM at no extra cost (https://docs.starsling.dev/runners/afterburner). Not modelled: billing is still the label's size, and the boost is automatic and not guaranteed.",
+    "Regions: control plane and logs are in the United States; runners run on sandbox providers 'in multiple regions' that are not named. A specific provider or region is pinned only on request (founders@starsling.dev)."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/starsling",
     "https://starsling.dev/pricing",
     "https://docs.starsling.dev/runners/compute-sizing",
     "https://starsling.dev/",
-    "https://starsling.dev/llms.txt"
+    "https://starsling.dev/llms.txt",
+    "https://docs.starsling.dev/security/data-handling.md",
+    "https://docs.starsling.dev/runners/sandbox-router.md",
+    "https://docs.starsling.dev/runners/afterburner",
+    "https://starsling.dev/products/review-runners"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -376,10 +385,10 @@
     },
     "image_oci": {
       "value": false,
-      "source": "https://docs.starsling.dev/configuration/label-reference",
-      "quote": "StarSling uses structured labels to specify runner configuration. ... All sizes run Ubuntu 24.04 on 5th Gen AMD EPYC.",
-      "note": "not offered: runners are fixed Ubuntu 24.04 images selected by label; no documented way to boot from a customer-supplied Docker/OCI image.",
-      "checked": "2026-09-30"
+      "source": "https://docs.starsling.dev/runners/compute-sizing.md",
+      "quote": "All CPU sizes run Ubuntu 26.04 or Ubuntu 24.04 on 5th Gen AMD EPYC. Ubuntu 26.04 is the default shown here.",
+      "note": "not offered: runners are fixed Ubuntu 26.04 or 24.04 images selected by label (starsling-ubuntu-26.04-*, starsling-ubuntu-24.04-*, same prices); no documented way to boot from a customer-supplied Docker/OCI image.",
+      "checked": "2026-10-14"
     },
     "docker_inside": {
       "value": true,
@@ -502,10 +511,10 @@
     },
     "live_resize": {
       "value": false,
-      "source": "https://docs.starsling.dev/configuration/label-reference",
-      "quote": "The numeric suffix on a base label indicates the vCPU count (e.g. `-8` = 8 vCPU). The label without a suffix is the 4 vCPU default.",
-      "note": "not offered: size is fixed per runner label chosen in the workflow (a new machine per job), no API to resize a running machine.",
-      "checked": "2026-09-30"
+      "source": "https://docs.starsling.dev/runners/afterburner.md",
+      "quote": "Afterburner is not overprovisioning. StarSling Runners resize resources live, every second, in response to the pressure each step puts on CPU and memory.",
+      "note": "Kept false: Afterburner (private beta, 'Contact founders@starsling.dev to request access') is an automatic, provider-controlled boost of up to 25% more CPU cores and 50% more RAM during pressure, returning to the label's size afterwards. There is no API or label to choose or grow a running runner's size; the size is fixed by the runs-on label per job. See caveats.",
+      "checked": "2026-10-14"
     },
     "agent_harnesses": {
       "value": false,
@@ -586,10 +595,10 @@
     },
     "arm64": {
       "value": false,
-      "source": "https://starsling.dev/llms-full.txt",
-      "quote": "Operating systems | Ubuntu 24.04 Linux runners.",
-      "note": "Appears in StarSling's own comparison tables against competitors that do offer arm64/Windows/macOS; StarSling's own column is consistently 'Ubuntu 24.04 Linux runners' only, all on 5th Gen AMD EPYC (x64).",
-      "checked": "2026-09-30"
+      "source": "https://docs.starsling.dev/runners/compute-sizing.md",
+      "quote": "All CPU sizes run Ubuntu 26.04 or Ubuntu 24.04 on 5th Gen AMD EPYC.",
+      "note": "x64 only: every CPU size is on 5th Gen AMD EPYC; no arm64 label documented.",
+      "checked": "2026-10-14"
     },
     "self_host": {
       "value": false,
@@ -642,10 +651,10 @@
     },
     "eu_data_residency": {
       "value": false,
-      "source": "https://docs.starsling.dev/security/compliance",
-      "quote": "Control plane | US East ... Runners | US East (more regions coming) ... Logs | US East",
-      "note": "All control plane, runner, and log data is located in US East only today ('more regions coming' implies no EU region yet). The pricing page lists 'Custom security or data residency requirements' as an Enterprise custom-agreement item, not a shipped EU region.",
-      "checked": "2026-09-30"
+      "source": "https://docs.starsling.dev/security/data-handling.md",
+      "quote": "Control plane | United States ... Runners | Multiple regions ... Logs | United States ... Runner compute runs in multiple regions. See Sandbox Router.",
+      "note": "Control plane and logs are in the United States; runner regions are not named and not self-serve choosable (Sandbox Router FAQ: \"Can I pin a provider or region? Yes. If a workload needs a specific provider or region, contact founders@starsling.dev.\"). No documented EU data residency. The old compliance-page table ('US East ... (more regions coming)') no longer exists.",
+      "checked": "2026-10-14"
     },
     "soc2": {
       "value": false,
@@ -675,12 +684,13 @@
       "country": "US",
       "state": null,
       "city": null,
-      "provider_region": "us-east",
+      "provider_region": null,
       "self_serve": true,
       "choosable": false
     }
   ],
-  "locations_source": "https://docs.starsling.dev/security/compliance",
-  "locations_quote": "Control plane | US East ... Runners | US East (more regions coming) ... Logs | US East",
-  "locations_checked": "2026-10-01"
+  "locations_source": "https://docs.starsling.dev/security/data-handling.md",
+  "locations_quote": "Control plane | United States ... Runners | Multiple regions ... Logs | United States",
+  "locations_checked": "2026-10-14",
+  "locations_note": "Only the United States is named (control plane and logs). Runners are spread by the Sandbox Router \"across high-performance sandbox providers in multiple regions\" (https://docs.starsling.dev/runners/sandbox-router.md), which are not listed; pinning a provider or region goes through founders@starsling.dev. The earlier 'us-east' region id came from a compliance-page table that has been removed."
 }

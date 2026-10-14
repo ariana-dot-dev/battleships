@@ -94,14 +94,14 @@
       "fee": 0,
       "flags": [],
       "fee_is_credit": false,
-      "included_usd": 7.5,
+      "included_usd": 8,
       "per_seat": 0,
       "concurrency": 10,
       "max_session_h": null,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Max 1 seat. 'Limited to 10 Sandboxes' (count of sandboxes, not explicitly running only; stopped sandboxes are kept 14 days by default and may count). Pay-as-you-go after adding a card. 5 LCU + 1 LSU sandbox allowance per month. Restricted egress (managed allowlist) by default.",
+      "note": "Max 1 seat. 'Limited to 10 Sandboxes' (count of sandboxes, not explicitly running only; stopped sandboxes are kept 14 days by default and may count). Pay-as-you-go after adding a card. 8 LSU ($8) of sandbox usage included per month. Restricted egress (managed allowlist) by default.",
       "internet": "allowlist"
     },
     {
@@ -109,14 +109,14 @@
       "fee": 39,
       "flags": [],
       "fee_is_credit": false,
-      "included_usd": 7.5,
+      "included_usd": 8,
       "per_seat": 39,
       "concurrency": null,
       "max_session_h": null,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "$39 per seat per month. A seat is every distinct user, including invited users. Seats are prorated when added, with no credit when removed. No published sandbox count cap. Marketing says 'Burst to thousands on demand ... without rate limits or queueing'. Includes 10k base traces and 1 free small serverless deployment. Restricted egress by default for non-Enterprise orgs.",
+      "note": "$39 per seat per month. A seat is every distinct user, including invited users. Seats are prorated when added, with no credit when removed. No published sandbox count cap. Marketing says 'Burst to thousands on demand ... without rate limits or queueing'. Includes 10k base traces and 1 free small serverless deployment. Restricted egress by default for non-Enterprise orgs. Includes 8 LSU ($8) of sandbox usage per month.",
       "internet": "allowlist"
     },
     {
@@ -232,24 +232,28 @@
   },
   "knobs": [],
   "caveats": [
-    "Public list rates are expressed in LCU and LSU. $1.50/LCU and $1/LSU; CPU 0.0384 LCU/vCPU-h, RAM 0.0123 LCU/GiB-h, storage 0.000123 LSU/GiB-h. Credits are separate compute and storage pools, not fungible dollars.",
+    "Public list rates are in LSU (1 LSU = $1): compute 0.0576 LSU/vCPU-h, memory 0.01845 LSU/GiB-h, storage 0.000123 LSU/GiB-h, billed per second. Developer and Plus each include 8 LSU of sandbox usage per month (checked 2026-10-14; previously 5 LCU + 1 LSU).",
     "Storage meter scope versus retained filesystem snapshot pricing needs invoice confirmation.",
     "Plus concurrency and maximum sandbox size not stated on pricing page.",
     "ENGINE_CARD cannot apply all independent free CPU/RAM/storage/request allowances exactly. Raw regimes/worked example retain them; any engine subtotal may overstate charges or miss eligibility. Do not subtract them twice.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
-    "No SSH/desktop/browser product documented (2026-09-28); access is via SDK exec, file APIs, service URLs and TCP tunnels. A browser could be installed in a custom image, but none is provided.",
+    "No desktop or managed browser product is documented. SSH works through the CLI: sandbox ssh-setup writes a ProxyCommand over langsmith sandbox tunnel, but the image must run sshd on port 22 (the default image is not stated to). sandbox console gives a PTY shell. A browser could be installed in a custom image, but none is provided.",
     "Restricted egress by default for non-Enterprise orgs: only a managed allowlist (PyPI, npm, GitHub, OpenAI, Anthropic, LangSmith, mostly HTTPS:443). Unrestricted egress needs a support-ticket exemption.",
     "Enterprise is invoiced annually upfront and LCUs draw down committed LangChain credits. Startups can get up to $10,000 in credits (application program).",
     "New organisations created manually must be on Plus. Developer is only the personal org.",
-    "CPU bursts to 2x requested when the host has spare capacity. It is not documented whether burst CPU is billed; the billed allocation is presumably the requested vCPU."
+    "CPU bursts to 2x requested when the host has spare capacity. It is not documented whether burst CPU is billed; the billed allocation is presumably the requested vCPU.",
+    "Self-hosted sandboxes require an Enterprise plan; the hosted Developer/Plus plans cannot self-host."
   ],
   "sources": [
     "https://www.langchain.com/pricing",
     "https://docs.langchain.com/langsmith/sandboxes",
     "https://docs.langchain.com/langsmith/sandbox-snapshots",
     "https://docs.langchain.com/langsmith/sandbox-mounts",
-    "https://docs.langchain.com/langsmith/sandbox-auth-proxy"
+    "https://docs.langchain.com/langsmith/sandbox-auth-proxy",
+    "https://docs.langchain.com/langsmith/sandbox-cli",
+    "https://docs.langchain.com/langsmith/self-host-sandbox-architecture",
+    "https://docs.langchain.com/langsmith/enable-self-hosted-sandboxes"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -319,7 +323,7 @@
       "value": true,
       "source": "https://docs.langchain.com/langsmith/deploy-self-hosted-full-platform",
       "quote": "Sandbox runtime pods that run sandbox workloads on KVM-capable nodes.",
-      "note": "KVM microVMs (self-host requires /dev/kvm) with an Ubuntu 24.04 ext4 root filesystem and root access (setup scripts run apt-get). Not documented explicitly; derived. Rules inside would sit behind the host-side egress proxy.",
+      "note": "Firecracker microVMs with their own guest kernel (self-host-sandbox-architecture, checked 2026-10-14; self-host requires /dev/kvm) with an Ubuntu 24.04 ext4 root filesystem and root access (setup scripts run apt-get). Not documented explicitly; derived. Rules inside would sit behind the host-side egress proxy.",
       "checked": "2026-09-29",
       "derived": true
     },
@@ -521,6 +525,27 @@
       "quote": "preserve_memory_on_stop | true suspends RAM on a voluntary stop (idle timeout or explicit stop) so the sandbox resumes where it left off when it next wakes, rather than cold-booting. Defaults to false, which keeps only the filesystem. Restarts triggered by infrastructure maintenance preserve memory either way.",
       "note": "The whole disk survives a stop, installed packages included.",
       "checked": "2026-10-01"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandbox-cli",
+      "quote": "Use `sandbox ssh-setup` to configure standard SSH tools such as `ssh`, `scp`, `rsync`, and `sftp` through a sandbox tunnel.",
+      "note": "\"`ssh-setup` modifies local SSH configuration and writes a `ProxyCommand` that calls `langsmith sandbox tunnel`.\" and \"The sandbox image must run `sshd` on port `22`.\" Also \"Use `sandbox console` for a PTY-backed interactive shell\".",
+      "checked": "2026-10-14"
+    },
+    "isolation": {
+      "value": "vm",
+      "source": "https://docs.langchain.com/langsmith/self-host-sandbox-architecture",
+      "quote": "A sandbox is a Firecracker microVM, not a Kubernetes pod.",
+      "note": "\"Each `sandbox-host` pod manages multiple microVMs, each with its own guest kernel.\"",
+      "checked": "2026-10-14"
+    },
+    "self_host": {
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/enable-self-hosted-sandboxes",
+      "quote": "Sandboxes require an Enterprise plan.",
+      "note": "Self-hosting is Enterprise-only (sales).",
+      "checked": "2026-10-14"
     }
   },
   "locations": [

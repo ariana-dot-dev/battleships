@@ -38,7 +38,7 @@
         "isolation": "bare-metal-vm"
       },
       "flags": [],
-      "cpu_class": "dedicated"
+      "cpu_class": "shared"
     },
     {
       "key": "enterprise-active-cpu",
@@ -201,7 +201,7 @@
     "windows": false,
     "macos": false,
     "arm64": false,
-    "gpu": false,
+    "gpu": true,
     "gpu_types": [],
     "snapshot": "mem",
     "pause_resume": true,
@@ -317,7 +317,10 @@
     "cold_start_ms: no computesdk cold-start run for freestyle (vendor claims ~65 ms); dax never succeeded in benchmarks.",
     "free.monthly_credit ($18.38) values separate monthly resource allowances (200 CPU-h, 400 GiB-h RAM, 60,000 GiB-h disk per the 2026-09-24 capture); it is not a pooled spendable credit, so unused disk allowance cannot offset CPU in reality. A 2026-07-08 capture advertised per-day allowances (20 CPU-h / 40 GiB-h / 16,800 GiB-h disk); do not reuse current allowances for historical estimates. https://web.archive.org/web/20260708095940/https://www.freestyle.sh/pricing , https://web.archive.org/web/20260924112048/https://www.freestyle.sh/pricing",
     "Order of credits is now documented: the per-resource allowances are applied first, and the Hobby/Pro fee is a floor on the remaining usage. Bill = max(fee, usage above allowances). An engine that computes max(fee, usage) - free.monthly_credit understates Hobby/Pro bills when usage is below the fee (e.g. Hobby at low usage: real $50, engine up to $31.62).",
-    "Base snapshot presets (boot sizes): busybox 1/0.125 GiB/1 GB, ubuntu-sm 2/4/16, ubuntu 4/8/32 (default), ubuntu-lg 8/16/64, ubuntu-xl 16/32/128, ubuntu-2xl 32/64/128, ubuntu-3xl 64/128/256 (Enterprise only). Free tops out at ubuntu, Hobby at ubuntu-lg, Pro at ubuntu-2xl. Any valid size up to the plan max is allowed, so resource pricing (vcpu_options null) stays correct."
+    "Base snapshot presets (boot sizes): busybox 1/0.125 GiB/1 GB, ubuntu-sm 2/4/16, ubuntu 4/8/32 (default), ubuntu-lg 8/16/64, ubuntu-xl 16/32/128, ubuntu-2xl 32/64/128, ubuntu-3xl 64/128/256 (Enterprise only). Free tops out at ubuntu, Hobby at ubuntu-lg, Pro at ubuntu-2xl. Any valid size up to the plan max is allowed, so resource pricing (vcpu_options null) stays correct.",
+    "GPU sandboxes exist only as an Enterprise private offer (\"Freestyle offers private GPU sandboxes for enterprise customers\", https://www.freestyle.sh/about.md); no GPU type or price is published, so no GPU mode is priced. Enterprise can also colocate customer bare metal (custom GPUs) in Freestyle racks.",
+    "Self-serve CPUs are oversubscribed: \"We also oversubscribe host resources\" and sustained high-CPU jobs (kernel builds, mining) are better served elsewhere, per https://www.freestyle.sh/about.md. Dedicated capacity is Enterprise node-based only.",
+    "Free cannot carry a workload above its allowances: \"On Free, they are hard allowances and usage does not continue into paid overage\" (VMs pause when an allowance runs out). A 4 vCPU VM running all month needs ~2,920 vCPU-h vs 200 on Free, so Hobby is the cheapest plan that actually runs it; the engine does not yet enforce per-resource hard caps."
   ],
   "sources": [
     "https://www.freestyle.sh/pricing",
@@ -325,7 +328,8 @@
     "https://www.freestyle.sh/docs/vms/lifecycle",
     "https://www.freestyle.sh/products/vms",
     "https://apis.io/plans/freestyle-sh/freestyle-sh-plans-pricing/",
-    "https://www.computesdk.com/benchmarks/sandboxes/burst_tti/"
+    "https://www.computesdk.com/benchmarks/sandboxes/burst_tti/",
+    "https://www.freestyle.sh/about.md"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -520,11 +524,12 @@
       "checked": "2026-09-30"
     },
     "gpu": {
-      "value": false,
-      "source": "https://www.freestyle.sh/docs/guides/run-android-in-a-sandbox",
-      "quote": "'hw.gpu.enabled=yes' 'hw.gpu.mode=swiftshader_indirect'",
-      "note": "The only 'gpu' reference in the docs is SwiftShader software (CPU-based) rendering for an Android emulator; no real GPU instance type is offered (features.gpu_types is empty and the plan/base-snapshot tables list only vCPU/RAM/disk).",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://www.freestyle.sh/about.md",
+      "quote": "Freestyle offers private GPU sandboxes for enterprise customers, providing direct access to frontier GPU hardware for high performance computing, machine learning and generally the above **Emerging Use Cases**.",
+      "note": "Hosted GPUs are Enterprise only (no published GPU price or GPU type, so gpu_types empty and no GPU mode). Self-serve Free/Hobby/Pro VMs are CPU-only; the only GPU reference in the docs is SwiftShader software rendering for the Android emulator guide.",
+      "checked": "2026-10-14"
     },
     "windows": {
       "value": false,
@@ -577,14 +582,17 @@
     },
     "cpu_class": {
       "value": {
-        "on-demand": "dedicated",
+        "on-demand": "shared",
         "enterprise-active-cpu": "shared",
         "dedicated": "dedicated"
       },
-      "source": "https://www.freestyle.sh/docs/vms/pricing-and-limits",
-      "quote": "vCPU, memory and storage are all billed on the amount allocated to the VM for the time it is allocated — a reserved core is yours whether or not the guest is busy. ... Active CPU pricing — bill on measured CPU time rather than allocated vCPU, so you only pay for compute you actually use. ... Node-based pricing — reserve dedicated capacity at a flat rate instead of per-resource usage billing.",
-      "note": "on-demand: docs explicitly say a reserved core is yours regardless of guest activity -> dedicated. dedicated (enterprise node-based) mode explicitly reserves dedicated capacity -> dedicated. enterprise-active-cpu bills on measured/actual CPU time rather than a reserved allocation, implying the underlying cores are not exclusively reserved for the tenant while idle -> classified shared (medium confidence, inferred from billing model description; exact hardware allocation for this enterprise-only mode is not published).",
-      "checked": "2026-09-30"
+      "corrected_from": {
+        "on-demand": "dedicated"
+      },
+      "source": "https://www.freestyle.sh/about.md",
+      "quote": "Freestyle VMs run on bare metal on data center CPUs. We also oversubscribe host resources. For workloads that require sustained high CPU usage like building the Linux Kernel or mining crypto prefer cloud providers that offer consumer CPU performance.",
+      "note": "on-demand: the vendor states it oversubscribes host resources and steers sustained high-CPU work elsewhere, and sells dedicated capacity separately (Enterprise node-based: \"reserve dedicated capacity at a flat rate instead of per-resource usage billing\", https://www.freestyle.sh/docs/vms/pricing-and-limits) -> shared. The earlier dedicated reading came from the billing sentence \"a reserved core is yours whether or not the guest is busy\", which describes allocation-based billing, not core exclusivity. enterprise-active-cpu: shared (bills measured CPU time). dedicated (Enterprise node-based): dedicated.",
+      "checked": "2026-10-14"
     },
     "fast_boot": {
       "value": true,

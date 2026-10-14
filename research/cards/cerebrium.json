@@ -1204,7 +1204,9 @@
     "Builds are billed at the app's compute rate when requirements/code change (cached steps cheaper). min_replicas>0 bills 24/7.",
     "Memory+GPU checkpointing (snapshots for cold start) is early beta; no separate storage price published.",
     "Platform cold-start time is not billed; user initialization code outside the request function (e.g. loading a model into GPU memory) is billed.",
-    "Persistent storage: one volume per region per project (mounted /persistent-storage), resizable 50 GB-1 TB self-serve; global apps also get a fixed 1 TB /global-persistent-storage volume. Pricing page: first 100 GB free then $0.05/GB-mo; whether billing is on provisioned size or used bytes is not stated."
+    "Persistent storage: one volume per region per project (mounted /persistent-storage), resizable 50 GB-1 TB self-serve; global apps also get a fixed 1 TB /global-persistent-storage volume. Pricing page: first 100 GB free then $0.05/GB-mo; whether billing is on provisioned size or used bytes is not stated.",
+    "No container lifetime cap, but each request times out at response_grace_period (default 15 min, raise in cerebrium.toml) and async runs max out at 12 h. Interruptible and protected instances alike can be drained (SIGTERM, then SIGKILL after the grace period) and moved to a new node for maintenance; protected only avoids preemption and consolidation.",
+    "Cerebrium does not say which isolation layer (runc, gVisor or microVM) runs customer containers; 'container' is inferred from the Dockerfile deployment model."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/cerebrium",
@@ -1216,7 +1218,11 @@
     "https://cerebrium.ai/llms.txt",
     "https://www.cerebrium.ai/pricing",
     "https://cerebrium.ai/docs/hardware/cpu-and-memory.md",
-    "https://docs.cerebrium.ai/llms.txt"
+    "https://docs.cerebrium.ai/llms.txt",
+    "https://cerebrium.ai/docs/endpoints/async",
+    "https://cerebrium.ai/docs/scaling/scaling-apps",
+    "https://cerebrium.ai/docs/toml-reference/toml-reference",
+    "https://cerebrium.ai/resources/sandboxed-agent-code-execution-serverless-gpu"
   ],
   "fleet": {
     "default_max_instances": 500,
@@ -1291,8 +1297,8 @@
       "value": "container",
       "source": "https://cerebrium.ai/docs/container-images/custom-dockerfiles",
       "quote": "Cerebrium supports deploying existing containerized apps — from standard Python apps to compiled Rust binaries — using a custom Dockerfile.",
-      "note": "Serverless container platform; deployments are Docker containers scheduled on shared GPU/CPU nodes, not per-customer VMs. Matches card's existing isolation value.",
-      "checked": "2026-09-30"
+      "note": "Serverless container platform built from Dockerfiles; 'container' is a reading of that model. Cerebrium does not state which isolation layer it runs customer containers under (runc, gVisor or microVM) in its docs or its sandboxing resource page, so per-customer-VM vs shared-kernel is unconfirmed.",
+      "checked": "2026-10-14"
     },
     "image_oci": {
       "value": true,
@@ -1312,8 +1318,8 @@
       "value": false,
       "source": "https://cerebrium.ai/docs/container-images/custom-dockerfiles",
       "quote": "Cerebrium supports deploying existing containerized apps — from standard Python apps to compiled Rust binaries.",
-      "note": "not offered: outside the product's scope — a shared-kernel serverless container platform for Python/custom-runtime inference apps; no /dev/kvm or nested-VM capability is documented.",
-      "checked": "2026-09-30"
+      "note": "not offered: outside the product's scope — a serverless container platform for Python/custom-runtime inference apps (underlying isolation layer not stated by Cerebrium); no /dev/kvm or nested-VM capability is documented.",
+      "checked": "2026-10-14"
     },
     "desktop": {
       "value": false,
@@ -1480,8 +1486,8 @@
       "value": false,
       "source": "https://cerebrium.ai/docs/container-images/custom-dockerfiles",
       "quote": "Cerebrium supports deploying existing containerized apps — from standard Python apps to compiled Rust binaries.",
-      "note": "Deployments run as containers on a shared-kernel serverless platform, not full VMs/microVMs with root; no iptables/nftables-in-guest capability documented, and root/sudo access is not exposed.",
-      "checked": "2026-09-30"
+      "note": "Deployments run as managed serverless containers (underlying isolation layer not stated by Cerebrium); no iptables/nftables-in-guest capability documented, and root/sudo access is not exposed.",
+      "checked": "2026-10-14"
     },
     "static_egress_ip": {
       "value": false,
@@ -1534,10 +1540,10 @@
     },
     "max_session_h": {
       "value": "none",
-      "source": "https://cerebrium.ai/docs/llms-full.txt",
-      "quote": "Use `protected` for production services with strict availability requirements or long-running requests where interruption would be costly.",
-      "note": "No documented maximum wall-clock duration for a running container/request; interruptible instances can be preempted/consolidated but protected instances are designed to run indefinitely (min_replicas keeps instances warm 24/7). No fixed hour cap found.",
-      "checked": "2026-09-30"
+      "source": "https://cerebrium.ai/docs/scaling/scaling-apps",
+      "quote": "During normal replica operation, this acts as a request timeout value.",
+      "note": "No documented cap on how long a container/replica lives (min_replicas keeps instances warm 24/7), so the container-level value stays 'none'. Each request is bounded by `response_grace_period` (toml default 900 s = 15 min, no maximum stated); async runs are capped: 'Async functions run for a maximum of **12 hours**, bounded by the `response_grace_period` in `cerebrium.toml`. This defaults to 15 minutes.' (docs/endpoints/async). No instance is pinned to one node: 'Both interruptible and protected instances can be migrated to a new node when the underlying node is cycled for maintenance. In every case the instance receives SIGTERM and is drained within `response_grace_period` before SIGKILL.' (scaling-apps).",
+      "checked": "2026-10-14"
     },
     "sso": {
       "value": false,

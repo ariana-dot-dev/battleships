@@ -3,7 +3,7 @@
   "name": "Omnara",
   "url": "https://www.omnara.com/pricing",
   "category": "agent-sandbox",
-  "isolation": null,
+  "isolation": "microvm",
   "modes": [
     {
       "key": "managed",
@@ -44,7 +44,8 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Published tariff is memory-only: \"$0.0414 per GiB of memory per hour online\" (omnara.com/pricing, 2026-09-28); CPU is not billed separately (vcpu_h 0). vCPU per GiB and machine sizes are NOT published (create-machine API has no size fields), so the vCPU count of a priced shape is unverified. Retention \"$0.20016 per GiB of memory per 30 days retained, in addition to runtime\" is per GiB of machine memory, not per GiB of state, so it is not mapped to snapshot_gib_month."
+      "note": "Published tariff is memory-only: \"$0.0414 per GiB of memory per hour online\" (omnara.com/pricing, 2026-09-28); CPU is not billed separately (vcpu_h 0). vCPU per GiB and machine sizes are NOT published (create-machine API has no size fields), so the vCPU count of a priced shape is unverified. Retention \"$0.20016 per GiB of memory per 30 days retained, in addition to runtime\" is per GiB of machine memory, not per GiB of state, so it is not mapped to snapshot_gib_month.",
+      "isolation": "microvm"
     }
   ],
   "storage": {
@@ -112,9 +113,9 @@
     "custom_image": null,
     "docker_inside": null,
     "nested_virt": null,
-    "root": null,
+    "root": true,
     "systemd": null,
-    "browser": false,
+    "browser": true,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": null,
@@ -135,9 +136,9 @@
     "sso": true,
     "gpu_types": [],
     "regions": null,
-    "lang_python": null,
-    "lang_node": false,
-    "lang_go": null,
+    "lang_python": true,
+    "lang_node": true,
+    "lang_go": true,
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
@@ -166,7 +167,8 @@
     "volume_attach": false,
     "volume_shared": false,
     "ingress_rules": false,
-    "usage_api": false
+    "usage_api": false,
+    "isolation": "microvm"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -181,15 +183,19 @@
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "Omnara Cloud is prepaid: managed sandboxes and managed models consume credits bought through Stripe; purchased credits are non-refundable; agents pause or fail when the organization has insufficient credits. Minimum purchase and any signup credit are not published ('No credit card required' to start).",
-    "Omnara is an agent control plane; its machines are sandboxes from Blaxel, Unikraft Cloud, Daytona or Modal. The provider, isolation and vCPU/RAM shape behind the Omnara-managed 'default-pool' are unpublished. With a BYO provider pool the compute is billed by that provider, not Omnara (Omnara platform fee $0).",
-    "Retention is charged 'in addition to runtime' for every retained machine (not only sleeping ones): while online the effective rate is $0.0414 + ~$0.000278 per GiB-hour. Pool machines are deleted after a configurable idle period (minimum 5 min; 0 disables), after which retention stops."
+    "Omnara is an agent control plane; its machines are sandboxes from one of nine providers (Arker, Blaxel, boxd, CreateOS, Daytona, Freestyle, Modal, Tenki, Unikraft Cloud). The hosted default pool runs on Blaxel microVMs ('On Omnara's hosted service, every organization starts with a default pool on Blaxel'); its vCPU/RAM shape and region are unpublished. With a BYO provider pool the compute is billed by that provider, not Omnara (Omnara platform fee $0).",
+    "Retention is charged 'in addition to runtime' for every retained machine (not only sleeping ones): while online the effective rate is $0.0414 + ~$0.000278 per GiB-hour. Pool machines are deleted after a configurable idle period (minimum 5 min; 0 disables), after which retention stops.",
+    "Disk is not priced separately because Blaxel machines keep files in RAM: 'Blaxel keeps each machine's files in memory, so give each machine at least 4 GB for coding work' (docs.omnara.com/machines/providers/blaxel.md, 2026-10-14). Size the memory for working set plus files. Region of the managed default pool is unpublished; Blaxel pools offer us-pdx-1, us-was-1, eu-lon-1, eu-fra-1 (BYO Blaxel account, billed by Blaxel)."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/omnara",
     "https://www.omnara.com/pricing",
     "https://docs.omnara.com/machines/overview",
     "https://www.omnara.com/",
-    "https://www.omnara.com/llms.txt"
+    "https://www.omnara.com/llms.txt",
+    "https://docs.omnara.com/machines/pools.md",
+    "https://docs.omnara.com/machines/providers/overview.md",
+    "https://docs.omnara.com/machines/providers/blaxel.md"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -254,11 +260,11 @@
       "checked": "2026-09-30"
     },
     "browser": {
-      "value": false,
-      "source": "https://docs.omnara.com/tools/built-in",
-      "quote": "web_fetch: Fetches a public HTTP or HTTPS URL and returns readable content as Markdown or plain text. It cannot access localhost or private networks.",
-      "note": "not offered: outside the product's scope — the only web capability is a read-only fetch/search tool that returns text, not a real managed browser.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://docs.omnara.com/machines/pools.md",
+      "quote": "Browser automation | Playwright for Python with Chromium headless shell",
+      "note": "Headless Chromium + Playwright preinstalled on Omnara-managed pool machines; the browser-agent example (https://docs.omnara.com/examples/browser-agent.md) \"works in a real browser\". No managed browser service, live view, desktop or stealth features.",
+      "checked": "2026-10-14"
     },
     "computer_use": {
       "value": false,
@@ -271,15 +277,15 @@
       "value": false,
       "source": "https://www.omnara.com/pricing",
       "quote": "Omnara is the open-source alternative to Claude Managed Agents. Run durable AI agents with any compatible model, tools, sandboxes, and approvals.",
-      "note": "not offered: outside the product's scope — Omnara has no browser product, so stealth/fingerprint-evasion is not applicable.",
-      "checked": "2026-09-30"
+      "note": "not offered: only a self-driven headless Chromium (Playwright) on the machine; no stealth/fingerprint-evasion feature is documented.",
+      "checked": "2026-10-14"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://www.omnara.com/pricing",
       "quote": "Omnara is the open-source alternative to Claude Managed Agents. Run durable AI agents with any compatible model, tools, sandboxes, and approvals.",
-      "note": "not offered: outside the product's scope — no browser/CAPTCHA feature is documented.",
-      "checked": "2026-09-30"
+      "note": "not offered: only a self-driven headless Chromium (Playwright) on the machine; no CAPTCHA-solving feature is documented.",
+      "checked": "2026-10-14"
     },
     "ssh": {
       "value": false,
@@ -429,11 +435,11 @@
       "checked": "2026-09-30"
     },
     "lang_node": {
-      "value": false,
-      "source": "https://docs.omnara.com/quickstart",
-      "quote": "Use your machine to report the operating system and the free disk space. Then find the latest stable Node.js release on the web and tell me the version. ... Install that Node.js version on the machine and show me node --version.",
-      "note": "Omnara's own quickstart walkthrough for the default managed pool has the agent look up and install Node.js on the machine, implying it is not preinstalled out of the box.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://docs.omnara.com/machines/pools.md",
+      "quote": "Machines from Omnara-managed pools run Ubuntu 24.04 as root, with common development tools preinstalled so agents can start working without installing them. ... Languages | Python 3.12, Node.js 24, Go 1.27, C and C++ (gcc 13)",
+      "note": "Node.js 24 preinstalled in the default environment of Omnara-managed pools. Custom (BYO provider) pools use whatever image you choose.",
+      "checked": "2026-10-14"
     },
     "arm64": {
       "value": true,
@@ -449,10 +455,38 @@
       "note": "granularity: account-only; cost: no; Omnara's usage API endpoints (org, project, agent profile, agent) only report LLM model token usage and provider-reported cost from model providers, not machine/sandbox billable usage. No endpoint tracks per-machine runtime cost, memory-hours, or machine utilization. Machine billing ($0.0414/GiB-h runtime, $0.20016/GiB-h retention) is calculated by underlying sandbox providers (Blaxel, Unikraft Cloud, Daytona, Modal), not Omnara. API provides only current pool quota metrics (machine count, CPU, memory allocation), not billable usage history or per-machine cost.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://docs.omnara.com/machines/pools.md",
+      "quote": "Machines from Omnara-managed pools run Ubuntu 24.04 as root, with common development tools preinstalled so agents can start working without installing them. ... Languages | Python 3.12, Node.js 24, Go 1.27, C and C++ (gcc 13)",
+      "note": "Python 3.12 preinstalled in the default environment of Omnara-managed pools. Custom (BYO provider) pools use whatever image you choose.",
+      "checked": "2026-10-14"
+    },
+    "lang_go": {
+      "value": true,
+      "source": "https://docs.omnara.com/machines/pools.md",
+      "quote": "Machines from Omnara-managed pools run Ubuntu 24.04 as root, with common development tools preinstalled so agents can start working without installing them. ... Languages | Python 3.12, Node.js 24, Go 1.27, C and C++ (gcc 13)",
+      "note": "Go 1.27 preinstalled in the default environment of Omnara-managed pools. Custom (BYO provider) pools use whatever image you choose.",
+      "checked": "2026-10-14"
+    },
+    "root": {
+      "value": true,
+      "source": "https://docs.omnara.com/machines/pools.md",
+      "quote": "Machines from Omnara-managed pools run Ubuntu 24.04 as root, with common development tools preinstalled",
+      "note": "Managed pool runs as root (sudo also preinstalled). Custom pools depend on the image.",
+      "checked": "2026-10-14"
+    },
+    "isolation": {
+      "value": "microvm",
+      "source": "https://docs.omnara.com/machines/providers/blaxel.md",
+      "quote": "Each machine runs in its own microVM with its own kernel, boots in milliseconds, and is fully isolated from every other machine.",
+      "note": "Applies to the managed mode: \"On Omnara's hosted service, every organization starts with a default pool on Blaxel\" (https://docs.omnara.com/machines/providers/overview.md). BYO pools vary by provider (Daytona = container, Modal = gVisor container, others microVM/full VM).",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],
-  "locations_source": "https://docs.omnara.com/machines/pools",
-  "locations_quote": "Omnara-managed pools — ready-to-use sandboxes. Omnara manages the sandbox provider account, credentials, and default machine environment. Bring your own provider — connect your Blaxel, Unikraft Cloud, Daytona, Modal, or Freestyle account and create a custom pool.",
-  "locations_checked": "2026-10-01"
+  "locations_source": "https://docs.omnara.com/machines/providers/overview.md",
+  "locations_quote": "Omnara supports nine sandbox providers for machine pools, and agents get the same tools on all of them. On Omnara's hosted service, every organization starts with a default pool on Blaxel.",
+  "locations_checked": "2026-10-14"
 }

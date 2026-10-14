@@ -173,8 +173,10 @@
       "start_fee": 0,
       "multiplier": 1,
       "gpu": null,
-      "features": {},
-      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://azure.microsoft.com/en-us/pricing/details/devops/azure-devops-services/: additional Microsoft-hosted parallel job $40/month, unlimited minutes (job max 6 h on paid). Each agent = Standard_DS2_v2, 2 cores / 7 GB RAM / 14 GB SSD (https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted); no bigger machines. Priced as a flat pool of N parallel jobs = peak concurrency.",
+      "features": {
+        "max_session_h": 6
+      },
+      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://azure.microsoft.com/en-us/pricing/details/devops/azure-devops-services/: additional Microsoft-hosted parallel job $40/month, unlimited minutes (job max 6 h on paid: 'Paid parallel jobs remove the monthly time limit and allow you to run each job for up to 360 minutes (6 hours).'). Each agent = Standard_DS2_v2, 2 cores / 7 GB RAM / 14 GB SSD (https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted); bigger machines only via the GitHub-hosted PAYG modes or Managed DevOps Pools. On Linux, job steps get less than the VM's 7 GB: '(Linux only) Run steps in a cgroup that offers 6 GB of physical memory and 13 GB of total memory.' (checked 2026-10-14). Priced as a flat pool of N parallel jobs = peak concurrency.",
       "cpu_class": "dedicated"
     },
     {
@@ -222,7 +224,11 @@
           "max_vms": 25
         }
       ],
-      "note": "Same $40 parallel job as Linux/Windows (the job pool is shared across OSes). macOS agents are Intel Mac 3-core / 14 GB / 14 GB SSD and always run in the US. 6 h job cap.",
+      "features": {
+        "max_session_h": 6,
+        "arm64": false
+      },
+      "note": "Same $40 parallel job as Linux/Windows (the job pool is shared across OSes). macOS agents are Intel Mac 3-core / 14 GB / 14 GB SSD and always run in the US. 6 h job cap. The hosted-pool arm64 image is not open to new orgs: 'The macOS 15 Sequoia ARM64 limited public preview has been paused.' (https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops, checked 2026-10-14); arm64 macOS is available through the GitHub-hosted PAYG mode.",
       "cpu_class": "dedicated"
     },
     {
@@ -263,9 +269,92 @@
       "min_billed_seconds": 60,
       "start_fee": 0,
       "features": {
-        "arm64": true
+        "arm64": true,
+        "max_session_h": 6
       },
-      "note": "$0.062/min and $0.102/min; no free tier; no parallel job required; preview limit of 8 Standard + 8 XLarge agents per org; US only; same infrastructure as GitHub Actions larger runners. Per-minute rounding assumed (retail meter unit '1/Minute')."
+      "note": "$0.062/min and $0.102/min; no free tier; no parallel job required; preview limit of 8 Standard + 8 XLarge agents per org; US only; same infrastructure as GitHub Actions larger runners. Per-minute rounding assumed (retail meter unit '1/Minute'). Prices re-checked 2026-10-14 against the Azure Retail Prices API (https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Azure DevOps'): 'macOS Standard Job' 0.062 and 'macOS XL Job' 0.102 per '1/Minute' (the pricing page renders '$-/min' placeholders). 6 h job cap assumed from 'GitHub-hosted agents have similar capabilities and limitations as Microsoft-hosted agents'."
+    },
+    {
+      "key": "github-hosted-payg-linux",
+      "label": "GitHub-hosted Linux agents (pay-as-you-go per minute, 8/16-core x64, preview)",
+      "flags": [
+        "alt",
+        "beta"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": null,
+      "pricing": "sizes",
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "sizes": [
+        {
+          "name": "Linux 8-core",
+          "vcpu": 8,
+          "ram_gib": 32,
+          "disk_gib": 300,
+          "hour": 1.32,
+          "month_cap": null
+        },
+        {
+          "name": "Linux 16-core",
+          "vcpu": 16,
+          "ram_gib": 64,
+          "disk_gib": 600,
+          "hour": 2.52,
+          "month_cap": null
+        }
+      ],
+      "granularity_s": 60,
+      "min_billed_seconds": 60,
+      "start_fee": 0,
+      "features": {
+        "arm64": false,
+        "max_session_h": 6
+      },
+      "note": "Added 2026-10-14. https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/github-hosted?view=azure-devops lists Ubuntu 24.04 / 26.04 on '8 Cores | 8 | 32 GB | 300 GB | x64' and '16 Cores | 16 | 64 GB | 600 GB | x64' (labels ubuntu-24.04-8-core, ubuntu-26.04-16-core, ...), with 'The Ubuntu images are rolling out to the GitHub-hosted agents pool over the next few weeks.' Rates from the Azure Retail Prices API (https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Azure DevOps'): 'Linux 8-core Job' 0.022 and 'Linux 16-core Job' 0.042 per '1/Minute' = $1.32/h and $2.52/h; the pricing page itself shows '$-/min' placeholders. No free tier ('GitHub-hosted agents don't provide a free tier or free minutes'), no parallel job needed, preview limit of eight agents per SKU. Agent region is not stated for Linux (only macOS is 'always run in the US'), so regions = null. 6 h job cap assumed as for Microsoft-hosted agents."
+    },
+    {
+      "key": "github-hosted-payg-windows",
+      "label": "GitHub-hosted Windows agents (pay-as-you-go per minute, 8/16-core x64, preview)",
+      "flags": [
+        "alt",
+        "beta"
+      ],
+      "os": [
+        "windows"
+      ],
+      "regions": null,
+      "pricing": "sizes",
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "sizes": [
+        {
+          "name": "Windows 8-core",
+          "vcpu": 8,
+          "ram_gib": 32,
+          "disk_gib": 300,
+          "hour": 2.52,
+          "month_cap": null
+        },
+        {
+          "name": "Windows 16-core",
+          "vcpu": 16,
+          "ram_gib": 64,
+          "disk_gib": 600,
+          "hour": 4.92,
+          "month_cap": null
+        }
+      ],
+      "granularity_s": 60,
+      "min_billed_seconds": 60,
+      "start_fee": 0,
+      "features": {
+        "arm64": false,
+        "max_session_h": 6
+      },
+      "note": "Added 2026-10-14. https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/github-hosted?view=azure-devops lists Windows Server 2025 (VS 2022 / VS 2026) on '8 Cores | 8 | 32 GB | 300 GB | x64' and '16 Cores | 16 | 64 GB | 600 GB | x64' (labels windows-2025-8-core, windows-2025-vs2026-16-core, ...), with 'The Windows images are rolling out to the GitHub-hosted agents pool over the next few weeks.' Rates from the Azure Retail Prices API (https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Azure DevOps'): 'Windows 8-core Job' 0.042 and 'Windows 16-core Job' 0.082 per '1/Minute' = $2.52/h and $4.92/h, Windows licence included. No free tier, no parallel job needed, preview limit of eight agents per SKU. Region not stated, so regions = null. 6 h job cap assumed as for Microsoft-hosted agents."
     },
     {
       "key": "managed-devops-pools",
@@ -276,7 +365,10 @@
       "pricing": "resource",
       "vcpu_h": null,
       "ram_gib_h": null,
-      "note": "Cost = standard Azure VM/disk/egress rates for the chosen VM size (see azure-vm card), plus $15/month per self-hosted parallel job beyond the 1 free. Standby agents are billed as VM hours even when idle. Azure Hybrid Benefit is not allowed. Lets you use any VM size (lifts the 2 vCPU/7 GB limit)."
+      "features": {
+        "max_session_h": 48
+      },
+      "note": "Jobs up to 48 h: 'Supports long-running jobs up to two days long' (https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/overview?view=azure-devops, checked 2026-10-14). Cost = standard Azure VM/disk/egress rates for the chosen VM size (see azure-vm card), plus $15/month per self-hosted parallel job beyond the 1 free. Standby agents are billed as VM hours even when idle. Azure Hybrid Benefit is not allowed. Lets you use any VM size (lifts the 2 vCPU/7 GB limit)."
     }
   ],
   "storage": {
@@ -331,7 +423,7 @@
     "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
-    "max_session_h": 6,
+    "max_session_h": 48,
     "custom_image": true,
     "docker_inside": true,
     "nested_virt": false,
@@ -411,12 +503,18 @@
   "caveats": [
     "Flat $40 per parallel job per month regardless of minutes; the engine sizes the pool by peak concurrency.",
     "Free grant (1 hosted job, 1,800 min/month) not encoded.",
-    "Hosted Linux agents are fixed 2 vCPU / 7 GB; workloads needing more cannot be priced here (self-hosted/scale-set agents: $15 per self-hosted parallel job + your own VMs).",
-    "Windows/macOS hosted agents use the same parallel-job price but modes are Linux-only here."
+    "Microsoft-hosted Linux/Windows agents (parallel jobs) are fixed 2 vCPU / 7 GB; bigger Linux/Windows machines (8 or 16 cores) are priced through the GitHub-hosted PAYG modes, which are still rolling out and have no published region; self-hosted/scale-set agents: $15 per self-hosted parallel job + your own VMs.",
+    "On Microsoft-hosted Linux agents, job steps run in a cgroup with 6 GB of physical memory (13 GB total), not the VM's full 7 GB; the shared Linux/Windows mode still caps at 7 GB.",
+    "Job length differs by agent type: 6 h on paid Microsoft-hosted (60 min on the free grant), up to 2 days on Managed DevOps Pools. The plan-level 6 h cap also applies to Managed DevOps Pools here (the engine has no per-mode plan cap), but that mode has no published compute rate and is not priced anyway.",
+    "GitHub-hosted PAYG per-minute rates come from the Azure Retail Prices API; the public pricing page shows '$-/min' placeholders."
   ],
   "sources": [
     "https://azure.microsoft.com/en-us/pricing/details/devops/azure-devops-services/",
-    "https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted"
+    "https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted",
+    "https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/github-hosted?view=azure-devops",
+    "https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Azure DevOps'",
+    "https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/overview?view=azure-devops",
+    "https://learn.microsoft.com/en-us/azure/devops/pipelines/licensing/concurrent-jobs"
   ],
   "audit_2026_09_29": {
     "applied": 6,
@@ -431,7 +529,7 @@
     "raise_time_days": null,
     "verification": "Azure subscription linked for billing",
     "tiers": "Free tier: 1 hosted job (60-min jobs, 1,800 min/month) after billing setup; paid: up to 25 hosted parallel jobs for new orgs",
-    "notes": "Limit increases subject to regional capacity. GitHub-hosted (PAYG, preview) agents: 8 Standard + 8 XLarge per org; more via support case.",
+    "notes": "Limit increases subject to regional capacity. GitHub-hosted (PAYG, preview) agents: 'organizations are limited to eight GitHub-hosted agents per SKU' (macOS Standard/XL, Linux 8/16-core, Windows 8/16-core); more via support case.",
     "sources": [
       "https://learn.microsoft.com/en-us/azure/devops/pipelines/licensing/concurrent-jobs",
       "https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/github-hosted?view=azure-devops"
@@ -439,6 +537,14 @@
     "researched": "2026-09-29"
   },
   "feature_evidence": {
+    "max_session_h": {
+      "value": 48,
+      "corrected_from": 6,
+      "source": "https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/overview?view=azure-devops",
+      "quote": "Supports long-running jobs up to two days long, with the ability to run longer pipelines by splitting them into multiple shorter jobs that each complete in two days or less.",
+      "note": "Product-level maximum, via Managed DevOps Pools. Microsoft-hosted paid jobs stay at 6 h ('Paid tier | 360 minutes per job', https://learn.microsoft.com/en-us/azure/devops/pipelines/licensing/concurrent-jobs) and the hosted/GitHub-hosted modes carry max_session_h 6 in their own features.",
+      "checked": "2026-10-14"
+    },
     "snapshot_auto": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted",

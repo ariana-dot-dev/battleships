@@ -109,7 +109,7 @@
       "max_ram_gib": null,
       "sizes_allowed": null,
       "egress_free_gib": 1862.6,
-      "note": "$29.99/month with a $29.99 monthly credit (pricing page renders creditsPerMonth 2999 cents as '$29.99 monthly credit'). Features: 'Unlimited sandboxes', '10 snapshots per sandbox', '2 TB egress per sandbox each month, then $0.05/GB'. Concurrency left null: 'Unlimited sandboxes' does not say concurrent (the plans JSON has limits.concurrent -1, which the page does not render). Whether unused credit rolls over is not published.",
+      "note": "$29.99/month with a $29.99 monthly credit (pricing page renders creditsPerMonth 2999 cents as '$29.99 monthly credit'). Features: 'Unlimited sandboxes', '10 snapshots per sandbox', '2 TB egress per sandbox each month, then $0.05/GB'. Concurrency published as unlimited: the plans JSON has limits.concurrent -1 (Free's same field is 1, matching its '1 concurrent sandbox'). Left null because the engine has no unlimited value and a number would be invented; the engine then assumes Free's 1 (see caveats, .work/engine-needs/tangle.md). Whether unused credit rolls over is not published.",
       "flags": []
     },
     {
@@ -124,7 +124,7 @@
       "max_ram_gib": null,
       "sizes_allowed": null,
       "egress_free_gib": 1862.6,
-      "note": "Plan id 'enterprise', name 'Team': $99/month with a $99 monthly credit. Features: 'Unlimited sandboxes', '25 snapshots per sandbox', '2 TB egress per sandbox each month, then $0.04/GB' (engine prices egress at Pro's $0.05/GB). Concurrency null for the same reason as Pro. Seat pricing not published; the dashboard docs describe team roles but no per-seat fee.",
+      "note": "Plan id 'enterprise', name 'Team': $99/month with a $99 monthly credit. Features: 'Unlimited sandboxes', '25 snapshots per sandbox', '2 TB egress per sandbox each month, then $0.04/GB' (engine prices egress at Pro's $0.05/GB). Concurrency published as unlimited (limits.concurrent -1), null for the same reason as Pro. Seat pricing not published; the dashboard docs describe team roles but no per-seat fee.",
       "flags": []
     }
   ],
@@ -225,7 +225,7 @@
     "The hourly minimum minChargeHourUsd $0.04/h per running sandbox is modelled by min_charge_hour_usd across allocated CPU, memory, and running disk, prorated per second.",
     "Memory and disk are priced per GB; the card uses them as per GiB (about 7% difference if Tangle means decimal GB).",
     "Max vCPU / memory / disk per sandbox, regions, and isolation technology are not published. Docs say a sandbox 'may run through a managed container, a microVM, or an operator-backed driver' without saying which hosted sandboxes get, so isolation is null.",
-    "Pro and Team list 'Unlimited sandboxes'; concurrency is left null because the page does not say concurrent. The engine then assumes the highest published sibling cap (Free's 1 concurrent) for them.",
+    "Pro and Team have unlimited concurrent sandboxes: they list 'Unlimited sandboxes' and the plans JSON has limits.concurrent -1 (Free: 1, its '1 concurrent sandbox'). The engine has no unlimited value, so concurrency is null and the engine assumes Free's 1 concurrent for them; Pro and Team are wrongly shown as capped at 1 until the engine can read an unlimited plan cap.",
     "Free plan ('Pay as you go' on the page) has no free credit: agent-setup.md says 'Sandbox has no free tier or free credit.' Usage needs prepaid credit.",
     "Egress per sandbox (2 TB) is modelled as a single 2 TB account allowance, a lower bound. Team's overage is $0.04/GB; the engine uses Pro's $0.05/GB for all plans.",
     "Stopped-sandbox storage, snapshot storage, minimum billed seconds and start fees are not published (null). Idle timeout exists (idleTimeoutSeconds) but its default for an ordinary create is not published.",
@@ -271,7 +271,7 @@
     "raise": "self-serve",
     "raise_time_days": 0,
     "verification": "Prepaid credit is required before the first sandbox (agent-setup.md: HTTP 403 paid_access_required).",
-    "tiers": "Pay as you go (Free) 1 concurrent sandbox; Pro $29.99/month and Team $99/month 'Unlimited sandboxes' (concurrency not stated).",
+    "tiers": "Pay as you go (Free) 1 concurrent sandbox; Pro $29.99/month and Team $99/month 'Unlimited sandboxes' (plans JSON limits.concurrent -1, unlimited).",
     "notes": "Docs list per-fleet safety limits (8 sandbox creates in flight, maxConcurrentCreates) for the Fleet SDK; account-level create-rate limits are not published.",
     "sources": [
       "https://sandbox.tangle.tools/pricing",
@@ -313,6 +313,17 @@
       "note": "The pricing page fetches https://id.tangle.tools/api/v1/plans and renders name, monthlyPriceCents as '$X / month', creditsPerMonth as '$X monthly credit' (or 'Pay for usage' when 0) and each features string. Quote is fragments of the API response, joined with ' ... '.",
       "checked": "2026-10-11",
       "data_source": "https://id.tangle.tools/api/v1/plans"
+    },
+    "plan_concurrency": {
+      "value": {
+        "free": 1,
+        "pro": "unlimited",
+        "team": "unlimited"
+      },
+      "source": "https://id.tangle.tools/api/v1/plans",
+      "quote": "\"features\":[\"1 concurrent sandbox\" ... \"limits\":{\"rpm\":20,\"dailyTokens\":100000,\"concurrent\":1} ... \"features\":[\"Unlimited sandboxes\" ... \"limits\":{\"rpm\":200,\"dailyTokens\":-1,\"concurrent\":-1} ... \"features\":[\"Unlimited sandboxes\" ... \"limits\":{\"rpm\":-1,\"dailyTokens\":-1,\"concurrent\":-1}",
+      "note": "Free, Pro, Team in order; fragments joined with ' ... '. -1 is the unlimited value in this object. Plan concurrency stays null for Pro/Team because the engine has no unlimited value (.work/engine-needs/tangle.md).",
+      "checked": "2026-10-14"
     },
     "no_free_credit": {
       "value": true,

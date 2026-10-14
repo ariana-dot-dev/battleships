@@ -123,7 +123,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Unlimited instances, dedicated host fleet, on-prem/BYOC, named SRE, 1 h SLA. Enterprise-only: GPU preview (1 NVIDIA GPU/instance, QEMU 'full' VMs), arm64 hosts, nested virtualization, network shield (egress filtering + secret injection), sandbox plugin (exec/filesystem API). Customer story cites ~$0.30/h per browser at bare-metal economics (customer-reported, not a list price)."
+      "note": "Unlimited instances, dedicated host fleet, on-prem/BYOC, named SRE, 1 h SLA. Enterprise-only: GPU preview (1 NVIDIA GPU/instance, QEMU 'full' VMs), arm64 hosts, nested virtualization, network shield (egress filtering + secret injection), live vertical scaling (Limited Access), full-VM scale-to-zero, GPU snapshots / NVIDIA vGPU (R14). Customer story cites ~$0.30/h per browser at bare-metal economics (customer-reported, not a list price)."
     }
   ],
   "storage": {
@@ -292,7 +292,7 @@
   "caveats": [
     "Unikraft Cloud publishes NO per-hour, per-GiB or egress price: self-serve pricing is a flat plan fee that caps concurrent running capacity (Hobby 2 vCPU/4 GiB/2 instances, Team 8 vCPU/8 GiB/8, Pro 24 vCPU/32 GiB/24). Anything bigger is Enterprise (custom price). Modelled as a pool mode.",
     "Idle cost is $0 by design: scale-to-zero puts instances in standby in ~ms (stateful mode snapshots memory to disk) and standby instances don't count toward the running pool; standby storage included (8 GiB / 15 GiB / 1 TiB).",
-    "Self-serve sandbox ergonomics are limited: the sandbox plugin (command exec + filesystem API used by the JS SDK Sandbox class), network shield egress filtering, GPUs, arm64 and nested virtualization are Enterprise-only; instance forking is preview. Self-serve users deploy Dockerfile images as HTTP/TLS services.",
+    "Self-serve sandbox ergonomics: network shield egress filtering, GPUs, arm64, nested virtualization and live vertical scaling are Enterprise-only; instance forking is preview. The sandbox plugin (command exec + filesystem API, used by the JS SDK Sandbox class and the CLI exec/shell/copy commands) carries no Enterprise label in Release 14 or the plugins doc, which gates plugins only on BYOC/on-prem licences; explicit availability on Hobby/Team/Pro is not stated (re-checked 2026-10-14).",
     "Per-instance max vCPU/RAM per plan unpublished; max_ram_gib 8 comes from the quotas doc example (1 vCPU max there). The pool tiers may therefore overstate what a single instance can get.",
     "Whether running above plan capacity is blocked or billed is not documented (no overage prices).",
     "Egress/bandwidth not priced or capped on the pricing page; network values null.",
@@ -301,7 +301,8 @@
     "Regions: dal, fra, sfo, sin, was metros; 28 more listed as potential on request.",
     "open_source=false for the platform; CLI/kraftkit/Terraform provider are open source (and the separate unikraft.org unikernel project).",
     "Launched 2024-04-02 as KraftCloud (Launch HN, closed beta); rebranded Unikraft Cloud; domain now unikraft.com.",
-    "Re-checked 2026-09-28 (unikraft.com/pricing rendered in headless Chrome, unikraft.com/llms-full.txt): still no pay-as-you-go / per-instance / per-vCPU-hour rate; self-serve is only Hobby $0 / Team $39 / Pro $199 flat plans plus Enterprise custom. No PAYG regime can be carded."
+    "Re-checked 2026-09-28 (unikraft.com/pricing rendered in headless Chrome, unikraft.com/llms-full.txt): still no pay-as-you-go / per-instance / per-vCPU-hour rate; self-serve is only Hobby $0 / Team $39 / Pro $199 flat plans plus Enterprise custom. No PAYG regime can be carded.",
+    "Release 14 (2026-10-05): live vertical scaling of memory/vCPUs, full-VM templates + scale-to-zero, GPU snapshots (GPU released while stopped/standby) and NVIDIA vGPU are all marked \"Enterprise only\"; vertical scaling is \"coming soon to the hosted platform\" (Limited Access). CLI Dockerfile builds, autokill and the CLI/JS-SDK sandbox commands are not Enterprise-labelled. Checked 2026-10-14."
   ],
   "sources": [
     "https://unikraft.com/pricing",
@@ -315,8 +316,11 @@
     "https://unikraft.com/docs/features/plugins.md",
     "https://unikraft.com/docs/releases/r12-thebe.md",
     "https://unikraft.com/docs/releases/r13-adrastea.md",
+    "https://unikraft.com/docs/releases/r14-harpalyke.md",
     "https://unikraft.com/customer-stories/browser-use-sandboxing.md",
-    "https://news.ycombinator.com/item?id=39902949"
+    "https://news.ycombinator.com/item?id=39902949",
+    "https://unikraft.com/docs/features/vertical-scaling.md",
+    "https://unikraft.com/docs/sdks/js/sandboxes.md"
   ],
   "fleet": {
     "default_max_instances": 2,
@@ -352,8 +356,8 @@
       "value": false,
       "source": "https://unikraft.com/docs/features/plugins.md",
       "quote": "The sandbox plugin lets you run commands and manipulate the filesystem inside an instance, over the plugin endpoint",
-      "note": "Only a generic exec/filesystem sandbox plugin (Enterprise); no API to drive Claude Code/Codex/etc. found in docs.",
-      "checked": "2026-09-29"
+      "note": "Only a generic exec/filesystem sandbox plugin (no Enterprise label in R14/plugins doc); no API to drive Claude Code/Codex/etc. found in docs.",
+      "checked": "2026-10-14"
     },
     "ingress_rules": {
       "value": true,
@@ -399,10 +403,10 @@
     },
     "live_resize": {
       "value": true,
-      "source": "https://unikraft.com/docs/cli/unikraft/instances/edit.md",
-      "quote": "Resize instance memory: unikraft instance edit demo-instance --memory 256 ... --vcpus n Number of vCPUs.",
-      "note": "`unikraft instance edit` can change --memory and --vcpus on an existing instance via `--set`/flags without recreating it.",
-      "checked": "2026-09-30"
+      "source": "https://unikraft.com/docs/features/vertical-scaling.md",
+      "quote": "Vertical scaling lets an instance grow and shrink its memory and its number of vCPUs while it runs.",
+      "note": "Release 14 (2026-10-05) feature, marked \"Enterprise only\" and \"Limited Access\" (\"Vertical scaling is coming soon to the hosted platform\"); opt-in range set at create time via API (min/max_memory_mb, min/max_vcpus), microVMs on x86_64 only, needs a guest kernel with support. The previously cited `unikraft instance edit --memory/--vcpus` does not document applying the change to a running instance, so live resize is only established for the Enterprise vertical-scaling path. Kept true as a genuinely offered paid-tier feature (same convention as gpu/arm64/nested_virt).",
+      "checked": "2026-10-14"
     },
     "own_agent_api": {
       "value": false,
@@ -458,8 +462,8 @@
       "value": false,
       "source": "https://unikraft.com/blog/metis-11-release",
       "quote": "Coming soon: SSH directly into an instance, create and delete instances, and inspect the lifetime of an instance as you checkpoint or fork it — among other things.",
-      "note": "Still listed as 'coming soon' as of Release 11 and never mentioned as shipped in the later R12/R13 release notes or current docs (no /guides/ssh page exists, 404). Access today is via the exec/filesystem sandbox plugin (Enterprise) or the CLI/API, not SSH.",
-      "checked": "2026-09-30"
+      "note": "Still listed as 'coming soon' as of Release 11 and never mentioned as shipped in the later R12/R13 release notes or current docs (no /guides/ssh page exists, 404). Access today is via the exec/filesystem sandbox plugin (R14 adds `unikraft instance exec`/`shell` and a dashboard shell over it) or the CLI/API, not SSH.",
+      "checked": "2026-10-14"
     },
     "desktop": {
       "value": false,
@@ -479,8 +483,8 @@
       "value": false,
       "source": "https://unikraft.com/docs/features/plugins.md",
       "quote": "The sandbox plugin lets you run commands and manipulate the filesystem inside an instance, over the plugin endpoint",
-      "note": "No screenshot+click driving API found anywhere in docs; the only control-plane API is the generic exec/filesystem sandbox plugin (Enterprise). Plainly not offered.",
-      "checked": "2026-09-30"
+      "note": "No screenshot+click driving API found anywhere in docs; the only in-instance control API is the generic exec/filesystem sandbox plugin. Plainly not offered.",
+      "checked": "2026-10-14"
     },
     "agent_harnesses": {
       "value": false,

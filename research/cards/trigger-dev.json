@@ -257,7 +257,7 @@
     "webhooks": true,
     "scheduled_wakeups": true,
     "audit_logs": null,
-    "eu_data_residency": true,
+    "eu_data_residency": false,
     "zero_data_retention": null,
     "scoped_api_keys": true,
     "spend_limits": true,
@@ -295,7 +295,9 @@
     "API rate limit 1,500 requests/min on all plans (raise on request, paid only); batchTrigger up to 1,000 runs per call; batch token bucket Free 1,200 burst + 100/10 s, Hobby/Pro 5,000 burst + 500/5 s per environment.",
     "Waits: wait.for/wait.until >5 s are not billed, but the concurrency slot is held until 60 s into the wait. chat.agent keeps the machine warm (billed) for idleTimeoutInSeconds (default 30 s) after each turn before suspending.",
     "Only production/staging/preview are billed; DEV runs execute on the developer's machine and are not charged.",
-    "MicroVM compute (Firecracker) is in invite-only private beta in us-east-1-next, staging only; same presets, all sizes capped at 1 GB disk during the beta; no separate price published."
+    "MicroVM compute (Firecracker) is in invite-only private beta in us-east-1-next, staging only; same presets, all sizes capped at 1 GB disk during the beta; no separate price published.",
+    "Self-hosted Trigger.dev has no checkpoints, warm starts or auto-scaling (Cloud only per https://trigger.dev/docs/self-hosting/overview); snapshot, pause_resume, snapshot_auto, wake_on_request and unbilled waits apply to Trigger.dev Cloud only.",
+    "Region choice (us-east-1, eu-central-1) moves execution only: \"it does not change where the run payload, output, tags, logs, or are any other data is stored.\" (https://trigger.dev/docs/triggering). Static egress IPs are paid plans only; private networking (PrivateLink) is Pro and Enterprise."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/trigger-dev",
@@ -303,7 +305,10 @@
     "https://trigger.dev/docs/introduction",
     "https://trigger.dev/docs/self-hosting/overview",
     "https://trigger.dev/",
-    "https://trigger.dev/llms.txt"
+    "https://trigger.dev/llms.txt",
+    "https://trigger.dev/docs/triggering",
+    "https://trigger.dev/docs/private-networking/overview",
+    "https://trigger.dev/launchweek/2/4x-concurrency-static-ips-aws"
   ],
   "fleet": {
     "default_max_instances": 20,
@@ -426,10 +431,10 @@
     },
     "egress_ip_type": {
       "value": "static-datacenter",
-      "source": "https://trigger.dev/security",
-      "quote": "Get 4x more concurrency on paid plans and static IPs with our new AWS regions, starting with us-east-1 and eu-central-1.",
-      "note": "Static per-region outbound IP addresses on AWS infrastructure, listed on the dashboard Regions page; datacenter (AWS), not residential/mobile.",
-      "checked": "2026-09-30"
+      "source": "https://trigger.dev/docs/triggering",
+      "quote": "Go to the \"Regions\" page in the dashboard to see available regions or switch your default. Static IP addresses are also available on the Regions page for paid plans.",
+      "note": "Static per-region outbound IPs on AWS (launch post: \"Get 4x more concurrency on paid plans and static IPs with our new AWS regions, starting with us-east-1 and eu-central-1.\", https://trigger.dev/launchweek/2/4x-concurrency-static-ips-aws); datacenter, not residential/mobile. Paid plans only (not Free).",
+      "checked": "2026-10-14"
     },
     "ssh": {
       "value": false,
@@ -531,17 +536,17 @@
     },
     "egress_allowlist": {
       "value": false,
-      "source": "https://trigger.dev/security",
-      "quote": "Reach private databases, caches, and APIs from your tasks over AWS PrivateLink. No public endpoints, no IP allowlists, no VPN.",
+      "source": "https://trigger.dev/docs/private-networking/overview",
+      "quote": "Private networking lets your Trigger.dev tasks reach databases, caches, and internal APIs that live inside your own AWS VPC, without exposing them to the public internet.",
       "note": "Private networking lets tasks reach your private resources via PrivateLink (avoiding the need for you to IP-allowlist Trigger.dev); it is not a provider-side control restricting what a task itself can reach outbound (no documented allow/deny egress list or no-internet mode).",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "egress_http_rules": {
       "value": false,
-      "source": "https://trigger.dev/security",
-      "quote": "Reach private databases, caches, and APIs from your tasks over AWS PrivateLink. No public endpoints, no IP allowlists, no VPN.",
+      "source": "https://trigger.dev/docs/private-networking/overview",
+      "quote": "Private networking lets your Trigger.dev tasks reach databases, caches, and internal APIs that live inside your own AWS VPC, without exposing them to the public internet.",
       "note": "No HTTP method/path-level egress control documented; only static outbound IPs and PrivateLink connectivity to your own resources.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "guest_firewall": {
       "value": false,
@@ -579,11 +584,12 @@
       "checked": "2026-09-30"
     },
     "eu_data_residency": {
-      "value": true,
-      "source": "https://trigger.dev/security",
-      "quote": "Run your tasks in AWS US West (Oregon). A third region alongside US East and Europe, for low latency to West Coast services and APIs.",
-      "note": "Trigger.dev Cloud has a Europe region (eu-central-1) you can pin task deployment to, alongside US East/US West.",
-      "checked": "2026-09-30"
+      "value": false,
+      "corrected_from": true,
+      "source": "https://trigger.dev/docs/triggering",
+      "quote": "The region is where your runs are executed, it does not change where the run payload, output, tags, logs, or are any other data is stored.",
+      "note": "An EU region (eu-central-1) exists for execution only; payloads, outputs, tags and logs stay where Trigger.dev stores them regardless of region, so this is EU compute, not EU data residency. Self-hosting is the documented route for data-residency requirements.",
+      "checked": "2026-10-14"
     },
     "max_session_h": {
       "value": "none",
@@ -614,6 +620,27 @@
       "note": "granularity: account-only; cost: no; Trigger.dev offers Management API for agent sessions and webhook/trigger APIs, but no usage/billing endpoint. Dashboard displays billing status and spend limits, but customers cannot retrieve usage metrics per environment or sandbox programmatically.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://trigger.dev/docs/triggering",
+      "quote": "Static IP addresses are also available on the Regions page for paid plans.",
+      "note": "Paid plans only (Hobby, Pro, Enterprise); Free has no static IP.",
+      "checked": "2026-10-14"
+    },
+    "private_network": {
+      "value": true,
+      "source": "https://trigger.dev/docs/private-networking/overview",
+      "quote": "Private networking is a Pro and Enterprise feature.",
+      "note": "AWS PrivateLink to resources in your own VPC; two connections per organization (soft limit); Pro and Enterprise only, access via contacting Trigger.dev.",
+      "checked": "2026-10-14"
+    },
+    "self_host": {
+      "value": true,
+      "source": "https://trigger.dev/docs/self-hosting/overview",
+      "quote": "The self-hosted version is functionally the same as Trigger.dev Cloud with some exceptions",
+      "note": "Feature comparison lists Warm starts, Auto-scaling and Checkpoints (\"Non-blocking waits, less resource usage\") as Cloud only. Self-hosted runs get no CRIU checkpoint/resume, so waits keep the worker busy; snapshot/pause_resume values on this card describe Cloud only.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [
@@ -632,17 +659,10 @@
       "provider_region": "eu-central-1",
       "self_serve": true,
       "choosable": true
-    },
-    {
-      "country": "US",
-      "state": "OR",
-      "city": "Portland",
-      "provider_region": "us-west",
-      "self_serve": true,
-      "choosable": true
     }
   ],
-  "locations_source": "https://trigger.dev/security",
-  "locations_quote": "Get 4x more concurrency on paid plans and static IPs with our new AWS regions, starting with us-east-1 and eu-central-1. Run your tasks in AWS US West (Oregon).",
-  "locations_checked": "2026-10-01"
+  "locations_source": "https://trigger.dev/docs/triggering",
+  "locations_quote": "await yourTask.trigger(payload, { region: \"eu-central-1\" });",
+  "locations_checked": "2026-10-14",
+  "locations_note": "us-east-1 and eu-central-1 confirmed (launch post https://trigger.dev/launchweek/2/4x-concurrency-static-ips-aws: \"starting with us-east-1 and eu-central-1\"). A US West (Oregon) region recorded earlier from https://trigger.dev/security is no longer on that page or any live page checked 2026-10-14, so it was removed; the dashboard Regions page (login only) lists the current set."
 }

@@ -100,12 +100,13 @@
       "fee_is_credit": false,
       "included_usd": 0,
       "per_seat": 0,
-      "concurrency": 3,
-      "max_session_h": 0.5,
+      "concurrency": null,
+      "max_total_ram_gib": 2,
+      "max_session_h": 1,
       "max_vcpu": 1,
       "max_ram_gib": 1,
       "sizes_allowed": null,
-      "note": "No card: 'EUR 5 credit, then it stops', 'Small only, 3 concurrent', '30-min sessions'. Trial only.",
+      "note": "No card: 'EUR 5 credit, then it stops', small only. Limits page (2026-10-14): 'Concurrent RAM budget | 2 GB (~2 small)', 'Timeout per call (countdown) | 30 minutes', 'Max continuous running time | 1 hour', 1 paused sandbox, no public preview URLs. The pricing page still says 'Small only, 3 concurrent'; the limits page (which calls the RAM budget 'the real concurrency gate') is used. Trial only.",
       "internet": "none"
     },
     {
@@ -116,11 +117,12 @@
       "included_usd": 0,
       "per_seat": 0,
       "concurrency": null,
-      "max_session_h": 24,
+      "max_total_ram_gib": 32,
+      "max_session_h": null,
       "max_vcpu": 4,
       "max_ram_gib": 8,
       "sizes_allowed": null,
-      "note": "Card on file: 'EUR 25 credit, then metered', all sizes, concurrency 'High' (number not published), sessions 'Up to 24 h', 10 snapshots, own spend cap.",
+      "note": "Card on file: 'EUR 25 credit, then metered', all sizes, own spend cap. Limits page (2026-10-14): 'Concurrent RAM budget | 32 GB' (live, non-paused sandboxes; 4 large / 8 medium / 32 small at once), 'Timeout per call (countdown) | 24 hours' resettable with set_timeout, 'Max continuous running time | unlimited', 10 paused sandboxes, 15 templates.",
       "internet": "full"
     },
     {
@@ -133,11 +135,12 @@
       "included_usd": null,
       "per_seat": null,
       "concurrency": null,
+      "max_total_ram_gib": 128,
       "max_session_h": null,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Dedicated EU nodes, custom limits + SLA, audit logs, SSO. Custom price.",
+      "note": "Dedicated EU nodes, custom limits + SLA, audit logs, SSO. Custom price. Limits page default envelope: 128 GB concurrent RAM, unlimited continuous running, 50 paused sandboxes ('a default, not a ceiling').",
       "internet": "full"
     }
   ],
@@ -158,7 +161,7 @@
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": true,
-    "max_session_h": 24,
+    "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
     "nested_virt": false,
@@ -238,11 +241,15 @@
     "Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.",
     "VAT basis: Unknown: reviewed pricing source does not explicitly establish VAT/tax inclusion.",
     "Residency: Provider claims code, memory, snapshots and environment remain EU; Falkenstein DE, Helsinki FI, Roubaix FR; DPA available. Not independently audited.",
-    "Billing-basis conflict: the pricing FAQ says sandboxes bill actual on-CPU time and working-set RAM (idle almost free), but orkestr.eu/docs/sandboxes says each sandbox is 'metered per second of wall-clock time it's alive (whether or not the workload is busy)'. Idle-heavy estimates may be understated until the provider resolves this."
+    "Billing-basis conflict (rechecked 2026-10-14, still live): the pricing FAQ says sandbox usage is metered 'Per second, on actual usage - real on-CPU time and working-set RAM, not the provisioned size. An idle sandbox accrues almost nothing.', but orkestr.eu/docs/sandboxes says 'Each sandbox is metered per second of wall-clock time it's alive (whether or not the workload is busy)', and orkestr.eu/sandboxes still says 'Published rates land once we have metered real workloads.' The card follows the pricing page (active basis); idle-heavy estimates may be understated until the provider resolves this.",
+    "Sessions (docs/sandboxes/limits, 2026-10-14): each create or set_timeout call runs a countdown of at most 24 h (30 min free); set_timeout resets it, and carded tiers have no cap on continuous running ('Max continuous running time | ... | unlimited'). A 24/7 sandbox works on Pay as you go if your code calls set_timeout (keep-alive) at least once a day; otherwise it is killed or paused at the deadline (on_timeout).",
+    "Concurrency is a RAM budget, not a sandbox count (docs/sandboxes/limits, 2026-10-14): 'a create is refused once the sum of your live (non-paused) sandboxes' memory plus the new one would exceed it' - Free 2 GB, Pay as you go 32 GB, Enterprise 128 GB. Paused sandboxes free their RAM; paused sandboxes held at once 1 / 10 / 50. Free has no public preview URLs."
   ],
   "sources": [
     "https://orkestr.eu/sandboxes",
     "https://orkestr.eu/docs/sandboxes",
+    "https://orkestr.eu/docs/sandboxes/limits",
+    "https://orkestr.eu/docs/sandboxes/python-sdk",
     "https://orkestr.eu/pricing",
     "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html"
   ],
@@ -254,12 +261,13 @@
     "raise_time_days": null,
     "verification": "Verified email earns starter credit, no card; card unlocks all sandbox sizes and paid metering.",
     "tiers": null,
-    "notes": "Sandbox PAYG is independent of Platform subscription. Platform PR-preview concurrent deployments (1/5) are not Sandbox runtime quotas. No numeric new-account sandbox count or increase path found.",
+    "notes": "Sandbox PAYG is independent of Platform subscription. Platform PR-preview concurrent deployments (1/5) are not Sandbox runtime quotas. Running sandboxes are capped by a concurrent RAM budget (docs/sandboxes/limits, 2026-10-14): Free 2 GB, Pay as you go 32 GB, Enterprise 128 GB ('a default, not a ceiling'); encoded as plan max_total_ram_gib. No sandbox-count cap and no per-request rate limit ('There are currently no per-request rate limits on the sandbox API').",
     "sources": [
       "https://orkestr.eu/pricing",
-      "https://orkestr.eu/sandboxes"
+      "https://orkestr.eu/sandboxes",
+      "https://orkestr.eu/docs/sandboxes/limits"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-10-14"
   },
   "audit_2026_09_29": {
     "applied": 1,
@@ -584,6 +592,13 @@
       "note": "granularity: per-sandbox; cost: no; Billable usage is available per-sandbox via GET /v1/sandboxes/{id}/metrics, which returns cpu_seconds and gb_seconds (the billed quantities). Sandboxes can be listed and filtered by metadata using GET /v1/sandboxes?metadata[key]=value to group by project/tag. Individual metrics must be polled per sandbox id and aggregated by caller.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "max_session_h": {
+      "value": "none",
+      "source": "https://orkestr.eu/docs/sandboxes/limits",
+      "quote": "Keep-alive & the running cap : calling set_timeout restarts the countdown so an active sandbox is not reaped mid-task. On the free tier a single continuous running window is capped at 1 hour ( max_running_lifetime_seconds ) no matter how many times you extend; once it is used up, keep-alive is refused and you pause then resume to start a fresh window. Carded tiers are uncapped.",
+      "note": "Per-tier table: 'Max continuous running time | 1 hour | unlimited | unlimited'. The 24 h figure is only the per-call countdown ('Timeout per call (countdown) | 30 minutes | 24 hours | 24 hours'; 'That value is only the countdown length of a single call, not a ceiling on total runtime'). python-sdk set_timeout: 'The clock is reset to run timeout_seconds from the call'. A long-running sandbox on Pay as you go needs a set_timeout keep-alive at least every 24 h. Free tier: 1 h continuous cap.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [

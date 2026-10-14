@@ -88,7 +88,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "$0.00000772/vCPU-s ($0.027792/vCPU-h) + $0.00000386/GB-s ($0.013896/GB-h), 'You only pay for active CPU and memory' (active = usage basis; exact measurement method unpublished). New services are always-on by default and bill continuously; scale-to-zero is opt-in. Volume $0.0002082/GB-h, object storage $0.00002082/GB-h, egress $0.05/GB. Per-service caps: Free 4 vCPU/4 GB/1 GB volume, Pro and Team 8 vCPU/8 GB (volume 10/50 GB). Same per-second rates as Railway ($20/vCPU-month, $10/GB-month)."
+      "note": "$0.00000772/vCPU-s ($0.027792/vCPU-h) + $0.00000386/GB-s ($0.013896/GB-h), 'You only pay for active CPU and memory' (active = usage basis; exact measurement method unpublished). New services scale to zero by default ('New compute services scale to zero, on every branch'); always-on is opt-in per service (insta compute always-on on, or --always-on at creation) and then bills continuously; a worker (--port 0) is always-on regardless. Volume $0.0002082/GB-h, object storage $0.00002082/GB-h, egress $0.05/GB. Per-service caps: Free 4 vCPU/4 GB/1 GB volume, Pro and Team 8 vCPU/8 GB (volume 10/50 GB). Same per-second rates as Railway ($20/vCPU-month, $10/GB-month)."
     }
   ],
   "storage": {
@@ -327,7 +327,7 @@
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "insforge.dev pricing contradiction: pricing page says the $10 InsForge Compute credit 'Does not apply' to Custom Compute, but docs.insforge.dev/pricing FAQ says Custom Compute on Pro comes with '$10 of InsForge Compute credits to offset it'. InsForge Custom Compute has no published per-hour rate (runs on Fly.io machines). InsForge Free projects pause after 1 week of inactivity.",
-    "InstaCloud compute: new services are always-on by default ('New compute services are always-on and never scale to zero') and bill continuously; scale-to-zero is opt-in; volume-backed services cold-stop instead of suspend; since 2026-09-26 outbound traffic also keeps a scale-to-zero service awake (so an agent calling a model keeps billing). Root disk is rebuilt on every wake; only the volume persists."
+    "InstaCloud compute: new services scale to zero by default ('New compute services scale to zero, on every branch: an idle machine suspends until the next request wakes it in seconds.', docs.instacloud.com/compute/overview, checked 2026-10-14); always-on is opt-in ('insta compute always-on on|off', '--always-on' at creation) and bills continuously; a worker ('--port 0') is always-on regardless; outbound traffic keeps a running service awake but does not wake a suspended one, so a self-starting poller or bot still needs always-on; volume-backed services cold-stop instead of suspend; since 2026-09-26 outbound traffic also keeps a scale-to-zero service awake (so an agent calling a model keeps billing). Root disk is rebuilt on every wake; only the volume persists."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/insforge-instacloud",
@@ -360,7 +360,7 @@
       "value": true,
       "source": "https://docs.instacloud.com/reference/api/project/secrets/apply-batch",
       "quote": "A suspended service is skipped instead of deployed: a deploy would invalidate the RAM snapshot suspension exists to preserve, so it is left untouched and reported with reason `suspended`.",
-      "note": "Trigger: idle timeout on services opted into scale-to-zero (compute/overview: \"Opt one into scale-to-zero and an idle machine suspends until the next request wakes it in seconds.\"); memory included (RAM snapshot, Fly-style suspend). Default is always-on (no suspend). Not for volume-backed services: \"Volume-backed services stop (cold wake) instead of suspending\" and the root disk is rebuilt on every wake. Hosted platform only; self-hosted OSS stops containers instead.",
+      "note": "Trigger: idle timeout on scale-to-zero services, now the default (compute/overview, checked 2026-10-14: \"New compute services scale to zero, on every branch: an idle machine suspends until the next request wakes it in seconds.\"); memory included (RAM snapshot, Fly-style suspend). Services switched to always-on, and workers (--port 0), never suspend. Not for volume-backed services: \"Volume-backed services stop (cold wake) instead of suspending\" and the root disk is rebuilt on every wake. Hosted platform only; self-hosted OSS stops containers instead.",
       "checked": "2026-09-29"
     },
     "snapshot_on_demand": {
@@ -605,9 +605,9 @@
     "max_session_h": {
       "value": "none",
       "source": "https://docs.instacloud.com/compute/overview",
-      "quote": "New compute services are always-on and never scale to zero, on every branch.",
-      "note": "A compute service is not time-boxed; it runs (always-on or scale-to-zero-and-wake) until you explicitly stop it. No maximum session/runtime duration is documented.",
-      "checked": "2026-09-30"
+      "quote": "New compute services scale to zero, on every branch: an idle machine suspends until the next request wakes it in seconds.",
+      "note": "A compute service is not time-boxed; it runs (scale-to-zero-and-wake by default, or always-on) until you explicitly stop it. No maximum session/runtime duration is documented.",
+      "checked": "2026-10-14"
     },
     "private_network": {
       "value": false,

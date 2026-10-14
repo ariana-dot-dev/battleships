@@ -82,7 +82,7 @@
       "plans": [
         "API pay as you go"
       ],
-      "note": "https://developers.openai.com/api/docs/pricing (2026-09-29): \"Containers | Hosted Shell and Code Interpreter | 1 GB $0.03, 4 GB $0.12, 16 GB $0.48, 64 GB $1.92 per 20-minute session per container.\" + \"Eligible container sessions will be billed by the minute, with a 5-minute minimum per session.\" Changelog 2026-06-02: \"The underlying per-minute rate will remain the same.\" => hour = 3 x 20-min price ($0.0015/$0.006/$0.024/$0.096 per minute). memory_limit enum \"1g\"|\"4g\"|\"16g\"|\"64g\", default \"1g\" (API ref containers/create; openai-python container_create_params.py). vCPU per tier NOT published for Responses containers; the Agents API hosted sandboxes at the same 'standard container rates' are 1 vCPU/1 GB, 2/4 GB, 4/16 GB (see mode agents-api-hosted) - inference only, so vcpu left null here. Runtime Debian 12, /mnt/data, no sudo, no TTY; Python 3.11, Node 22.16, Java 17, PHP 8.2, Ruby 3.1, Go 1.23 (tools-shell guide). \"A container expires if it is not used for 20 minutes\" (expires_after {anchor:last_active_at, minutes}; max undocumented). GA since Code Interpreter 2025-05-20 / Hosted Shell 2026-02-10. Code Interpreter regional processing US + EU (your-data guide). Model tokens billed separately."
+      "note": "https://developers.openai.com/api/docs/pricing (2026-09-29): \"Containers | Hosted Shell and Code Interpreter | 1 GB $0.03, 4 GB $0.12, 16 GB $0.48, 64 GB $1.92 per 20-minute session per container.\" + \"Eligible container sessions will be billed by the minute, with a 5-minute minimum per session.\" Changelog 2026-06-02: \"The underlying per-minute rate will remain the same.\" => hour = 3 x 20-min price ($0.0015/$0.006/$0.024/$0.096 per minute). memory_limit enum \"1g\"|\"4g\"|\"16g\"|\"64g\", default \"1g\" (API ref containers/create; openai-python container_create_params.py). vCPU per tier NOT published for Responses containers; the Agents API hosted sandboxes at the same 'standard container rates' are 1 vCPU/1 GB, 2/4 GB, 4/16 GB (see mode agents-api-hosted) - inference only, so vcpu left null here. Runtime Debian 12, /mnt/data, no sudo, no TTY; Python 3.11, Node 22.16, Java 17, PHP 8.2, Ruby 3.1, Go 1.23 (tools-shell guide). \"A container expires if it is not used for 20 minutes.\" (tools-code-interpreter, checked 2026-10-14; tools-shell states no default, only an expires_after {anchor:last_active_at, minutes:20} example and explicit deletion; max undocumented). GA since Code Interpreter 2025-05-20 / Hosted Shell 2026-02-10. Code Interpreter regional processing US + EU (your-data guide). Model tokens billed separately."
     },
     {
       "key": "agents-api-hosted",
@@ -159,7 +159,8 @@
         "desktop": null,
         "auto_stop_idle": true,
         "eu_data_residency": false,
-        "zero_data_retention": false
+        "zero_data_retention": false,
+        "open_internet": true
       },
       "plans": [
         "API pay as you go"
@@ -579,8 +580,8 @@
     "vCPU per Responses container tier is not published; the engine matches container-session on RAM only. The Agents API beta mode publishes 1/2/4 vCPU for 1/4/16 GB at the same rates (suggestive, not confirmed for Responses containers). 64 GB tier vCPU unknown.",
     "Per-minute billing with 5-minute minimum applies to 'eligible' sessions since 2026-06-02 ('eligible' undefined); 2026-03-31 to 2026-06-01 each session was billed in full 20-minute blocks; before that $0.03-$1.92 per container.",
     "Whether idle minutes until the 20-minute expiry are billed is undocumented; delete containers explicitly (DELETE /v1/containers/{id}). See knob idle_expiry_tail.",
-    "No snapshots or persistence: an expired container's data is 'discarded â€¦ not recoverable'. No documented max lifetime; keeping a container alive requires touching it at least every 20 minutes (or a larger expires_after.minutes, max undocumented).",
-    "Outbound network is disabled by default; enabling requires an admin-configured org allow list plus a per-request network_policy allowlist. domain_secrets inject credentials via a sidecar. No inbound ports/URLs.",
+    "No snapshots or persistence: an expired container's data is 'discarded … not recoverable'. No documented max lifetime; keeping a container alive requires touching it at least every 20 minutes (or a larger expires_after.minutes, max undocumented).",
+    "Outbound network is disabled by default for Responses API containers (Code Interpreter / Hosted Shell); enabling requires an admin-configured org allow list plus a per-request network_policy allowlist. domain_secrets inject credentials via a sidecar. No inbound ports/URLs. The Agents API hosted sandbox (beta mode) is the opposite: network.access 'enabled' ('Allow outbound access. This is the default unless you inherit a template policy.'), with disabled / restricted (1-100 exact hosts) as opt-ins. The card-level internet default stays 'allowlist', so the internet-access check also holds that mode to an allowlist.",
     "Only rate limit published: Code Interpreter '100 RPM per org'. No container concurrency cap, no usage-tier table, nothing for hosted shell.",
     "Disk size of containers not published ('ephemeral block storage').",
     "Isolation: documented only as 'a fully sandboxed virtual machine'; hypervisor (gVisor/Firecracker/etc.) not named.",
@@ -613,6 +614,13 @@
     "https://community.openai.com/t/1374010"
   ],
   "feature_evidence": {
+    "open_internet": {
+      "value": false,
+      "source": "https://developers.openai.com/api/docs/guides/tools-shell",
+      "quote": "Hosted containers don’t have outbound network access by default. To enable it: An admin must configure your org allow list in the dashboard. You must explicitly set network_policy on the container environment in your request.",
+      "note": "Card-level false is the Responses API container default (allowlist only). The agents-api-hosted mode overrides open_internet to true: https://developers.openai.com/api/docs/guides/agents-api/environments/openai-hosted says \"enabled Allow outbound access. This is the default unless you inherit a template policy.\"",
+      "checked": "2026-10-14"
+    },
     "snapshot_auto": {
       "value": false,
       "source": "https://developers.openai.com/api/docs/guides/tools-code-interpreter",

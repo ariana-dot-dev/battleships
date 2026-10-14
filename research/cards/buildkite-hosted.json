@@ -58,12 +58,15 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "macOS $0.02 per vCPU-minute (Pro/Enterprise only; no included Mac minutes on Pro, pay-as-you-go), metered to the second, no minimums, no rounding. Mac concurrency up to 48 vCPU on Pro (8 Medium or 4 Large). Max 4 h per job (longer on request). Apple Virtualization framework VMs.",
+      "note": "macOS $0.02 per vCPU-minute (Pro/Enterprise only; no included Mac minutes on Pro, pay-as-you-go), metered to the second, no minimums, no rounding. Mac concurrency up to 48 vCPU on Pro (8 Medium or 4 Large). Max 4 h per job (longer on request). Apple Virtualization framework VMs. Docker CLI only, no Docker daemon (docker build/run need a daemon you provide).",
       "product_class": "ci-runner",
       "plans": [
         "Pro",
         "Enterprise"
-      ]
+      ],
+      "features": {
+        "docker_inside": false
+      }
     },
     {
       "key": "linux",
@@ -125,7 +128,8 @@
       "windows_vcpu_h": null,
       "gpu": null,
       "features": {},
-      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://buildkite.com/pricing: Linux $0.004 per vCPU-minute (Small $0.008/min, Medium $0.016, Large $0.032); shapes from https://buildkite.com/docs/pipelines/hosted-agents/linux. Free plan: Small only (not enforced per size). Max 8 h per job. Per-second metering assumed same as macOS (stated for macOS)."
+      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://buildkite.com/pricing: Linux $0.004 per vCPU-minute (Small $0.008/min, Medium $0.016, Large $0.032); shapes from https://buildkite.com/docs/pipelines/hosted-agents/linux. Free plan: Small only (not enforced per size). Max 8 h per job. Per-second metering assumed same as macOS (stated for macOS).",
+      "product_class": "ci-runner"
     },
     {
       "key": "linux-xl",
@@ -190,7 +194,8 @@
       "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://buildkite.com/docs/pipelines/hosted-agents/linux: XL/XXL/3XL require Enterprise. Price derived from $0.004/vCPU-min (https://buildkite.com/pricing); Enterprise pricing is custom.",
       "plans": [
         "Enterprise"
-      ]
+      ],
+      "product_class": "ci-runner"
     },
     {
       "key": "windows",
@@ -263,7 +268,8 @@
       "note": "Up to 5 users; up to 10 concurrent jobs; Linux vCPU concurrency 20 vCPU (= 10 Small); hosted Linux usage is capped at 'Up to 2,000 mins/month, Small only' (no per-minute overage listed for Free, unlike Pro's 'Additional at per-minute rates'); no macOS; no cache volumes; 4 h job timeout.",
       "included_applies_to_modes": [
         "linux"
-      ]
+      ],
+      "max_total_vcpu": 20
     },
     {
       "name": "Pro",
@@ -272,15 +278,16 @@
       "fee_is_credit": false,
       "included_usd": 16,
       "per_seat": 30,
-      "concurrency": 32,
+      "concurrency": 128,
       "max_session_h": null,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "$30 per active user/month (active = anyone who logs in, uses the API or triggers a build that month); up to 50 users; 4,000 Linux vCPU-minutes/month included ($16), then per-minute; macOS pay-as-you-go (no included Mac minutes). Concurrency: 256 Linux vCPU (128 Small / 64 Medium / 32 Large) and 48 macOS vCPU (8 Medium / 4 Large); a machine counts from boot. Encoded as 32 concurrent machines. Cache volumes included (no published price).",
+      "note": "$30 per active user/month (active = anyone who logs in, uses the API or triggers a build that month); up to 50 users; 4,000 Linux vCPU-minutes/month included ($16), then per-minute; macOS pay-as-you-go (no included Mac minutes). Concurrency: 256 Linux vCPU (128 Small / 64 Medium / 32 Large) and 48 macOS vCPU (8 Medium / 4 Large); a machine counts from boot. Encoded as max_total_vcpu 256 (the Linux pool) plus concurrency 128 (the most machines that pool can hold, all Small); the 48 macOS vCPU pool is not enforced. Cache volumes included (no published price).",
       "included_applies_to_modes": [
         "linux"
-      ]
+      ],
+      "max_total_vcpu": 256
     },
     {
       "name": "Enterprise",
@@ -338,7 +345,9 @@
     "self_host": true,
     "byoc": false,
     "open_source": false,
-    "regions": null,
+    "regions": [
+      "us"
+    ],
     "soc2": true,
     "hipaa": false,
     "sso": true,
@@ -392,16 +401,19 @@
     "CI agents only (jobs from Buildkite pipelines).",
     "Included Linux minutes don't cover macOS.",
     "Billed per vCPU-minute metered to the second, no minimums (pricing page).",
-    "Pro concurrency cap is per vCPU (256 Linux / 48 macOS); encoded as 32 concurrent machines, which is exact only for 8-vCPU Linux agents.",
+    "Pro concurrency cap is a vCPU pool, not a machine count: \"Linux vCPU concurrency: The maximum combined Linux vCPUs your jobs can utilize at once. Up to 256 vCPU\" and \"M4 Mac vCPU concurrency ... Up to 48 vCPU\" (https://buildkite.com/pricing, 2026-10-14). Encoded as max_total_vcpu 256 per plan; the engine cannot apply a separate 48 vCPU macOS pool, so macOS fleets above 8 Medium / 4 Large on Pro are not flagged.",
     "ARM64 Linux shapes are Enterprise-only; not encoded separately.",
     "Linux XL..3XL hourly derived from the published $0.004/vCPU-minute rate.",
     "Cache volumes (Pro/Enterprise only; not on Free) have no published price; best-effort, retained up to 14 days from last use; default quotas: container cache 50 GB, Git mirror 5 GB, max cache size 128 GB; min volume size 20 GB.",
     "Linux ARM64 is billed as a separate platform with its own per-vCPU-minute rate (not published; Enterprise, on request).",
-    "Concurrency counts a machine from boot, so short jobs consume capacity beyond run time; jobs over the vCPU cap queue (no overage)."
+    "Concurrency counts a machine from boot, so short jobs consume capacity beyond run time; jobs over the vCPU cap queue (no overage).",
+    "Hosted agents run only in US East Coast data centers (no region choice; https://buildkite.com/docs/agent/buildkite-hosted, 2026-10-14). The state is not published, so the location is recorded as US without a state and does not match a US East filter."
   ],
   "sources": [
     "https://buildkite.com/pricing",
-    "https://buildkite.com/docs/pipelines/hosted-agents/linux"
+    "https://buildkite.com/docs/pipelines/hosted-agents/linux",
+    "https://buildkite.com/docs/agent/buildkite-hosted",
+    "https://buildkite.com/docs/pipelines/hosted-agents/mac"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -714,10 +726,26 @@
       "quote": "Version commits follow a \"last write\" model—whenever a job terminates successfully (that is, exits with exit code `0`), volumes attached to that job have a new parent committed—the final flushed volume of the exiting agent instance.",
       "note": "Only cache volume paths survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
       "checked": "2026-10-01"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://buildkite.com/docs/pipelines/hosted-agents/mac",
+      "quote": "macOS hosted agents include the Docker CLI (through the docker and docker-buildx Homebrew packages), but do not include a running Docker daemon.",
+      "note": "Card-level true holds for Linux hosted agents (docker, docker-compose, docker-buildx in the base image, Docker-in-Docker). The macOS mode overrides docker_inside=false: commands that need a daemon, such as docker build or docker run, fail unless the job connects to a daemon it provides.",
+      "checked": "2026-10-14"
     }
   },
-  "locations": [],
+  "locations": [
+    {
+      "country": "US",
+      "state": null,
+      "city": null,
+      "provider_region": "US East Coast",
+      "self_serve": true,
+      "choosable": false
+    }
+  ],
   "locations_source": "https://buildkite.com/docs/agent/buildkite-hosted",
-  "locations_quote": "Buildkite manages and runs hosted agents to ensure consistency under load for all customers. No customer-selectable regions/data-residency option is documented for hosted agents; Buildkite runs them on its own managed infrastructure without a published region picker.",
-  "locations_checked": "2026-10-01"
+  "locations_quote": "Is exclusively hosted in US East Coast data centers, operated by a trusted infrastructure provider, strategically selected to provide optimal performance, reliability and low-latency connectivity to major cloud regions.",
+  "locations_checked": "2026-10-14"
 }

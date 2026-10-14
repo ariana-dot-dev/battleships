@@ -245,7 +245,7 @@
     },
     {
       "key": "on-demand-arm64",
-      "label": "Pay-as-you-go Linux Dpsv5 Arm (Ampere Altra) (East US)",
+      "label": "Pay-as-you-go Linux Dpsv5/Dpsv6/Dplsv6 Arm (Ampere Altra, Cobalt 100) (East US)",
       "flags": [],
       "os": [
         "linux"
@@ -390,7 +390,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Retail Prices API eastus 2026-09-28. arm64 only (Ampere Altra, 1 vCPU = 1 core). boot_overhead_s 45 = estimate (midpoint of the ~30-60 s typical Linux VM provisioning+boot; not measured by us). Product: plain IaaS VM (full kernel, root, SSH), not a sandbox API.",
+      "note": "Retail Prices API eastus 2026-09-28. arm64 only, 1 vCPU = 1 core: Dpsv5 = Ampere Altra, Dpsv6/Dplsv6 = Azure Cobalt 100 (Microsoft Learn size pages, 2026-10-14: \"The Dplsv6-series virtual machines are powered by Azure's first-generation Cobalt 100 processor\"). Nested virtualization: \"Not supported\" on all three families. boot_overhead_s 45 = estimate (midpoint of the ~30-60 s typical Linux VM provisioning+boot; not measured by us). Product: plain IaaS VM (full kernel, root, SSH), not a sandbox API.",
       "product_class": "vm",
       "cpu_class": "dedicated"
     },
@@ -1505,7 +1505,7 @@
     },
     {
       "key": "on-demand-arm64-eu",
-      "label": "Pay-as-you-go Linux Dpsv5 Arm (Ampere Altra) (Sweden Central, cheapest EU checked)",
+      "label": "Pay-as-you-go Linux Dpsv5/Dpsv6/Dplsv6 Arm (Ampere Altra, Cobalt 100) (Sweden Central, cheapest EU checked)",
       "flags": [],
       "os": [
         "linux"
@@ -1650,7 +1650,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Retail Prices API swedencentral 2026-09-28. arm64 only (Ampere Altra, 1 vCPU = 1 core). boot_overhead_s 45 = estimate (midpoint of the ~30-60 s typical Linux VM provisioning+boot; not measured by us). Product: plain IaaS VM (full kernel, root, SSH), not a sandbox API.",
+      "note": "Retail Prices API swedencentral 2026-09-28. arm64 only, 1 vCPU = 1 core: Dpsv5 = Ampere Altra, Dpsv6/Dplsv6 = Azure Cobalt 100 (Microsoft Learn size pages, 2026-10-14). Nested virtualization: \"Not supported\" on all three families. boot_overhead_s 45 = estimate (midpoint of the ~30-60 s typical Linux VM provisioning+boot; not measured by us). Product: plain IaaS VM (full kernel, root, SSH), not a sandbox API.",
       "product_class": "vm",
       "cpu_class": "dedicated"
     },
@@ -2717,7 +2717,8 @@
     "scoped_api_keys": null,
     "spend_limits": false,
     "mcp_server": true,
-    "snapshot_auto": true,
+    "snapshot_auto": false,
+    "persist_scope": "whole",
     "snapshot_on_demand": true,
     "harness_api": false,
     "egress_allowlist_level": "both",
@@ -2754,7 +2755,8 @@
     "Public IPv4: Standard static public IP $0.005/h = $3.65/month (azure-windows research); outbound-only VMs can use NAT Gateway (extra) instead.",
     "Free account: $200 credit for 30 days (one_time_credit) plus 750 h/month for 12 months of B1s, B2pts v2 (Arm) and B2ats v2 (AMD) Linux; these are 1-2 GiB machines, far below 4 vCPU/8 GiB, so not modelled as a mode.",
     "B-series baselines are % of the whole VM on Microsoft's 2024 normalised 0-100% scale: Basv2 \"l\" sizes 30%, Basv2 standard 40%, Bv1 B2s 20% / B2ms 30% / B4ms 22.5% / B8ms 17%. Azure B-series has no pay-for-surplus unlimited mode: above baseline it throttles when credits run out.",
-    "Nested virtualization per Microsoft Learn size pages: Supported on Dsv5, Dasv5, Dlsv5, Fsv2; Not supported on Dpsv5 (Arm), Basv2, Bv1 (arm64 and burstable modes set false).",
+    "Nested virtualization per Microsoft Learn size pages: Supported on Dsv5, Dasv5, Dlsv5, Fsv2; Not supported on Dpsv5, Dpsv6 and Dplsv6 (Arm), Basv2, Bv1 (arm64 and burstable modes set false; mode features override the provider-level nested_virt true, which holds only for the x86 D/F modes).",
+    "No automatic snapshots (checked 2026-10-14): Hibernation keeps memory but is a manual operation (\"You can only hibernate a VM using the Azure portal, CLI, PowerShell, SDKs and API.\", https://learn.microsoft.com/en-us/azure/virtual-machines/hibernate-resume), and it is not available on Spot VMs or with Azure Backup. Scheduled disk snapshots need Azure Backup, a separate paid service, so snapshot_auto = false (same as the azure-windows and gcp-compute cards).",
     "Hibernation (Linux and Windows): a hibernated VM is not billed for compute; OS/data disks and IPs keep billing. Guest-OS-initiated hibernate does not count and keeps billing. 'Stopped Allocated' (OS shutdown) still bills compute."
   ],
   "sources": [
@@ -2790,11 +2792,19 @@
   },
   "feature_evidence": {
     "snapshot_auto": {
-      "value": true,
+      "value": false,
+      "corrected_from": true,
       "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/hibernate-resume",
-      "quote": "When you hibernate a VM, Azure signals the VM's operating system to perform a suspend-to-disk action. Azure stores the memory contents of the VM in the OS disk, then deallocates the VM. When the VM is started again, the memory contents are transferred from the OS disk back into memory.",
-      "note": "Trigger: the Hibernate operation (a stop-deallocate variant via portal/CLI/SDK/API; must be enabled on the VM; guest-OS-initiated hibernate does not count). Memory and running processes included; restored automatically on Start. Plain Stop (deallocate) does NOT persist memory (disk persists = persistent_disk). No auto-hibernate on idle; DevTest/VM auto-shutdown schedules only deallocate. Scheduled Azure Backup snapshots exist but are backups, not this.",
-      "checked": "2026-09-29"
+      "quote": "You can only hibernate a VM using the Azure portal, CLI, PowerShell, SDKs and API. Hibernating the VM using guest OS operations don't result in the VM moving to a hibernated state and the VM continues to be billed.",
+      "note": "Hibernation (memory saved to the OS disk, restored on Start) is a manual operation you call, not an automatic snapshot: \"Hibernation is triggered on a VM using the Azure portal, CLI, PowerShell, SDKs, or APIs.\" It is supported only on some sizes (Dsv5/Dasv5 and other v5 general-purpose families up to 64 GB RAM) and lists Spot VMs and Azure Backup under Azure feature limitations. That is pause_resume, not snapshot_auto. No auto-hibernate on idle; VM auto-shutdown schedules only deallocate. Scheduled Azure Backup snapshots are a separate paid backup service and do not count (same rule as the azure-windows and gcp-compute cards). Plain Stop (deallocate) keeps the whole disk (persist_scope whole).",
+      "checked": "2026-10-14"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview",
+      "quote": "Every virtual machine has one attached OS disk. This disk has a preinstalled operating system, which you selected when creating the VM. This disk contains the boot volume.",
+      "note": "The managed OS disk and any data disks survive Stop (deallocate) and hibernation (\"The OS disk, data disks, and NICs remain attached to your VM.\", hibernate-resume), so the whole machine, installed packages included, persists. Only the temporary disk is lost: \"Data on the temporary disk might be lost during a maintenance event, when you redeploy a VM, or when you stop the VM.\" Set explicitly so whole_disk does not depend on snapshot_auto.",
+      "checked": "2026-10-14"
     },
     "snapshot_on_demand": {
       "value": true,

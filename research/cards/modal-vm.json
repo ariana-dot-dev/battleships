@@ -197,7 +197,7 @@
     "arm64": false,
     "gpu": false,
     "gpu_types": [],
-    "snapshot": "fs",
+    "snapshot": "mem",
     "pause_resume": false,
     "fork": true,
     "persistent_disk": true,
@@ -277,7 +277,7 @@
     "fuse": true,
     "kernel_features": true,
     "sidecar": true,
-    "snapshot_mem": false
+    "snapshot_mem": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -333,11 +333,11 @@
   ],
   "caveats": [
     "Generally available since 2026-10-01, announced at Modal's Runtime conference: \"Today we’re making VM Sandboxes generally available on Modal, built for those who need to give their agents the power of a full computer.\" (https://modal.com/blog/vm-sandboxes-agent-computers). Early customers (Linear Coding Sessions, Legora evals, Snorkel simulations) launched over 20 million VMs before GA.",
-    "Same API and prices as the gVisor sandboxes (card \"Modal\"); split out because the runtimes differ: real Linux 7.2 kernel here (Docker, FUSE, eBPF, systemd, nested cgroups), GPUs and self-serve memory snapshots only on gVisor.",
+    "Same API and prices as the gVisor sandboxes (card \"Modal\"); split out because the runtimes differ: real Linux 7.2 kernel here (Docker, FUSE, eBPF, systemd, nested cgroups), GPUs only on gVisor.",
     "No GPUs: \"GPU Sandboxes are only supported with runtime=\\\"gvisor\\\"\".",
-    "Set runtime=\"vm\" explicitly to get this card's runtime: \"Switch runtimes via the `runtime` parameter, or leave unset to let Modal choose for you.\" (https://modal.com/docs/guide/vm-sandboxes, checked 2026-10-14).",
+    "Set runtime=\"vm\" explicitly to get this card's runtime: \"Switch runtimes via the `runtime` parameter, or leave unset to let Modal choose for you.\" (https://modal.com/docs/guide/sandboxes#runtimes, checked 2026-10-14).",
     "Nested virtualization: Team and Enterprise plans only, on request.",
-    "Memory snapshots on VMs are invite-only (\"a set of enabled customers\") and such sandboxes cannot mount Volumes; filesystem snapshots work for everyone and include /var/lib/docker.",
+    "Memory snapshots on VMs are no longer documented as invite-only but are alpha: they expire after 7 days, snapshotting terminates the sandbox, restore needs the same instance type, region can't be pinned, and a runtime=\"vm\" sandbox created with _experimental_enable_snapshot=True cannot mount Volumes (https://modal.com/docs/guide/sandbox-snapshots, checked 2026-10-14). Filesystem snapshots work for everyone and include /var/lib/docker.",
     "Sidecars (beta) work on VMs but not with memory bursting: sidecar memory is reserved up front.",
     "Sandboxes run 24 h at most; use filesystem snapshots to continue longer work.",
     "free.monthly_credit ($30) IS the Starter plan's included_usd, so don't subtract both. Team replaces it with $100 included.",
@@ -352,7 +352,7 @@
   "sources": [
     "https://modal.com/blog/vm-sandboxes-agent-computers",
     "https://modal.com/blog/runtime-product-update-sandbox-endpoints",
-    "https://modal.com/docs/guide/vm-sandboxes",
+    "https://modal.com/docs/guide/sandboxes#runtimes",
     "https://modal.com/docs/guide/sandbox-sidecars",
     "https://modal.com/docs/guide/sandbox-snapshots",
     "https://modal.com/pricing",
@@ -401,8 +401,8 @@
       "value": true,
       "source": "https://modal.com/docs/guide/sandbox-snapshots.md",
       "quote": "Sandbox memory snapshots are copies of a Sandbox’s entire state, both in memory and on the filesystem. These Snapshots can be restored later to create a new Sandbox, which is an exact clone of the original Sandbox.",
-      "note": "Filesystem snapshots (GA, snapshot_filesystem(), disk only, become Images that boot any number of new sandboxes; 30-day default TTL, ttl=None for indefinite) and directory snapshots (mount into running sandboxes). Memory snapshots (_experimental_snapshot, alpha): RAM + FS, but snapshotting terminates the sandbox, no GPU, 7-day expiry; restore via _experimental_from_snapshot creates a clone. VM-runtime memory snapshots only for enabled customers.",
-      "checked": "2026-09-29"
+      "note": "Filesystem snapshots (GA, snapshot_filesystem(), disk only, become Images that boot any number of new sandboxes; 30-day default TTL, ttl=None for indefinite) and directory snapshots (mount into running sandboxes). Memory snapshots (_experimental_snapshot, alpha): RAM + FS, but snapshotting terminates the sandbox, no GPU, 7-day expiry; restore via _experimental_from_snapshot creates a clone. VM-runtime memory snapshots are open (no longer gated) but cannot mount Volumes.",
+      "checked": "2026-10-14"
     },
     "harness_api": {
       "value": false,
@@ -435,8 +435,8 @@
     },
     "guest_firewall": {
       "value": true,
-      "source": "https://modal.com/docs/guide/vm-sandboxes.md",
-      "quote": "This gives\neach Sandbox a real Linux kernel",
+      "source": "https://modal.com/docs/guide/sandboxes#runtimes",
+      "quote": "**VMs** run the Sandbox in a virtual machine with its own Linux kernel.",
       "note": "Derived for the VM runtime (runtime=\"vm\", GA since 2026-10-01) with root. The gVisor runtime (root, own netstack) does not document iptables support.",
       "checked": "2026-10-14",
       "derived": true
@@ -464,9 +464,9 @@
     },
     "docker_inside": {
       "value": true,
-      "source": "https://modal.com/docs/guide/vm-sandboxes",
+      "source": "https://modal.com/docs/guide/sandboxes#runtimes",
       "quote": "Use the VM runtime to run Docker in a Sandbox. Start dockerd as the Sandbox entrypoint and run containers with sb.exec.",
-      "checked": "2026-10-02"
+      "checked": "2026-10-14"
     },
     "anti_bot": {
       "value": false,
@@ -494,8 +494,8 @@
       "corrected_from": false,
       "source": "https://modal.com/docs/guide/sandbox-snapshots",
       "quote": "Create a new Sandbox using the snapshot as the image parameter: modal.Sandbox.create(image=image, app=app)",
-      "note": "snapshot_filesystem() runs on a live sandbox (the docs’ examples terminate it only afterwards), and any number of new sandboxes can start from the snapshot: a disk-level clone without stopping the original. Memory is not copied (VM memory snapshots are invite-only).",
-      "checked": "2026-10-02"
+      "note": "snapshot_filesystem() runs on a live sandbox (the docs’ examples terminate it only afterwards), and any number of new sandboxes can start from the snapshot: a disk-level clone without stopping the original. Memory is not copied by this path; memory snapshots (alpha) copy RAM but terminate the source sandbox.",
+      "checked": "2026-10-14"
     },
     "wake_on_request": {
       "value": false,
@@ -565,16 +565,16 @@
       "value": true,
       "corrected_from": false,
       "source": "https://modal.com/docs/guide/sandbox-snapshots",
-      "quote": "Sandbox memory snapshots are copies of a Sandbox's entire state, both in memory and on the filesystem. These Snapshots can be restored later to create a new Sandbox, which is an exact clone of the original Sandbox.",
-      "note": "Memory Snapshots (alpha, gated: 'Access to VM Memory Snapshots is available on request') capture RAM+FS and Sandbox._experimental_from_snapshot() clones them into a new, running Sandbox with processes' memory state intact -- this is exactly the memory_snapshot_fork definition. Alpha/experimental API (_experimental_snapshot / _experimental_enable_snapshot), so confidence medium rather than high.",
-      "checked": "2026-09-30"
+      "quote": "The new Sandbox will be a duplicate of your original Sandbox. All running processes will still be running, in the same state as when they were snapshotted, and any changes made to the filesystem will be visible.",
+      "note": "Memory Snapshots (alpha, experimental API _experimental_snapshot / _experimental_enable_snapshot) capture RAM+FS and Sandbox._experimental_from_snapshot() clones them into a new, running Sandbox with processes' memory state intact. No longer documented as on-request for VMs (checked 2026-10-14). Snapshotting terminates the source sandbox, so this is a clone-on-restore, not a fork of a still-running original.",
+      "checked": "2026-10-14"
     },
     "nested_virt": {
       "value": true,
-      "source": "https://modal.com/docs/guide/vm-sandboxes",
+      "source": "https://modal.com/docs/guide/sandboxes#runtimes",
       "quote": "Nested virtualization is also available on the Team and Enterprise plans; to request access, reach out via Slack or email us at support@modal.com.",
       "note": "Team and Enterprise plans only, on request.",
-      "checked": "2026-10-02"
+      "checked": "2026-10-14"
     },
     "ssh": {
       "value": true,
@@ -694,9 +694,9 @@
     },
     "fuse": {
       "value": true,
-      "source": "https://modal.com/docs/guide/vm-sandboxes",
+      "source": "https://modal.com/docs/guide/sandboxes#runtimes",
       "quote": "Use the VM runtime for workloads that expect a full Linux environment, such as running Docker inside the Sandbox, mounting FUSE filesystems, or managing resources with nested cgroups.",
-      "checked": "2026-10-02"
+      "checked": "2026-10-14"
     },
     "kernel_features": {
       "value": true,
@@ -706,16 +706,16 @@
     },
     "gpu": {
       "value": false,
-      "source": "https://modal.com/docs/guide/vm-sandboxes",
-      "quote": "GPU Sandboxes are only supported with runtime=\"gvisor\".",
-      "checked": "2026-10-02"
+      "source": "https://modal.com/docs/guide/sandboxes#runtimes",
+      "quote": "GPU Sandboxes are only supported with `runtime=\"gvisor\"`.",
+      "checked": "2026-10-14"
     },
     "snapshot": {
-      "value": "fs",
+      "value": "mem",
       "source": "https://modal.com/docs/guide/sandbox-snapshots",
-      "quote": "Memory Snapshots for Sandboxes that specify runtime=\"vm\" are only available to a set of enabled customers.",
-      "note": "Filesystem and directory snapshots for everyone (/var/lib/docker included); memory snapshots invite-only on VMs, so not counted.",
-      "checked": "2026-10-02"
+      "quote": "Sandboxes that specify `runtime=\"vm\"` cannot mount Volumes when created with `_experimental_enable_snapshot=True`.",
+      "note": "The VM-specific gating sentence (\"only available to a set of enabled customers\") is gone from the page; the only VM-specific Memory Snapshot limitation left is no Volumes. Memory snapshots (RAM + FS) are alpha (\"A number of known limitations currently apply\"), expire after 7 days and terminate the source sandbox. Filesystem and directory snapshots (GA, /var/lib/docker included) remain for everyone.",
+      "checked": "2026-10-14"
     },
     "sidecar": {
       "value": true,
@@ -737,6 +737,13 @@
       "quote": "Sandboxes can burst beyond their CPU and memory requests when additional resources are available on the underlying host. Your request guarantees a minimum level of resources, but when spare capacity exists, your Sandbox can use more. You pay for `max(request, actual)`.",
       "note": "Billed per second for max(request, used): a sandbox can use more than it reserved. Bursting is best effort, not guaranteed capacity.",
       "checked": "2026-10-02"
+    },
+    "snapshot_mem": {
+      "value": true,
+      "source": "https://modal.com/docs/guide/sandbox-snapshots",
+      "quote": "Sandbox memory snapshots are copies of a Sandbox’s entire state, both in memory and on the filesystem.",
+      "note": "Alpha, experimental API (_experimental_enable_snapshot / _experimental_snapshot); no longer documented as invite-only for runtime=\"vm\".",
+      "checked": "2026-10-14"
     }
   },
   "locations": [

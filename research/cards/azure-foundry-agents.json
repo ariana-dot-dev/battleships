@@ -196,7 +196,7 @@
     "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": false,
+    "browser": true,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": true,
@@ -264,7 +264,8 @@
     "usage_api": false,
     "persist_scope": "folder",
     "persist_path": "$HOME and /files",
-    "snapshot_scope": "folder"
+    "snapshot_scope": "folder",
+    "browser_control": true
   },
   "perf": {
     "cpu_runs_s": null,
@@ -281,7 +282,9 @@
     "Code Interpreter per-session fee is documented in regimes, deliberately not flattened into an hourly size with unknown CPU/RAM.",
     "Storage, logs, network, model and external tool usage excluded.",
     "4 vCPU/8 GiB workload is infeasible as one hosted session.",
-    "Use of allocated active-session duration is conservative; chargeable idle-tail semantics require invoice validation."
+    "Use of allocated active-session duration is conservative; chargeable idle-tail semantics require invoice validation.",
+    "Hosted agents also support C# (.NET) (\"Hosted agents support Python and C#.\", https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents, checked 2026-10-14); the schema has no C# language field, so it is not shown as a feature.",
+    "Browser Automation runs in a separate Playwright Workspace resource with its own Playwright Workspaces pricing (\"This tool uses a Playwright workspace resource to run browser sessions.\", https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/browser-automation); not included in the hosted-agent rates."
   ],
   "sources": [
     "https://azure.microsoft.com/en-us/pricing/details/foundry-agent-service/",
@@ -289,7 +292,9 @@
     "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents",
     "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/limits-quotas-regions",
     "https://learn.microsoft.com/en-us/azure/foundry/agents/faq",
-    "https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/code-interpreter"
+    "https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/code-interpreter",
+    "https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/browser-automation",
+    "https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/computer-use"
   ],
   "fleet": {
     "default_max_instances": 1000,
@@ -394,18 +399,19 @@
       "checked": "2026-09-30"
     },
     "browser": {
-      "value": false,
-      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents",
-      "quote": "Hosted agents call models from the Foundry model catalog to perform reasoning while your custom code handles orchestration.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/browser-automation",
+      "quote": "The Browser Automation Tool (BAT) is generally available in Microsoft Foundry. It enables scalable, reliable browser-based automation within Foundry agents. It's available as an MCP tool powered by Playwright Workspaces as its headless browser infrastructure layer.",
+      "note": "First-party managed headless browser, but it runs remotely in a separate Playwright Workspace resource, not inside the hosted-agent sandbox (\"Because the browser runs remotely in Playwright Workspaces, the agent doesn't need a locally installed browser or Playwright runtime\"). Usable from hosted agents only with \"a Playwright Workspace in a region that also supports hosted agents\"; Browser Automation regions: australiaeast, eastasia, eastus, japaneast, switzerlandnorth, westeurope, westus3. Billed separately by Playwright Workspaces (not modelled). Corrected from false (\"outside the product's scope\").",
+      "checked": "2026-10-14"
     },
     "computer_use": {
       "value": false,
-      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents",
-      "quote": "Hosted agents call models from the Foundry model catalog to perform reasoning while your custom code handles orchestration.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/computer-use",
+      "quote": "A virtual machine or sandboxed environment for safe testing. Don't run on machines with access to sensitive data.",
+      "note": "A computer use tool exists (preview, computer-use-preview model, access by registration: \"Microsoft grants access based on eligibility criteria\"), but it only proposes actions from screenshots; your application code carries out each action on a machine you supply. Foundry provides no desktop/VM for it to act on, so false for a provided computer-use environment.",
+      "checked": "2026-10-14"
     },
     "anti_bot": {
       "value": false,
@@ -634,9 +640,63 @@
       "quote": "If no request arrives within that window, the platform deprovisions the compute and persists the session state.",
       "note": "Only $HOME and /files survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
       "checked": "2026-10-01"
+    },
+    "browser_control": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/browser-automation",
+      "quote": "In Microsoft Foundry, Browser Automation integrates through toolboxes and uses the Playwright Workspaces remote Model Context Protocol (MCP) server for managed browser execution.",
+      "note": "The agent drives the managed browser through Playwright Workspaces remote MCP tools attached via a Foundry toolbox; Live View and browser session data for observing sessions. Private website browsing is public preview.",
+      "checked": "2026-10-14"
+    },
+    "lang_python": {
+      "value": true,
+      "source": "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents",
+      "quote": "Hosted agents support Python and C#. You can use any agent framework—the protocol libraries are framework-agnostic.",
+      "note": "C# (.NET) is also supported for the hosted agent runtime; the schema has no C# field, see caveats.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [
+    {
+      "country": "AU",
+      "state": "NSW",
+      "city": "Sydney",
+      "provider_region": "australiaeast",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "BR",
+      "state": "SP",
+      "city": "São Paulo",
+      "provider_region": "brazilsouth",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "CA",
+      "state": "ON",
+      "city": "Toronto",
+      "provider_region": "canadacentral",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "CA",
+      "state": "QC",
+      "city": "Quebec City",
+      "provider_region": "canadaeast",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "US",
+      "state": "IA",
+      "city": "Des Moines",
+      "provider_region": "centralus",
+      "self_serve": true,
+      "choosable": true
+    },
     {
       "country": "US",
       "state": "VA",
@@ -654,58 +714,26 @@
       "choosable": true
     },
     {
-      "country": "US",
-      "state": "CA",
-      "city": "San Francisco",
-      "provider_region": "westus",
-      "self_serve": true,
-      "choosable": true
-    },
-    {
-      "country": "US",
-      "state": "CA",
-      "city": "Los Angeles",
-      "provider_region": "westus3",
-      "self_serve": true,
-      "choosable": true
-    },
-    {
-      "country": "US",
-      "state": "IL",
-      "city": "Chicago",
-      "provider_region": "northcentralus",
-      "self_serve": true,
-      "choosable": true
-    },
-    {
-      "country": "US",
-      "state": "TX",
-      "city": "San Antonio",
-      "provider_region": "southcentralus",
-      "self_serve": true,
-      "choosable": true
-    },
-    {
-      "country": "CA",
-      "state": "ON",
-      "city": "Toronto",
-      "provider_region": "canadacentral",
-      "self_serve": true,
-      "choosable": true
-    },
-    {
-      "country": "AU",
-      "state": "NSW",
-      "city": "Sydney",
-      "provider_region": "australiaeast",
-      "self_serve": true,
-      "choosable": true
-    },
-    {
-      "country": "SE",
+      "country": "FR",
       "state": null,
-      "city": "Västerås",
-      "provider_region": "swedencentral",
+      "city": "Paris",
+      "provider_region": "francecentral",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "DE",
+      "state": null,
+      "city": "Frankfurt",
+      "provider_region": "germanywestcentral",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "IT",
+      "state": null,
+      "city": "Milan",
+      "provider_region": "italynorth",
       "self_serve": true,
       "choosable": true
     },
@@ -718,18 +746,42 @@
       "choosable": true
     },
     {
-      "country": "SG",
+      "country": "JP",
       "state": null,
-      "city": "Singapore",
-      "provider_region": "southeastasia",
+      "city": "Osaka",
+      "provider_region": "japanwest",
       "self_serve": true,
       "choosable": true
     },
     {
-      "country": "HK",
+      "country": "KR",
       "state": null,
-      "city": "Hong Kong",
-      "provider_region": "eastasia",
+      "city": "Seoul",
+      "provider_region": "koreacentral",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "US",
+      "state": "IL",
+      "city": "Chicago",
+      "provider_region": "northcentralus",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "NO",
+      "state": null,
+      "city": "Oslo",
+      "provider_region": "norwayeast",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "PL",
+      "state": null,
+      "city": "Warsaw",
+      "provider_region": "polandcentral",
       "self_serve": true,
       "choosable": true
     },
@@ -742,15 +794,120 @@
       "choosable": true
     },
     {
-      "country": "BR",
-      "state": "SP",
-      "city": "São Paulo",
-      "provider_region": "brazilsouth",
+      "country": "US",
+      "state": "TX",
+      "city": "San Antonio",
+      "provider_region": "southcentralus",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "IN",
+      "state": null,
+      "city": "Chennai",
+      "provider_region": "southindia",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "SG",
+      "state": null,
+      "city": "Singapore",
+      "provider_region": "southeastasia",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "ES",
+      "state": null,
+      "city": "Madrid",
+      "provider_region": "spaincentral",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "SE",
+      "state": null,
+      "city": "Västerås",
+      "provider_region": "swedencentral",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "CH",
+      "state": null,
+      "city": "Zurich",
+      "provider_region": "switzerlandnorth",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "CH",
+      "state": null,
+      "city": "Geneva",
+      "provider_region": "switzerlandwest",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "AE",
+      "state": null,
+      "city": "Dubai",
+      "provider_region": "uaenorth",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "GB",
+      "state": null,
+      "city": "London",
+      "provider_region": "uksouth",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "GB",
+      "state": null,
+      "city": "Cardiff",
+      "provider_region": "ukwest",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "US",
+      "state": "WY",
+      "city": "Cheyenne",
+      "provider_region": "westcentralus",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "NL",
+      "state": null,
+      "city": "Amsterdam",
+      "provider_region": "westeurope",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "US",
+      "state": "CA",
+      "city": "San Francisco",
+      "provider_region": "westus",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "US",
+      "state": "AZ",
+      "city": "Phoenix",
+      "provider_region": "westus3",
       "self_serve": true,
       "choosable": true
     }
   ],
-  "locations_source": "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/limits-quotas-regions",
-  "locations_quote": "2,000 concurrent sessions in Canada Central, East US 2, Japan East, North Central US, South Africa North, Southeast Asia, Sweden Central; 1,000 in other supported regions.",
-  "locations_checked": "2026-10-01"
+  "locations_source": "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/hosted-agents",
+  "locations_quote": "Hosted agents are currently available in the following regions: Australia East, Brazil South, Canada Central, Canada East, Central US, East US, East US 2, France Central, Germany West Central, Italy North, Japan East, Japan West, Korea Central, North Central US, Norway East, Poland Central, South Africa North, South Central US, South India, Southeast Asia, Spain Central, Sweden Central, Switzerland North, Switzerland West, UAE North, UK South, UK West, West Central US, West Europe, West US, West US 3",
+  "locations_checked": "2026-10-14",
+  "locations_note": "31 regions from the hosted-agents page (2026-10-14). East Asia (Hong Kong), on the earlier card, is not in the hosted-agent list and was dropped. westus3 corrected from Los Angeles to Phoenix, AZ. Cities follow the azure-container-apps card; quota tiers per region are in fleet."
 }

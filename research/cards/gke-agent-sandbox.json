@@ -1,7 +1,7 @@
 {
   "id": "gke-agent-sandbox",
   "name": "GKE Agent Sandbox",
-  "url": "https://cloud.google.com/kubernetes-engine/docs/concepts/agent-sandbox",
+  "url": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox",
   "category": "hyperscaler",
   "isolation": "gvisor",
   "modes": [
@@ -306,7 +306,7 @@
     "mcp_server": false,
     "isolation": "gvisor",
     "image_oci": true,
-    "isolation_alternative": "Kata Containers (open-source, customer-managed; no Google support/SLA)",
+    "isolation_alternative": "Kata Containers (open-source, customer-managed; no Google support/SLA). GKE Sandbox also has a managed microVM runtime, but the Agent Sandbox add-on requires gVisor",
     "snapshot_auto": false,
     "snapshot_on_demand": true,
     "harness_api": false,
@@ -332,19 +332,23 @@
   },
   "knobs": [],
   "caveats": [
-    "Autopilot rates are for the default region on the GKE pricing page (us-central1); other regions cost ~5-30% more. You run and operate your own GKE cluster (Agent Sandbox CRDs, warm pools, templates); regional quotas apply. Minimum Pod sizes / CPU:memory ratios of Autopilot are not modelled.",
+    "Autopilot rates are for the default region on the GKE pricing page (us-central1); other regions cost ~5-30% more. You run your own GKE cluster with the managed Agent Sandbox add-on (GKE 1.36.3-gke.1767000+, enabled through gcloud beta; the docs state no launch stage) and operate warm pools and templates; regional quotas apply. Minimum Pod sizes / CPU:memory ratios of Autopilot are not modelled.",
     "Compute is billed on Pod requests (not usage). Egress follows standard Google Cloud network pricing (not captured; null).",
     "Harbor GKE backend and ADK GKE codeexecutor use customer GKE infrastructure. Agent Sandbox orchestration is not a separate all-inclusive VM rate. Price depends on Autopilot/Standard, location, machine, warm pool and storage.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
     "Warm pools: pre-warmed sandboxes are running Pods that accrue requested CPU, RAM and ephemeral storage before any claim (startup typically under 1 s; replicas user-configured). Platform overhead: the sandbox-router alone requests 100m CPU / 512 MiB, plus controller and networking resources; not modelled.",
-    "Nested virtualization set to no: every sandbox runs under gVisor, which gives the workload its own user-space kernel and no /dev/kvm device (no KVM-based emulators or VMs inside). Docker inside is a separate question."
+    "Nested virtualization set to no: every sandbox runs under gVisor, which gives the workload its own user-space kernel and no /dev/kvm device (no KVM-based emulators or VMs inside). Docker inside is a separate question.",
+    "Pod snapshots (snapshot, pause/resume, fork) are not yet in the managed Agent Sandbox add-on: the snapshot how-to installs the open-source controller manually as \"a temporary workaround until the snapshot features are fully available in the GKE Agent Sandbox add-on\". GKE Sandbox also has a microVM runtime (privileged containers, full kernel), but the add-on core policy requires gVisor (\"This policy includes rules that require the use of gVisor\", https://docs.cloud.google.com/kubernetes-engine/docs/how-to/agent-sandbox), so Docker-inside stays no. The open-source Kata Containers path is customer-managed with no Google support/SLA."
   ],
   "sources": [
-    "https://cloud.google.com/kubernetes-engine/docs/concepts/agent-sandbox",
+    "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox",
     "https://github.com/laude-institute/harbor/blob/main/src/harbor/environments/gke.py",
     "https://cloud.google.com/kubernetes-engine/pricing",
-    "https://docs.cloud.google.com/kubernetes-engine/docs/how-to/agent-sandbox"
+    "https://docs.cloud.google.com/kubernetes-engine/docs/how-to/agent-sandbox",
+    "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
+    "https://docs.cloud.google.com/kubernetes-engine/docs/how-to/how-install-agent-sandbox",
+    "https://docs.cloud.google.com/kubernetes-engine/docs/how-to/agent-sandbox-pod-snapshots"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -354,12 +358,13 @@
     "raise_time_days": null,
     "verification": "Google Cloud project with billing/service APIs/IAM configured; underlying compute quota eligibility applies.",
     "tiers": "GKE cluster limits: Autopilot 5,000 nodes per cluster, 200,000 Pods per cluster, 100 concurrent operations; quota adjustments via Google Cloud console/support, and underlying Compute Engine quotas also apply.",
-    "notes": "Kubernetes Sandbox CRDs on customer GKE clusters, not a standalone sandbox account. Fleet bounded by GKE nodes/Compute Engine regional and global quotas, warm-pool resources and IP capacity. No independent default sandbox count; quota requests go through Google Cloud.",
+    "notes": "Managed GKE add-on on customer clusters (gcloud beta container clusters create-auto/update --enable-agent-sandbox; GKE 1.36.3-gke.1767000+ for the v1beta1 API), not a standalone sandbox account; the open-source controller can also be installed manually. Fleet bounded by GKE nodes/Compute Engine regional and global quotas, warm-pool resources and IP capacity. No independent default sandbox count; quota requests go through Google Cloud.",
     "sources": [
       "https://docs.cloud.google.com/kubernetes-engine/docs/how-to/how-install-agent-sandbox",
-      "https://docs.cloud.google.com/compute/resource-usage"
+      "https://docs.cloud.google.com/compute/resource-usage",
+      "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-10-14"
   },
   "audit_2026_09_29": {
     "applied": 29,
@@ -376,10 +381,10 @@
     },
     "snapshot_on_demand": {
       "value": true,
-      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/pod-snapshots",
-      "quote": "A Pod snapshot saves the entire Pod state, including memory and file system changes. When you create new replicas, they're restored from the snapshot, letting the workload resume instead of starting from a new state.",
-      "note": "GKE Pod snapshots (gVisor only; not E2; GKE >= 1.35.3) stored in your Cloud Storage bucket. Memory included (whole-pod scope) or rootfs-only scope. PVCs/emptyDir/tmpfs excluded. New sandboxes can boot from it (golden-snapshot warm pools; 'use it as a base to start multiple new sandboxes'). Restore needs same machine series. Python SDK: sandbox.snapshots.create(), suspend()/resume().",
-      "checked": "2026-09-29"
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/how-to/agent-sandbox-pod-snapshots",
+      "quote": "This manual installation is a temporary workaround until the snapshot features are fully available in the GKE Agent Sandbox add-on.",
+      "note": "GKE Pod snapshots (gVisor only; not E2; GKE 1.35.3-gke.1234000 or later, Autopilot and Standard) stored in your Cloud Storage bucket. Memory included (whole-pod scope) or rootfs-only scope. PVCs/emptyDir/tmpfs excluded. Snapshot suspend/resume with Agent Sandbox currently needs the open-source controller installed manually instead of the managed add-on. New sandboxes can boot from a snapshot (\"use it as a base to start multiple new sandboxes\"). Restore needs same machine series. Python SDK: sandbox.snapshots.create(), suspend()/resume().",
+      "checked": "2026-10-14"
     },
     "harness_api": {
       "value": false,
@@ -426,17 +431,17 @@
     },
     "docker_inside": {
       "value": false,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
-      "quote": "If your workload needs any of the following, GKE Sandbox might not be a good fit because it prevents direct access to the host kernel on the node: Direct access to the node's hardware, Kernel-level virtualization features, Privileged containers",
-      "note": "Agent Sandbox Pods run under gVisor (RuntimeClass gvisor). GKE Sandbox docs explicitly say privileged containers and kernel-level virtualization are unsupported, which Docker-in-Docker/nested containers normally require; card also has nested_virt:false, root:false.",
-      "checked": "2026-09-30"
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
+      "quote": "The following limitations apply only to gVisor sandboxes: Containers that use privileged mode aren't supported.",
+      "note": "Agent Sandbox Pods run under gVisor (core policy requires it). Privileged containers, which Docker-in-Docker normally needs, are unsupported under gVisor. GKE Sandbox microVMs do support privileged containers (\"Privileged containers get root access only to the guest OS in the microVM\"), but the Agent Sandbox add-on cannot use the microVM runtime.",
+      "checked": "2026-10-14"
     },
     "desktop": {
       "value": false,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/agent-sandbox",
-      "quote": "Agent Sandbox... is a Kubernetes-native solution for running stateful, isolated agentic workloads such as AI agents and coding assistants",
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox",
+      "quote": "It is optimized for use cases like AI agent runtimes, where untrusted, LLM-generated code must be executed in a secure and performant environment.",
       "note": "not offered: outside the product's scope — it is a headless Kubernetes Pod/CRD orchestrator, no managed VNC/RDP desktop stream. A community 'chrome-sandbox' example (Chrome debug port) exists but is not a first-party desktop feature.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "browser": {
       "value": false,
@@ -454,17 +459,17 @@
     },
     "anti_bot": {
       "value": false,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/agent-sandbox",
-      "quote": "Agent Sandbox... is a Kubernetes-native solution for running stateful, isolated agentic workloads",
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox",
+      "quote": "GKE Agent Sandbox uses a custom controller and several Kubernetes Custom Resource Definitions (CRDs) to manage the lifecycle of sandboxed environments.",
       "note": "not offered: outside the product's scope — it is generic compute/isolation infrastructure, not a browser/anti-detection product.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "captcha_solving": {
       "value": false,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/agent-sandbox",
-      "quote": "Agent Sandbox... is a Kubernetes-native solution for running stateful, isolated agentic workloads",
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox",
+      "quote": "GKE Agent Sandbox uses a custom controller and several Kubernetes Custom Resource Definitions (CRDs) to manage the lifecycle of sandboxed environments.",
       "note": "not offered: outside the product's scope — generic sandbox compute infrastructure, no CAPTCHA-solving service.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "egress_ip_type": {
       "value": "datacenter",
@@ -477,15 +482,15 @@
       "value": false,
       "source": "https://github.com/kubernetes-sigs/agent-sandbox/blob/main/examples/containarium-ssh-sandbox/README.md",
       "quote": "Most agent runtimes reach a sandbox via kubectl exec, which requires the agent (or its orchestrator) to hold cluster credentials. This example shows an alternative access pattern layered on top of the Sandbox CRD.",
-      "note": "First-party access is via kubectl exec/port-forward, not SSH; SSH access is only a third-party community example layered on top, not a shipped feature.",
-      "checked": "2026-09-30"
+      "note": "First-party access is via kubectl exec or the Sandbox Router, not SSH (GKE Sandbox docs: kubectl port-forward \"isn't supported\" for gVisor sandboxes); SSH access is only a third-party community example layered on top, not a shipped feature.",
+      "checked": "2026-10-14"
     },
     "fork_running": {
       "value": true,
       "source": "https://docs.cloud.google.com/kubernetes-engine/docs/how-to/agent-sandbox-pod-snapshots",
       "quote": "A snapshot can be triggered in two ways:",
-      "note": "Pod snapshots (memory+disk) can be taken via a manual trigger or a workload-signalled trigger while the sandbox Pod keeps running (only Suspended mode stops the Pod); new sandboxes can then be created from that snapshot, i.e. a running sandbox can be cloned without stopping it.",
-      "checked": "2026-09-30"
+      "note": "Pod snapshots (memory+disk) can be taken via a manual trigger or a workload-signalled trigger while the sandbox Pod keeps running (only Suspended mode stops the Pod); new sandboxes can then be created from that snapshot, i.e. a running sandbox can be cloned without stopping it. The snapshot how-to lists starting multiple sandboxes from one snapshot as a use case but documents no procedure for it.",
+      "checked": "2026-10-14"
     },
     "wake_on_request": {
       "value": false,
@@ -510,10 +515,10 @@
     },
     "own_agent_api": {
       "value": false,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/agent-sandbox",
-      "quote": "Agent Sandbox... is a Kubernetes-native solution for running stateful, isolated agentic workloads",
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox",
+      "quote": "GKE Agent Sandbox uses a custom controller and several Kubernetes Custom Resource Definitions (CRDs) to manage the lifecycle of sandboxed environments.",
       "note": "not offered: outside the product's scope — it is generic infrastructure for running any agent you bring; there is no first-party browser/computer-use/research task agent of its own.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "mcp_server": {
       "value": false,
@@ -559,38 +564,38 @@
     },
     "guest_firewall": {
       "value": false,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
-      "quote": "Linux kernel security modules such as Seccomp, Apparmor, or Selinux, Sysctl, NoNewPrivileges, bidirectional MountPropagation, or ProcMount [are not supported]",
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
+      "quote": "Linux kernel security modules such as seccomp, AppArmor, SELinux, the No New Privileges flag, bidirectional mount propagation, and the procMount Pod security context aren't supported in sandboxed Pods.",
       "note": "derived: sandboxes are unprivileged gVisor Pods (root:false, no privileged mode, restricted sysctl/NoNewPrivileges), so setting up nftables/iptables inside the guest is not expected to work reliably.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "static_egress_ip": {
       "value": true,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/agent-sandbox",
-      "quote": "GKE runs that Pod in a sandbox",
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox",
+      "quote": "You can define specific network restrictions and allowed egress or ingress rules within your SandboxTemplate to provide fine-grained security for agentic workloads.",
       "note": "A fixed outbound IP is achievable via a standard GKE/Cloud NAT static IP at the cluster/VPC level (not a sandbox-specific per-machine feature); not stated as automatic per-sandbox.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "gpu": {
       "value": true,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
-      "quote": "In GKE version 1.29.2-gke.1108000 and later, GKE Sandbox supports the use of NVIDIA GPUs.",
-      "note": "GKE Sandbox (the gVisor RuntimeClass Agent Sandbox uses) supports NVIDIA GPU workloads (CUDA only, subset of GPU models) and TPUs, at no additional cost over normal GKE pricing.",
-      "checked": "2026-09-30"
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
+      "quote": "You can run GPU workloads in sandboxes by using gVisor.",
+      "note": "GKE Sandbox with gVisor (the runtime Agent Sandbox uses) supports a subset of NVIDIA GPU models and TPU versions, at no additional cost over normal GKE pricing. \"MicroVMs don't support GPUs.\"",
+      "checked": "2026-10-14"
     },
     "windows": {
       "value": false,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
-      "quote": "You cannot use GKE Sandbox on Windows Server node pools.",
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
+      "quote": "gVisor and microVMs support only Linux nodes. Windows Server nodes aren't supported.",
       "note": "gVisor-based sandbox Pods are Linux-only; Windows node pools/containers are explicitly excluded.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "macos": {
       "value": false,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/agent-sandbox",
-      "quote": "GKE runs that Pod in a sandbox",
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
+      "quote": "gVisor and microVMs support only Linux nodes. Windows Server nodes aren't supported.",
       "note": "not offered: outside the product's scope — Google Cloud/GKE does not offer macOS compute at all.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "self_host": {
       "value": true,
@@ -622,10 +627,10 @@
     },
     "eu_data_residency": {
       "value": true,
-      "source": "https://cloud.google.com/kubernetes-engine/docs/concepts/agent-sandbox",
-      "quote": "GKE runs that Pod in a sandbox",
-      "note": "GKE clusters (and therefore Agent Sandbox Pods) can be created in EU regions (e.g. europe-west*), keeping data/compute within the EU.",
-      "checked": "2026-09-30"
+      "source": "https://cloud.google.com/kubernetes-engine/pricing",
+      "quote": "Frankfurt (europe-west3)",
+      "note": "GKE clusters (and therefore Agent Sandbox Pods) can be created in EU regions (the GKE pricing page region list includes europe-west1/3/4/9 etc.), keeping data/compute within the EU.",
+      "checked": "2026-10-14"
     },
     "max_session_h": {
       "value": "none",
@@ -636,10 +641,10 @@
     },
     "arm64": {
       "value": true,
-      "source": "https://gvisor.dev/docs/user_guide/compatibility/",
-      "quote": "Applications Linux/arm64 Linux/amd64",
-      "note": "derived: gVisor (the sandbox runtime GKE Sandbox / Agent Sandbox uses) upstream-supports both Linux/amd64 and Linux/arm64. GKE's Arm node docs (arm-on-gke, C4A/N4A/T2A requirements and limitations) list many excluded features (Confidential Nodes, GPUs, SMT, nested virtualization, local SSD, etc.) but do not list GKE Sandbox/gVisor as unsupported on Arm node pools, and the sandbox-pods docs don't restrict to a specific CPU architecture. No explicit first-party page states 'Agent Sandbox pods run on Arm nodes' though, so this is inferred rather than directly confirmed.",
-      "checked": "2026-09-30"
+      "source": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/sandbox-pods",
+      "quote": "Supported by most CPUs, Arm architecture, and accelerator machine types.",
+      "note": "GKE Sandbox comparison table, gVisor column, machine type compatibility: gVisor (the runtime Agent Sandbox uses) runs on Arm machine types. No Agent-Sandbox-specific Arm statement.",
+      "checked": "2026-10-14"
     },
     "live_resize": {
       "value": true,

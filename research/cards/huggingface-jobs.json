@@ -1,9 +1,9 @@
 {
   "id": "huggingface-jobs",
-  "name": "Hugging Face Jobs (hf-sandbox backend)",
+  "name": "Hugging Face Jobs (Sandbox API)",
   "url": "https://huggingface.co/docs/hub/en/jobs-pricing",
   "category": "paas",
-  "isolation": "container",
+  "isolation": "vm",
   "modes": [
     {
       "key": "on-demand",
@@ -563,12 +563,12 @@
     "fork": false,
     "persistent_disk": false,
     "volumes": null,
-    "auto_stop_idle": false,
+    "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": false,
     "nested_virt": false,
-    "root": null,
+    "root": true,
     "systemd": null,
     "browser": false,
     "desktop": false,
@@ -619,7 +619,7 @@
     "scoped_api_keys": null,
     "spend_limits": true,
     "mcp_server": false,
-    "isolation": "container",
+    "isolation": "vm",
     "image_oci": true,
     "snapshot_auto": false,
     "harness_api": false,
@@ -647,15 +647,19 @@
   },
   "knobs": [],
   "caveats": [
-    "Public Jobs rates, not Spaces free hardware. Harbor hf-sandbox wraps Jobs; an interactive wrapper does not change underlying job billing. Jobs bill Starting and Running, per minute; builds free. Exposed ports add $0.01/job-hour.",
+    "Public Jobs rates, not Spaces free hardware. The huggingface_hub Sandbox API (experimental; formerly hf-sandbox) runs each dedicated sandbox as one HF Job, billed at the Job flavor rate. Jobs bill Starting and Running, per minute; builds free. Exposed ports add $0.01/job-hour.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
-    "Re-checked 2026-09-28: jobs-pricing and jobs-overview publish no concurrent-job cap, so plan.concurrency stays null (unknown, not unlimited)."
+    "Re-checked 2026-09-28: jobs-pricing and jobs-overview publish no concurrent-job cap, so plan.concurrency stays null (unknown, not unlimited).",
+    "Sandbox API sandboxes have a fixed 24h maximum lifetime (\"The job also has a fixed 24h maximum lifetime as a hard backstop (not configurable).\"). max_session_h stays \"none\" because raw Jobs take any --timeout; sessions over 24h need `hf jobs run`, not the Sandbox API. Source: https://huggingface.co/docs/huggingface_hub/main/en/guides/sandbox",
+    "SandboxPool (Sandbox API) packs many sandboxes into a few shared host Jobs, so per-sandbox cost is the host flavor rate divided by packing density; HF reports 1000 sandboxes created, exec'd and killed in ~16s on 20 cpu-basic hosts (~$0.0009). Pooled sandboxes are uid + Landlock inside one VM, \"intended for workloads within the same trust boundary\". The engine prices one Job per sandbox, so pooled fan-out costs are overstated. Source: https://huggingface.co/docs/huggingface_hub/main/en/concepts/sandbox"
   ],
   "sources": [
     "https://huggingface.co/docs/hub/en/jobs-pricing",
     "https://huggingface.co/docs/hub/en/jobs-overview",
-    "https://pypi.org/project/hf-sandbox/"
+    "https://huggingface.co/docs/huggingface_hub/main/en/guides/sandbox",
+    "https://huggingface.co/docs/huggingface_hub/main/en/concepts/sandbox",
+    "https://huggingface.co/docs/hub/en/jobs-configuration"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -688,15 +692,15 @@
       "value": false,
       "source": "https://huggingface.co/docs/hub/jobs-configuration",
       "quote": "You can open an interactive SSH session into a running Job to debug, inspect, or work directly inside the container.",
-      "note": "Jobs API/CLI (hf jobs run/uv run/logs/ssh) is generic container execution; no first-party API to drive Claude Code/Codex etc. hf-sandbox on PyPI ('Modal-style sandbox API on top of Hugging Face Jobs') lists no author and is not documented by HF as first-party.",
-      "checked": "2026-09-29"
+      "note": "Jobs API/CLI (hf jobs run/uv run/logs/ssh) and the first-party, experimental huggingface_hub Sandbox API (hf-sandbox upstreamed in huggingface_hub 1.22.0; the github.com/huggingface/hf-sandbox repo is archived) are generic exec/files sandboxes; no first-party API to drive Claude Code/Codex etc.",
+      "checked": "2026-10-14"
     },
     "ingress_rules": {
       "value": true,
-      "source": "https://huggingface.co/docs/hub/jobs-configuration",
-      "quote": "Each exposed port is reachable at `https://<job_id>--<port>.hf.jobs` and requires an HF token with `read` access to the job's namespace",
-      "note": "Ports are only exposed when chosen with --expose; public proxy URLs are token-authenticated. SSH opt-in (--ssh), restricted to users with Write access via registered SSH keys. Network groups give private job-to-job connectivity.",
-      "checked": "2026-09-29"
+      "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
+      "quote": "Use hf jobs expose to change which ports are exposed, without restarting the Job",
+      "note": "Ports are only exposed when chosen with --expose; by default the https://<job_id>--<port>.hf.jobs URL requires an HF token with read access, and --expose-public <port> makes a port reachable without a token. The exposed set can be changed on a running Job. SSH opt-in (--ssh), restricted to users with Write access via registered SSH keys. Network groups give private job-to-job connectivity.",
+      "checked": "2026-10-14"
     },
     "secret_proxy": {
       "value": false,
@@ -720,25 +724,25 @@
       "checked": "2026-09-29"
     },
     "isolation": {
-      "value": "container",
-      "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
-      "quote": "Docker Jobs Specify the Docker image and the command to run as you would with docker: >>> hf jobs run ubuntu echo \"Hello from t...\"",
-      "note": "Jobs run as Docker containers (UV or arbitrary Docker image) on shared multi-tenant hosts; no VM/microVM isolation documented.",
-      "checked": "2026-09-30"
+      "value": "vm",
+      "source": "https://huggingface.co/docs/huggingface_hub/main/en/concepts/sandbox",
+      "quote": "A Job is a real VM, so this gives the strongest isolation (VM-level), supports any hardware flavor including GPUs, and is the right choice for mutually-untrusted code.",
+      "note": "Each Job (and each dedicated Sandbox) is its own VM; the user image runs as a container inside it, as namespaced root. Pooled sandboxes (SandboxPool) are NOT VM-isolated: uid + Landlock inside a shared host Job, for one trust boundary only.",
+      "checked": "2026-10-14"
     },
     "docker_inside": {
       "value": false,
-      "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
-      "quote": "Docker Jobs Specify the Docker image and the command to run as you would with docker",
-      "note": "not offered: outside the product's scope — a Job itself is a single container; no privileged mode, docker socket, or docker-in-docker support is documented.",
-      "checked": "2026-09-30"
+      "source": "https://huggingface.co/docs/huggingface_hub/main/en/concepts/sandbox",
+      "quote": "A stock Job runs as root inside a user namespace that maps only uids 0..65535, with a seccomp filter on and without CAP_SYS_ADMIN / CAP_NET_ADMIN / CAP_NET_RAW. That rules out the usual heavyweight isolation tools: no nested namespaces, no new mounts, no cgroup delegation (unshare, mount, writing to /sys/fs/cgroup/... all fail).",
+      "note": "No nested namespaces, mounts or cgroup delegation, so Docker/containers cannot run inside a Job.",
+      "checked": "2026-10-14"
     },
     "nested_virt": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-pricing",
       "quote": "Jobs run in isolated compute environments billed per minute while Starting or Running.",
-      "note": "not offered: outside the product's scope — container isolation with no /dev/kvm or nested virtualization documented.",
-      "checked": "2026-09-30"
+      "note": "not offered: Jobs run unprivileged (user namespace, seccomp, no CAP_SYS_ADMIN) inside the Job VM; no /dev/kvm or nested virtualization documented.",
+      "checked": "2026-10-14"
     },
     "desktop": {
       "value": false,
@@ -839,11 +843,11 @@
       "checked": "2026-09-30"
     },
     "auto_stop_idle": {
-      "value": false,
-      "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
-      "quote": "Jobs have a default timeout (30 minutes), after which they will automatically stop.",
-      "note": "Stopping is a fixed/custom wall-clock timeout, not idle-usage detection; no idle-based auto-stop is documented.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://huggingface.co/docs/huggingface_hub/main/en/guides/sandbox",
+      "quote": "idle_timeout (default 10 minutes) is the real keeper: it shuts the sandbox down once no API call is made and no process is running, so abandoned sandboxes stop billing.",
+      "note": "Sandbox API only. Raw `hf jobs run` Jobs still stop on a wall-clock --timeout (default 30 min), not on idleness.",
+      "checked": "2026-10-14"
     },
     "live_resize": {
       "value": false,
@@ -910,10 +914,10 @@
     },
     "guest_firewall": {
       "value": false,
-      "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
-      "quote": "Docker Jobs Specify the Docker image and the command to run as you would with docker",
-      "note": "derived: Jobs is container isolation (not a full VM/microVM), so guest-side nftables/iptables control is not assumed available.",
-      "checked": "2026-09-30"
+      "source": "https://huggingface.co/docs/huggingface_hub/main/en/concepts/sandbox",
+      "quote": "A stock Job runs as root inside a user namespace that maps only uids 0..65535, with a seccomp filter on and without CAP_SYS_ADMIN / CAP_NET_ADMIN / CAP_NET_RAW. That rules out the usual heavyweight isolation tools: no nested namespaces, no new mounts, no cgroup delegation (unshare, mount, writing to /sys/fs/cgroup/... all fail).",
+      "note": "No CAP_NET_ADMIN inside the Job, so guest-side nftables/iptables rules cannot be set.",
+      "checked": "2026-10-14"
     },
     "static_egress_ip": {
       "value": false,
@@ -1020,6 +1024,13 @@
       "quote": "Ephemeral disk doesn’t survive the Job, so write anything you want to keep to a Storage Bucket mounted read-write, or push it to the Hub as a dataset.",
       "note": "Only mounted buckets survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
       "checked": "2026-10-01"
+    },
+    "root": {
+      "value": true,
+      "source": "https://huggingface.co/docs/huggingface_hub/main/en/concepts/sandbox",
+      "quote": "A stock Job runs as root inside a user namespace that maps only uids 0..65535, with a seccomp filter on and without CAP_SYS_ADMIN / CAP_NET_ADMIN / CAP_NET_RAW. That rules out the usual heavyweight isolation tools: no nested namespaces, no new mounts, no cgroup delegation (unshare, mount, writing to /sys/fs/cgroup/... all fail).",
+      "note": "Root inside a user namespace (uids 0..65535), seccomp on, no CAP_SYS_ADMIN / CAP_NET_ADMIN / CAP_NET_RAW: package installs work, kernel-level admin does not.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],

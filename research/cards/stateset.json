@@ -6,8 +6,52 @@
   "isolation": "gvisor",
   "modes": [
     {
+      "key": "shared-spot",
+      "label": "Shared (Spot, preemptible)",
+      "flags": [
+        "spot"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": null,
+      "gpu_only": false,
+      "features": {
+        "isolation": "gvisor"
+      },
+      "pricing": "resource",
+      "vcpu_h": 0.0055,
+      "ram_gib_h": 0.00075,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": 1,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes": null,
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": null,
+      "granularity_s": 1,
+      "start_fee": 6e-7,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": null,
+      "cpu_class": "shared",
+      "note": "Shared class, same on every plan: \"Shared CPU per vCPU-hour $0.0055 ... Memory per GB-hour $0.00075\", \"4 vCPU · 8 GB : $0.028/hour at its full size\", \"Burstable, on Spot capacity\", \"Can be preempted Yes\", \"A shared sandbox is billed for its full size for the wall-clock time it runs, and billing stops if it is preempted\" (https://sandbox.stateset.app/pricing, 2026-10-14). Minimum size 1 vCPU. Plan allowances do not apply (\"shared compute is billed from the first second\"). $0.15/GB network and $0.60/million creates on Hobby/Pro (Team $0.12 / $0.50, not split out here)."
+    },
+    {
       "key": "on-demand",
-      "label": "On-demand",
+      "label": "Dedicated (on-demand)",
       "flags": [],
       "os": [
         "linux"
@@ -38,17 +82,18 @@
       "always_on_month_per_instance": null,
       "commit_note": null,
       "min_billed_seconds": null,
-      "granularity_s": null,
+      "granularity_s": 1,
       "start_fee": 6e-7,
       "boot_overhead_s": null,
-      "multiplier": 1,
+      "multiplier": 0.5,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "CPU basis not explicitly documented; alloc is a conservative modeling assumption, not a verified metering claim. Rates per sandbox.stateset.app/pricing (2026-09-28): Hobby/Pro overage $0.128/vCPU-h, $0.0106/GB-h (homepage rounds to $0.011), $0.15/GB network, $0.60/million creates. Team plan overage is lower ($0.10 / $0.008 / $0.12 / $0.50) but is not modelled as a separate regime (the engine would pick the cheaper Team rates before weighing the $299 fee)."
+      "note": "Dedicated class, Hobby/Pro list rates $0.128/vCPU-h and $0.0106/GB-h, \"Dedicated compute is billed at 50% of the allocated vCPU and memory (an estimate of average utilization), so a 4 vCPU · 8 GB dedicated sandbox costs $0.2984 /hour on Pro\" (https://sandbox.stateset.app/pricing, 2026-10-14): modelled as multiplier 0.5 on the full allocation (fixed 50%, not measured usage). \"Guaranteed CPU and memory, on-demand\", never preempted. Billed per second. $0.15/GB network, $0.60/million creates. Team list rates are lower ($0.10 / $0.008 / $0.12 / $0.50), modelled as the Team-only regime below.",
+      "cpu_class": "dedicated"
     },
     {
       "key": "team-on-demand",
-      "label": "Team overage",
+      "label": "Dedicated (Team rates)",
       "flags": [],
       "plans": [
         "Team"
@@ -60,7 +105,10 @@
       "ram_basis": "alloc",
       "start_fee": 5e-7,
       "egress_gib": 0.12,
-      "note": "Team-only lower overage rates; billing granularity and allocation-vs-observed CPU wording remain unpublished."
+      "note": "Team-only dedicated list rates $0.10/vCPU-h, $0.008/GB-h, also billed on 50% of the allocation (\"4 vCPU · 8 GB per hour, billed on 50% of its size ... $0.232\" on Team, https://sandbox.stateset.app/pricing, 2026-10-14), so multiplier 0.5. Billed per second.",
+      "cpu_class": "dedicated",
+      "multiplier": 0.5,
+      "granularity_s": 1
     }
   ],
   "storage": {
@@ -68,7 +116,7 @@
     "disk_gib_month": null,
     "disk_billed_when_stopped": null,
     "snapshot_gib_month": null,
-    "paused_ram_billed": null,
+    "paused_ram_billed": false,
     "artifacts": "Persistent files outside a sandbox, transferable between sandboxes, with signed time-limited download URLs; no storage price or retention limit is published."
   },
   "network": {
@@ -94,7 +142,7 @@
       "included_ram_gib_h": 420,
       "included_egress_gib": 20,
       "included_creates": 5000,
-      "note": "Free. 10 concurrent sandboxes, 45-minute max runtime. Allowances are per-resource buckets (not fungible), so included_usd 0.",
+      "note": "Free. 10 concurrent sandboxes, 45-minute max runtime, no durable sandboxes. Allowances (dedicated usage only) are per-resource buckets (not fungible), so included_usd 0.",
       "start_rate_limit": "40 vCPU per 10 minutes"
     },
     {
@@ -108,12 +156,12 @@
       "max_ram_gib": null,
       "sizes_allowed": null,
       "concurrency": 2000,
-      "max_session_h": 5,
+      "max_session_h": 24,
       "included_vcpu_h": 50,
       "included_ram_gib_h": 500,
       "included_egress_gib": 100,
       "included_creates": 50000,
-      "note": "$49/mo. 2,000 concurrent, 5-hour max runtime. Allowances per-resource (not fungible), included_usd 0.",
+      "note": "$49/mo. 2,000 concurrent, 24-hour max runtime, 20 durable sandboxes with a 3-day lifetime. Allowances cover dedicated usage only and are per-resource (not fungible), included_usd 0.",
       "start_rate_limit": "200 vCPU per minute"
     },
     {
@@ -127,18 +175,18 @@
       "max_ram_gib": null,
       "sizes_allowed": null,
       "concurrency": 10000,
-      "max_session_h": 5,
+      "max_session_h": 24,
       "included_vcpu_h": 500,
       "included_ram_gib_h": 5000,
       "included_egress_gib": 1000,
       "included_creates": 500000,
-      "note": "$299/mo. 10,000 concurrent, 5-hour max runtime. Lower overage rates ($0.10/vCPU-h, $0.008/GB-h, $0.12/GB, $0.50/M creates) not modelled; allowances per-resource, included_usd 0.",
+      "note": "$299/mo. 10,000 concurrent, 24-hour max runtime, 100 durable sandboxes with a 7-day lifetime. Lower dedicated rates ($0.10/vCPU-h, $0.008/GB-h) are the Team-only regime; network $0.12/GB and creates $0.50/M on both classes are not split out for the shared class. Allowances cover dedicated usage only, per-resource, included_usd 0.",
       "start_rate_limit": "1,000 vCPU per minute"
     }
   ],
   "free": {
     "monthly_credit": null,
-    "one_time_credit": null
+    "one_time_credit": 25
   },
   "features": {
     "linux": true,
@@ -147,20 +195,20 @@
     "arm64": false,
     "gpu": false,
     "snapshot": "fs",
-    "pause_resume": false,
+    "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": false,
-    "max_session_h": 5,
+    "max_session_h": 24,
     "custom_image": null,
     "docker_inside": false,
     "nested_virt": false,
     "root": false,
     "systemd": null,
     "browser": false,
-    "desktop": false,
-    "computer_use": false,
+    "desktop": null,
+    "computer_use": null,
     "code_interpreter": null,
     "agent_harnesses": true,
     "ssh": false,
@@ -174,11 +222,13 @@
     "self_host": true,
     "byoc": false,
     "open_source": false,
-    "soc2": true,
+    "soc2": false,
     "hipaa": false,
     "sso": true,
     "gpu_types": [],
-    "regions": [],
+    "regions": [
+      "us"
+    ],
     "lang_python": true,
     "lang_node": true,
     "lang_go": null,
@@ -189,14 +239,14 @@
     "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
-    "fork_running": false,
+    "fork_running": true,
     "memory_snapshot_fork": false,
     "webhooks": true,
     "scheduled_wakeups": null,
     "audit_logs": true,
     "eu_data_residency": false,
     "zero_data_retention": null,
-    "scoped_api_keys": null,
+    "scoped_api_keys": true,
     "spend_limits": true,
     "mcp_server": false,
     "isolation": "gvisor",
@@ -231,16 +281,22 @@
     "ENGINE_CARD cannot apply all independent free CPU/RAM/storage/request allowances exactly. Raw regimes/worked example retain them; any engine subtotal may overstate charges or miss eligibility. Do not subtract them twice.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
-    "Plans re-checked 2026-09-28 on sandbox.stateset.app/pricing: Hobby $0 (10 concurrent, 45 min max), Pro $49 (2,000 concurrent, 5 h), Team $299 (10,000 concurrent, 5 h). Included vCPU-h / GB-h / network / creates are separate buckets kept as extra plan keys; the engine only understands a fungible included_usd, so they are not credited (small overstatement).",
+    "Plans re-checked 2026-10-14 on sandbox.stateset.app/pricing: Hobby $0 (10 concurrent, 45 min max), Pro $49 (2,000 concurrent, 24 h, 20 durable sandboxes / 3-day lifetime), Team $299 (10,000 concurrent, 24 h, 100 durable / 7 days). Included vCPU-h / GB-h / network / creates are separate buckets kept as extra plan keys and cover dedicated usage only (\"Included vCPU-hours and memory GB-hours cover dedicated usage only; shared compute is billed from the first second\"); the engine only understands a fungible included_usd, so they are not credited (small overstatement on dedicated rows).",
     "Disk: no per-sandbox disk size or disk price on the pricing page; disk beyond 0 GiB stays unknown. Snapshots: checkpoints are filesystem + env only (\"Process state is not captured\"), max 10 GB, retained 90 days, stored in GCS/S3; no checkpoint storage price published (snapshot_gib_month null). The docs production guide carries an older conflicting table ($0.05/vCPU-h, $0.02/GB-h, $0.20/GB-month storage, different plan limits) that is not used.",
-    "Access is API/SDK only (run commands, files, artifacts); docs mention no SSH, browser, desktop/VNC or computer-use offering, so those are set false. Pods run non-root with a read-only root filesystem (root false).",
-    "Nested virtualization set to no: every sandbox runs under gVisor, which gives the workload its own user-space kernel and no /dev/kvm device (no KVM-based emulators or VMs inside). Docker inside is a separate question."
+    "Access is API/SDK only (run commands, files, artifacts); no SSH. The SDK 2.1.0 typings add screenshot/mouse/keyboard calls for a \"computer-use image\" that no docs page documents, so desktop and computer-use are unverified (null), not offered-and-tested. Pods run non-root with a read-only root filesystem (root false).",
+    "Nested virtualization set to no: every sandbox runs under gVisor, which gives the workload its own user-space kernel and no /dev/kvm device (no KVM-based emulators or VMs inside). Docker inside is a separate question.",
+    "Two compute classes since 2026-10 (sandbox.stateset.app/pricing, 2026-10-14): shared sandboxes run on Spot capacity at $0.0055/vCPU-h + $0.00075/GB-h on the full size ($0.028/h for 4 vCPU / 8 GB) and \"can be preempted\"; dedicated sandboxes get guaranteed CPU and memory at the list rates billed on a fixed 50% of the allocation ($0.2984/h for 4 vCPU / 8 GB on Pro, $0.232 on Team). The shared class is flagged spot, so it is priced only when interruptible capacity is allowed.",
+    "Isolation: gVisor by default (priced here); Kata Containers microVM isolation is a per-sandbox option with no separate published price (sandbox.stateset.app/security, 2026-10-14).",
+    "Durable sandboxes (Pro 20, Team 100) can be paused, and \"Paused durable sandboxes stop compute billing while paused\"; their lifetime is 3 days (Pro) / 7 days (Team). Storage for a paused durable sandbox has no published price."
   ],
   "sources": [
     "https://sandbox.stateset.app/",
     "https://sandbox.stateset.app/pricing",
     "https://sandbox.stateset.app/docs/checkpoints",
-    "https://sandbox.stateset.app/docs/production-guide"
+    "https://sandbox.stateset.app/docs/production-guide",
+    "https://sandbox.stateset.app/security",
+    "https://sandbox.stateset.app/benchmarks",
+    "https://unpkg.com/@stateset/sandbox-sdk@2.1.0/dist/client.d.ts"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -303,7 +359,7 @@
       "value": false,
       "source": "https://sandbox.stateset.app/docs/production-guide",
       "quote": "Non-root user execution",
-      "note": "Default isolation is gVisor Kubernetes pods, non-root, read-only root filesystem, so in-sandbox iptables/nftables is not available. SDK lists other isolation values ('container'|'gvisor'|'microvm'|'kata'|'wasm') whose availability is undocumented.",
+      "note": "Default isolation is gVisor Kubernetes pods, non-root with all Linux capabilities dropped (\"Sandbox containers run as a non-root user with privilege escalation disabled, all Linux capabilities dropped and a seccomp profile applied\", https://sandbox.stateset.app/security, 2026-10-14), so in-sandbox iptables/nftables is not available. Kata microVM is a per-sandbox option but keeps the same non-root container settings.",
       "checked": "2026-09-29"
     },
     "secret_proxy": {
@@ -356,11 +412,12 @@
       "checked": "2026-09-30"
     },
     "pause_resume": {
-      "value": false,
-      "source": "https://registry.npmjs.org/@stateset/sandbox-sdk",
-      "quote": "Pausing stops the rotation timer but keeps the sandbox running. The session can be resumed later.",
-      "note": "pauseAgentSession/resumeAgentSession only pause the Agent Session's rotation/budget logic; the underlying sandbox keeps running (and billing) the whole time, so there is no true pause of the machine itself.",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://sandbox.stateset.app/pricing",
+      "quote": "Paused durable sandboxes stop compute billing while paused.",
+      "note": "Only durable sandboxes: \"Durable sandboxes 20 Durable sandbox lifetime 3 days\" on Pro, 100 / 7 days on Team, \"Not available\" on Hobby. Security page lists pause and resume as sandbox lifecycle actions (\"Sandbox lifecycle actions (create, extend, fork, promote, pause, resume, terminate)\", https://sandbox.stateset.app/security). Whether memory survives a pause is not published; the published SDK 2.1.0 has no sandbox pause call (only pauseAgentSession, which keeps the sandbox running).",
+      "checked": "2026-10-14"
     },
     "wake_on_request": {
       "value": false,
@@ -490,31 +547,32 @@
     },
     "hipaa": {
       "value": false,
-      "source": "https://sandbox.stateset.app/",
-      "quote": "SOC 2 Type II compliant",
-      "note": "not offered: outside documented scope — only SOC 2 Type II is claimed; no HIPAA/BAA mention appears anywhere on the marketing site, docs, FAQ, or pricing pages.",
-      "checked": "2026-09-30"
+      "source": "https://sandbox.stateset.app/security",
+      "quote": "We do not currently hold a SOC 2 report or other third-party certification.",
+      "note": "No third-party certification of any kind; no HIPAA/BAA mention on the site.",
+      "checked": "2026-10-14"
     },
     "eu_data_residency": {
       "value": false,
-      "source": "https://sandbox.stateset.app/pricing",
-      "quote": "Team add-ons Private networking and custom VPC peering SSO/SAML and advanced audit logs Dedicated support and SLAs",
-      "note": "No regions or EU data-residency option is published anywhere (card's fleet.regions is empty); the Team add-ons list covers VPC peering/SSO/audit logs but not region choice.",
-      "checked": "2026-09-30"
+      "source": "https://sandbox.stateset.app/benchmarks",
+      "quote": "The benchmark runs on the production cluster in us-central1 , using the same code path as the public API.",
+      "note": "The hosted service runs on one Google Cloud cluster in us-central1; no EU region or region choice is published.",
+      "checked": "2026-10-14"
     },
     "max_session_h": {
-      "value": 5,
+      "value": 24,
       "source": "https://sandbox.stateset.app/pricing",
-      "quote": "Pro ... Limits Max runtime: 5 hours ... Team ... Limits Max runtime: 5 hours",
-      "note": "Hobby plan max runtime is 45 minutes (0.75h); Pro and Team both cap at 5 hours, which is the longest available across any plan. No 'none'/unlimited option exists — every sandbox has a fixed timeout.",
-      "checked": "2026-09-30"
+      "quote": "Pro $49 /month Plus usage, billed per second. Limits Max sandbox runtime 24 hours",
+      "note": "Pro and Team both \"Max sandbox runtime 24 hours\"; Hobby 45 minutes. Durable sandboxes (Pro 20, Team 100) have a separate lifetime of 3 days (Pro) / 7 days (Team) and can be paused.",
+      "checked": "2026-10-14"
     },
     "fork_running": {
-      "value": false,
-      "source": "https://sandbox.stateset.app/docs/checkpoints",
-      "quote": "Checkpoints allow you to save and restore sandbox state. They capture the filesystem, environment variables, and metadata at a point in time, enabling you to: Save work in progress / Restore a sandbox to a known good state / Clone sandbox configurations for new runs",
-      "note": "The full endpoint list (production-guide) only exposes POST /sandbox/:id/checkpoints (create), POST /sandbox/:id/checkpoints/restore (restore into that same sandbox), and POST /checkpoints/:id/clone (duplicate the checkpoint record). There is no endpoint that forks/duplicates a *running* sandbox instantly — all forking/cloning goes through a saved checkpoint first, then a restore into a sandbox. This matches the card's fork:true (checkpoint-based) / fork_running:false split, but no page states 'no live fork' explicitly, so medium confidence.",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://unpkg.com/@stateset/sandbox-sdk@2.1.0/dist/client.d.ts",
+      "quote": "Fork a sandbox into a new sandbox by checkpointing and restoring state.",
+      "note": "fork(sandboxId, {cpus, memory, isolation, include_env, ...}) returns parent_id, forked_id, checkpoint_id and workspace_strategy 'file-checkpoint' | 'csi-snapshot': a live sandbox is checkpointed (filesystem + env, no memory: \"Process state is not captured (only filesystem)\", docs/checkpoints) and restored into a new one, the same disk-fork shape as boat.dev. SDK typings only, not on the docs pages.",
+      "checked": "2026-10-14"
     },
     "nested_virt": {
       "value": false,
@@ -538,11 +596,12 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
-      "source": "https://sandbox.stateset.app/",
-      "quote": "Simple, powerful API\n\nFive endpoints. That's all you need.\n1 Create / 2 Execute / 3 Write / 4 Read / 5 Store",
-      "note": "The full API reference in the production guide (sandbox, checkpoints, artifacts, webhooks endpoints) contains no VNC/remote-desktop/GUI endpoint or dashboard feature for viewing a sandbox desktop; product is headless code-execution only.",
-      "checked": "2026-09-30"
+      "value": null,
+      "was": false,
+      "source": "https://unpkg.com/@stateset/sandbox-sdk@2.1.0/dist/client.d.ts",
+      "quote": "Requires a desktop sandbox (computer-use image with DISPLAY env var).",
+      "note": "A desktop exists only inside the undocumented computer-use image, reachable through screenshot/mouse/keyboard calls; no VNC or live stream is offered. Unverified rather than false.",
+      "checked": "2026-10-14"
     },
     "browser": {
       "value": false,
@@ -552,11 +611,12 @@
       "checked": "2026-09-30"
     },
     "computer_use": {
-      "value": false,
-      "source": "https://sandbox.stateset.app/",
-      "quote": "Simple, powerful API\n\nFive endpoints. That's all you need.\n1 Create / 2 Execute / 3 Write / 4 Read / 5 Store",
-      "note": "No computer-use / GUI-control tool or API is mentioned anywhere in docs; the product's own agent tooling (AgentRunner / Claude Code CLI) is limited to shell exec + file I/O, consistent with the exec-only 'five endpoints' positioning.",
-      "checked": "2026-09-30"
+      "value": null,
+      "was": false,
+      "source": "https://unpkg.com/@stateset/sandbox-sdk@2.1.0/dist/client.d.ts",
+      "quote": "Capture a screenshot of the sandbox desktop ... Requires a desktop sandbox (computer-use image with DISPLAY env var).",
+      "note": "SDK 2.1.0 has screenshot(), mouse() (click/drag), keyboard() (type/key/hotkey) and getScreenSize() for a desktop sandbox, so false no longer holds; but no docs page, template list or pricing line documents the computer-use image, so availability is unverified. Homepage advertises \"browser-ready environments\".",
+      "checked": "2026-10-14"
     },
     "usage_api": {
       "value": false,
@@ -572,10 +632,42 @@
       "quote": "Persistent workspaces use a sandbox-scoped Kubernetes PVC and can participate in CSI snapshot branching when enabled.",
       "note": "Only the workspace volume survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
       "checked": "2026-10-01"
+    },
+    "soc2": {
+      "value": false,
+      "corrected_from": true,
+      "source": "https://sandbox.stateset.app/security",
+      "quote": "We do not currently hold a SOC 2 report or other third-party certification. We are building toward a SOC 2 audit",
+      "note": "The old homepage line \"SOC 2 Type II compliant\" is gone from the live homepage.",
+      "checked": "2026-10-14"
+    },
+    "scoped_api_keys": {
+      "value": true,
+      "source": "https://sandbox.stateset.app/security",
+      "quote": "API keys can be limited to specific scopes (create, read, write) and given an expiry date.",
+      "note": "Keys can also be revoked or regenerated; sandboxes call back with a token scoped to that one sandbox.",
+      "checked": "2026-10-14"
+    },
+    "isolation": {
+      "value": "gvisor",
+      "source": "https://sandbox.stateset.app/security",
+      "quote": "The default runtime is gVisor, a user-space kernel that stands between sandboxed code and the host kernel. Kata Containers microVM isolation is available as a per-sandbox option.",
+      "note": "gVisor is the default and is what the card prices; Kata microVMs are a per-sandbox option at no published price difference (SDK isolation: 'container' | 'gvisor' | 'microvm' | 'kata' | 'wasm'; promote() moves a sandbox to another isolation level). Containers stay non-root with all capabilities dropped either way.",
+      "checked": "2026-10-14"
     }
   },
-  "locations": [],
-  "locations_source": "https://sandbox.stateset.app/pricing",
-  "locations_quote": "Usage rates Simple metering across compute, memory, network, and creations. No region selection or geolocation options documented.",
-  "locations_checked": "2026-10-01"
+  "locations": [
+    {
+      "country": "US",
+      "state": "IA",
+      "city": "Council Bluffs",
+      "provider_region": "us-central1",
+      "self_serve": true,
+      "choosable": false
+    }
+  ],
+  "locations_source": "https://sandbox.stateset.app/benchmarks",
+  "locations_quote": "The benchmark runs on the production cluster in us-central1 , using the same code path as the public API.",
+  "locations_checked": "2026-10-14",
+  "locations_note": "One hosted production cluster on Google Cloud (\"Data at rest in our cloud database and object storage is encrypted by the underlying Google Cloud services.\", https://sandbox.stateset.app/security); us-central1 is Council Bluffs, Iowa. No region selection. Self-host on your own Kubernetes cluster is separate."
 }

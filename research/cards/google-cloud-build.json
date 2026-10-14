@@ -382,12 +382,12 @@
       "included_applies_to_modes": [
         "default-e2-standard-2"
       ],
-      "concurrency": null,
+      "concurrency": 30,
       "max_session_h": 24,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "2,500 free build-minutes/month per billing account on e2-standard-2 default pool (promotional, \"subject to change\") = $15. Max build timeout 24 h (Cloud Build docs, not re-read today)."
+      "note": "2,500 free build-minutes/month per billing account on e2-standard-2 default pool (promotional, \"subject to change\") = $15. Max build timeout 24 h (build-config-file-schema, re-read 2026-10-14). Concurrency 30 = default-pool ceiling: quotas page 'Default pool | Build | Number of concurrent builds | 10 - 30 | No' (per project, global; new projects may start at 10) and 'Default pool | E2 CPU | Number of concurrent E2 CPUs | 5 - 100 | No'. Private pools allow 100+ concurrent builds (CPU quota 0-2400 E2/N2D, 0-300 C3 per region, increasable, excess queued); the single plan cap cannot express the per-pool difference (see caveats)."
     }
   ],
   "free": {
@@ -407,7 +407,7 @@
     "fork": false,
     "persistent_disk": false,
     "volumes": false,
-    "auto_stop_idle": true,
+    "auto_stop_idle": false,
     "max_session_h": 24,
     "custom_image": true,
     "docker_inside": true,
@@ -488,10 +488,13 @@
   "caveats": [
     "Private-pool SSD ($0.000232877/GiB-hour) and default-pool SSD not encoded.",
     "Prices shown for us regions; other regions may differ.",
-    "N2D/C3 private-pool machine types also priced on the page, not encoded."
+    "N2D/C3 private-pool machine types also priced on the page, not encoded.",
+    "Concurrency: the plan cap (30) is the default-pool limit (10-30 concurrent builds per project, 5-100 concurrent E2 CPUs, neither increasable). Private pools allow 100+ concurrent builds within a per-region CPU quota (0-2400 E2/N2D, 0-300 C3, increasable; excess requests are queued), but the card has one plan, so the 30 cap is applied to private-pool modes too.",
+    "The pricing page also lists Oklahoma (us-central2) and Phoenix (us-west8), which the locations page does not list; not added to locations."
   ],
   "sources": [
-    "https://cloud.google.com/build/pricing"
+    "https://cloud.google.com/build/pricing",
+    "https://cloud.google.com/build/quotas"
   ],
   "audit_2026_09_29": {
     "applied": 4,
@@ -644,7 +647,7 @@
       "source": "https://cloud.google.com/build/docs/build-config-file-schema",
       "quote": "The maximum value for timeout is 24 hours.",
       "note": "Overall build timeout field is capped at 24 hours; individual build steps can have shorter timeouts.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "persistent_disk": {
       "value": false,
@@ -807,6 +810,20 @@
       "note": "granularity: per-tag; cost: yes; Cloud Build billing is accessible via Google Cloud's standard Billing Export API (BigQuery) and Cost Explorer API (with resource filtering by labels/tags). Individual builds can be tagged with custom labels (user_labels) in the build config, and billing data can be filtered by these labels and the Cloud Build service. Costs are returned in currency, not just usage quantities. The Billing API/export breaks down costs per build via resource labels and supports querying by build properties.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "concurrency": {
+      "value": 30,
+      "source": "https://cloud.google.com/build/quotas",
+      "quote": "Default pool Build Number of concurrent builds 10 - 30 No. If you want to run more than 30 concurrent builds, then consider moving to a different region.",
+      "note": "Per-project default-pool cap (range depends on project and usage). Private-pools overview: 'Maximum concurrent builds 30 100+' (default pool vs private pool). Default pool also caps concurrent E2 CPUs at 5 - 100 (not increasable).",
+      "checked": "2026-10-14"
+    },
+    "auto_stop_idle": {
+      "value": false,
+      "source": "https://cloud.google.com/build/docs/build-config-file-schema",
+      "quote": "If timeout isn't set, the build uses a default timeout of 60 minutes. The maximum value for timeout is 24 hours.",
+      "note": "Job runner: a build ends when its steps finish or its timeout elapses (status TIMEOUT); there is no idle detection that stops an idle worker, so no idle-suspend discount applies.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [
@@ -931,9 +948,9 @@
       "choosable": true
     },
     {
-      "country": "NO",
+      "country": "SE",
       "state": null,
-      "city": "Oslo",
+      "city": "Stockholm",
       "provider_region": "europe-north2",
       "self_serve": true,
       "choosable": true
@@ -1145,9 +1162,21 @@
       "provider_region": "australia-southeast2",
       "self_serve": true,
       "choosable": true
+    },
+    {
+      "country": "ZA",
+      "state": null,
+      "city": "Johannesburg",
+      "provider_region": "africa-south1",
+      "self_serve": true,
+      "choosable": true
     }
   ],
   "locations_source": "https://docs.cloud.google.com/build/docs/locations",
   "locations_quote": "Cloud Build allows you to run regional builds by specifying the region when starting a build or when creating a build trigger. All listed regions support both default and private pools.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-14",
+  "audit_2026_10_14": {
+    "applied": 3,
+    "source": "card-findings re-verified against cloud.google.com/build/quotas, /pricing, /docs/locations, /docs/build-config-file-schema"
+  }
 }

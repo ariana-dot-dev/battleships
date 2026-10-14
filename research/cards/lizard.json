@@ -3,11 +3,11 @@
   "name": "Lizard",
   "url": "https://lizard.build/pricing",
   "category": "agent-sandbox",
-  "isolation": "container",
+  "isolation": "firecracker",
   "modes": [
     {
       "key": "sandbox",
-      "label": "Sandbox (4 vCPU / 4 GiB, flat per second while it runs)",
+      "label": "Sandbox (Small / Medium / Large, flat per second while it runs)",
       "flags": [],
       "os": [
         "linux"
@@ -15,7 +15,7 @@
       "regions": null,
       "gpu_only": false,
       "features": {
-        "isolation": "container"
+        "isolation": "firecracker"
       },
       "pricing": "sizes",
       "vcpu_h": null,
@@ -24,23 +24,41 @@
       "ram_basis": "alloc",
       "active_floor": 0,
       "ram_per_vcpu": [
-        1,
-        1
+        2,
+        2
       ],
-      "ram_fixed_per_vcpu": 1,
+      "ram_fixed_per_vcpu": 2,
       "vcpu_options": [
-        4
+        2,
+        4,
+        8
       ],
-      "min_vcpu": 4,
-      "max_vcpu": 4,
-      "max_ram_gib": 4,
+      "min_vcpu": 2,
+      "max_vcpu": 8,
+      "max_ram_gib": 16,
       "sizes": [
+        {
+          "name": "small",
+          "vcpu": 2,
+          "ram_gib": 4,
+          "disk_gib": 5,
+          "hour": 0.0162,
+          "month_cap": null
+        },
         {
           "name": "medium",
           "vcpu": 4,
-          "ram_gib": 4,
-          "disk_gib": null,
-          "hour": 0.018,
+          "ram_gib": 8,
+          "disk_gib": 20,
+          "hour": 0.0324,
+          "month_cap": null
+        },
+        {
+          "name": "large",
+          "vcpu": 8,
+          "ram_gib": 16,
+          "disk_gib": 50,
+          "hour": 0.0648,
           "month_cap": null
         }
       ],
@@ -55,7 +73,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Pricing page FAQ (checked 2026-10-01): \"Small (2 vCPU, 4 GB RAM) at $0.009/hour, Medium (4 vCPU, 8 GB RAM) at $0.018/hour, and Large (8 vCPU, 16 GB RAM) at $0.036/hour. Medium is the default. CPU and memory are included, and so is sandbox egress up to 2 TB per account over a rolling 30 days; Persistent Volumes cost extra.\" Billed by the second including idle time. These flat rates are about a tenth of Lizard's own published per-resource rates ($0.000006948 per vCPU-s = $0.025/vCPU-h, $0.000003474 per GB-s = $0.0125/GB-h, i.e. ~$0.10/h for 2 vCPU / 4 GB). The sandbox docs say current sandboxes have fixed limits of 4 vCPU / 4096 MiB that create options don't change; the sizes are priced as published. Modelled as the only size the docs confirm: Medium (the default) at $0.018/h, delivering the documented fixed 4 vCPU / 4 GiB. Small (2 vCPU / 4 GB, $0.009/h) and Large (8 vCPU / 16 GB, $0.036/h) are left out until the runtime honours sizes."
+      "note": "Limits page Sizes table (checked 2026-10-14): \"Small | 2 vCPU / 4 GB | 5 GB | $0.0162 per hour\", \"Medium (default) | 4 vCPU / 8 GB | 20 GB | $0.0324 per hour\", \"Large | 8 vCPU / 16 GB | 50 GB | $0.0648 per hour\"; \"CPU and memory are included in the price. Persistent Volumes are billed separately.\" (https://lizard.build/docs/platform/limits.md). The size is chosen at create time (`size` is 'small', 'medium', or 'large', https://lizard.build/docs/sandboxes/sdk-reference.md). \"Each size has a flat hourly price, billed by the second while the sandbox runs, idle time included.\" and \"A paused sandbox is not billed\" (https://lizard.build/docs/sandboxes.md). Disk is the per-size `/workspace` disk; its files are lost on stop unless a Persistent Volume is attached. A restore runs at its source's size and price; one restored from a pod snapshot is billed by measured usage. The flat rates are about a sixth of Lizard's own per-resource rates ($0.000006948 per vCPU-s, $0.000003474 per GB-s, i.e. ~$0.10/h for 2 vCPU / 4 GB)."
     }
   ],
   "storage": {
@@ -67,7 +85,7 @@
   },
   "network": {
     "egress_free_gib": 2048,
-    "egress_gib": 0.045,
+    "egress_gib": 0,
     "ipv4_month": null,
     "ipv4_available": false,
     "internet": {
@@ -77,7 +95,7 @@
   },
   "plans": [
     {
-      "name": "Free trial",
+      "name": "Pro trial",
       "fee": 0,
       "flags": [],
       "fee_is_credit": false,
@@ -91,31 +109,16 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
+      "egress_cap_gib": 2048,
       "trial_only": true,
-      "note": "$10 in free credits, valid for 7 days. \"During the free trial you can run 5 sandboxes at once and start 6 per minute, 30 per hour and 100 per day.\""
+      "trial_days": 7,
+      "note": "\"Pro starts with a 7-day trial and $5 in trial credits. You add a card to start it\" (https://lizard.build/docs/platform/billing.md). Limits until the first paid invoice: \"Pro trial | 5 | 6 | 30 | 100\" (running at once, starts per minute / hour / day, https://lizard.build/docs/platform/limits.md). When the trial credits run out, running resources pause; unused trial credits end with the trial. Converts to Pro at $19 unless cancelled."
     },
     {
-      "name": "After a first top-up",
-      "fee": 0,
+      "name": "Pro",
+      "fee": 19,
       "flags": [],
-      "fee_is_credit": false,
-      "included_usd": 0,
-      "per_seat": 0,
-      "concurrency": 20,
-      "max_starts_per_min": 12,
-      "max_starts_per_hour": 60,
-      "max_starts_per_day": 200,
-      "max_session_h": null,
-      "max_vcpu": null,
-      "max_ram_gib": null,
-      "sizes_allowed": null,
-      "note": "Pay as you go, no subscription: \"Your first top-up of any amount raises that to 20 at once and doubles the start rates.\""
-    },
-    {
-      "name": "After $20 paid in total",
-      "fee": 0,
-      "flags": [],
-      "fee_is_credit": false,
+      "fee_is_credit": true,
       "included_usd": 0,
       "per_seat": 0,
       "concurrency": 100,
@@ -126,7 +129,8 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "\"Once you have paid $20 in total, it becomes 100 at once and the start rates double again. Limits count across all your workspaces, and paused sandboxes do not count as running. For more, contact us about Enterprise.\" The highest self-serve limit is 100 at once."
+      "egress_cap_gib": 2048,
+      "note": "\"Lizard has one self-serve plan, Pro. It costs $19 a month and comes with $19 in monthly credits.\" \"Unused monthly credits do not carry over to the next month.\" Usage above the credits is pay as you go at the same rates, charged in steps ($20, $100, $200, $400, $1,000); \"There is no spending cap.\" No seat fees. Credits are shared with apps, databases, storage and egress across the platform (https://lizard.build/docs/platform/billing.md). Limits from the first paid invoice: \"Pro | 100 | 24 | 120 | 400\" (https://lizard.build/docs/platform/limits.md). Sandbox egress past 2 TB per rolling 30 days is not charged; the account's sandboxes lose outbound network instead."
     },
     {
       "name": "Enterprise",
@@ -142,7 +146,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Billing terms agreed in a contract; custom limits, SOC 2 & HIPAA, SSO/SAML, RBAC & audit log, dedicated nodes."
+      "note": "\"Enterprise accounts pay as you go and get an invoice each month for the month before. Rates, limits and payment terms follow your contract.\" (https://lizard.build/docs/platform/billing.md). Pricing page: custom limits, signed DPA and security review, \"SOC 2 report (coming soon)\", SSO / SAML, RBAC & audit log, dedicated nodes on demand; no HIPAA listed."
     }
   ],
   "extras": [
@@ -153,7 +157,7 @@
   ],
   "free": {
     "monthly_credit": 0,
-    "one_time_credit": 10
+    "one_time_credit": 5
   },
   "features": {
     "linux": true,
@@ -162,14 +166,14 @@
     "arm64": null,
     "gpu": false,
     "gpu_types": [],
-    "isolation": "container",
-    "snapshot": "none",
-    "snapshot_on_demand": false,
+    "isolation": "firecracker",
+    "snapshot": "mem",
+    "snapshot_on_demand": true,
     "snapshot_auto": false,
-    "pause_resume": false,
-    "fork": false,
-    "fork_running": false,
-    "memory_snapshot_fork": false,
+    "pause_resume": true,
+    "fork": true,
+    "fork_running": true,
+    "memory_snapshot_fork": true,
     "persistent_disk": true,
     "volumes": true,
     "volume_attach": true,
@@ -181,14 +185,14 @@
     "image_oci": false,
     "docker_inside": null,
     "nested_virt": false,
-    "root": null,
+    "root": true,
     "systemd": null,
-    "browser": null,
-    "desktop": null,
-    "computer_use": false,
+    "browser": true,
+    "desktop": true,
+    "computer_use": true,
     "code_interpreter": true,
     "agent_harnesses": true,
-    "harness_api": null,
+    "harness_api": true,
     "lang_python": true,
     "lang_node": null,
     "ssh": false,
@@ -227,14 +231,14 @@
     "spend_limits": null,
     "mcp_server": null,
     "browser_control": null,
-    "desktop_control": null,
+    "desktop_control": true,
     "anti_bot": null,
     "captcha_solving": null,
     "egress_ip_type": null,
     "ip_note": null,
     "ingress_rules": null,
     "guest_firewall": null,
-    "secret_proxy": null,
+    "secret_proxy": false,
     "own_agent_api": false,
     "open_internet": true,
     "persist_scope": "folder",
@@ -242,64 +246,79 @@
   },
   "feature_evidence": {
     "isolation": {
-      "value": "container",
-      "source": "https://lizard.build/docs/sandboxes",
-      "quote": "Sandboxes run short-lived commands and agent tasks in Kubernetes pods with the runc runtime. They share the host kernel; they are not Firecracker virtual machines."
+      "value": "firecracker",
+      "source": "https://lizard.build/docs/sandboxes.md",
+      "quote": "Each sandbox is a Firecracker microVM with its own kernel.",
+      "note": "Exception: \"A sandbox that attaches a pod-backed Persistent Volume, or restores a pod snapshot, runs as a Kubernetes pod with the runc runtime and shares the host kernel.\" `getInfo().runtime` tells which.",
+      "checked": "2026-10-14"
     },
     "ssh": {
       "value": false,
-      "source": "https://lizard.build/docs/sandboxes/sdk-reference",
-      "quote": "SSH access is not available for the current runtime.",
-      "note": "The sandboxes landing page advertises `lizard sandbox ssh`."
+      "source": "https://lizard.build/docs/sandboxes.md",
+      "quote": "`lizard sandbox ssh` opens an interactive shell with your CLI credentials. SSH protocol access is not available, so SSH clients, `scp`, and port forwarding do not work.",
+      "checked": "2026-10-14"
     },
     "pause_resume": {
-      "value": false,
-      "source": "https://lizard.build/docs/sandboxes/sdk-reference",
-      "quote": "Pause, resume, fork, snapshot, restore, and file watching currently return HTTP 501.",
-      "note": "The landing page advertises pause/resume and snapshot/restore."
+      "value": true,
+      "source": "https://lizard.build/docs/sandboxes/quickstart.md",
+      "quote": "`pause()` saves the sandbox's memory and running processes, keeps `/workspace` on its node, and stops billing. `resume()` restores the sandbox with the same ID.",
+      "note": "Pausing closes open network connections; a paused sandbox resumes on the same node and its state is lost if that node fails. Paused sandboxes do not count toward the running limit.",
+      "checked": "2026-10-14"
     },
     "snapshot_on_demand": {
-      "value": false,
-      "source": "https://lizard.build/docs/sandboxes/sdk-reference",
-      "quote": "Pause, resume, fork, snapshot, restore, and file watching currently return HTTP 501."
+      "value": true,
+      "source": "https://lizard.build/docs/sandboxes/sdk-reference.md",
+      "quote": "`sandbox.snapshot(name, { poolSize })` | `sandbox.snapshot(name, pool_size=...)` | Save memory and `/workspace` files as a private snapshot.",
+      "note": "Attached Persistent Volumes are not captured. A Firecracker snapshot restores from disk at its source's size and price; a pod snapshot keeps 1-10 warm copies and its restores bill by measured usage. Snapshot storage price not published.",
+      "checked": "2026-10-14"
     },
     "fork": {
-      "value": false,
-      "source": "https://lizard.build/docs/sandboxes/sdk-reference",
-      "quote": "Pause, resume, fork, snapshot, restore, and file watching currently return HTTP 501."
+      "value": true,
+      "source": "https://lizard.build/docs/sandboxes/sdk-reference.md",
+      "quote": "`sandbox.fork({ count })` | `sandbox.fork(count=...)` | Copy a running sandbox 1 to 10 times, memory and processes included.",
+      "note": "\"`sandbox.fork()` returns 409 when a volume is attached and 501 for a sandbox that runs as a pod.\" Each copy bills like its source.",
+      "checked": "2026-10-14"
     },
     "custom_image": {
       "value": false,
-      "source": "https://lizard.build/docs/sandboxes/sdk-reference",
-      "quote": "The public CLI does not provide a custom-template upload flow."
+      "source": "https://lizard.build/docs/sandboxes.md",
+      "quote": "The public CLI does not provide a custom-template upload flow.",
+      "note": "A snapshot is saved \"as a private template in its project\" (quickstart), so new sandboxes can start from a prepared one.",
+      "checked": "2026-10-14"
     },
     "persistent_disk": {
       "value": true,
-      "source": "https://lizard.build/docs/sandboxes/volumes",
-      "quote": "A volume in Lizard (lizard.build) keeps data after a sandbox stops. It mounts at /workspace and attaches to one sandbox at a time.",
-      "note": "Volumes use node-local storage; Lizard says to export data you need after a node failure."
+      "source": "https://lizard.build/docs/sandboxes/volumes.md",
+      "quote": "Persistent Volumes keep data after a sandbox stops. Each volume mounts at **`/workspace`** and attaches to **one sandbox at a time**.",
+      "note": "Volumes use node-local storage; Lizard says to export data you need after a node failure.",
+      "checked": "2026-10-14"
     },
     "desktop": {
-      "value": null,
-      "source": "https://lizard.build/docs/sandboxes",
-      "quote": "Enabled templates include `base`, `codex`, and `interpreter`",
-      "note": "The landing page advertises `lizard sandbox desktop` (\"Full desktop in your browser\"); the docs list no desktop template."
+      "value": true,
+      "source": "https://lizard.build/docs/cli/sandbox.md",
+      "quote": "Start the graphical desktop of a sandbox created with `-t desktop` and print its browser URL and a view-only URL.",
+      "note": "`--resolution` from 640x480 to 3840x2160; `lizard sandbox vnc` connects a VNC app through a local tunnel.",
+      "checked": "2026-10-14"
     },
     "harness_api": {
-      "value": null,
-      "source": "https://lizard.build/docs/sandboxes/sdk-reference",
-      "quote": "sandbox.process.exec(cmd) | Run a shell command; return stdout, stderr, and exitCode.",
-      "note": "The landing page advertises `lizard sandbox prompt` (Run Claude Code or Codex); the SDK reference has no such method."
+      "value": true,
+      "source": "https://lizard.build/docs/cli/sandbox.md",
+      "quote": "`lizard sandbox prompt <id> <prompt...>` sends a prompt and streams what the agent does.",
+      "note": "Conversations (`-c`, `--new`, `lizard sandbox conversations`) and `lizard sandbox interrupt` for codex, claude, pi, opencode and prime. CLI only: the SDK reference lists no prompt method.",
+      "checked": "2026-10-14"
     },
     "agent_harnesses": {
       "value": true,
-      "source": "https://lizard.build/docs/sandboxes",
-      "quote": "Enabled templates include `base`, `codex`, and `interpreter`"
+      "source": "https://lizard.build/docs/sandboxes.md",
+      "quote": "| Which templates exist? | `base`, `interpreter`, `codex`, `claude`, `opencode`, `pi`, `prime` and `desktop` |",
+      "checked": "2026-10-14"
     },
     "inbound_https": {
       "value": true,
-      "source": "https://lizard.build/docs/sandboxes/sdk-reference",
-      "quote": "sandbox.getHost(port) | Register a public HTTPS hostname for a port."
+      "source": "https://lizard.build/docs/sandboxes/sdk-reference.md",
+      "quote": "`sandbox.exposePort(port)` | `sandbox.expose_port(port)` | Publish a port; return `url`, `hostname`, and the access token.",
+      "note": "Every request needs the access token.",
+      "checked": "2026-10-14"
     },
     "eu_data_residency": {
       "value": true,
@@ -308,19 +327,69 @@
     },
     "persist_scope": {
       "value": "folder",
-      "source": "https://lizard.build/docs/sandboxes/volumes",
-      "quote": "A volume in Lizard (lizard.build) keeps data after a sandbox stops. It mounts at /workspace and attaches to one sandbox at a time.",
+      "source": "https://lizard.build/docs/sandboxes/volumes.md",
+      "quote": "Persistent Volumes keep data after a sandbox stops. Each volume mounts at **`/workspace`** and attaches to **one sandbox at a time**.",
       "note": "Only /workspace survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
-      "checked": "2026-10-01"
+      "checked": "2026-10-14"
+    },
+    "fork_running": {
+      "value": true,
+      "source": "https://lizard.build/docs/sandboxes/sdk-reference.md",
+      "quote": "`sandbox.fork({ count })` | `sandbox.fork(count=...)` | Copy a running sandbox 1 to 10 times, memory and processes included.",
+      "note": "Not available with a volume attached (409) or for pod sandboxes (501).",
+      "checked": "2026-10-14"
+    },
+    "memory_snapshot_fork": {
+      "value": true,
+      "source": "https://lizard.build/docs/sandboxes.md",
+      "quote": "`fork` copies a running sandbox, memory and processes included; it returns 409 when a volume is attached and 501 for a sandbox that runs as a pod.",
+      "checked": "2026-10-14"
+    },
+    "desktop_control": {
+      "value": true,
+      "source": "https://lizard.build/docs/sandboxes.md",
+      "quote": "The `desktop` template runs a graphical desktop that an agent controls with screenshots, clicks and keys.",
+      "note": "Driven with `sandbox.desktop` or `lizard sandbox desktop`.",
+      "checked": "2026-10-14"
+    },
+    "computer_use": {
+      "value": true,
+      "source": "https://lizard.build/docs/sandboxes.md",
+      "quote": "The `desktop` template runs a graphical desktop that an agent controls with screenshots, clicks and keys.",
+      "checked": "2026-10-14"
+    },
+    "browser": {
+      "value": true,
+      "source": "https://lizard.build/docs/sandboxes.md",
+      "quote": "**Drive a browser.** The `desktop` template runs a graphical desktop that an agent controls with screenshots, clicks and keys.",
+      "note": "A browser inside the desktop; no CDP/browser-control API documented.",
+      "checked": "2026-10-14"
+    },
+    "root": {
+      "value": true,
+      "source": "https://lizard.build/docs/sandboxes/sdk-reference.md",
+      "quote": "`process.exec` accepts `envs`, `workdir`, and `user`; commands run as `root` unless you pass `user`.",
+      "checked": "2026-10-14"
+    },
+    "secret_proxy": {
+      "value": false,
+      "source": "https://lizard.build/docs/cli/agents.md",
+      "quote": "Lizard passes API keys and the stored Claude subscription token unchanged in each run's environment.",
+      "note": "Only a ChatGPT login is swapped for a short-lived access token per run; keys reach the sandbox itself.",
+      "checked": "2026-10-14"
     }
   },
   "caveats": [
-    "Container isolation: sandboxes are Kubernetes pods on runc sharing the host kernel, not VMs.",
-    "The landing page advertises SSH, pause/resume, snapshot/restore, a desktop and a Claude Code / Codex prompt command; the SDK reference says SSH is not available, that pause, resume, fork, snapshot and restore return HTTP 501, and lists no desktop template or prompt method.",
-    "Sizes: the pricing page sells Small 2 vCPU / 4 GB ($0.009/h), Medium 4 / 8 ($0.018/h) and Large 8 / 16 ($0.036/h), but the SDK reference says current sandboxes have fixed limits of 4 vCPU and 4096 MiB that create options don't change. Priced here as Medium at what the docs say you get: 4 vCPU / 4 GiB.",
-    "The flat sandbox rates are about a tenth of Lizard's own per-resource rates (CPU $0.025/vCPU-h, memory $0.0125/GB-h).",
-    "Self-serve limit is 100 sandboxes at once (after $20 paid in total); more needs Enterprise. The landing calculator goes up to 2,000 at once.",
-    "Persistent Volumes are node-local and attach to one sandbox at a time.",
+    "Isolation: Firecracker microVMs with their own kernel, except a sandbox that attaches a pod-backed Persistent Volume or restores a pod snapshot, which runs as a Kubernetes pod on runc sharing the host kernel.",
+    "`lizard sandbox ssh` is a CLI shell, not the SSH protocol: SSH clients, scp and port forwarding do not work.",
+    "Default lifetime is five minutes from the SDK and CLI and no expiration from the raw API and dashboard; it is a deadline from creation, not an idle timer (commands do not reset it).",
+    "Fork returns 409 with a volume attached and 501 for a pod sandbox; snapshots do not capture an attached volume. A restore from a pod snapshot is billed by measured usage rather than the size price (not modelled).",
+    "Sandbox egress is included up to 2 TB per account over a rolling 30 days; past that nothing is charged, the account's sandboxes lose outbound network until the total falls back under 2 TB.",
+    "The $19 Pro monthly credit is shared across the whole platform (apps, databases, storage, egress), not reserved for sandboxes. Overage has no spending cap.",
+    "The flat sandbox rates are about a sixth of Lizard's own per-resource rates (CPU $0.025/vCPU-h, memory $0.0125/GB-h).",
+    "Self-serve limit is 100 sandboxes at once on Pro (from the first paid invoice; 5 during the trial); more needs Enterprise.",
+    "Persistent Volumes are node-local and attach to one sandbox at a time; a sandbox using a volume runs on the volume's node.",
+    "Enterprise lists \"SOC 2 report (coming soon)\"; no HIPAA.",
     "Public usage counter (lizard.build/api/public/stats, 2026-10-01): 436 workspaces, 8,870 sandbox starts in total."
   ],
   "sources": [
@@ -329,9 +398,14 @@
     "https://lizard.build/docs/sandboxes",
     "https://lizard.build/docs/sandboxes/sdk-reference",
     "https://lizard.build/docs/sandboxes/volumes",
-    "https://lizard.build/llms.txt"
+    "https://lizard.build/llms.txt",
+    "https://lizard.build/docs/platform/limits.md",
+    "https://lizard.build/docs/platform/billing.md",
+    "https://lizard.build/docs/cli/sandbox.md",
+    "https://lizard.build/docs/cli/agents.md",
+    "https://lizard.build/docs/sandboxes/quickstart.md"
   ],
-  "checked": "2026-10-01",
+  "checked": "2026-10-14",
   "locations_source": "https://lizard.build/sandboxes",
   "locations_quote": "Location us-east-1 eu-west-lim-a. Regional deployment Launch in US East or EU West. Choose where your agent runs.",
   "locations_checked": "2026-10-01",
@@ -341,12 +415,13 @@
     "default_max_gpus": null,
     "raise": "self-serve",
     "raise_time_days": 0,
-    "verification": "None stated beyond a payment method for top-ups.",
-    "tiers": "Trial 5 at once; after any top-up 20; after $20 paid in total 100; more through Enterprise.",
-    "notes": "Start caps: trial 6/min, 30/hour, 100/day; doubled after the first top-up; doubled again after $20 paid. Limits count across all workspaces.",
+    "verification": "A card is required to start the 7-day trial; Pro limits apply from the first paid invoice (or a \"Start Pro now\" payment).",
+    "tiers": "Pro trial 5 at once; Pro 100 at once from the first paid invoice; more through Enterprise.",
+    "notes": "Start caps: trial 6/min, 30/hour, 100/day; Pro 24/min, 120/hour, 400/day. Limits count per account owner across all workspaces; paused sandboxes do not count, a resume is not a start.",
     "sources": [
-      "https://lizard.build/pricing"
+      "https://lizard.build/docs/platform/limits.md",
+      "https://lizard.build/docs/platform/billing.md"
     ],
-    "researched": "2026-10-01"
+    "researched": "2026-10-14"
   }
 }

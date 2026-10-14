@@ -507,6 +507,7 @@
     "secret_proxy": false,
     "isolation": "container",
     "eu_data_residency": false,
+    "zero_data_retention": true,
     "open_internet": true,
     "usage_api": false,
     "persist_scope": "profile"
@@ -527,7 +528,9 @@
     "Source pricing rendered in EUR by geolocation; canonical pricing.md gives binding USD and yearly totals. Use annual totals rather than rounded $16/$83/$333/$599 headlines.",
     "Start-rate limits for browser sandbox sessions (POST /interact per minute): Free 2, Hobby 20, Standard 100, Growth 1,000, Scale 1,500; /interact/{id}/execute 10/100/500/5,000/7,500 per minute. Exceeding the concurrent-browser limit returns 429 for new sessions (no queue).",
     "Pay-as-you-go: credits are added in $5 increments until a monthly limit. A blank limit means no cap, and a limit of 0 means a hard 402 stop. While PAYG is on, an overage headroom of 1,500 / 30,000 / 150,000 / 600,000 credits (Hobby/Standard/Growth/Scale) lets bursts run while top-ups settle. Upgrades charge the full new-plan price immediately (no proration) and reset the cycle. Unused plan credits carry over on upgrade.",
-    "Free plan: 1,000 credits/month = 500 code-only browser minutes (8.3 h) or ~143 prompted minutes (2.4 h), hard HTTP 402 at zero, no PAYG. The card's Free plan has sizes_allowed [] and included_usd 0, so the engine can never pick Free even for tiny workloads that fit."
+    "Free plan: 1,000 credits/month = 500 code-only browser minutes (8.3 h) or ~143 prompted minutes (2.4 h), hard HTTP 402 at zero, no PAYG. The card's Free plan has sizes_allowed [] and included_usd 0, so the engine can never pick Free even for tiny workloads that fit.",
+    "Browser session concurrency is inconsistent across Firecrawl pages: docs.firecrawl.dev/features/browser says \"For the initial launch, we allow all plans up to have up to 20 concurrent browser sessions.\" while rate-limits and pricing.md list 2/5/25/50/100. The card keeps the plan table; on Growth and Scale the real cap on simultaneous sessions may be 20 (checked 2026-10-14).",
+    "Zero Data Retention is Enterprise-only and ZDR sessions bill +2 credits/browser-minute (4 code-only, 9 with a prompt; docs.firecrawl.dev/billing). Enterprise has no public price, so no ZDR mode is priced on this card."
   ],
   "sources": [
     "https://www.firecrawl.dev/pricing",
@@ -535,7 +538,8 @@
     "https://docs.firecrawl.dev/llms-full.txt",
     "https://docs.firecrawl.dev/billing",
     "https://docs.firecrawl.dev/features/browser",
-    "https://docs.firecrawl.dev/features/interact"
+    "https://docs.firecrawl.dev/features/interact",
+    "https://docs.firecrawl.dev/rate-limits"
   ],
   "fleet": {
     "default_max_instances": 2,
@@ -859,6 +863,13 @@
       "quote": "The sandbox filesystem is ephemeral — downloaded files are lost when the session ends. To persist files, read their content within the session and save it to your own storage. Persistent profiles preserve browser state (cookies, localStorage) but not files on disk.",
       "note": "Only a saved browser profile (cookies, local storage, logins) carries over; no files survive.",
       "checked": "2026-10-01"
+    },
+    "zero_data_retention": {
+      "value": true,
+      "source": "https://docs.firecrawl.dev/features/browser",
+      "quote": "Pass `\"zeroDataRetention\": true` when creating a session to run it with Zero Data Retention (ZDR). Firecrawl will not persist any page content or execution output beyond the lifetime of the session",
+      "note": "Enterprise-gated: \"ZDR must be enabled for your team; otherwise the request returns a `403`.\" pricing.md lists Zero Data Retention as Not available on Free/Hobby/Standard/Growth/Scale, Included on Enterprise. ZDR sessions cost +2 credits/browser-minute (4 code-only, 9 with a prompt) and cannot use recordings or persistent profiles (400).",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],

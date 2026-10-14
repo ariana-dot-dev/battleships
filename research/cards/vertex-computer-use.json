@@ -224,13 +224,22 @@
     "ipv4_month": null,
     "ipv4_available": null,
     "internet": {
-      "default": "none",
+      "default": "configurable",
       "evidence": [
         {
-          "quote": "a limited file system and no network access",
+          "quote": "\"egress_control_config\" : { \"internet_access\" : True , }",
+          "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/computer-use-quickstart"
+        },
+        {
+          "quote": "Outbound internet access is off unless the template enables it.",
+          "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/shell-sandbox-quickstart"
+        },
+        {
+          "quote": "The sandbox offers a limited file system and no network access.",
           "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/code-execution-overview"
         }
-      ]
+      ],
+      "note": "Computer Use / Shell sandboxes: internet is a per-template switch (egress_control_config.internet_access), off unless enabled; the Computer Use quickstart template turns it on. Code Execution sandboxes have no network access at all (not expressible per mode; see caveat)."
     }
   },
   "plans": [
@@ -268,7 +277,7 @@
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": false,
-    "max_session_h": 168,
+    "max_session_h": null,
     "custom_image": true,
     "docker_inside": false,
     "nested_virt": false,
@@ -325,7 +334,7 @@
     "anti_bot": false,
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
-    "ip_note": "Computer Use sandbox only (code-execution sandbox has no network); runs in Google Cloud, no proxy/stealth/CAPTCHA options documented; screen API covers the browser, not a full OS desktop.",
+    "ip_note": "Computer Use / Shell sandboxes reach the internet when the template sets egress_control_config.internet_access (off otherwise); Code Execution sandboxes have no network. Runs in Google Cloud, no proxy/stealth/CAPTCHA options documented; screen API covers the browser, not a full OS desktop.",
     "snapshot_on_demand": true,
     "harness_api": true,
     "egress_allowlist_level": "both",
@@ -338,7 +347,7 @@
     "volume_shared": false,
     "own_agent_api": false,
     "secret_proxy": false,
-    "open_internet": false,
+    "open_internet": true,
     "usage_api": true
   },
   "perf": {
@@ -350,17 +359,20 @@
   "knobs": [],
   "caveats": [
     "One meter, three sandbox types: Agent Compute $0.085/vCPU-h + Agent Memory $0.009/GiB-h (allocated, per-second) covers Agent Runtime, Code Execution, Shell and Computer Use sandboxes (Gemini Enterprise Agent Platform, formerly Vertex AI Agent Engine). The Runtime idle-between-turns exemption applies to Runtime only, not to sandboxes.",
-    "None of these is an SSH-able VM: Computer Use is a containerized browser (API actions / CDP / VNC view); Code Execution is Python-only with no network access; Shell sandbox runs commands through an API. Sandbox vCPU/RAM sizes are not published.",
+    "None of these is an SSH-able VM: Computer Use is a containerized browser (API actions / CDP / VNC view); Code Execution is Python/JavaScript only with no network access; Shell sandbox runs commands through an API. Sandbox vCPU/RAM sizes are not published.",
     "ENGINE_CARD cannot apply all independent free CPU/RAM/storage/request allowances exactly. Raw regimes/worked example retain them; any engine subtotal may overstate charges or miss eligibility. Do not subtract them twice.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
-    "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free."
+    "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
+    "Internet access differs by sandbox type: Computer Use and Shell sandboxes get outbound internet when their template sets egress_control_config.internet_access (off by default), while Code Execution sandboxes have no network access at all. The card-level setting (configurable) therefore overstates the Code Execution mode.",
+    "Computer Use sandboxes expire after 2 hours by default; ttl can be set at creation and no maximum is documented. Deleted on TTL expiry, so set it to cover the whole session."
   ],
   "sources": [
     "https://cloud.google.com/products/gemini-enterprise-agent-platform/pricing",
     "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/computer-use",
     "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-sandboxes",
     "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/code-execution-overview",
-    "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/shell-sandbox-quickstart"
+    "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/shell-sandbox-quickstart",
+    "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/computer-use-quickstart"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -387,7 +399,7 @@
       "value": true,
       "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-snapshots",
       "quote": "Save the exact state of the sandbox, including installed libraries, file system changes, and memory state.",
-      "note": "Memory included. SDK client.sandboxes.snapshots.create with a TTL; restore by creating a new sandbox with sandbox_environment_snapshot; 'Branching: Create multiple sandboxes from the same snapshot' (fork). Same image/arch/runtime version required. Not supported for Code Execution sandboxes ('Snapshots are not supported for Code Execution sandboxes').",
+      "note": "Memory included. SDK client.sandboxes.snapshots.create with a TTL; restore by creating a new sandbox with sandbox_environment_snapshot; 'Branching: Create multiple sandboxes from the same snapshot' (fork). Same image/arch/runtime version required. Not supported for Code Execution sandboxes: 'Snapshots are not supported for Code Execution sandboxes.' (stated on the code-execution-overview page, https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/code-execution-overview, checked 2026-10-14).",
       "checked": "2026-09-29"
     },
     "harness_api": {
@@ -678,6 +690,20 @@
       "note": "granularity: per-tag; cost: yes; Google Cloud provides usage/cost APIs through two main paths: (1) Cloud Billing API for account-level billing, and (2) BigQuery export of detailed billing data with breakdown by resource labels. Individual sandboxes can be tagged with labels and their compute/memory usage tracked through BigQuery by filtering on those labels. No dedicated per-sandbox REST API endpoint is documented, but the BigQuery export approach allows per-resource cost retrieval programmatically.",
       "confidence": "medium",
       "checked": "2026-10-01"
+    },
+    "open_internet": {
+      "value": true,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/computer-use-quickstart",
+      "quote": "\"egress_control_config\" : { \"internet_access\" : True , }",
+      "note": "Computer Use quickstart creates its template with internet access on; shell quickstart: \"Outbound internet access is off unless the template enables it.\" Not available for Code Execution sandboxes (\"no network access\").",
+      "checked": "2026-10-14"
+    },
+    "max_session_h": {
+      "value": null,
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/computer-use-quickstart",
+      "quote": "By default, sandboxes expire after 2 hours. You can customize the sandbox lifetime by setting the ttl field when creating a sandbox.",
+      "note": "No maximum TTL is documented for Computer Use / Shell sandboxes (manage-sandboxes: \"You can set config.ttl when you create the sandbox so that the sandbox is removed automatically when the TTL expires\"). The earlier 168 h came from the Managed Agents sandbox (\"a standard time to live (TTL) of 7 days. Each new interaction automatically resets this timer\"), a different product. Code Execution mode keeps its own 336 h (\"Sandboxes maintain their execution state (memory) for up to 14 days\").",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],

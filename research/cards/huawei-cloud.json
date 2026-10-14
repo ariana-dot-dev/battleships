@@ -3,7 +3,7 @@
   "name": "Huawei Cloud AgentArts",
   "url": "https://support.huaweicloud.com/price-agentarts/agentarts-price-pdf.pdf",
   "category": "agent-sandbox",
-  "isolation": "container",
+  "isolation": "microvm",
   "modes": [
     {
       "key": "base-cu",
@@ -19,7 +19,7 @@
       ],
       "gpu_only": false,
       "features": {
-        "isolation": "container"
+        "isolation": "microvm"
       },
       "pricing": "resource",
       "vcpu_h": 0.165531779128,
@@ -525,12 +525,12 @@
     "scoped_api_keys": null,
     "spend_limits": null,
     "mcp_server": false,
-    "isolation": "container",
+    "isolation": "microvm",
     "image_oci": true,
     "snapshot_auto": false,
     "snapshot_on_demand": false,
     "harness_api": true,
-    "egress_allowlist_level": "ip",
+    "egress_allowlist_level": "both",
     "ingress_rules": true,
     "volume_attach": true,
     "volume_shared": true,
@@ -562,14 +562,16 @@
     "Residency: China AgentArts public-beta documentation; Beijing-four legacy service differs from newer platform. Region and 4/8 configurable tool support need confirmation.",
     "Re-checked 2026-09-28 (AgentArts 计费说明 v04, 2026-09-28): the only sandbox billing items are CPU (1 CU per vCPU-h) and memory (0.1 CU per GiB-h) for runtime, code interpreter and browser tool; disk/storage is not a billing item, so disk_gib_month=0 (sandbox disk size itself is unpublished). No snapshot or public-network egress item is listed; both stay null (unknown).",
     "Mainland-China console (support.huaweicloud.com, CNY); every feature is labelled 公测 (public beta) on the release-notes page. No SSH is documented (session API only) and the browser tool offers LiveView of the browser via noVNC, not a full desktop: ssh=false, desktop=false.",
-    "CU annual pack (beta): example 20,000 CU for CNY 21,105/year (CNY 1.05525/CU, ~5% below on-demand), valid 1 year, needs an existing plan; ~$3,145 prepaid. Not modelled as a mode because the prepaid pack floor cannot be encoded."
+    "CU annual pack (beta): example 20,000 CU for CNY 21,105/year (CNY 1.05525/CU, ~5% below on-demand), valid 1 year, needs an existing plan; ~$3,145 prepaid. Not modelled as a mode because the prepaid pack floor cannot be encoded.",
+    "Isolation is mixed across the tools in the base-cu mode (re-checked 2026-10-14): runtime sessions run in microVMs (agentarts_10_119), the browser tool runs one sandbox container per session (agentarts_10_164), and the code interpreter boundary is not documented. The card shows microvm; browser-only workloads get container isolation. Egress control is split the same way: domain allow/block lists exist only for browser sessions, runtimes use PUBLIC/VPC mode plus security groups."
   ],
   "sources": [
     "https://support.huaweicloud.com/price-agentarts/agentarts-price-pdf.pdf",
     "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_164.html",
     "https://support.huaweicloud.com/api-agentarts/CreateCoreRuntime.html",
     "https://support.huaweicloud.com/wtsnew-agentarts/index.html",
-    "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html"
+    "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html",
+    "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0001.html"
   ],
   "audit_2026_09_29": {
     "applied": 14,
@@ -591,20 +593,27 @@
       "note": "Translation: 'Stopping a session (destroying the sandbox) and deleting session state (clearing persistent storage) are two independent operations.' The full AgentArts API catalogue (runtime, code interpreter, browser, sessions, gateway, ~150 operations; saved in raw/huawei-cloud--api-network-catalogue-f3.txt) has no snapshot/checkpoint/fork operation, and no user-guide page mentions one. The nearest things are SaveBrowserProfile ('将会话保存至配置文件': saves browser cookies/local-storage profile for reuse by later browser sessions, not a machine snapshot) and immutable runtime versions (image + config, not live state). False rather than null because the complete API reference lacks it; downgrade to null if the coordinator requires an explicit denial. ECS (alt modes) does have on-demand EVS disk snapshots and private images (standard IaaS, not re-verified in this pass).",
       "checked": "2026-09-29"
     },
+    "isolation": {
+      "value": "microvm",
+      "source": "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_119.html",
+      "quote": "每个会话运行在独立的安全沙箱（microVM）实例中，实现进程级、文件系统级和网络级的隔离。",
+      "note": "Translation: 'Each session runs in its own secure sandbox (microVM) instance, isolated at process, filesystem and network level.' This is the agent runtime (and Managed Agents, which runs on it). The browser tool is different: '每个会话运行在独立的沙箱容器中' (each session runs in its own sandbox container, one container per session; agentarts_10_164). The code interpreter page (agentarts_10_008) only says '安全隔离的代码执行环境' (secure isolated execution environment) without naming the boundary.",
+      "checked": "2026-10-14"
+    },
     "harness_api": {
       "value": true,
-      "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0028.html",
-      "quote": "调用智能体是Managed Agents的核心使用环节。通过WebSocket协议向已创建的智能体发送消息，智能体在沙箱环境中自主决策、调用工具、执行任务，并将流式结果实时返回给调用方。",
-      "note": "Translation: 'Invoking the agent is the core of Managed Agents. You send messages over WebSocket to the created agent; the agent decides autonomously, calls tools and executes tasks inside the sandbox environment, and streams results back to the caller in real time.' Harness = Huawei's own Managed Agents harness only (public beta, launched 2026-09): you declare model (Huawei MaaS or custom OpenAI-protocol providers), system prompt, built-in tools (bash, read_file, write_file, edit_file, glob, list_files, grep), Skills, environment; then drive it at ws://{endpoint}/runtimes/{runtime_name}/ws with IAM/API Key/OAuth auth; stream frames (e2a.chunk / e2a.complete with status in_progress/succeeded/failed); multi-turn by reusing a session ID; 'send new content to change direction, or terminate/pause the current task' (干预与中断). Runs in a microVM sandbox. No first-party support for driving Claude Code / Codex / OpenCode / Gemini CLI inside the sandbox (those names appear only for the Memory plugin). The plain Runtime product just proxies HTTP/MCP to your own container (InvokeRuntime), which is not a harness API.",
-      "checked": "2026-09-29"
+      "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0001.html",
+      "quote": "平台负责提供整套Harness（运行编排框架）底座，自动完成Agent循环、沙箱隔离、网络管控、会话持久化。 … 干预或中断：指任务执行过程中，通过发送新的内容来变更原有执行方向，或是直接终止、暂停当前任务。",
+      "note": "Translation: 'The platform provides the whole Harness (run-orchestration framework) base, automatically handling the agent loop, sandbox isolation, network control, session persistence' and 'Intervene or interrupt: during task execution, send new content to change direction, or directly terminate or pause the current task.' Harness = Huawei's own Managed Agents harness only (public beta, launched 2026-09): you declare model (Huawei MaaS or custom OpenAI-protocol providers), system prompt, built-in tools (bash, read_file, write_file, edit_file, glob, list_files, grep), Skills, environment; then drive it at ws://{endpoint}/runtimes/{runtime_name}/ws with IAM/API Key/OAuth auth; stream frames (e2a.chunk / e2a.complete with status in_progress/succeeded/failed); multi-turn by reusing a session ID; 'send new content to change direction, or terminate/pause the current task' (干预与中断). Runs in a microVM sandbox. No first-party support for driving Claude Code / Codex / OpenCode / Gemini CLI inside the sandbox (those names appear only for the Memory plugin). The plain Runtime product just proxies HTTP/MCP to your own container (InvokeRuntime), which is not a harness API. (Previous source agentarts_13_0028.html now returns a 404; re-sourced to the Managed Agents intro page on 2026-10-14.)",
+      "checked": "2026-10-14"
     },
     "egress_allowlist": {
       "value": true,
       "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0013.html",
       "quote": "沙箱向外发起网络请求的能力，是基础设施层的安全边界，优先级高于系统提示词、工具权限，即使提示词被注入攻击，网络层依然可以拦截非法访问。",
-      "note": "Translation: 'The sandbox's ability to make outbound requests is an infrastructure-layer security boundary, taking priority over the system prompt and tool permissions; even if the prompt is injected, the network layer can still block illegal access.' Options per environment / runtime / code interpreter / browser: 公网访问 PUBLIC (open internet, no filtering documented) or 私网访问 VPC ('打通您的企业私有VPC内网，只能访问内网资源，流量不经过互联网' = only internal resources, no internet) with your VPC, subnet and up to 10 security groups (API: network_config.network_mode PUBLIC|VPC, vpc_config.security_group_ids). So: a no-internet mode plus IP/port control via VPC security-group outbound rules and your VPC routing/NAT (security-group egress semantics are inferred from standard Huawei VPC behaviour, not stated on the AgentArts pages). No hostname allowlist in AgentArts itself. Egress mode is immutable after creation for Managed Agents environments. IAM condition keys agentarts:AllowEgressPublicAccess / AllowIngressPublicAccess let admins forbid public egress/ingress.",
-      "checked": "2026-09-29",
-      "level": "ip"
+      "note": "Translation: 'The sandbox's ability to make outbound requests is an infrastructure-layer security boundary, taking priority over the system prompt and tool permissions; even if the prompt is injected, the network layer can still block illegal access.' Options per environment / runtime / code interpreter / browser: 公网访问 PUBLIC (open internet, no filtering documented) or 私网访问 VPC ('打通您的企业私有VPC内网，只能访问内网资源，流量不经过互联网' = only internal resources, no internet) with your VPC, subnet and up to 10 security groups (API: network_config.network_mode PUBLIC|VPC, vpc_config.security_group_ids). So: a no-internet mode plus IP/port control via VPC security-group outbound rules and your VPC routing/NAT (security-group egress semantics are inferred from standard Huawei VPC behaviour, not stated on the AgentArts pages). No hostname allowlist for runtimes / Managed Agents environments; the browser tool, however, takes per-session domain allow/block lists (agentarts_10_164: '创建会话 ：启动一个新的浏览器会话，可配置视口大小、超时时间、域名访问限制（白名单/黑名单）、浏览器代理、配置文件加载等参数。' = create session with viewport, timeout, domain access restrictions (allowlist/blocklist), proxy, profile). Hence level 'both': domain for the browser tool, IP/port (VPC security groups) for runtime and code interpreter. Egress mode is immutable after creation for Managed Agents environments. IAM condition keys agentarts:AllowEgressPublicAccess / AllowIngressPublicAccess let admins forbid public egress/ingress.",
+      "checked": "2026-10-14",
+      "level": "both"
     },
     "ingress_rules": {
       "value": true,
@@ -720,17 +729,17 @@
     },
     "agent_harnesses": {
       "value": false,
-      "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0028.html",
-      "quote": "调用智能体是Managed Agents的核心使用环节。通过WebSocket协议向已创建的智能体发送消息，智能体在沙箱环境中自主决策、调用工具、执行任务，并将流式结果实时返回给调用方。",
-      "note": "Managed Agents lets you configure your own model + tools + prompt inside Huawei's own harness; no preinstalled/templated coding-agent harnesses (Claude Code, Codex, OpenCode, Gemini CLI) are offered — those names only appear elsewhere for an unrelated Memory plugin.",
-      "checked": "2026-09-30"
+      "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0001.html",
+      "quote": "平台负责提供整套Harness（运行编排框架）底座，自动完成Agent循环、沙箱隔离、网络管控、会话持久化",
+      "note": "Managed Agents lets you configure your own model + tools + prompt inside Huawei's own harness; no preinstalled/templated coding-agent harnesses (Claude Code, Codex, OpenCode, Gemini CLI) are offered — those names only appear elsewhere for an unrelated Memory plugin. (Previous source agentarts_13_0028.html now returns a 404; re-sourced to the Managed Agents intro page on 2026-10-14.)",
+      "checked": "2026-10-14"
     },
     "own_agent_api": {
       "value": true,
-      "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0028.html",
-      "quote": "通过WebSocket协议向已创建的智能体发送消息，智能体在沙箱环境中自主决策、调用工具、执行任务，并将流式结果实时返回给调用方。",
-      "note": "Managed Agents is Huawei's own first-party task-agent product (model + tools + prompt, browser/code-interpreter tool access), driven over a WebSocket API with multi-turn sessions and mid-task intervene/terminate — this is the provider's own agent API, not a coding-harness driver.",
-      "checked": "2026-09-30"
+      "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0001.html",
+      "quote": "干预或中断：指任务执行过程中，通过发送新的内容来变更原有执行方向，或是直接终止、暂停当前任务。",
+      "note": "Managed Agents is Huawei's own first-party task-agent product (model + tools + prompt, browser/code-interpreter tool access), driven over a WebSocket API with multi-turn sessions and mid-task intervene/terminate — this is the provider's own agent API, not a coding-harness driver. (Previous source agentarts_13_0028.html now returns a 404; re-sourced to the Managed Agents intro page on 2026-10-14.)",
+      "checked": "2026-10-14"
     },
     "mcp_server": {
       "value": false,
@@ -764,7 +773,7 @@
       "value": false,
       "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0013.html",
       "quote": "沙箱向外发起网络请求的能力，是基础设施层的安全边界，优先级高于系统提示词、工具权限，即使提示词被注入攻击，网络层依然可以拦截非法访问。",
-      "note": "Egress control is only at the network-mode level (PUBLIC open internet vs VPC-only) plus VPC security-group IP/port rules; there is no documented HTTP method/path-level egress rule (matches the card's existing egress_allowlist_level: 'ip').",
+      "note": "Egress control is only at the network-mode level (PUBLIC open internet vs VPC-only) plus VPC security-group IP/port rules; there is no documented HTTP method/path-level egress rule (the browser tool adds hostname allow/block lists, still not method/path rules; egress_allowlist_level: 'both').",
       "checked": "2026-09-30"
     },
     "secret_proxy": {
@@ -855,8 +864,8 @@
       "value": false,
       "source": "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_008.html",
       "quote": "代码解释器是AgentArts的核心组件之一，为Agent提供安全隔离的代码执行环境。Agent可以在代码解释器中执行代码、处理文件、运行命令，所有操作在受控环境中完成，不影响宿主系统。",
-      "note": "derived: the card classifies AgentArts sandbox isolation as container-level (shared kernel), not a full VM/microVM, and no AgentArts doc (runtime, code interpreter, browser, sessions, gateway APIs) documents root/sudo or CAP_NET_ADMIN access, or any iptables/nftables capability inside the sandbox; access is via a restricted runtime/code-interpreter/browser API (commands, file I/O), not an unrestricted root shell. Session API only, no SSH (ssh=false per card). Absent an established full-VM + root combination, guest-side nftables/iptables control is not established, so this is derived as false rather than an unconfirmed true.",
-      "checked": "2026-09-30"
+      "note": "derived: runtime sessions are microVMs (agentarts_10_119), but no AgentArts doc (runtime, code interpreter, browser, sessions, gateway APIs) documents root/sudo or CAP_NET_ADMIN access, or any iptables/nftables capability inside the sandbox; access is via a restricted runtime/code-interpreter/browser API (commands, file I/O), not an unrestricted root shell. Session API only, no SSH (ssh=false per card). Without documented root, guest-side nftables/iptables control is not established, so this stays false rather than an unconfirmed true.",
+      "checked": "2026-10-14"
     },
     "cpu_class": {
       "value": {

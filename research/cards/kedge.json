@@ -19,7 +19,8 @@
         "us",
         "eu",
         "asia",
-        "other"
+        "other",
+        "au"
       ],
       "gpu_only": false,
       "features": {
@@ -139,7 +140,7 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": true,
+    "docker_inside": null,
     "nested_virt": false,
     "root": null,
     "systemd": null,
@@ -153,7 +154,7 @@
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": false,
-    "egress_allowlist": true,
+    "egress_allowlist": false,
     "static_egress_ip": false,
     "private_network": true,
     "self_host": false,
@@ -167,7 +168,8 @@
       "us",
       "other",
       "eu",
-      "asia"
+      "asia",
+      "au"
     ],
     "lang_python": true,
     "lang_node": true,
@@ -179,8 +181,8 @@
     "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": false,
-    "fork_running": true,
-    "memory_snapshot_fork": true,
+    "fork_running": false,
+    "memory_snapshot_fork": false,
     "webhooks": true,
     "scheduled_wakeups": true,
     "audit_logs": null,
@@ -224,7 +226,9 @@
     "This mode is persistent machines/workspaces, not the disposable sandbox API capped at 1 hour. Flags beta+alt prevent default selection.",
     "Memory snapshot billing remains unknown; retained volumes use 0.05/GiB-month separately.",
     "An account can hold only a limited, unpublished number of sandboxes at once. Past the cap, create fails with a limit error rather than queuing.",
-    "Volumes publish local writes to object storage after 1 s or 16 MiB. The local writeback buffer is 4 GiB, and new writes fail when it fills."
+    "Volumes publish local writes to object storage after 1 s or 16 MiB. The local writeback buffer is 4 GiB, and new writes fail when it fills.",
+    "Los Angeles (`lax`) is an edge point of presence only; workloads run in the ten compute regions (docs/coverage).",
+    "Docker inside and root are documented only for GitHub Actions runners (Docker preinstalled, passwordless sudo), not for workspaces or sandboxes."
   ],
   "sources": [
     "https://kedge.dev/",
@@ -247,7 +251,8 @@
     "https://kedge.dev/changelog",
     "https://news.ycombinator.com/item?id=49099434",
     "https://hn.algolia.com/api/v1/items/49099434",
-    "https://github.com/wjordan/syzy"
+    "https://github.com/wjordan/syzy",
+    "https://kedge.dev/docs/cli"
   ],
   "audit_2026_09_29": {
     "applied": 18,
@@ -277,11 +282,11 @@
       "checked": "2026-09-29"
     },
     "egress_allowlist": {
-      "value": true,
+      "value": false,
       "source": "https://kedge.dev/docs/sandboxes",
       "quote": "Sandboxes have outbound network access by default. `-no-network` on `kedge eval` or `kedge sandbox` leaves the VM with only a loopback interface.",
-      "note": "Only an all-or-nothing no-internet mode for disposable sandboxes (anonymous sandboxes always networkless). No domain/IP allowlist documented for sandboxes, apps, machines or workspaces; 'custom network drivers' not exposed (docs/network).",
-      "checked": "2026-09-29"
+      "note": "Only an all-or-nothing switch: -no-network leaves loopback only (anonymous sandboxes always networkless). No domain or IP allowlist is documented for sandboxes, apps, machines or workspaces.",
+      "checked": "2026-10-14"
     },
     "ingress_rules": {
       "value": true,
@@ -495,11 +500,11 @@
       "checked": "2026-09-30"
     },
     "docker_inside": {
-      "value": true,
+      "value": null,
       "source": "https://kedge.dev/docs/github-runners",
-      "quote": "The image includes Git, Git LFS, `jq`, common archive and build tools, Python 3, Docker, Buildx, and Docker Compose. ... - name: Exercise Docker\n  run: |\n    docker version\n    docker run --rm hello-world",
-      "note": "Confirmed working Docker (daemon + `docker run`) inside a Kedge-managed VM (GitHub Actions runner). Kedge's own security docs state every app instance, handler, sandbox, and runner alike 'runs in a hardware-isolated VM with its own Linux kernel' (docs/security: 'Container images package the workload; the VM is the isolation boundary'), so the same full-VM isolation underlies the card's modeled sandbox/workspace modes, making Docker-inside plausible there too, though the direct `docker run` proof is only published for the GitHub-runner product.",
-      "checked": "2026-09-30"
+      "quote": "The image includes Git, Git LFS, `jq`, common archive and build tools, Python 3, Docker, Buildx, and Docker Compose.",
+      "note": "Docker (and passwordless sudo for the `runner` user) is documented only for the GitHub Actions runner image. The workspace docs (docs/agents) and sandbox docs do not mention Docker, root or sudo. Left unknown; each workload is a full VM with its own kernel, so the engine still infers it for VMs.",
+      "checked": "2026-10-14"
     },
     "usage_api": {
       "value": false,
@@ -508,30 +513,36 @@
       "note": "granularity: account-only; cost: yes",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "fork_running": {
+      "value": false,
+      "source": "https://kedge.dev/docs/cli",
+      "quote": "`kedge fork <app> [new-name]` — Copy an app and its current state",
+      "note": "Fork is documented only for apps; no doc shows forking a running workspace or sandbox, or that the fork carries live process memory.",
+      "checked": "2026-10-14"
+    },
+    "memory_snapshot_fork": {
+      "value": false,
+      "source": "https://kedge.dev/docs/runtime",
+      "quote": "Kedge boots a new service once and traps the moment it calls `listen()`. The VM freezes at that boundary as the deploy snapshot.",
+      "note": "Memory-snapshot clones exist only as deploy snapshots for app scale-out (cold restore / warm resume of the post-startup image), not as a user-triggered fork of a running sandbox or workspace with its live memory.",
+      "checked": "2026-10-14"
     }
   },
   "locations": [
     {
       "country": "US",
-      "state": "CA",
-      "city": "Los Angeles",
-      "provider_region": "los-angeles",
-      "self_serve": true,
-      "choosable": true
-    },
-    {
-      "country": "US",
       "state": "OR",
-      "city": "Portland",
-      "provider_region": "portland",
+      "city": "Hillsboro",
+      "provider_region": "hil",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "US",
       "state": "VA",
-      "city": "Washington",
-      "provider_region": "washington",
+      "city": "Vint Hill",
+      "provider_region": "vin",
       "self_serve": true,
       "choosable": true
     },
@@ -539,7 +550,7 @@
       "country": "BR",
       "state": null,
       "city": "Sao Paulo",
-      "provider_region": "sao-paulo",
+      "provider_region": "gru",
       "self_serve": true,
       "choosable": true
     },
@@ -563,7 +574,7 @@
       "country": "ZA",
       "state": null,
       "city": "Cape Town",
-      "provider_region": "cape-town",
+      "provider_region": "cpt",
       "self_serve": true,
       "choosable": true
     },
@@ -571,7 +582,7 @@
       "country": "IN",
       "state": null,
       "city": "Mumbai",
-      "provider_region": "mumbai",
+      "provider_region": "bom",
       "self_serve": true,
       "choosable": true
     },
@@ -579,7 +590,7 @@
       "country": "SG",
       "state": null,
       "city": "Singapore",
-      "provider_region": "singapore",
+      "provider_region": "sin",
       "self_serve": true,
       "choosable": true
     },
@@ -587,12 +598,20 @@
       "country": "JP",
       "state": null,
       "city": "Tokyo",
-      "provider_region": "tokyo",
+      "provider_region": "nrt",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "AU",
+      "state": null,
+      "city": "Sydney",
+      "provider_region": "syd",
       "self_serve": true,
       "choosable": true
     }
   ],
   "locations_source": "https://kedge.dev/docs/coverage",
-  "locations_quote": "Latency-aware routing sends each client to a nearby edge; autoscaled instances follow demand across ten compute regions, plus an edge point of presence in Los Angeles.",
-  "locations_checked": "2026-10-01"
+  "locations_quote": "Latency-aware routing sends each client to a nearby edge; autoscaled instances follow demand across ten compute regions, plus an edge point of presence in Los Angeles.\n`lax` | Los Angeles, California, US (edge only)\n`syd` | Sydney, Australia",
+  "locations_checked": "2026-10-14"
 }

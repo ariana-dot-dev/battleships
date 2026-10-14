@@ -3,7 +3,7 @@
   "name": "Steel.dev",
   "url": "https://docs.steel.dev/overview/pricinglimits",
   "category": "browser",
-  "isolation": "container",
+  "isolation": "dedicated-vm",
   "modes": [
     {
       "key": "launch",
@@ -242,7 +242,7 @@
     "static_egress_ip": true,
     "private_network": null,
     "self_host": true,
-    "byoc": false,
+    "byoc": true,
     "open_source": true,
     "regions": [
       "us"
@@ -372,12 +372,13 @@
     "CAPTCHA solves $3/1k (Launch, needs $10 deposit) / $1/1k (Scale); Browser Tools /scrape /screenshot /pdf $5/1k; not modelled in the card.",
     "Dedicated static egress IPs: $5/IP/month on Scale (up to 25 self-serve); their traffic is still metered as proxy bandwidth. Not a public inbound IPv4, so network.ipv4_* left null/false.",
     "Browsers run in one region (us-east); proxy geolocation changes the visible IP location only.",
-    "Host OS / isolation technology undocumented (isolation 'container' is an assumption for the card enum; features.linux null).",
+    "Each hosted session runs in its own VM per the docs ('A Steel session is a headful Chromium in a VM'; Files API: 'that session's isolated VM environment'); the hypervisor is not named and host OS is undocumented (features.linux null). Self-hosted steel-browser is a plain Docker container.",
     "Legacy Starter/Developer/Startup plan prices are third-party only (costbench.com); official pages do not publish them.",
-    "Self-hosting the open-source steel-browser Docker image is free (you pay your own compute); not modelled as a mode.",
+    "Self-hosting the open-source steel-browser Docker image is free (you pay your own compute); Steel Outpost (Contact Sales) runs Steel in your own cloud or network with your own keys and region, which is the only path to non-US data location. Neither is modelled as a mode (no published price).",
     "No SOC 2 statement found; HIPAA-ready BAA on Scale/Enterprise. No latency benchmark available (vendor claims <1 s average session start).",
     "ENGINE LIMITATION (verifier 2026-09-28): sizes have vcpu/ram_gib null (unpublished), and engine.js hourly() filters sizes with s.vcpu >= W.vcpu, which is false for null, so this card is currently never priced ('no preset'). Needs an engine rule for unsized browser-session presets; numbers were not invented to work around it.",
-    "Browser Tools (/scrape, /screenshot, /pdf) have their own 20 requests/minute limit (HTTP 429), separate from the plan req/min limit; each call opens a fresh browser that counts against plan concurrency."
+    "Browser Tools (/scrape, /screenshot, /pdf) have their own 20 requests/minute limit (HTTP 429), separate from the plan req/min limit; each call opens a fresh browser that counts against plan concurrency.",
+    "Files persist across sessions even though no machine disk does: session uploads/downloads are backed up at release and promoted to org-wide Global Files, which can be mounted into any later session (https://docs.steel.dev/overview/files-api/overview). No storage price or quota published for Global Files."
   ],
   "sources": [
     "https://docs.steel.dev/overview/pricinglimits",
@@ -387,7 +388,10 @@
     "https://docs.steel.dev/overview/sessions-api/configuration",
     "https://docs.steel.dev/overview/sessions-api/dedicated-ips",
     "https://docs.steel.dev/overview/stealth/proxies",
-    "https://costbench.com/software/browser-automation/steel-dev/"
+    "https://costbench.com/software/browser-automation/steel-dev/",
+    "https://docs.steel.dev/overview/files-api/overview",
+    "https://steel.dev/",
+    "https://docs.steel.dev/cookbook/claude-computer-use"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -458,7 +462,9 @@
       "source": "https://docs.steel.dev/cookbook/claude-computer-use",
       "quote": "A Steel session is a headful Chromium in a VM reachable over HTTPS",
       "note": "Multiple cookbook pages (Python/Go/Rust/TS Claude computer-use recipes) independently describe each session as a headful Chromium running 'in a VM'. Exact hypervisor (firecracker/qemu/etc.) is not named, and self-hosted steel-browser runs as a plain Docker container, so this is medium confidence for the managed cloud product specifically.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14",
+      "files_quote": "Files uploaded to active sessions become available within that session's isolated VM environment.",
+      "files_source": "https://docs.steel.dev/overview/files-api/overview"
     },
     "image_oci": {
       "value": false,
@@ -538,11 +544,12 @@
       "checked": "2026-09-30"
     },
     "byoc": {
-      "value": false,
-      "source": "https://docs.steel.dev/overview/pricinglimits",
-      "quote": "Enterprise plans offer custom pricing, limits, and infrastructure for high-volume or specialized workloads.",
-      "note": "not offered: outside the product's scope — no page (pricing, docs, Enterprise) mentions deploying the managed service into a customer's own cloud account; Enterprise custom infra refers to reserved pools/limits within Steel's own cloud, and self-hosting is a fully separate open-source deployment, not a managed BYOC offering.",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://steel.dev/",
+      "quote": "Self-Hosting Run Steel in your own cloud or host it yourself, keeping your data inside your network. Steel Outpost Self-host Data stays in your network Bring your own keys Your own region Contact Sales",
+      "note": "Steel Outpost (sales-only, Enterprise) runs Steel in the customer's own cloud/network with their own keys and region. Terms, pricing and how much of it Steel manages are unpublished. Separate from the free open-source steel-browser Docker image.",
+      "checked": "2026-10-14"
     },
     "persistent_disk": {
       "value": true,
@@ -652,10 +659,10 @@
     },
     "agent_harnesses": {
       "value": false,
-      "source": "https://docs.steel.dev/overview/integrations/claude-code",
+      "source": "https://docs.steel.dev/integrations/claude-code",
       "quote": "The Claude Code integration gives Claude Code a real cloud browser through the Steel CLI. From a Claude Code session, you can start and control Steel sessions, scrape rendered pages, run computer-use actions...",
       "note": "This is the inverse of the field: Steel gives external coding-agent harnesses (Claude Code, Codex, OpenCode) a browser tool via its CLI/skills; it does not preinstall or offer those harnesses running inside its own sandbox.",
-      "checked": "2026-09-30"
+      "checked": "2026-10-14"
     },
     "gpu": {
       "value": false,
@@ -711,8 +718,10 @@
       "value": "profile",
       "source": "https://docs.steel.dev/overview/profiles-api/overview",
       "quote": "persistProfile: true tells Steel to snapshot the browser data directory when the session ends. ... On a fresh run, Session #1 launches with persistProfile: true and no profileId. ... Session #1 releases; Steel writes the profile snapshot.",
-      "note": "Only a saved browser profile (cookies, local storage, logins) carries over; no files survive.",
-      "checked": "2026-10-01"
+      "note": "What carries over to a new session is the saved browser profile (cookies, local storage, logins) plus files: session files (uploads and downloads) are backed up when the session ends and promoted to org-wide Global Files storage, which can be mounted into later sessions. Not a persistent machine disk: the session's own filesystem, installed state and processes do not survive, so scope stays 'profile'.",
+      "checked": "2026-10-14",
+      "files_source": "https://docs.steel.dev/overview/files-api/overview",
+      "files_quote": "Session files persist beyond session lifecycle - files are automatically backed up when sessions end. ... All session files are automatically promoted to global storage when sessions are released, creating a comprehensive file workspace."
     }
   },
   "locations": [
