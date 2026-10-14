@@ -271,7 +271,7 @@
     "lang_rust": true,
     "lang_java": true,
     "gpu_desktop": false,
-    "credential_injection": null,
+    "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
@@ -296,7 +296,7 @@
     "harness_api": true,
     "ingress_rules": true,
     "guest_firewall": true,
-    "secret_proxy": false,
+    "secret_proxy": "any-http",
     "volume_attach": false,
     "volume_shared": false,
     "own_agent_api": false,
@@ -339,7 +339,7 @@
     "Organization seats multiply concurrency and start limits (one pooled budget); seat price unpublished (per_seat null).",
     "Egress included up to 2 TB per sandbox per month (egress_free_gib=2000 is per sandbox, engine treats as account-wide = conservative); price beyond 2 TB unpublished.",
     "Public IP is 'dedicated IPv6 or IPv4' - IPv4 not guaranteed (ipv4_available null) and it changes on resume; no charge either way.",
-    "Snapshots: latest per sandbox free for life of sandbox (FAQ: \"Stopped sandboxes are free, and their snapshot is kept for the life of the sandbox.\" https://docs.boat.dev/faq.md), bounded by the size's data disk; up to 10 named snapshots (\"You can keep up to 10\"), no expiry (https://docs.boat.dev/snapshots.md). Named-snapshot pricing is not stated beyond that; snapshot_gib_month=0 rests on the FAQ line. Filesystem only (no memory), so resume = reboot.",
+    "Snapshots: latest per sandbox free for life of sandbox (FAQ: \"Stopped sandboxes are free, and their snapshot is kept for the life of the sandbox.\" https://docs.boat.dev/faq.md), bounded by the size's data disk. Named snapshots: \"Each account and each organization has 10 free named snapshots. You can keep more. Each named snapshot after the first 10 costs $1.70 a month.\" (https://docs.boat.dev/snapshots/templates.md, 2026-10-13), no expiry. The charge is per snapshot, not per GiB, so snapshot_gib_month=0 holds and the per-snapshot fee beyond 10 is not modelled. Filesystem only (no memory), so resume = reboot.",
     "No extra-disk purchase: disk is fixed per size (12/50/125/251 GB), so disk needs can force upsizing. included_disk_gib=50 refers to default size.",
     "Homepage says 'dedicated 4 vCPU / 8 GB VM-time' while FAQ says 'Sandboxes have shared vCPUs'; treat vCPUs as shared.",
     "EU only (Germany, Finland, France); no US/Asia option; no region multiplier.",
@@ -352,6 +352,7 @@
     "Organization plan fee is per member (plan price x members). Whether the included machine time also scales x members is not stated (concurrency and start ceilings do). If an org subscription is cancelled, leftover packs still run but limits drop to one seat.",
     "Start limits can be lifted for committed accounts (sales); per-member caps (usage, concurrency) available to org owners.",
     "Prepaid balance ('funds') and auto-refill exist besides $20 packs: auto-pay charges the card 'in small automatic increments'. Grace-period overuse is carried as a shortfall and settled on the next payment.",
+    "The AI credentials proxy (secret_proxy) is a paid option, off by default: $1 for each UTC day it is on plus $1 per 1,000 proxied requests, paid in Boat time (https://docs.boat.dev/ai-credentials.md#pricing). The estimator does not add this charge.",
     "Snapshot retention conflict: docs say the latest snapshot is kept for the life of the sandbox and named snapshots have no expiry, but the Terms of Service (https://boat.dev/terms) say snapshots are 'generally retained for a limited period, currently up to approximately 30 days'. Treat free indefinite retention of stopped sandboxes as documented but not contractual."
   ],
   "sources": [
@@ -364,7 +365,9 @@
     "https://docs.boat.dev/data-retention.md",
     "https://docs.boat.dev/llms-full.txt",
     "https://boat.dev",
-    "https://github.com/AnicetNgrt/hpc-sandbox-benchmarks/blob/provider/ascii-box/docs/results/2026-08-24-cpu/leaderboard.md"
+    "https://github.com/AnicetNgrt/hpc-sandbox-benchmarks/blob/provider/ascii-box/docs/results/2026-08-24-cpu/leaderboard.md",
+    "https://docs.boat.dev/ai-credentials.md",
+    "https://docs.boat.dev/snapshots/templates.md"
   ],
   "fleet": {
     "default_max_instances": 2,
@@ -400,7 +403,7 @@
       "value": true,
       "source": "https://docs.boat.dev/api/reference/snapshots/save-named-snapshot.md",
       "quote": "Freeze a sandbox's current state under a name (`boat snapshot <id> <name>` in the CLI). Answers `202` immediately with the snapshot in `saving`; a running sandbox takes a fresh capture first, which can run minutes.",
-      "note": "Named snapshots (templates) of running or stopped sandboxes, up to 10, no expiry; `boat new --from <name>` boots any number of new sandboxes from them; `boat fork` copies a sandbox's current filesystem into a new one. Filesystem only, no memory. The snapshots page also says 'You never take one by hand' about the rolling per-minute snapshots.",
+      "note": "Named snapshots (templates) of running or stopped sandboxes, 10 free then $1.70 a month each with no cap, no expiry, shareable with another account by a share code; `boat new --from <name>` boots any number of new sandboxes from them; `boat fork` copies a sandbox's current filesystem into a new one. Filesystem only, no memory. The snapshots page also says 'You never take one by hand' about the rolling per-minute snapshots.",
       "checked": "2026-09-29"
     },
     "harness_api": {
@@ -439,11 +442,18 @@
       "checked": "2026-09-29"
     },
     "secret_proxy": {
-      "value": false,
-      "source": "https://docs.boat.dev/environments.md",
-      "quote": "Your environment's variables, your GitHub token, and your model credentials if you configured agents (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, `CHATGPT_ACCOUNT_ID`)",
-      "note": "Secrets, model keys, GitHub token and credential files are written into the sandbox (env vars / files). Mitigations are withholding instead of proxying: 'safe for third parties' / --no-env environments pass nothing and scrub owner secrets on resume/fork. No injection proxy documented.",
-      "checked": "2026-09-29"
+      "value": "any-http",
+      "source": "https://docs.boat.dev/ai-credentials.md",
+      "quote": "Without the proxy, a sandbox holds your real keys and sign-ins. Anyone with a shell in it can copy them. With the proxy on, the real keys never enter the sandbox.",
+      "note": "AI credentials proxy, off by default and paid ($1 per UTC day it is on, plus $1 per 1,000 proxied requests). Covers Anthropic/OpenAI/OpenRouter/LLM Gateway/DeepSeek/Moonshot/Mistral keys, Claude/ChatGPT/Mistral Vibe sign-ins, and custom APIs: 'A custom API is a secret for any HTTPS API, such as Stripe or your own service', reached through `$<NAME>_BASE_URL`. Not proxied: AWS Bedrock and the Kimi Code sign-in (withheld while the proxy is on). Environment variables, the GitHub token and other secrets still enter the sandbox.",
+      "checked": "2026-10-13"
+    },
+    "credential_injection": {
+      "value": true,
+      "source": "https://docs.boat.dev/ai-credentials.md",
+      "quote": "Your sandboxes get the AI credentials of a **credential profile**: Claude and ChatGPT sign-ins, API keys, and custom APIs.",
+      "note": "Credential profiles (per account or organization, chosen per environment) inject model keys, sign-ins and custom-API secrets as environment variables; a credential can hold several accounts and be switched to another account for every sandbox at once, running ones included. Environment variables and the GitHub token are injected too (environments.md).",
+      "checked": "2026-10-13"
     },
     "volume_attach": {
       "value": false,
