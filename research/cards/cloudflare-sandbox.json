@@ -35,7 +35,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "CPU $0.00002/vCPU-s on active usage only (since 2025-11-21); memory $0.0000025/GiB-s and disk $0.00000007/GB-s ($0.000252/GB-h) on provisioned size while running, 10 ms granularity. Custom types: 1-4 vCPU, >=3 GiB/vCPU, <=12 GiB, <=20 GB disk; presets lite(1/16 vCPU,256MiB) basic(1/4,1GiB) standard-1(1/2,4GiB) standard-2(1,6GiB) standard-3(2,8GiB) standard-4(4,12GiB,20GB). 4 vCPU/8 GiB forces 12 GiB. Provisioned disk (~$0.005/h for 20 GB) is NOT in these rates. boot_overhead_s = ~2 s cold start (docs: billing starts at request; 1-3 s; ComputeSDK median 2.0 s). Default sleepAfter = 10 min idle tail billed at RAM+disk (not modelled). keepAlive always-on uses the same rates (no commit discount). Basis verified 2026-09-28: CPU billed on \"active usage only\"; memory and disk on \"provisioned resources for the instance type you select\"; \"Charges stop after the container instance goes to sleep, which can happen automatically after a timeout.\" (https://developers.cloudflare.com/containers/pricing/). Sleep after \"a period of inactivity (10 minutes by default, configurable via sleepAfter)\" (https://developers.cloudflare.com/sandbox/concepts/sandboxes/).",
+      "note": "CPU $0.00002/vCPU-s on active usage only (since 2025-11-21); memory $0.0000025/GiB-s and disk $0.00000007/GB-s ($0.000252/GB-h) on provisioned size while running, 10 ms granularity. Custom types: 1-4 vCPU, >=3 GiB/vCPU, <=12 GiB, <=20 GB disk; presets lite(1/16 vCPU,256MiB) basic(1/4,1GiB) standard-1(1/2,4GiB) standard-2(1,6GiB) standard-3(2,8GiB) standard-4(4,12GiB,20GB). 4 vCPU/8 GiB forces 12 GiB. Provisioned disk (~$0.005/h for 20 GB) is NOT in these rates. boot_overhead_s = ~2 s cold start (docs: billing starts at request; 1-3 s; ComputeSDK median 2.0 s). Idle tail billed at RAM+disk (not modelled): the Container class defaults sleepAfter to 10 min (\"The `Container` class sets `sleepAfter` to 10 minutes by default.\" https://developers.cloudflare.com/containers/faq/, 2026-10-14); the current Sandbox lifetime docs set no default (\"Without a timeout, Cloudflare stops the instance shortly after the Durable Object becomes inactive.\") and cap setInactivityTimeout() at 6 hours (https://developers.cloudflare.com/sandbox/concepts/lifetime/, 2026-10-14). keepAlive always-on uses the same rates (no commit discount). Basis verified 2026-09-28: CPU billed on \"active usage only\"; memory and disk on \"provisioned resources for the instance type you select\"; \"Charges stop after the container instance goes to sleep, which can happen automatically after a timeout.\" (https://developers.cloudflare.com/containers/pricing/). Legacy Sandbox SDK 0.x docs: sleep after \"a period of inactivity (10 minutes by default, configurable via sleepAfter)\" (https://developers.cloudflare.com/sandbox/sdk/concepts/sandboxes/).",
       "flags": [],
       "features": {
         "isolation": "vm"
@@ -65,8 +65,17 @@
         {
           "quote": "Only ports `80` and `443` are available.",
           "url": "https://developers.cloudflare.com/containers/platform-details/outbound-traffic/"
+        },
+        {
+          "quote": "A Container starts with `enableInternet: false` by default, so it cannot reach the Internet. Only requests that an outbound handler in your Worker intercepts leave it.",
+          "url": "https://developers.cloudflare.com/sandbox/concepts/security/"
+        },
+        {
+          "quote": "By default, a Sandbox allows internet access, and you can set `deniedHosts` to disallow specific hosts or IPs:",
+          "url": "https://developers.cloudflare.com/sandbox/sdk/guides/outbound-traffic/"
         }
-      ]
+      ],
+      "note": "Docs conflict on the default (checked 2026-10-14): the current Sandbox security page says a Container starts with Internet access off, while the Containers outbound-traffic page (updated 2026-10-12) and the legacy Sandbox SDK 0.x guide say Internet access is on by default. Either way it is one setting (enableInternet), so 'configurable' holds."
     }
   },
   "plans": [
@@ -203,7 +212,7 @@
     "max_session_unlimited": true,
     "fast_boot": true,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": null
   },
   "perf": {
     "cpu_runs_s": null,
@@ -227,14 +236,14 @@
       "modes": [
         "on-demand"
       ],
-      "why": "A container stays awake until sleepAfter expires after the last request (default 10 min). During that tail provisioned RAM and disk bill at full size (CPU is active-only, so ~$0). Factor = (session + tail) / session: default 10 min on 30-min sessions = 1.33x, on 10-min bursts = 2x. Slightly overstates because the engine also applies util-scaled CPU to the tail. The card does not model the tail by default (1).",
-      "source": "https://developers.cloudflare.com/sandbox/concepts/sandboxes/"
+      "why": "A container stays awake for an inactivity timeout after its Durable Object goes inactive: the Container class defaults sleepAfter to 10 min; the current Sandbox docs set no default and allow setInactivityTimeout() up to 6 h. During that tail provisioned RAM and disk bill at full size (CPU is active-only, so ~$0). Factor = (session + tail) / session: default 10 min on 30-min sessions = 1.33x, on 10-min bursts = 2x. Slightly overstates because the engine also applies util-scaled CPU to the tail. The card does not model the tail by default (1).",
+      "source": "https://developers.cloudflare.com/sandbox/concepts/lifetime/"
     }
   ],
   "caveats": [
     "4 vCPU / 8 GiB is not offered: >=3 GiB RAM per vCPU, so 4 vCPU always pays 12 GiB; max shape 4 vCPU/12 GiB/20 GB.",
-    "Default sleepAfter is 10 min: RAM+disk bill at full size during the idle tail after each activity burst (~$0.113/h for standard-4); keepAlive bills continuously with no cap.",
-    "Sleep wipes all state (no paused state). Persistence = directory backups to your own R2 bucket, billed at R2 Standard $0.015/GB-month after 10 GB-month free (+ Class A $4.50/M, Class B $0.36/M after free tiers); backup TTL does not delete R2 objects. Whole-container snapshots are private beta, unpriced.",
+    "Idle tail: RAM+disk bill at full size while an idle instance waits out its inactivity timeout (~$0.113/h for standard-4). The Container class defaults sleepAfter to 10 min (https://developers.cloudflare.com/containers/faq/); the current Sandbox lifetime page sets no default (\"Without a timeout, Cloudflare stops the instance shortly after the Durable Object becomes inactive.\") and allows setInactivityTimeout() \"up to 6 hours\" (https://developers.cloudflare.com/sandbox/concepts/lifetime/, 2026-10-14). Code running inside the instance does not count as activity, so long jobs need a Durable Object alarm to stay up; keepAlive / alarms bill continuously with no cap.",
+    "A stop wipes the disk and processes (no paused state). Persistence options: Container snapshots, now public beta (\"Container snapshots are in public beta. The API and behavior may change.\"), save the writable root filesystem (not memory, processes or mounts), max 20 GB, and expire \"30 days after it is created or last restored\" (https://developers.cloudflare.com/sandbox/concepts/lifetime/, https://developers.cloudflare.com/containers/platform-details/limits/, 2026-10-14); snapshot pricing is not published. A guide saves a snapshot each time a sandbox stops for inactivity using a Durable Object alarm (https://developers.cloudflare.com/sandbox/files/save-a-sandbox-automatically/). Directory backups to your own R2 bucket are billed at R2 Standard $0.015/GB-month after 10 GB-month free (+ Class A $4.50/M, Class B $0.36/M after free tiers); backup TTL does not delete R2 objects. snapshot_gib_month models the R2 backup rate.",
     "Each sandbox is a Durable Object: $0.15/M requests after 1M, $12.50/M GB-s after 400k GB-s at 128 MB; if awake for the whole container run ~ $0.00576/h per sandbox (unverified). Worker requests $0.30/M after 10M; Workers Logs $0.60/M after 20M. Third-party estimate: +5-10%.",
     "Egress free allotment/rate vary by region: NA/EU 1 TB then $0.025/GB; Oceania/Korea/Taiwan 500 GB then $0.05/GB; elsewhere 500 GB then $0.04/GB. Card uses NA/EU.",
     "Instance type is per container class at deploy time, not per sandbox.",
@@ -247,7 +256,7 @@
     "Account concurrency caps (1,500 vCPU / 6 TiB / 30 TB) and per-sandbox Durable Object / Worker request charges are not modelled by the engine.",
     "Per container class, wrangler max_instances defaults to 20 concurrently running instances; a start request beyond it errors. Self-serve config change up to the account caps (1,500 vCPU / 6 TiB / 30 TB).",
     "Durable Object usage above the included amount is rounded up to the next billable unit (1M GB-s / 1M requests) before the rate applies, so the first DO overage is at least $12.50 (duration) or $0.15 (requests).",
-    "root=true means uid 0 inside an unprivileged container: no privileged mode, Docker only via docker:dind-rootless with iptables disabled, no kernel modules.",
+    "root=true means uid 0 inside a container with no iptables support. Docker-in-Docker needs the docker:dind image with the daemon run as root and iptables/IP forwarding off: \"Run the Docker daemon as `root`. Rootless Docker does not start in Containers.\" (https://developers.cloudflare.com/containers/faq/, 2026-10-14). Inner containers need --network=host.",
     "Worker subrequests are not billed; each Sandbox SDK operation is an RPC call on the sandbox's Durable Object stub and is billed as one DO request ($0.15/M after the 1M/month included), not as a Worker request.",
     "DO duration may not run for the whole container lifetime: DOs idle and eligible for hibernation are not billed for duration, and an inactivity timeout can keep the container running while the DO sleeps. The ~$0.00576/h per-sandbox DO estimate is an upper bound."
   ],
@@ -265,7 +274,12 @@
     "https://developers.cloudflare.com/durable-objects/platform/pricing/",
     "https://developers.cloudflare.com/workers/platform/pricing/",
     "https://developers.cloudflare.com/r2/pricing/",
-    "https://bex.co/blog/2026/09/09/cloudflare-containers-sandboxes-active-cpu-pricing"
+    "https://bex.co/blog/2026/09/09/cloudflare-containers-sandboxes-active-cpu-pricing",
+    "https://developers.cloudflare.com/sandbox/concepts/lifetime/",
+    "https://developers.cloudflare.com/sandbox/files/",
+    "https://developers.cloudflare.com/sandbox/files/save-a-sandbox-automatically/",
+    "https://developers.cloudflare.com/sandbox/concepts/security/",
+    "https://developers.cloudflare.com/sandbox/sdk/guides/outbound-traffic/"
   ],
   "fleet": {
     "default_max_instances": 0,
@@ -291,17 +305,17 @@
   "feature_evidence": {
     "snapshot_auto": {
       "value": false,
-      "source": "https://developers.cloudflare.com/sandbox/concepts/sandboxes/",
-      "quote": "After a period of inactivity (10 minutes by default, configurable via sleepAfter), the container stops to free resources. When the next request arrives, a fresh container starts. All previous state is lost and the environment resets to its initial state.",
-      "note": "Platform wipes state on sleep. Auto-save-on-idle exists only as app code you write: lifecycle hook onActivityExpired() calling createBackup() (Cloudflare's claude-managed-agents template does this), or the OpenAI Agents API template calling the private-beta container.snapshotContainer() on an idle webhook ('a confirmed idle session creates a whole-container snapshot before its container stops'). Not a platform default.",
-      "checked": "2026-09-29"
+      "source": "https://developers.cloudflare.com/sandbox/concepts/lifetime/",
+      "quote": "Cloudflare does not restore a snapshot on its own. Your application decides when to save a snapshot.",
+      "note": "Platform wipes disk and processes when an instance stops. Auto-save-on-idle exists only as app code you write: the guide 'Save a sandbox automatically' (https://developers.cloudflare.com/sandbox/files/save-a-sandbox-automatically/) saves a public-beta Container snapshot before the sandbox stops for inactivity using a Durable Object alarm (files page: 'Same as snapshots, plus an alarm in your Durable Object'). Not a platform default.",
+      "checked": "2026-10-14"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://developers.cloudflare.com/sandbox/api/backups/",
       "quote": "Create point-in-time snapshots of sandbox directories and restore them from R2.",
-      "note": "GA (2026-02-23): createBackup({dir}) -> squashfs in your own R2 bucket; restoreBackup() mounts it as copy-on-write FUSE overlay (lost on sleep, re-restore each wake). Directory-level only (under /workspace, /home, /tmp, /var/tmp, /app), no memory/processes. Can seed other sandboxes: changelog says 'Usable across multiple instances - Fork a backup across many sandboxes for parallel work'. Whole-container snapshots (container.snapshotContainer(), restore via start({containerSnapshot})) are private beta: 'Container snapshots are currently in private beta' (openai-agents-api tutorial); no memory documented.",
-      "checked": "2026-09-29"
+      "note": "GA (2026-02-23): createBackup({dir}) -> squashfs in your own R2 bucket; restoreBackup() mounts it as copy-on-write FUSE overlay (lost on sleep, re-restore each wake). Directory-level only (under /workspace, /home, /tmp, /var/tmp, /app), no memory/processes. Can seed other sandboxes: changelog says 'Usable across multiple instances - Fork a backup across many sandboxes for parallel work'. Whole-disk Container snapshots (snapshotContainer(), restore via start({containerSnapshot})) are now public beta: 'Container snapshots are in public beta. The API and behavior may change.' They save 'the writable root filesystem of a running instance' (no memory, processes or mounts) and expire '30 days after it is created or last restored' (https://developers.cloudflare.com/sandbox/concepts/lifetime/, 2026-10-14). Backups are now documented under the legacy Sandbox SDK 0.x section (the source URL redirects to /sandbox/sdk/api/backups/).",
+      "checked": "2026-10-14"
     },
     "harness_api": {
       "value": true,
@@ -322,8 +336,8 @@
       "value": true,
       "source": "https://developers.cloudflare.com/sandbox/guides/outbound-traffic/",
       "quote": "Add custom policy on outbound traffic (such as denying specific HTTP requests)",
-      "note": "outbound / outboundByHost handlers are arbitrary Workers code seeing the full Request (docs example blocks non-GET methods). HTTPS interception on by default (interceptHttps=true, per-instance ephemeral CA). HTTP/HTTPS only; other ports never routed through handlers.",
-      "checked": "2026-09-29"
+      "note": "outbound / outboundByHost handlers are arbitrary Workers code seeing the full Request (docs example blocks non-GET methods). HTTPS interception is opt-in: 'Sandboxes intercept HTTPS traffic only when your class sets `interceptHttps` to `true`. It defaults to `false`, and then `allowedHosts`, `deniedHosts`, and outbound handlers apply to HTTP only.' (per-instance ephemeral CA when on). HTTP/HTTPS only; other ports never routed through handlers.",
+      "checked": "2026-10-14"
     },
     "ingress_rules": {
       "value": true,
@@ -334,17 +348,17 @@
     },
     "guest_firewall": {
       "value": false,
-      "source": "https://developers.cloudflare.com/sandbox/guides/docker-in-docker/",
+      "source": "https://developers.cloudflare.com/containers/faq/",
       "quote": "Cloudflare Containers do not support iptables manipulation.",
-      "note": "Root inside an unprivileged container (in a per-container VM); same statement on https://developers.cloudflare.com/containers/faq/. Docker-in-Docker requires dockerd --iptables=false.",
-      "checked": "2026-09-29"
+      "note": "Root inside a container (in a per-container VM) with no iptables support; same statement on the legacy Sandbox SDK 0.x Docker-in-Docker guide. Docker-in-Docker requires dockerd --iptables=false --ip6tables=false (and --ip-forward=false under the durable_object scheduling policy).",
+      "checked": "2026-10-14"
     },
     "secret_proxy": {
       "value": "any-http",
       "source": "https://developers.cloudflare.com/sandbox/guides/outbound-traffic/",
       "quote": "Because outbound handlers run in the Workers runtime — outside the sandbox — they can hold secrets that the sandbox itself never sees. The sandbox makes a plain HTTP request, and the handler attaches the credential before forwarding it to the upstream service.",
-      "note": "Any host, per-instance keys via ctx.containerId; HTTPS covered via TLS interception. Not covered: non-HTTP ('Outbound handlers only intercept HTTP and HTTPS traffic'), so no DB/SSH credential injection (git over HTTPS works). Also mountBucket credentialProxy:true re-signs S3/GCS requests so bucket keys never enter the container. It is a mechanism you program (Workers code), not a managed secret registry. OpenCode example injects the Anthropic key this way.",
-      "checked": "2026-09-29"
+      "note": "Any host, per-instance keys via ctx.containerId; HTTPS covered only when you opt into TLS interception (interceptHttps = true; it defaults to false, checked 2026-10-14). Not covered: non-HTTP ('Outbound handlers only intercept HTTP and HTTPS traffic'), so no DB/SSH credential injection (git over HTTPS works). Also mountBucket credentialProxy:true re-signs S3/GCS requests so bucket keys never enter the container. It is a mechanism you program (Workers code), not a managed secret registry. OpenCode example injects the Anthropic key this way.",
+      "checked": "2026-10-14"
     },
     "volume_attach": {
       "value": true,
@@ -420,8 +434,8 @@
       "value": "none",
       "source": "https://developers.cloudflare.com/containers/faq/",
       "quote": "Cloudflare does not stop a container instance after a fixed maximum runtime. ... Cloudflare does not guarantee that any container instance will run for a set period.",
-      "note": "No fixed maximum session/runtime is imposed; default sleepAfter=10min idle timeout is configurable/disable-able, and irregular host restarts (not a session cap) can still stop an instance.",
-      "checked": "2026-09-30"
+      "note": "No fixed maximum session/runtime is imposed; only an inactivity timeout stops an idle instance (Container class default sleepAfter 10 min; current Sandbox docs: no default, setInactivityTimeout() up to 6 hours, https://developers.cloudflare.com/sandbox/concepts/lifetime/), and irregular host restarts (not a session cap) can still stop an instance.",
+      "checked": "2026-10-14"
     },
     "persistent_disk": {
       "value": false,
@@ -453,17 +467,17 @@
     },
     "memory_snapshot_fork": {
       "value": false,
-      "source": "https://developers.cloudflare.com/sandbox/tutorials/openai-agents-api/",
-      "quote": "Container snapshots are currently in private beta",
-      "note": "The only whole-container (memory+disk) snapshot mechanism is a private-beta feature with no documented fork/clone-with-running-processes capability; the GA backup feature (createBackup/restoreBackup) is directory-only, no memory/processes ('Directory-level only ... no memory/processes' per card evidence). No public docs describe forking with memory/process state preserved.",
-      "checked": "2026-09-30"
+      "source": "https://developers.cloudflare.com/sandbox/concepts/lifetime/",
+      "quote": "`snapshotContainer()` saves the writable root filesystem of a running instance. It does not save separately mounted filesystems, memory, or processes.",
+      "note": "Container snapshots (public beta) are disk-only, and directory backups are directory-only; no documented way to fork or restore with memory or running processes.",
+      "checked": "2026-10-14"
     },
     "nested_virt": {
       "value": false,
-      "source": "https://developers.cloudflare.com/sandbox/guides/docker-in-docker/",
-      "quote": "Cloudflare Containers do not support iptables manipulation. ... Use the docker:dind-rootless base image since Containers run without root privileges.",
-      "note": "Containers run unprivileged (rootless Docker-in-Docker required, no privileged mode); no /dev/kvm, KVM, or nested-virtualization capability is documented anywhere in the Sandbox SDK or Containers docs. Consistent with the platform being one VM-isolated Linux container per instance, not a machine that exposes hardware virtualization to the guest.",
-      "checked": "2026-09-30"
+      "source": "https://developers.cloudflare.com/containers/faq/",
+      "quote": "Cloudflare Containers do not support iptables manipulation.",
+      "note": "Docker-in-Docker works only as a root docker:dind daemon with iptables and IP forwarding off ('Rootless Docker does not start in Containers.', checked 2026-10-14); no /dev/kvm, KVM, or nested-virtualization capability is documented anywhere in the Sandbox SDK or Containers docs. Consistent with the platform being one VM-isolated Linux container per instance, not a machine that exposes hardware virtualization to the guest.",
+      "checked": "2026-10-14"
     },
     "desktop": {
       "value": false,
@@ -550,12 +564,12 @@
       "checked": "2026-09-25"
     },
     "usage_api": {
-      "value": false,
+      "value": null,
       "source": "https://developers.cloudflare.com/containers/pricing/",
-      "quote": "Billing is calculated through the Cloudflare dashboard and account invoicing. Individual sandbox usage metrics are not available through a public API; usage is reported only at account level via dashboard or monthly invoices.",
-      "note": "granularity: account-only; cost: no; Each sandbox runs as a Durable Object and is billed for vCPU-seconds, memory-seconds, disk-seconds, and Durable Object requests/duration, but no REST API or CLI endpoint allows querying per-sandbox usage. The GraphQL Analytics API and dashboard UI provide account-level aggregates only.",
-      "confidence": "high",
-      "checked": "2026-10-01"
+      "quote": null,
+      "note": "Unverified. The previous quote ('Billing is calculated through the Cloudflare dashboard and account invoicing. Individual sandbox usage metrics are not available through a public API ...') does not appear on the pricing page (checked 2026-10-14), and no Containers or Sandbox page (incl. https://developers.cloudflare.com/containers/llms.txt) documents a per-sandbox usage or metrics API either way.",
+      "confidence": "low",
+      "checked": "2026-10-14"
     }
   },
   "locations": [],

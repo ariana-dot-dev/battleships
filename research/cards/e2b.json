@@ -342,15 +342,15 @@
       "value": true,
       "source": "https://docs.e2b.dev/sandbox/auto-resume.md",
       "quote": "| | `\"pause\"` | Sandbox is paused (full memory + filesystem snapshot) when timeout is reached |",
-      "note": "Opt-in: lifecycle.onTimeout defaults to 'kill' (destructive); with onTimeout:'pause' the sandbox is snapshotted (memory + filesystem, running processes survive) when its timeout expires, and autoResume:true wakes it on the next SDK call or HTTP request. Object form keepMemory:false = filesystem-only (reboot on resume, no auto-resume). Paused sandboxes kept indefinitely.",
-      "checked": "2026-09-29"
+      "note": "Opt-in: lifecycle.onTimeout defaults to 'kill' (destructive); with onTimeout:'pause' the sandbox is snapshotted (memory + filesystem, running processes survive) when its timeout expires, and autoResume:true wakes it on the next SDK call or HTTP request. Object form onTimeout: { action: 'pause', mode: 'filesystem' } = filesystem-only (\"dropping memory so resume reboots the sandbox\", https://docs.e2b.dev/sandbox/persistence); keepMemory:false is \"deprecated but still works\". Paused sandboxes kept indefinitely.",
+      "checked": "2026-10-14"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://docs.e2b.dev/sandbox/snapshots.md",
       "quote": "Snapshots let you create a persistent point-in-time capture of a running sandbox, including both its filesystem and memory state.\nYou can then use a snapshot to spawn new sandboxes that start from the exact same state.",
-      "note": "createSnapshot (memory + filesystem; source briefly paused, same id); one snapshot spawns many sandboxes. Also sandbox.fork(count up to 100) from a running sandbox with memory, and manual pause() (memory by default, keepMemory:false for disk only).",
-      "checked": "2026-09-29"
+      "note": "createSnapshot (memory + filesystem; source briefly paused, same id); one snapshot spawns many sandboxes. Also sandbox.fork (up to 20 per call: \"With the SDKs and the CLI you can request up to 20 forks at once.\", https://docs.e2b.dev/sandbox/fork) from a running sandbox with memory, and manual pause() (memory by default; disk only with \"pass `mode: 'filesystem'`\", the older keepMemory:false form deprecated, https://docs.e2b.dev/sandbox/persistence).",
+      "checked": "2026-10-14"
     },
     "harness_api": {
       "value": false,
@@ -392,8 +392,8 @@
       "value": "any-http",
       "source": "https://docs.e2b.dev/secrets.md",
       "quote": "The egress proxy injects the real value into matching outbound HTTPS requests outside the sandbox. Your sandbox configuration contains only a reference to the secret.",
-      "note": "Private beta. Arbitrary hosts via per-host rules + Secret.fill in headers; HTTPS only (plain HTTP gets nothing); headers only; no non-HTTP protocols (DB, SSH, git over SSH). Max 10 rule domains per sandbox. Also workload identity (per-sandbox OIDC tokens, private beta).",
-      "checked": "2026-09-29"
+      "note": "Private beta per changelog 2026-09-14: \"Volumes and Secrets remain in private beta.\" (https://docs.e2b.dev/changelog; the 2026-10-12 entry adds a dashboard Secrets page with no GA label; the secrets page itself carries no beta label). Arbitrary hosts via per-host rules + Secret.fill in headers; HTTPS only (plain HTTP gets nothing); headers only; no non-HTTP protocols (DB, SSH, git over SSH). Max 10 rule domains per sandbox. Also workload identity (per-sandbox OIDC tokens, private beta).",
+      "checked": "2026-10-14"
     },
     "volume_attach": {
       "value": true,
@@ -456,15 +456,15 @@
       "corrected_from": false,
       "source": "https://docs.e2b.dev/sandbox/fork",
       "quote": "The sandbox is snapshotted in place — paused, captured with its full filesystem and memory state, and resumed — and new sandboxes boot from that snapshot... The original sandbox keeps running with its ID and expiration untouched.",
-      "note": "sandbox.fork() (and Sandbox.fork by id, up to count:100) clones a running sandbox into new running sandboxes with memory+filesystem intact, with only a brief pause on the original. fork_running should be true.",
-      "checked": "2026-09-30"
+      "note": "sandbox.fork() (and Sandbox.fork by id) clones a running sandbox into new running sandboxes with memory+filesystem intact, with only a brief pause on the original. Up to 20 per call: \"With the SDKs and the CLI you can request up to 20 forks at once.\" (changelog 2026-10-05: SDKs \"reject a fork count outside 1 to 20\"); the count must also stay below the team's concurrency limit since the original keeps a slot.",
+      "checked": "2026-10-14"
     },
     "nested_virt": {
       "value": false,
-      "source": "https://docs.e2b.dev/k3s",
+      "source": "https://docs.e2b.dev/use-cases/k3s",
       "quote": "IPVS kube-proxy mode and nested-virtualization runtimes such as Kata Containers or KubeVirt are not supported.",
-      "note": "E2B's own k3s-in-a-sandbox docs list 'nested-virtualization runtimes such as Kata Containers or KubeVirt' among things that explicitly do not work inside an E2B sandbox, alongside other kernel-capability gaps (no BPF JIT, missing netfilter extensions). No page documents /dev/kvm being exposed to the guest; sandboxes are themselves Firecracker microVMs and nothing in the docs, changelog, or template/base-image pages offers or claims nested KVM/virtualization support. Kept at medium confidence because this is inferred from a limitations list on one use-case page rather than a direct 'no nested virtualization' statement.",
-      "checked": "2026-09-30"
+      "note": "E2B's own k3s-in-a-sandbox docs list 'nested-virtualization runtimes such as Kata Containers or KubeVirt' among things that explicitly do not work inside an E2B sandbox, alongside other kernel-capability gaps (no BPF JIT, missing netfilter extensions). No page documents /dev/kvm being exposed to the guest; sandboxes are themselves Firecracker microVMs and nothing in the docs, changelog, or template/base-image pages offers or claims nested KVM/virtualization support. Kept at medium confidence because this is inferred from a limitations list on one use-case page rather than a direct 'no nested virtualization' statement. The old https://docs.e2b.dev/k3s URL now 404s; same sentence under 'Known limitations' at /use-cases/k3s.",
+      "checked": "2026-10-14"
     },
     "public_ipv4": {
       "value": false,
@@ -551,7 +551,7 @@
     {
       "country": "DE",
       "state": null,
-      "city": "Frankfurt",
+      "city": null,
       "provider_region": "europe-west1",
       "self_serve": false,
       "choosable": true
@@ -565,7 +565,8 @@
       "choosable": true
     }
   ],
-  "locations_source": "https://e2b.dev/pricing",
-  "locations_quote": "Hobby runs in US (us-west1) only; EU and APAC are 'Pro plan and above' after contacting support. Each project is pinned to one region (US us-west1, EU europe-west1, APAC asia-southeast1)",
-  "locations_checked": "2026-10-01"
+  "locations_source": "https://docs.e2b.dev/faq/eu-region",
+  "locations_quote": "E2B offers a shared EU cluster for customers on the Pro tier and above.",
+  "locations_note": "Region ids (us-west1, europe-west1, asia-southeast1) come from earlier research; E2B's current pages name no city or country for the EU cluster, so the EU city is null (Google's europe-west1 is in Belgium, not Frankfurt; country left as an EU placeholder). The changelog (2026-09-28) confirms US, EU and APAC projects. A managed US West (AWS us-west-2) region on every plan is documented at https://docs.e2b.dev/faq/us-west-aws-region but not modelled here.",
+  "locations_checked": "2026-10-14"
 }

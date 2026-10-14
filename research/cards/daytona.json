@@ -337,12 +337,12 @@
       "max_ram_gib": 8,
       "sizes_allowed": null,
       "pool_vcpu": 10,
-      "pool_ram_gib": 20,
+      "pool_ram_gib": 10,
       "pool_disk_gib": 30,
-      "note": "Concurrency is an org-wide pool (10 vCPU / 20 GiB / 30 GiB disk per https://www.daytona.io/docs/en/limits, re-checked 2026-09-28), not a sandbox count. 300 creates/min. Restricted egress (allowlisted essential services only).",
+      "note": "Concurrency is an org-wide pool in the default region (10 vCPU / 10 GiB / 30 GiB disk per the 'Tiers' table of https://www.daytona.io/docs/en/limits, re-checked 2026-10-14), not a sandbox count. The same page's 'Limits' overview table says 20 GiB memory for Tier 1; the card uses the 'Tiers' table because it is the one scoped to the region resource pool ('Limits are applied to your organization's default region'), and it is the lower figure. 300 creates/min. Restricted egress (allowlisted essential services only).",
       "flags": [],
       "max_total_vcpu": 10,
-      "max_total_ram_gib": 20,
+      "max_total_ram_gib": 10,
       "max_starts_per_min": 300,
       "internet": "allowlist"
     },
@@ -439,7 +439,7 @@
   "features": {
     "linux": true,
     "windows": true,
-    "macos": false,
+    "macos": true,
     "arm64": false,
     "gpu": true,
     "gpu_types": [
@@ -594,9 +594,10 @@
     "Verifier 2026-09-28: the engine ignores pool_vcpu/pool_ram_gib/pool_disk_gib and all tiers have concurrency null, so it always picks a $0 tier. A fleet needing >250 vCPU / >500 GiB concurrently really requires Tier 4 ($2,000 top-up every 30 days, a de facto usage floor), and Tier 1-2 cannot reach the open internet; neither is enforced by the estimate.",
     "Creation rate limits per tier (300/400/500/600 per min, https://www.daytona.io/docs/en/limits) are not modelled.",
     "Verifier 2026-09-28: https://www.daytona.io/pricing (static render) shows only the preemptible GPU column (matching the spot mode); on-demand GPU prices are primary-sourced from a Chrome render of the pricing page's On-demand tab (2026-09-28, research/raw/daytona-On-demand.txt: B300 $7.10, B200 $6.25, MI355X $5.99, H200 $4.54, H100 $3.95); the static fetch shows only the preemptible column. The pricing page lists Windows as a separate 'OS, Windows $0.0858/vCPU/h' line, which reads like an additive surcharge (reading B); the card keeps reading A (replacement) - unresolved.",
-    "perf is mode-level (card-level nulled): on-demand (container) carries ComputeSDK TTI/DAX; vm-tier (Linux VM) carries the HPC CPU result (18.6 runs/s). See research/perf-map.json.",
+    "perf is mode-level (card-level nulled): on-demand (container) carries ComputeSDK TTI/DAX; vm-tier (Linux VM) carries the HPC CPU result (21.52 runs/s, https://starsling.dev/hpc-sandbox-benchmarks, checked 2026-10-14). See research/perf-map.json.",
     "Open source: the public daytonaio/daytona repository states that as of June 2026 core development moved to a private codebase and the repo receives no further updates, fixes or releases. Historical v0.190.0 code remains AGPLv3; it is not the current managed service. Sources: https://github.com/daytonaio/daytona/blob/ec4c21b2d597091ac09ecc278f3bcc172575a987/README.md , https://github.com/daytonaio/daytona/blob/v0.190.0/LICENSE",
-    "2026-09-28 (docs/limits): org-wide pools Tier 1 10 vCPU / 20 GiB / 30 GiB (was recorded as 10 GiB RAM), Tier 2 100/200/300, Tier 3 250/500/2,000, Tier 4 500/1,000/5,000; creates/min 300/400/500/600. Encoded as plan max_total_vcpu / max_total_ram_gib (not yet enforced by the engine) and max_starts_per_min (enforced). Snapshot storage rate still unpublished (null).",
+    "2026-10-14 (docs/limits): the page has two tables that disagree on Tier 1 RAM. The 'Tiers' table ('Limits are applied to your organization's default region') says \"| Tier 1 | 10 / 10GiB / 30GiB | Email verified |\"; the 'Limits' overview table says \"| **1** | 10 | 20 | 30 |\" (20 GiB memory). The card uses 10 GiB, from the table scoped to the region pool. All other tiers match in both tables.",
+    "2026-09-28 (docs/limits): org-wide pools Tier 1 10 vCPU / 10 GiB / 30 GiB (Tiers table; the Limits table says 20 GiB), Tier 2 100/200/300, Tier 3 250/500/2,000, Tier 4 500/1,000/5,000; creates/min 300/400/500/600. Encoded as plan max_total_vcpu / max_total_ram_gib (not yet enforced by the engine) and max_starts_per_min (enforced). Snapshot storage rate still unpublished (null).",
     "2026-09-28 features: nested virtualization (/dev/kvm) only on Linux VM sandboxes created with kvm=true, and only if the org has the sandbox_kvm feature (enablement path undocumented). Container, GPU and Windows classes: no nested virt. Desktop: VNC/xfce4 desktop is in the default container image and Linux VM/Windows run at a fixed VNC resolution; custom images need the packages installed; GPU class desktop unknown (null). Docker-in-Docker documented for sandboxes (docker:dind snapshots, Docker Compose).",
     "Wall-clock TTL (v0.199.0, 2026-07-17): optional per-sandbox ttl_minutes destroys the sandbox in any state after a fixed deadline. It is disabled by default, so max_session_h stays null. It serves as a per-sandbox runaway-cost guard, not an org-level cap.",
     "Top-ups are prepaid wallet credit and non-refundable. The Tier 2/3/4 thresholds ($25, $500, $2,000 every 30 days) are therefore sunk cash if the usage is not consumed, and a negative balance can suspend the org. Expiry and rollover of paid credit are not published. SLA service credits apply only to Tier 4 and above.",
@@ -767,11 +768,11 @@
       "checked": "2026-09-30"
     },
     "macos": {
-      "value": false,
-      "source": "https://www.daytona.io/docs/en/sandboxes.md",
-      "quote": "Daytona also provides VM sandboxes with a dedicated Linux VM or Windows operating system, GPU sandboxes with NVIDIA and AMD GPU acceleration for model inference, fine-tuning, and GPU-accelerated compute, and macOS sandboxes running on dedicated Apple silicon hardware. ... ### macOS sandboxes\nDaytona provides macOS sandboxes through the use.computer platform. ... 4. Use the API key to create a macOS sandbox\ncurl 'https://api.use.computer/v1/sandboxes' --data '{\"type\":\"macos\"}'",
-      "note": "reviewed: proposed correction rejected (Daytona's own official sandboxes doc dedicates a section to macOS sandboxes (Computer Use, VNC, SSH) and lists it in the sandbox-type grid alongside container/VM/GPU. Fulfilled through a partner platform (use.computer) but documented and offered by Daytona itself, so macos should be true, not false.)",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://www.daytona.io/docs/en/sandboxes.md#macos-sandboxes",
+      "quote": "Daytona provides macOS sandboxes through the use.computer platform.",
+      "note": "Partner-provided: macOS sandboxes run on use.computer, not on Daytona's own infrastructure. The intro also lists 'macOS sandboxes running on dedicated Apple silicon hardware'. You get a use.computer API key, reserve a Mac, and create the sandbox with POST https://api.use.computer/v1/sandboxes {\"type\":\"macos\"}; Computer Use, VNC and SSH go through the use.computer API, and billing and pricing are use.computer's (not on Daytona's pricing page, so no macOS mode is modelled).",
+      "checked": "2026-10-14"
     },
     "arm64": {
       "value": false,
