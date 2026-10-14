@@ -320,6 +320,12 @@
     }
     const mult = num(m.multiplier, 1);
     for (const k in parts) parts[k] *= mult;
+    if (num(m.min_charge_hour_usd) > 0) {
+      // The allocation minimum includes running disk, charged separately below.
+      const st = card.storage || {};
+      const diskH = Math.max(0, W.disk - diskIncluded) * num(st.disk_gib_month) / HOURS_MONTH;
+      parts.compute += Math.max(0, m.min_charge_hour_usd - parts.compute - parts.memory - diskH);
+    }
     const total = parts.compute + parts.memory + parts.gpu + parts.licence;
     return { parts, total, shape, diskIncluded, monthCap, gpuNote };
   }
