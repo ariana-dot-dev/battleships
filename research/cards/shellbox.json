@@ -279,8 +279,8 @@
     "nested_virt": true,
     "root": true,
     "systemd": null,
-    "browser": false,
-    "desktop": false,
+    "browser": null,
+    "desktop": null,
     "computer_use": false,
     "code_interpreter": null,
     "agent_harnesses": false,
@@ -290,7 +290,7 @@
     "custom_domain": true,
     "raw_tcp_inbound": true,
     "egress_allowlist": false,
-    "static_egress_ip": true,
+    "static_egress_ip": null,
     "private_network": null,
     "self_host": false,
     "byoc": false,
@@ -303,7 +303,7 @@
       "eu"
     ],
     "lang_python": true,
-    "lang_node": false,
+    "lang_node": "diy",
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -338,7 +338,8 @@
     "own_agent_api": false,
     "max_session_unlimited": true,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "whole"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -352,7 +353,9 @@
     "16 running slots and 64 total slots per account; a box counts as its size in slots, so a 4 vCPU/8 GB (x2) box allows 8 concurrent. Encoded as plan concurrency 16 (x1 bound) + max_total_vcpu 32; the engine does not yet enforce slot-weighted quota (see research/verify/engine-requests.md).",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
-    "Parked fee $0.50/x1 slot-month is per slot, not per GiB; snapshot_gib_month 0.01 = $0.50 / 50 GB assumes the retained state equals the box disk size. Parked storage is otherwise free (\"memory snapshots ... on NVMe, rootfs images ... on HDDs\"). No desktop/GUI/browser image is documented (desktop/browser/computer_use=false). (shellbox.dev, 2026-09-28)"
+    "Parked fee $0.50/x1 slot-month is per slot, not per GiB; snapshot_gib_month 0.01 = $0.50 / 50 GB assumes the retained state equals the box disk size. Parked storage is otherwise free (\"memory snapshots ... on NVMe, rootfs images ... on HDDs\"). No desktop or browser is built in, and the site documents no install path or example for either, so desktop/browser = null (not published), not diy (adversarial check 2026-11-08). No computer-use API (computer_use=false). (shellbox.dev, 2026-11-08)",
+    "Fork: `duplicate` copies the disk and the memory snapshot of a stopped box (point-in-time copy with running processes kept). A running box cannot be duplicated; live duplicate is open request #22 (https://github.com/skariel/shellbox.issues/issues/22, checked 2026-11-08).",
+    "Network: each box has a stable public IPv6 for its whole life; no public IPv4 is documented. A US region is planned but not live (issue #14, open on 2026-11-08)."
   ],
   "sources": [
     "https://shellbox.dev/"
@@ -374,6 +377,10 @@
   "audit_2026_09_29": {
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "audit_2026_11_08": {
+    "applied": 5,
+    "source": "fairness audit: prices ($0.02/h per x1 slot by the minute, $0.50/mo per x1 slot stopped), slot caps (16 running / 64 total) and $10 minimum top-up re-checked on https://shellbox.dev/; desktop, browser and Node.js moved from false to diy with the documented path"
   },
   "feature_evidence": {
     "snapshot_auto": {
@@ -458,8 +465,8 @@
       "value": false,
       "source": "https://shellbox.dev/",
       "quote": "duplicate <source> <name> --json Copy a stopped box",
-      "note": "The `duplicate` command's own JSON help text and FAQ (\"duplicate a stopped box as a point-in-time copy\") both specify the source box must be stopped; no running-clone path is documented.",
-      "checked": "2026-09-30"
+      "note": "The `duplicate` command's own JSON help text and FAQ (\"duplicate a stopped box as a point-in-time copy\") both specify the source box must be stopped; no running-clone path is documented. The copy keeps the memory snapshot. Live duplicate is open request https://github.com/skariel/shellbox.issues/issues/22.",
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
@@ -500,8 +507,8 @@
       "value": false,
       "source": "https://shellbox.dev/",
       "quote": "Do boxes have public IPv6? Yes. Every new box gets a stable public IPv6 address...",
-      "note": "The FAQ documents public IPv6 only; IPv4 is never mentioned anywhere on the site.",
-      "checked": "2026-09-30"
+      "note": "The FAQ documents public IPv6 only; IPv4 is never mentioned anywhere on the site. The IPv6 stays the same for the life of the box.",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": false,
@@ -518,11 +525,11 @@
       "checked": "2026-09-30"
     },
     "static_egress_ip": {
-      "value": true,
+      "value": null,
       "source": "https://shellbox.dev/",
       "quote": "Every new box gets a stable public IPv6 address derived from the box's network identity.",
-      "note": "Each box keeps one dedicated, stable IPv6 address for its lifetime (shown via `show`/`list`); not explicitly labeled 'egress IP' but it is the box's only network identity, so outbound traffic is not NATed through a shared/rotating pool.",
-      "checked": "2026-09-30"
+      "note": "2026-11-08 adversarial check: was true. The page documents a stable inbound IPv6 only and never says which address outbound traffic uses. No public IPv4 is documented, so IPv4 egress goes through an undocumented path. Not published -> null.",
+      "checked": "2026-11-08"
     },
     "gpu": {
       "value": false,
@@ -602,18 +609,18 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
+      "value": null,
       "source": "https://shellbox.dev/",
-      "quote": "shellbox turns a Docker/OCI image into the root filesystem of a normal microVM. ... You SSH into a VM and run whatever processes you want inside it.",
-      "note": "Shellbox is an SSH-only Firecracker/Cloud-Hypervisor microVM box; the full FAQ, resource-limits, and command-reference sections never mention VNC/RDP/desktop streaming or a GUI image. Access is exclusively via SSH (and SFTP/port-forwarding over SSH).",
-      "checked": "2026-09-30"
+      "quote": "shellbox supports normal OpenSSH port forwarding. ... ssh -L 8080:localhost:80 mybox@shellbox.dev",
+      "note": "2026-11-08 adversarial check: was diy. The site documents no desktop, VNC or stream, and no guide or example for installing one; only root on Ubuntu 24.04, public OCI images and SSH port forwarding. 'You could install it as root' is not a documented path (FAIRNESS rule 4), so not published -> null.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
+      "value": null,
       "source": "https://shellbox.dev/",
-      "quote": "Configure your browser or tools to use localhost:1080 as a SOCKS5 proxy.",
-      "note": "The only 'browser' references on the page are about using the user's own local browser/SOCKS proxy to reach a box's ports; no managed/hosted browser is offered or documented anywhere on the page.",
-      "checked": "2026-09-30"
+      "quote": "ssh mybox@shellbox.dev connects to box mybox and logs into the guest as root.",
+      "note": "2026-11-08 adversarial check: was diy. No managed or preinstalled browser and no documented browser install or example; root access alone is not a documented path (FAIRNESS rule 4) -> null. The SOCKS5 proxy on the page lets a browser on your own machine reach the box; it is not a hosted browser.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
@@ -630,11 +637,20 @@
       "checked": "2026-09-30"
     },
     "lang_node": {
-      "value": false,
+      "value": "diy",
       "source": "https://shellbox.dev/",
-      "quote": "Stock boxes ship with Ubuntu 24.04 LTS and Docker pre-installed. No setup needed: ... docker run hello-world",
-      "note": "Node.js is not documented as preinstalled on stock boxes (only Docker and, per the FAQ python3 example, Python appear ready to use with no install step). Node.js only appears on the site as an OCI image starting point ('docker.io/library/node:22-bookworm') for create-from-oci boxes, which requires an explicit image-prepare step and boots a plain filesystem, not a managed language runtime feature. No first-party Node SDK/code-exec is offered.",
-      "checked": "2026-09-30"
+      "quote": "Stock boxes ship with Ubuntu 24.04 LTS and Docker pre-installed.",
+      "how": "install Node.js with apt as root, or run it in Docker, or create the box from a public Node OCI image (the site uses docker.io/library/node:22-bookworm as an example)",
+      "effort": "low",
+      "note": "Not preinstalled on stock boxes. Python 3 and Docker are ready to use.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://shellbox.dev/",
+      "quote": "$0.50/mo per x1 slot when stopped.",
+      "note": "A stopped box keeps its whole disk and its memory snapshot; boxes stop below a $5 balance and are deleted at $0.",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,

@@ -13,9 +13,9 @@ Compute substrate for AI agents
 | Egress / GiB | Lifecycle/scope must be checked | Native add-on | unverified, not $0 | https://www.dedaluslabs.ai/pricing |
 | IPv4 / month | Lifecycle/scope must be checked | Native add-on | unverified, not $0 | https://www.dedaluslabs.ai/pricing |
 ## Verified billing facts and gotchas
-1. Cloud Hypervisor-derived custom VMM; CPU/RAM charged per second while actively running, idle sleep free. This is lifecycle-active, not proven CPU-utilization billing.
-2. Storage headline incorrectly labels $0.073 as per GiB-hour; calculator/FAQ explicitly use $0.0001/GiB-hour ($0.073 at 730h). Use FAQ and preserve conflict. Unlimited Pro storage means capacity, not free bytes.
-3. Hobby 5 machines and 50 compute-hours/month; Pro 20 machines. Fifty concurrent requires Enterprise, whose fee and rates are unknown. Pricing footer says join waitlist: public rates do not prove instant admission.
+1. VM with its own guest kernel (VM-level isolation); CPU/RAM charged per second while the machine runs, sleep is free. This is lifecycle-active, not CPU-utilization billing.
+2. Storage is $0.0001/GiB-hour ($0.073 at 730 h), billed also while asleep. The included allowance is per plan, not per machine: Hobby 10 GiB, Pro 20 GiB expandable (https://docs.dedaluslabs.ai/dcs/dm/pricing.md, checked 2026-11-08).
+3. Hobby: $20 one-time credit, 5 machines and a 50 compute-hours a month ceiling, so no machine runs all month on Hobby; Pro 20 machines, unlimited hours. Startups can get up to $10,000 in credits for 12 months. Fifty concurrent requires Enterprise, whose fee and rates are unknown. Pricing footer says join waitlist: public rates do not prove instant admission.
 ## Worked example
 Requested: 4 vCPU/8 GiB, 50 simultaneous × 8 h/day × 22 days = **8,800 instance-hours**, 30% CPU; 50 GiB snapshots and 100 GiB egress. A month is 730 hours only when explicitly used in rate conversion.
 List-rate compute illustration: 8,800×(4×0.04536+8×0.01458)=$2,623.10. 50 GiB storage at $0.0001/GiB-h ×730 adds $3.65. Not a purchasable total: Pro supports only 20 machines; 50 concurrent needs an Enterprise quote. Do not assume 30% CPU utilization yields 70% savings.

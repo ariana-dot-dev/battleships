@@ -1,4 +1,10 @@
-# Ona (formerly Gitpod): pricing regimes (as of 2026-09-28)
+# Ona (formerly Gitpod): pricing regimes (as of 2026-09-28, status updated 2026-11-08)
+**Status 2026-11-08:** Ona Cloud and every Core plan shut down on 2026-10-31 ("we will be winding down Ona Cloud on
+October 31, 2026.", https://ona.com/stories/ona-core-shutdown). October payments and unused purchased credits were
+refunded. The only regime left is Enterprise, through sales, on runners in the customer's own AWS or GCP account.
+The Core and Ona Cloud rows below are history. Enterprise warm pools start an environment in "around 10 seconds"
+(https://ona.com/docs/ona/projects/warm-pools). Enterprise archives stopped environments after 3 days by default
+(1-30 days configurable) and auto-deletes after 1-4 weeks or never (https://ona.com/docs/ona/environments/archive-auto-delete).
 Ona (now part of OpenAI) sells cloud dev environments plus background agents. It has two regimes. **Core**
 runs on Ona Cloud (multi-tenant, AWS eu-central-1 / us-east-1) and is billed in prepaid **Ona Compute Units
 (OCUs)**. The same OCUs pay for environment runtime and for Ona-agent LLM tokens. **Enterprise** is
@@ -9,7 +15,7 @@ Standard env 4 vCPU / 16 GB = **1 OCU/h = $0.25/h** ($0.227/h at the $500 tier).
 ## Regime table
 | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|
-| Core $20 / $50 / $100 / $200 | Default self-serve (new orgs start on Core) | Monthly subscription converted to OCUs. Monthly OCUs expire at the end of the billing month (no rollover). The variant can't be changed without cancel + resubscribe | $20/80, $50/200, $100/400, $200/800 OCU ($0.25/OCU). Up to 100 members, no per-seat fee. Unlimited parallel envs. 50 automations / 10 parallel actions | https://ona.com/pricing, https://ona.com/docs/ona/billing/overview |
+| Core $20 / $50 / $100 / $200 | Retired 2026-10-31 (was the default self-serve plan) | Monthly subscription converted to OCUs. Monthly OCUs expire at the end of the billing month (no rollover). The variant can't be changed without cancel + resubscribe | $20/80, $50/200, $100/400, $200/800 OCU ($0.25/OCU). Up to 100 members, no per-seat fee. Unlimited parallel envs. 50 automations / 10 parallel actions | https://ona.com/pricing, https://ona.com/docs/ona/billing/overview |
 | Core $500 | Heavy teams | Same, with 10% bonus OCUs | $500 / 2,200 OCU = $0.2273/OCU | https://ona.com/pricing |
 | Top-up (manual) | Monthly OCUs exhausted | One-time prepaid purchase. Top-ups are used after subscription OCUs, valid up to 1 year, and expire if the subscription ends | from $10 / 40 OCU ($0.25/OCU) | https://ona.com/pricing, https://ona.com/docs/ona/billing/usage |
 | Auto top-up | Core, opt-in | Card charged when the balance drops below 20 OCU. The amount is chosen by the user, with a cooldown between charges | $0.25/OCU (amount options not published) | https://ona.com/docs/ona/billing/overview |
@@ -39,9 +45,9 @@ quoted 2 vCPU/8 GB $0.11/h and 4/16 $0.23/h (superseded by OCUs). Ona joined Ope
    tier can't be changed without cancelling. Top-ups die with the subscription.
 5. **Idle tail is billed.** Auto-stop defaults to 30 min but can be set to Never. Background processes (builds, servers) don't keep an
    env alive unless you use the CLI keep-alive. An open SSH/IDE session or a running agent session does keep it alive and billing.
-6. **Aggressive deletion on Core.** Stopped envs are archived after 3 days and deleted 4 days later (7 days total). Anything
-   uncommitted is lost, so long-lived paused state is not possible on Core.
-7. **API/SDK is Enterprise-only.** Core is a human/agent IDE product, not a programmable sandbox API.
+6. **Deletion policy.** Core (retired) archived stopped envs after 3 days and deleted them 4 days later. Enterprise archives
+   after 3 days by default (1-30 days) and auto-deletes after 1-4 weeks or never.
+7. **API/SDK is on Enterprise**, which is now Ona's only plan. The Ona CLI also lets external agents (Claude Code) create environments.
 8. **Enterprise means two bills.** You pay Ona's contract (the Marketplace listing shows a $60k/yr unit) plus your own AWS/GCP compute
    and EBS. Compute is **not** included.
 9. **Granularity unknown.** Ona doesn't publish per-second vs per-minute OCU metering or a minimum.

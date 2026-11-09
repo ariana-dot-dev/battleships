@@ -16,8 +16,9 @@ The official pricing page did not render in the scraper. This **replaces the gui
 1. **AutoStop break-even:** a Power desktop costs $70 AlwaysOn versus $7.25 + $0.68/h AutoStop. AutoStop is cheaper only below about 92 h/month.
 2. The AutoStop monthly fee is charged even if the desktop never starts.
 3. There is **no 4 vCPU / 8 GB bundle**. 4 vCPU means Power (16 GB).
-4. It is a desktop product: provisioning takes ~20 min and AutoStop resume ~1-2 min. There is no agent API, and it needs a directory (Simple AD / AD Connector).
+4. It is a desktop product: provisioning takes ~20 min and AutoStop resume ~1-2 min. It needs a directory (Simple AD / AD Connector). WorkSpaces Personal has no agent or screen-control API. The separate product Amazon WorkSpaces for AI agents (GA 2026-06-30) gives your own agent an MCP endpoint to see the screen, click and type in a WorkSpaces Applications desktop. It is billed per second of session time plus the streaming-instance hour, with 10 free session hours per Region each month (https://aws.amazon.com/workspaces/ai-agents/faqs/). It is not priced here.
 5. The hourly rate appears to round per started hour (hour-granular SKUs).
+6. Licence: Windows Server 2016-2025 bundles include the licence. Windows 10 and 11 are BYOL only. Amazon Linux 2 reached end of life on 2026-06-30 (https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html).
 ## Worked example
 Workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days (8,800 h), 30% CPU, 50 GiB snapshots, 100 GiB egress.
 Assumption: the Power bundle (4 vCPU / 16 GB, 80+10 GB) is the smallest fit.

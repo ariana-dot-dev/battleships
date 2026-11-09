@@ -300,7 +300,7 @@
     "fork": true,
     "persistent_disk": true,
     "volumes": true,
-    "auto_stop_idle": false,
+    "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
@@ -392,8 +392,10 @@
     "Suspending stops compute; image storage is $0.078/GB-month. Snapshot is disk-based unless memory preservation verified.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
-    "Bandwidth: $0.01/GiB beyond a \"1-10 TB free allowance per size\" (per-size split not published; card uses 1 TB). Machines are billed while running AND stopped; only suspend stops compute billing. No desktop/browser product: a GUI or headless browser must be installed by you on the VM.",
-    "Machines are auto-suspended when the prepaid balance drops to a suspension threshold (estimated snapshot/image/disk storage for the 7-day retention period), not at zero."
+    "Bandwidth: $0.01/GiB beyond a \"1-10 TB free allowance per size\" (per-size split not published; card uses 1 TB). Machines are billed while running AND stopped; only suspend (manual, or automatic with --on-idle suspend) stops compute billing. No managed desktop/browser product: it is a full root VM, so you install a GUI or browser yourself (no official example).",
+    "Machines are auto-suspended when the prepaid balance drops to a suspension threshold (estimated snapshot/image/disk storage for the 7-day retention period), not at zero. The snapshots are kept so you can recreate the machines. A warning email comes about 6 h before the threshold, and auto-topup (on by default with a saved card) recharges the wallet first.",
+    "Idle detection (since 2026-10-20): `--on-idle suspend` suspends a running VM after 10-2880 min of inactivity (default 30), so it then bills only image storage; `--on-idle destroy` deletes it. Off by default.",
+    "Also sells machine0 Actions (serverless functions) at $0.000031 per GiB-second (changelog 2026-10-23); not priced on this card."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/machine0",
@@ -417,6 +419,11 @@
     "researched": "2026-09-28",
     "api_rate_limit_per_hour": 3000
   },
+  "audit_2026_11_08": {
+    "applied": 4,
+    "source": "findings/machine0.json re-checked against docs.machine0.io pricing, faq, vm-management and the changelog; prices unchanged",
+    "reviewed": 9
+  },
   "audit_2026_09_29": {
     "applied": 8,
     "source": "checked against the provider's live pricing and docs pages",
@@ -427,8 +434,8 @@
       "value": true,
       "source": "https://docs.machine0.io/platform/vm-management",
       "quote": "**Suspend** snapshots the VM, deletes the cloud instance, and stops machine billing.",
-      "note": "Trigger: the suspend command (the snapshot 'suspended-<machine>-<date>-<time>' is taken automatically and restored on `machine0 start`), and automatic suspension when the prepaid balance hits the suspension threshold (changelog 1.0.166: 'Machines are auto-suspended when your balance drops to a suspension threshold'). Plain `stop` does not snapshot. No idle-timeout auto-suspend documented. Disk only (DigitalOcean-backed snapshot; VM gets a new IP, memory preservation not documented).",
-      "checked": "2026-09-29"
+      "note": "Trigger: the suspend command (the snapshot 'suspended-<machine>-<date>-<time>' is taken automatically and restored on `machine0 start`), and automatic suspension when the prepaid balance hits the suspension threshold (changelog 1.0.166: 'Machines are auto-suspended when your balance drops to a suspension threshold'), and idle detection with `--on-idle suspend` (since 2026-10-20). Plain `stop` does not snapshot. Disk only (DigitalOcean-backed snapshot; VM gets a new IP, memory preservation not documented).",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -441,8 +448,8 @@
       "value": false,
       "source": "https://docs.machine0.io/mcp/overview",
       "quote": "Gives agents the same capabilities as the CLI.",
-      "note": "API surface = CLI + remote MCP (machines, images, SSH keys, ssh_exec, sizes). Claude Code / Codex / OpenCode are preinstalled and profiles pre-authenticate them and serve prompts/MCPs, but you SSH in and run `claude` yourself; no API to start an agent with a prompt, stream its events or resume conversations.",
-      "checked": "2026-09-29"
+      "note": "API surface = CLI (--json on every command) + official TypeScript SDK @machine0/sdk (since 2026-10-12) + remote MCP (machines, images, SSH keys, ssh_exec, sizes). Claude Code / Codex / OpenCode are preinstalled and profiles pre-authenticate them; you run them through SSH, the SDK or MCP ssh_exec. No API to start an agent with a prompt, stream its events or resume conversations.",
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": true,
@@ -522,11 +529,11 @@
       "checked": "2026-09-30"
     },
     "auto_stop_idle": {
-      "value": false,
+      "value": true,
       "source": "https://docs.machine0.io/platform/vm-management",
-      "quote": "STOPPED ... Resources reserved. Still billed at full rate.",
-      "note": "No idle-timeout auto-stop/suspend is documented. The only automatic suspension is balance-based (wallet dropping to the suspension threshold), not idle-based; stop/suspend otherwise require an explicit command.",
-      "checked": "2026-09-30"
+      "quote": "machine0 watches the machine's metrics and suspends or destroys it after a sustained window of inactivity",
+      "note": "Since 2026-10-20 (changelog 1.0.175): opt-in per machine with `--on-idle suspend|destroy` on new/order/update; `--idle-timeout-minutes` 10-2880, default 30. Suspend stops machine billing; only image storage ($0.078/GB-month) is billed and the VM gets a new IP on resume. A plain `stop` keeps billing at the full rate and is never idle-actioned.",
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
@@ -729,8 +736,8 @@
       "value": true,
       "source": "https://docs.machine0.io/introduction/faq.md",
       "quote": "The `ubuntu-24-04-loaded` image includes Docker, Node.js, Python, Go, Rust, Bun, Claude Code, Codex, OpenCode, tmux, zoxide, fzf, ripgrep, and bat.",
-      "note": "Claude Code, Codex and OpenCode preinstalled on the default ubuntu-24-04-loaded image; you SSH in and run them yourself (no harness API).",
-      "checked": "2026-10-14"
+      "note": "Claude Code, Codex and OpenCode preinstalled on the default ubuntu-24-04-loaded image; you run them through SSH, the TypeScript SDK or MCP ssh_exec (no agent prompt/events API).",
+      "checked": "2026-11-08"
     }
   },
   "locations": [

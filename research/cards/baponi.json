@@ -74,6 +74,10 @@
         {
           "quote": "Bandwidth scales with CPU allocation: 200 Mbps per core.",
           "url": "https://baponi.ai/llms-full.txt"
+        },
+        {
+          "quote": "Unrestricted outbound access on every plan, including Free",
+          "url": "https://baponi.ai/features"
         }
       ]
     }
@@ -175,7 +179,7 @@
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": null,
-    "credential_injection": null,
+    "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": false,
@@ -214,7 +218,7 @@
   },
   "knobs": [],
   "caveats": [
-    "Public credit-metered execution, not per-second CPU/RAM product. One credit covers 60s at 1 CPU+1 GiB; larger matched CPU/RAM sizes scale credits linearly (2 CPU/2 GiB is 2 credits/minute). Separate CPU×RAM multiplication would be wrong.",
+    "Credit-metered per execution, rounded up to whole 60 s credits (a 90 s run = 2 credits). One credit = 60 s at 1 CPU + 1 GiB; CPU and RAM scale together (4 CPU / 4 GiB = 4 credits per minute = $0.24/h at the $1 per 1,000 overage rate). Pro: $97/month with 10,000 credits. Separate CPU x RAM multiplication would be wrong.",
     "Not fully priceable in ENGINE_CARD: unknown USD resource rates or machine shape. Null is not zero; do not rank as a free provider.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
@@ -224,7 +228,9 @@
   ],
   "sources": [
     "https://baponi.ai/pricing/",
-    "https://baponi.ai/docs/guides/deep-agents"
+    "https://baponi.ai/docs/guides/deep-agents",
+    "https://baponi.ai/features",
+    "https://baponi.ai/llms-full.txt"
   ],
   "fleet": {
     "default_max_instances": 5,
@@ -284,17 +290,17 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": "https://baponi.ai/docs/getting-started/how-it-works/",
-      "quote": "Baponi injects the credentials as standard config files that CLI tools expect",
-      "note": "Connectors (PostgreSQL, MySQL, BigQuery, Redis, MongoDB, S3, GCS, Azure, GitHub, Anthropic) inject the real secret INTO the sandbox as RAM-mounted config files/env vars (e.g. ANTHROPIC_API_KEY env var, GH_TOKEN, .pgpass), wiped after execution - the code can read them, so not a proxy. Exception: BYOB bucket credentials stay in a separate mount process ('never inside the sandbox'), but that is a storage mount, not an HTTP credential proxy.",
-      "checked": "2026-09-29"
+      "source": "https://baponi.ai/llms-full.txt",
+      "quote": "Credentials exist only in a RAM-based mount during execution.",
+      "note": "Connectors (PostgreSQL, MySQL, BigQuery, Redis, MongoDB, S3, GCS, Azure, GitHub, Anthropic) inject the real secret INTO the sandbox as RAM-mounted config files/env vars (e.g. ANTHROPIC_API_KEY env var, GH_TOKEN, .pgpass), destroyed the moment execution completes (llms-full.txt) - the code can read them, so not a proxy. Exception: BYOB bucket credentials stay in a separate mount process ('never inside the sandbox'), but that is a storage mount, not an HTTP credential proxy.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": true,
-      "source": "https://baponi.ai/docs/getting-started/how-it-works/",
-      "quote": "Baponi gives every organization storage that works exactly like BYOB, with the first 10 GB free and expandable as you grow.",
-      "note": "Managed volumes (Baponi-hosted, $0.10/GB-mo beyond 10 GB) and BYOB S3/GCS/Azure buckets mounted at /data/{slug}/ on every execution; object-storage-backed FUSE-style mounts, not block volumes.",
-      "checked": "2026-09-29"
+      "source": "https://baponi.ai/llms-full.txt",
+      "quote": "Writes sync back to your bucket automatically before the execution response returns.",
+      "note": "Your own S3, GCS or Azure Blob bucket (BYOB, storage free) or a managed volume (first 10 GB free, then $0.10/GB-month) mounts at /data/{slug}/ on every execution. Data there persists with or without a thread_id. Object-storage mounts, not block volumes.",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -391,8 +397,8 @@
       "value": true,
       "source": "https://baponi.ai/docs/getting-started/how-it-works.md",
       "quote": "Stateful when you need it. Pass a thread_id to persist state across calls. Installed packages, environment variables, and filesystem changes survive between executions, even across days or weeks.",
-      "note": null,
-      "checked": "2026-09-30"
+      "note": "Two ways: (1) pass a thread_id and the /home/baponi diff is saved after each call (retention 24 h, 7 d, 30 d or forever); (2) mount your own bucket or a managed volume on every call. Nothing runs between calls.",
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
@@ -469,7 +475,7 @@
       "source": "https://baponi.ai/trust.md",
       "quote": "Sandboxes run with zero Linux capabilities. No CAP_NET_RAW, no CAP_SYS_ADMIN, no CAP_SYS_PTRACE. There is nothing to escalate to because nothing was granted. ... Runs as unprivileged UID 1000, zero capabilities, user namespaces disabled.",
       "note": "Docker-in-sandbox requires CAP_SYS_ADMIN and/or user namespaces to create containers; Baponi explicitly drops all capabilities and disables user namespaces, and no docs anywhere mention a docker/containerd binary being available inside the nsjail sandbox. No is confirmed.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -482,8 +488,8 @@
       "value": false,
       "source": "https://baponi.ai/trust.md",
       "quote": "Cannot escalate privileges. Runs as unprivileged UID 1000, zero capabilities, user namespaces disabled.",
-      "note": "Explicit statement that sandbox code runs as unprivileged UID 1000 with zero Linux capabilities. No is confirmed.",
-      "checked": "2026-09-30"
+      "note": "Explicit statement that sandbox code runs as unprivileged UID 1000 with zero Linux capabilities. No is confirmed. Packages that need root at install time can be preinstalled in an imported OCI image (see custom_image).",
+      "checked": "2026-11-08"
     },
     "inbound_https": {
       "value": false,
@@ -497,7 +503,7 @@
       "source": "https://baponi.ai/trust.md",
       "quote": "Audit logging on every tier. SOC 2 Type 1 preparation kickoff Q4 2026. Enterprise security controls available today. Formal certifications in progress. ... In Progress: SOC 2 Type 1, Preparation kickoff Q4 2026",
       "note": "Trust center explicitly lists SOC 2 Type 1 as 'In Progress' with prep starting Q4 2026, i.e. not certified as of 2026-09-30. No is confirmed. (Audit logging is described as 'SOC 2-grade' but that is not a certification.)",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "hipaa": {
       "value": false,
@@ -536,6 +542,20 @@
       "note": "granularity: account-only; cost: no; Baponi uses credit-based billing (1 credit = 60s execution). The API's execution status endpoint returns duration_ms but not credit cost or billable usage. Credit balance and cost history are viewable only in the admin console dashboard, not via REST API or SDK. No documented endpoint for per-sandbox, per-thread, or per-tag usage/cost reporting.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "credential_injection": {
+      "value": true,
+      "source": "https://baponi.ai/llms-full.txt",
+      "quote": "Credentials exist only in a RAM-based mount during execution.",
+      "note": "Connectors (Anthropic, GitHub, databases, S3/GCS/Azure) inject keys into each run as env vars or config files; they are destroyed the moment execution completes. The code can read them, so secret_proxy stays false.",
+      "checked": "2026-11-08"
+    },
+    "custom_image": {
+      "value": true,
+      "source": "https://baponi.ai/llms-full.txt",
+      "quote": "Custom OCI images | 1 | Unlimited | Unlimited",
+      "note": "Import any OCI image through the admin console: 1 on Free, unlimited on Pro and Enterprise. Root-level packages go in the image, because code runs as UID 1000 at run time.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -550,5 +570,10 @@
   ],
   "locations_source": "https://baponi.ai/docs/api/overview/",
   "locations_quote": "API keys start with sk- followed by a region code and a base64-encoded token. Every request to the Execution API requires an API key in the Authorization header with format sk-us-YOUR_API_KEY.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "compare audit findings checked against baponi.ai pricing, features and llms-full.txt",
+    "reviewed": 6
+  }
 }

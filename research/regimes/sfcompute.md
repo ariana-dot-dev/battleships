@@ -1,4 +1,4 @@
-# SF Compute: pricing regimes (as of 2026-09-28)
+# SF Compute: pricing regimes (as of 2026-11-08)
 SF Compute is a GPU cloud built around an **orderbook**. You buy (and resell) time on 8-GPU nodes, as reserved windows or as
 spot deployments, and there is no list price. Its sister product **Autoresearch / "givemeanode"** is an agent PaaS with
 fixed per-minute list prices for RL sandboxes, CPU nodes, H100 nodes and batch jobs. The computesdk benchmark ("givemeanode")
@@ -10,12 +10,12 @@ measured the Autoresearch sandboxes. The main sfcompute.com/pricing is a login w
 | Sandbox parked | Automatically after ~1.5 s idle | Spare memory handed back stops billing at the RAM rate. The held disk bills at the parked rate. Processes keep running, wake takes tens of ms | ~$0.000139/GiB-h (~330× cheaper) | same |
 | Sandbox fork / bake | `fork_sandbox` (1-256 per call), `create_sandbox_env` | Forks are free (CoW) and each fork pays its own RAM-minutes. A bake bills as sandbox time | $0 fork | same |
 | Sandbox snapshots | Stored bake/branch snapshots | Deduplicated GiB-month. Resident on host vs cold in object store (automatic, one-time rehydrate) | $0.10 resident / $0.05 cold per GiB-month. Live until deleted or expiry | same |
-| Sandbox limits | New workspace | `sandbox_vcpus` starts at 4 (lg/xl need a raise). RAM ceiling 8 GiB (64 GiB platform cap) | - | /llms.txt |
-| H100 interactive node | `create_node --chip h100` / `8xh100` | Per minute while running **plus an idle window** after the last command unless stopped. Stopped means disk parked at $0 | h100-1 $0.066/min = **$3.96/h** (15-min window, $0.99 max). h100-8 $0.528/min = $31.68/h (20-min, $10.56 max) | https://autoresearch.sfcompute.com/ |
-| CPU node | chip `cpu-2` / `cpu-8` | Per minute, 15-min idle window | cpu-2 (2 physical cores, 8 GiB) $0.18/h. cpu-8 (8 cores, 32 GiB) $0.4824/h ("33% off, CPU node launch pricing") | same |
-| Calendar discount | Minutes that run on Fri / Sat / Sun (US Pacific), **nodes only** | Applied per minute, never raises a quoted rate | Fri 33% off (cpu-2 32%), Sat/Sun 20% off. **Sandboxes: none** | same |
-| Batch jobs (H100) | `submit_job`, sweeps, tasks | Per GPU-minute. Queued time free. Preemption-tolerant (checkpoints survive) | $0.0495/min = **$2.97/GPU-h** (25% below interactive). Friday interactive ($2.65) beats it | same |
-| Market: reserved | `sf buy`, orderbook limit order on an 8-GPU SKU (H100/H200/B200) and delivery window | Prepaid node-minutes for the whole window, whole minutes, min 1 node × 1 min. Includes boot/idle. Buyers pay no fees | **No list price.** Illustrations: homepage "Reserved $3.00/gpu/hr" (3-mo), docs example ~$17.42/node-h (~$2.18/GPU-h), old prices page "H100 from $1.50/gpu/hr" | https://docs.sfcompute.com/preview/orders, https://sfcompute.com/ |
+| Sandbox limits | New workspace | 4,096 sandboxes at once per workspace. `sandbox_vcpus` starts at 4 (lg/xl need a raise). RAM ceiling 8 GiB (raised on request to 64 GiB). Nodes: 256 CPU / 64 GPU per member | - | https://autoresearch.sfcompute.com/docs |
+| GPU interactive node | `create_node`, chip h100-1 / h100-8 / b300-1 / b300-8 | Per minute while running **plus an idle window** after the last command unless stopped. Stopped means disk parked at $0 | h100-1 $0.0672/min = **$4.032/h** (15-min window, $1.008 max). h100-8 $0.5376/min = $32.256/h (20-min, $10.752 max). b300-1 $0.1632/min = $9.792/h. b300-8 $1.3056/min = $78.336/h | https://autoresearch.sfcompute.com/ |
+| CPU node | chip `cpu-2` / `cpu-8` | Per minute, 15-min idle window | cpu-2 (2 physical cores, 8 GiB) $0.0024/min = $0.144/h. cpu-8 (8 cores, 32 GiB) $0.0096/min = $0.576/h | same |
+| Calendar discount | Minutes that run on Fri / Sat / Sun (US Pacific), **nodes only** | Applied per minute, never raises a quoted rate | Fri 33% off, Sat/Sun 20% off. **Sandboxes: none** | same |
+| Batch jobs (H100 / B300) | `submit_job`, sweeps, tasks | Per GPU-minute. Queued time free. Preemption-tolerant (checkpoints survive) | H100 $0.063/min = **$3.78/GPU-h**, B300 $0.153/min = $9.18/GPU-h (25% below interactive). Friday ($2.70) and weekend ($3.23) interactive H100 both beat it | same |
+| Market: reserved | `sf buy`, orderbook limit order on an 8-GPU SKU (docs list H100 and H200) and delivery window | Prepaid node-minutes for the whole window, whole minutes, min 1 node × 1 min. Includes boot/idle. Buyers pay no fees | **No list price.** Illustrations: homepage "Reserved $3.00/gpu/hr" (3-mo), docs example ~$17.42/node-h (~$2.18/GPU-h), old prices page "H100 from $1.50/gpu/hr" | https://docs.sfcompute.com/preview/orders, https://sfcompute.com/ |
 | Market: resale | Selling unused reserved time | Fill price minus platform fee (fixed $/node-h + %, per org, unpublished), credited | Vendor reports a 25% average realized discount (2026-09-09): $4.50 → $3.375 realized | https://sfcompute.com/news/realized-discount |
 | Market: spot deployment | Preview access | Immediate-or-cancel buys at or below max $/node-h. Pays the seller price for each contract block (min runtime 1 min-24 h). 2-min preemption notice | market price | https://docs.sfcompute.com/preview/spot-deployments |
 | Bare metal / managed Slurm (InfiniBand) | Contact sales | Negotiated | null | https://sfcompute.com/specs |
@@ -27,7 +27,7 @@ measured the Autoresearch sandboxes. The main sfcompute.com/pricing is a login w
 2. **Parking is the whole economics.** Agent loops that are idle 87% of the time pay about 13% of the flat-out figure, but only for memory actually handed back. A sandbox holding a loaded model keeps paying.
 3. **Calendar discounts do not apply to sandboxes.** They apply to Autoresearch nodes only. Our earlier record assumed they might, and the live table shows "-" for sandbox rows.
 4. **Idle windows on nodes**: a node keeps billing for 15-20 min after its last command unless you stop it.
-5. **Stale docs**: llms.txt implies an H100 list price of $3.60/h ("$0.90 at the H100 list rate" for 15 min), and the CLI example shows $0.0666/min. The live table says $0.066/min = $3.96/h.
+5. **Prices move often.** H100 node list went $3.96/h (09-28) to $5.04/h (10-14) to $4.032/h (11-08). The live table is the only source; `create_node` also returns the rate.
 6. **Market GPUs have no price list.** Prices vary by SKU, zone and window, and are sold per 8-GPU node. Market VMs have no persistent storage and can take ~10 min to boot, and boot minutes are billed.
 7. **Everything is prepaid**, and spend caps count credit-paid usage, so a cap can stop nodes while credit remains.
 ## Worked example
@@ -39,5 +39,5 @@ Workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days = **8,800 sandbox-
 |---|---|---|
 | Sandbox-md, never parked | Yes (sandbox_vcpus limit starts at 4 per workspace, so 50 × 4 vCPU needs a raise) | **$6,442.38** |
 | Sandbox-md, parked 70% | Yes | ≈ **$1,936** + parked disk |
-| cpu-2 node (2 physical cores / 8 GiB), stopped between shifts, weekdays | Alt product (container node, not sandbox API) | 8,800 × $0.18 = $1,584. With ~4.4 Fridays at 32% off: **$1,482.62** |
+| cpu-2 node (2 physical cores / 8 GiB), stopped between shifts, weekdays | Alt product (container node, not sandbox API) | 8,800 × $0.144 = $1,267.20. With ~4.4 Fridays at 33% off (x0.934): **$1,183.56** |
 | H100 / market GPU | Not a GPU workload | n/a |

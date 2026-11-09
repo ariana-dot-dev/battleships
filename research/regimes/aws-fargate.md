@@ -12,8 +12,8 @@ Reference shape 4 vCPU / 8 GB: x86 us-east-1 = 4 x 0.04048 + 8 x 0.004445 = **$0
 | Same, eu-west-1 (cheapest EU) | Region pin EU | Same | $0.04048 / $0.004445 (identical to us-east-1; eu-central-1 $0.04656/$0.00511, eu-north-1 $0.0445/$0.0049) | Price List API |
 | Same, ap-south-1 (cheapest Asia) | Region pin Asia | Same | $0.04256 / $0.004655 (ap-northeast-1/ap-southeast-1 $0.05056/$0.00553) | Price List API |
 | Linux ARM64 (Graviton) on-demand | ARM task definitions, ECS only | Same | us-east-1 = eu-west-1: $0.03238 / $0.00356 (-20%); ap-south-1: $0.02383 / $0.00261 | Price List API |
-| Fargate Spot x86 | FARGATE_SPOT capacity provider (ECS), interruptible, 2-min notice | Floating price | us-east-1 $0.01288871 / $0.00141527 (-68%); eu-west-1 $0.01224056 / $0.0013441; ap-south-2 $0.012768 / $0.0013965 | https://dftu77xade0tc.cloudfront.net/fargate-spot-prices.json |
-| Fargate Spot ARM64 | Same | Floating | us-east-1 $0.01030969 / $0.00113349; eu-west-1 $0.00979124 / $0.00107649; ap-south-2 $0.007149 / $0.000783 | same feed |
+| Fargate Spot x86 | FARGATE_SPOT capacity provider (ECS), interruptible, 2-min notice | Floating price (fetched 2026-11-08) | us-east-1 $0.01417459 / $0.00155647 (-65%); eu-west-1 $0.01217351 / $0.00133674; ap-south-2 $0.012768 / $0.0013965 | https://dftu77xade0tc.cloudfront.net/fargate-spot-prices.json |
+| Fargate Spot ARM64 | Same | Floating (fetched 2026-11-08) | us-east-1 $0.01133827 / $0.00124658; eu-west-1 $0.0097376 / $0.0010706; ap-south-2 $0.007149 / $0.000783 | same feed |
 | Compute Savings Plan 1y | $/h commitment for 1 year, shared with EC2 and Lambda | Discounted rate up to the commitment; unused commitment still billed | No-upfront x86 $0.032384 / $0.003556 (-20%); ARM $0.0255 / $0.0028; all-upfront x86 vCPU $0.0295504 | AWSComputeSavingsPlan us-east-1 |
 | Compute Savings Plan 3y | 3-year commitment | Same | No-upfront x86 $0.022264 / $0.00244475 (-45%); ARM $0.01749 / $0.00192; all-upfront x86 vCPU $0.0194304 (-52%), ARM $0.01587 | AWSComputeSavingsPlan us-east-1 |
 | Windows Server (x86 only) | Windows task definitions, 1-4 vCPU, max 30 GB | Per second, **5-minute minimum**; OS licence per vCPU | vCPU $0.046552 + OS $0.046 = $0.092552/vCPU-h; GB $0.00511175 | Price List API (conflicts with pricing-page example, see Gotchas) |
@@ -26,14 +26,16 @@ Reference shape 4 vCPU / 8 GB: x86 us-east-1 = 4 x 0.04048 + 8 x 0.004445 = **$0
 ## Gotchas
 1. **Billing starts at image pull**, not at container start; big images add paid seconds to every task.
 2. **1-minute minimum (Linux), 5 minutes (Windows)** per task; many sub-minute tasks cost far more than their runtime.
-3. **Spot is ECS-only**, not available on EKS or Windows, and the price floats (the 2026-09-28 snapshot is ~68% off, not the marketed "up to 70%" in every region).
+3. **Spot is ECS-only**, not available on EKS or Windows, and the price floats (the 2026-11-08 us-east-1 x86 price is ~65% off, not the marketed "up to 70%" in every region).
 4. **Savings Plans bill every hour of the term.** A fleet that runs 8 h/day wastes ~76% of a commitment sized for peak; size SPs to the 24/7 baseline only.
 5. **Windows price conflict:** the Price List API (vCPU $0.046552 + OS $0.046, GB $0.00511175) is about half the pricing-page example ($27.45 for 300 vCPU-h = $0.0915; $6.00 for 600 GB-h = $0.01). We use the API.
 6. **Public IPv4 is $0.005/h per task**, and private subnets need a NAT gateway ($32.85/month per AZ + $0.045/GB on top of egress). Many teams pay more for networking than for small tasks.
 7. **No HTTPS URL out of the box**: an ALB or API Gateway is extra.
-8. **No pause/resume or snapshots**; state lives only on attached EBS/EFS.
-9. **Allowed CPU:memory pairs are fixed** (e.g. 4 vCPU needs 8-30 GB); memory can't go below 2 GB per vCPU.
-10. **Region spread**: ap-south-1 ARM is 26% below us-east-1 ARM; sa-east-1 x86 is 72% above us-east-1.
+8. **No pause/resume.** AWS erases the 20 GiB task storage on stop. To carry files forward, mount EFS, or snapshot the task EBS volume and start the next task with a new volume from that snapshot. A new task cannot attach an existing EBS volume (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ebs-volumes.html).
+9. **Launch rates differ by Region**: burst 100 and 20 tasks/s in most Regions, burst 25 and 5 tasks/s in Regions introduced after 2025-05-20 (https://docs.aws.amazon.com/general/latest/gr/ecs-service.html).
+10. **Other AWS runtimes lift Fargate limits** at EC2 prices: ECS Managed Instances (AWS-patched EC2 hosts, added capabilities such as CAP_SYS_ADMIN, GPUs, 14-day instance lifetime) and ECS on your own EC2 (privileged containers; nested KVM on C8i/M8i/R8i since 2026-02-16). Not priced here.
+11. **Allowed CPU:memory pairs are fixed** (e.g. 4 vCPU needs 8-30 GB); memory can't go below 2 GB per vCPU.
+12. **Region spread**: ap-south-1 ARM is 26% below us-east-1 ARM; sa-east-1 x86 is 72% above us-east-1.
 ## Worked example
 4 vCPU / 8 GB, 50 concurrent x 8 h/day x 22 days = **8,800 task-hours**, 30% CPU (irrelevant: allocated billing),
 50 GiB retained state (as EBS snapshots), 100 GiB egress (inside the 100 GB free tier, assuming no other AWS egress).
@@ -43,8 +45,8 @@ Fixed extras: public IPv4 50 x 176 h x $0.005 = $44.00; EBS snapshots 50 x $0.05
 | x86 on-demand us-east-1 | 8,800 x 0.19748 = $1,737.82 | **$1,784.32** |
 | ARM on-demand us-east-1 / eu-west-1 | 8,800 x 0.15800 = $1,390.40 | **$1,436.90** |
 | ARM on-demand ap-south-1 | 8,800 x 0.11620 = $1,022.56 | **$1,069.06** |
-| Spot x86 us-east-1 (interruptible) | 8,800 x 0.062877 = $553.32 | **$599.82** |
-| Spot ARM us-east-1 | 8,800 x 0.050307 = $442.70 | **$489.20** |
+| Spot x86 us-east-1 (interruptible, 2026-11-08 price) | 8,800 x 0.069150 = $608.52 | **$655.02** |
+| Spot ARM us-east-1 (2026-11-08 price) | 8,800 x 0.055326 = $486.87 | **$533.37** |
 | Compute SP 3y no-upfront sized for 50 tasks 24/7 | 50 x 730 x 0.108614 = $3,964.41 | **$4,010.91** (worse: commitment idle 16 h/day) |
 | Private subnets + 1 NAT gateway instead of IPv4 | +$32.85 + 100 x $0.045 = $37.35 instead of $44.00 | x86: **$1,777.67** |
 | Windows (4 vCPU max) | 8,800 x (4 x 0.092552 + 8 x 0.00511175) = $3,617.70 | **$3,664.20** |

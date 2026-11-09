@@ -17,7 +17,7 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 - **ingress_usd**: 0
 - **cpu**: Shared versus dedicated/premium/high-memory classes in API.
 - **backup**: 8 GB shared/dedicated backup add-on $10/month or $0.015/hour (not flat percentage); per-shape addons.backups captured in API.
-- **minimum_term**: Hourly; powered-off instance billed until deleted.
+- **minimum_term**: Hourly; powered-off instance billed until deleted. To keep the disk without compute charges, capture a custom image (billed monthly by size), delete the Linode, and deploy from the image later.
 - **provisioning**: Unknown; not assumed zero.
 ## Gotchas
 - DIY infrastructure rather than an agent-managed sandbox: guest installation, HTTPS/domain setup, abuse controls and operations are customer responsibilities. Linux guest administrative capabilities are not preinstalled agent features. 30% guest CPU utilization does not reduce allocated-compute charges. Unknowns remain null; a partial subtotal is not a complete invoice.

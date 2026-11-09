@@ -73,7 +73,7 @@
       "max_vcpu": 4,
       "max_ram_gib": 16,
       "sizes_allowed": null,
-      "note": "$20 one-time sign-up credit (no monthly credit; no compute-hour cap published as of 2026-10-14). 10 GiB storage per machine free, no option to expand; up to 4 vCPU / 16 GiB per machine; up to 5 machines."
+      "note": "$20 one-time sign-up credit, no card needed (no monthly credit). 50 compute-hours a month ceiling (\"50 hrs/mo ceiling\", https://docs.dedaluslabs.ai/dcs/dm/pricing.md, checked 2026-11-08); the engine has no field for a monthly hour cap, so check this plan by hand for workloads above 50 h. 10 GiB storage allowance per plan (not per machine), no option to expand; up to 4 vCPU / 16 GiB per machine; up to 5 machines."
     },
     {
       "name": "Pro",
@@ -87,7 +87,7 @@
       "max_vcpu": 16,
       "max_ram_gib": 64,
       "sizes_allowed": null,
-      "note": "$20 monthly compute credit, refreshes each cycle, does not roll over (purchased credits do roll over). Configurable timeout; unlimited compute; 20 GiB storage per machine free with unlimited expansion; up to 16 vCPU / 64 GiB, 20 machines."
+      "note": "$20 monthly included usage, resets each billing cycle, does not roll over (purchased credits do roll over). Unlimited compute hours; 20 GiB storage allowance per plan (not per machine), expandable at $0.0001/GiB-hour; up to 16 vCPU / 64 GiB per machine, 20 machines."
     },
     {
       "name": "Enterprise",
@@ -195,9 +195,9 @@
     "dax_s": null
   },
   "caveats": [
-    "Cloud Hypervisor-derived custom VMM; CPU/RAM charged per second while actively running, idle sleep free. This is lifecycle-active, not proven CPU-utilization billing.",
-    "Storage is $0.0001/GiB-hour ($0.073/GiB-month at 730h). Included storage differs by plan (checked 2026-10-14, https://www.dedaluslabs.ai/pricing): \"Hobby includes an allowance of 10 GiB per machine for free, with no option to expand. Pro includes 20 GiB per machine free, with unlimited expansion.\" The engine reads one card-wide allowance, so the card uses 10 GiB (true on every self-serve plan); Pro estimates overstate storage by up to 10 GiB per machine (about $0.73/month). Unlimited Pro storage means capacity, not free bytes.",
-    "Hobby 5 machines; Pro 20 machines. The live pricing page (checked 2026-10-14) publishes no Hobby compute-hour cap, only the \"$20 one-time sign-up credit\" (FAQ: \"covers roughly 268 hours\" at 1 vCPU / 2 GiB). Fifty concurrent requires Enterprise, whose fee and rates are unknown.",
+    "VM with its own guest kernel (VM-level isolation). CPU/RAM charged per second while the machine runs; a sleeping machine pays no compute. This is lifecycle-active billing, not CPU-utilization billing.",
+    "Storage is $0.0001/GiB-hour ($0.073/GiB-month at 730 h), billed also while a machine sleeps. The included allowance is per plan, not per machine (checked 2026-11-08, https://docs.dedaluslabs.ai/dcs/dm/pricing.md: Hobby 10 GiB, Pro 20 GiB expandable). The engine reads one per-machine allowance, so the card uses 10 GiB: estimates with several machines understate storage by about $0.73 per extra machine per month, and Pro single-machine estimates overstate it by up to $0.73.",
+    "Hobby: 5 machines and a 50 compute-hours a month ceiling (checked 2026-11-08, https://docs.dedaluslabs.ai/dcs/dm/pricing.md), so Hobby cannot run a machine all month; use Pro for that. Pro: 20 machines, unlimited hours. Fifty concurrent requires Enterprise, whose fee and rates are unknown.",
     "Pricing is no longer labelled beta (checked 2026-10-14: CTAs \"Start for free\" / \"Get started\"), but admission still is: skill docs say \"Creation also requires beta access and available account quota\" (403 BETA_ACCESS_REQUIRED), and the pricing footer says \"Join the waitlist\". Public rates do not prove instant admission.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
@@ -212,7 +212,10 @@
     "https://www.dedaluslabs.ai/blog/dedalus-machines-journey",
     "https://docs.dedaluslabs.ai/.well-known/skills/dedalus-machines/skill.md",
     "https://www.dedaluslabs.ai/",
-    "https://www.dedaluslabs.ai/llms.txt"
+    "https://www.dedaluslabs.ai/llms.txt",
+    "https://docs.dedaluslabs.ai/dcs/dm/pricing.md",
+    "https://docs.dedaluslabs.ai/dcs/dm/lifecycle.md",
+    "https://docs.dedaluslabs.ai/llms.txt"
   ],
   "fleet": {
     "default_max_instances": 5,
@@ -258,17 +261,17 @@
     },
     "ingress_rules": {
       "value": false,
-      "source": "https://www.dedaluslabs.ai/blog/agent-infra-security-posture",
-      "quote": "no network-facing surface exposed by default — machines get private IPs and don't accept inbound connections directly.",
-      "note": "No port exposure / preview URL feature at all, so no ingress controls to configure: machines are private-only; reach them through authenticated, temporary SSH sessions (CLI does SSH port forwards). Not 'every port public', but no public exposure option either.",
-      "checked": "2026-09-29"
+      "source": "https://docs.dedaluslabs.ai/dcs/dm/lifecycle.md",
+      "quote": "Network addresses and open connections, including SSH sessions and port forwards.",
+      "note": "No public ports or preview URLs documented, so there are no ingress controls to configure. Reach a machine through the API or an SSH port forward (port forwards reset on wake).",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
       "source": null,
       "quote": null,
-      "note": "Full VM with its own guest kernel and root (custom Cloud Hypervisor fork), so nftables/iptables inside should work; not documented.",
-      "checked": "2026-09-29",
+      "note": "Full VM with its own guest kernel and root (VM-level isolation), so nftables/iptables inside should work; not documented.",
+      "checked": "2026-11-08",
       "derived": true
     },
     "secret_proxy": {
@@ -308,17 +311,17 @@
     },
     "desktop": {
       "value": false,
-      "source": "https://www.dedaluslabs.ai/blog/what-is-a-computer-for-ai-agents",
-      "quote": "Because a computer for agents is a full Linux machine, it supports a GUI stack the same way any Linux desktop or CI runner would, with no special casing required.",
-      "note": "not offered: no managed VNC/RDP/stream desktop is shipped; a GUI stack is only possible if the user installs and configures one themselves inside the generic Linux VM.",
-      "checked": "2026-09-30"
+      "source": "https://docs.dedaluslabs.ai/llms.txt",
+      "quote": "Open temporary Secure Shell (SSH) access.",
+      "note": "The docs index (quickstart, CLI, lifecycle, executions, SSH, SDKs) has no desktop, VNC or GUI page and no official example. The machine is full Linux with root, so you can install a GUI stack yourself, but no documented path exists.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
-      "source": "https://www.dedaluslabs.ai/blog/what-is-a-computer-for-ai-agents",
-      "quote": "Driving a browser for a computer-use task requires a display server, a real Chromium process, genuine network access, and often root to install dependencies — all things a locked-down runtime typically can't provide.",
-      "note": "not offered: no bundled/managed browser; the docs describe this as something the user can install themselves on the generic Linux VM, not a provided feature.",
-      "checked": "2026-09-30"
+      "source": "https://docs.dedaluslabs.ai/llms.txt",
+      "quote": "Open temporary Secure Shell (SSH) access.",
+      "note": "The docs index has no browser or Chromium page and no official example. The machine is full Linux with root, so you can install a browser yourself, but no documented path exists.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
@@ -343,10 +346,11 @@
     },
     "egress_ip_type": {
       "value": "datacenter",
-      "source": "https://www.dedaluslabs.ai/blog/agent-infra-security-posture",
-      "quote": "machines get private IPs and don't accept inbound connections directly.",
-      "note": "Machines egress from Dedalus's own datacenter infrastructure; no residential/mobile/static-IP proxy product is offered, so outbound traffic is ordinary datacenter-range IP.",
-      "checked": "2026-09-30"
+      "source": "https://docs.dedaluslabs.ai/dcs/dm/lifecycle.md",
+      "quote": "Network addresses and open connections, including SSH sessions and port forwards.",
+      "note": "Machines egress from the provider data center; network addresses reset on wake and no residential or static egress IP product is documented.",
+      "checked": "2026-11-08",
+      "derived": true
     },
     "fork_running": {
       "value": false,
@@ -399,17 +403,17 @@
     },
     "public_ipv4": {
       "value": false,
-      "source": "https://www.dedaluslabs.ai/blog/agent-infra-security-posture",
-      "quote": "no network-facing surface exposed by default — machines get private IPs and don't accept inbound connections directly.",
-      "note": "Machines get private IPs, not public IPv4 addresses.",
-      "checked": "2026-09-30"
+      "source": "https://docs.dedaluslabs.ai/dcs/dm/lifecycle.md",
+      "quote": "Network addresses and open connections, including SSH sessions and port forwards.",
+      "note": "No public IPv4 address documented. Network addresses reset on wake. Reach a machine through the API or an SSH port forward.",
+      "checked": "2026-11-08"
     },
     "inbound_https": {
       "value": false,
-      "source": "https://www.dedaluslabs.ai/blog/agent-infra-security-posture",
-      "quote": "no network-facing surface exposed by default — machines get private IPs and don't accept inbound connections directly.",
-      "note": "No inbound connections of any kind (HTTPS or otherwise); the only ways in are provider-brokered temporary SSH sessions or the executions API.",
-      "checked": "2026-09-30"
+      "source": "https://docs.dedaluslabs.ai/dcs/dm/lifecycle.md",
+      "quote": "Network addresses and open connections, including SSH sessions and port forwards.",
+      "note": "No public ports or preview URLs documented. Reach a machine through the API or an SSH port forward.",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": false,
@@ -536,7 +540,14 @@
       "source": "https://docs.dedaluslabs.ai/dcs/dm/dedalus-machines.md",
       "quote": "Only the root filesystem survives sleep and wake.",
       "note": "The whole disk survives a stop, installed packages included.",
-      "checked": "2026-10-01"
+      "checked": "2026-11-08"
+    },
+    "nested_virt": {
+      "value": null,
+      "source": "https://docs.dedaluslabs.ai/llms.txt",
+      "quote": "Open temporary Secure Shell (SSH) access.",
+      "note": "The product docs do not document /dev/kvm or VMs inside a machine. The marketing site lists \"Nested virtualization\" only as a topic keyword, not as a product claim.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [],

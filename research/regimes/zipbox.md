@@ -7,12 +7,13 @@ As of 2026-09-28. Official USD list fixed VM sizes, metered per second while run
 | Small | Native product usage | 2 vCPU/4 GB/80 GB at$0.0137/hour. | [Primary pricing](https://zipbox.ai/pricing) |
 | Medium | Native product usage | 4 vCPU/8 GB/160 GB at$0.0274/hour. | [Primary pricing](https://zipbox.ai/pricing) |
 | Large | Native product usage | 6 vCPU/16 GB/320 GB at$0.0548/hour. | [Primary pricing](https://zipbox.ai/pricing) |
-| Paused | Native product usage | $0; disk saved; explicit free pause. | [Primary pricing](https://zipbox.ai/pricing) |
+| Stopped | Native product usage | $0; whole disk archived to cold storage; start restores it. No named snapshots or templates. | [Lifecycle](https://zipbox.ai/docs/lifecycle.md) |
 | Prepaid pay as you go | Account plan | $0/month; Positive balance to boot; card top-ups; optional/automatic saved-card top-up; no published monthly subscription fee. | [Primary pricing](https://zipbox.ai/pricing) |
 ## Gotchas
 - Displayed $5/$10/$20/$40 monthly equivalents are not stated as billing caps or always-on discounts; use hourly rates.
-- Pause saves disk; does not establish full running-memory snapshot retention.
-- 50 concurrent capacity, max session length, egress charge and public IPv 4 pricing not published.
+- Stop (formerly pause) saves the whole disk; no memory state.
+- An account holds 250 machine names for life, deleted boxes included; support raises it ([machine limit](https://zipbox.ai/docs/machine-limit.md)). A limit on boxes running at once, max session length, egress charge and public IPv4 pricing are not published.
+- Since 2026-10-21: REST API, four SDKs, CLI and hosted MCP drive boxes and commands ([API](https://zipbox.ai/docs/api)).
 - LLM/API calls using platform keys draw the same credit balance and are additional; own model subscriptions separate.
 - Credits prepaid/nonrefundable; signup 25 USD requires human verification.
 - No independent runtime/account test or performance measurement performed.

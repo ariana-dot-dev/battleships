@@ -8,14 +8,16 @@ Public mobile Korea pricing rendered successfully after desktop failed. High CPU
 ## Regimes
 | Regime | When it applies | How billed | Native / USD numbers | Source |
 |---|---|---|---|---|
-| vpc-g3 | Korea VPC g3 High CPU | allocated wall time; 3600 second increment | High CPU-g3 4/8 4/8: KRW 192/h → USD 0.141391929064; month cap None | https://www.ncloud.com/product/compute/server |
+| vpc-g3 | Korea VPC g3 High CPU | allocated wall time; 3600 second increment | High CPU-g3 2/4: KRW 92/h → USD 0.067750299343; High CPU-g3 4/8: KRW 192/h → USD 0.141391929064; month cap None | https://ncloud.com/charge/region |
 | vpc-g2 | Korea VPC g2 High CPU | allocated wall time; 3600 second increment | High CPU-g2 4/8 50GB 4/8: KRW 196/h → USD 0.144337594253; month cap None | https://www.ncloud.com/product/compute/server |
-| monthly | Monthly contract | See rule | g3 High CPU 4/8 KRW 138240/month; g2 with 50 GB KRW 141120/month. Partial month daily proration; not automatic caps. | https://www.ncloud.com/product/compute/server |
+| monthly | Monthly contract | See rule | g3 High CPU 2/4 KRW 66240/month; g3 High CPU 4/8 KRW 138240/month; g2 with 50 GB KRW 141120/month. Partial month daily proration; not automatic caps. | https://www.ncloud.com/product/compute/server |
 | free-tier | Micro-g3 | See rule | One-year trial only for Korean-resident accounts; not applicable to 4/8. | https://www.ncloud.com/product/compute/server |
 ## Gotchas
 - Mobile catalog has no explicit current-generation availability date; confirm SKU in portal.
 - Do not apply Korea prices to Singapore, Japan, US or Germany.
-- Stopped-state charges and 50-instance quota not verified.
+- A stopped server bills only the basic OS disk fee. It can stay stopped up to 90 days per stop and 180 days in 12 months (https://guide.ncloud-docs.com/docs/en/server-spec-vpc, checked 2026-11-08).
+- The public docs do not state the default server quota; each account sees it in the console Quota Status list.
+- The price pages render with JavaScript; the 2/4 price comes from the indexed regional price page (2026-11-08). Confirm in the price calculator.
 - Unknowns remain null, not free; generic infrastructure modes are opt-in alt.
 - Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.
 - VAT basis: Displayed Korea catalog excludes VAT.
@@ -30,4 +32,6 @@ Public mobile Korea pricing rendered successfully after desktop failed. High CPU
 ## Sources
 - https://www.ncloud.com/product/compute/server
 - https://guide.ncloud-docs.com/docs/ja/server-spec-vpc
-- https://m.ncloud.com/charge/price/ko
+- https://www.ncloud.com/charge/price/ko
+- https://ncloud.com/charge/region
+- https://guide.ncloud-docs.com/docs/en/server-spec-vpc

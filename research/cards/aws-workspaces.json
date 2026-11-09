@@ -253,7 +253,7 @@
       "min_billed_seconds": 0,
       "start_fee": 0,
       "multiplier": 1,
-      "note": "Ubuntu (22.04/24.04) bundles, root 80 GB + user 10 GB. Amazon Linux bundles are $2/month cheaper (Value $21, Standard $29, Performance $41, Power $66, PowerPro $123). RHEL is +$1 over Amazon Linux-ish (Standard $32) and Rocky Standard is $30. Ubuntu GeneralPurpose 16/64 $284 and 32/128 $568 exist only in us-east-2 and ap-southeast-5 in the price JSON.",
+      "note": "Ubuntu (22.04/24.04/26.04) bundles, root 80 GB + user 10 GB. Ubuntu 24.04 and 26.04 have no Value bundle (Value is on Ubuntu 22.04, Rocky 8 and RHEL 8). RHEL Standard is $32 and Rocky Standard is $30. Amazon Linux 2 bundles reached end of life on 2026-06-30 and are not priced here. Ubuntu GeneralPurpose 16/64 $284 and 32/128 $568 exist only in us-east-2 and ap-southeast-5 in the price JSON.",
       "features": {
         "systemd": true
       }
@@ -319,7 +319,7 @@
       "start_fee": 0,
       "boot_overhead_s": 90,
       "multiplier": 1,
-      "note": "Same mechanics as the Windows AutoStop mode: partial hours are billed as full hours, there is a 60-min default idle tail after disconnect, and the fixed monthly fee is charged even if the desktop is never used. Amazon Linux hourly is $0.17/0.26/0.43/0.64/1.49.",
+      "note": "Same mechanics as the Windows AutoStop mode: partial hours are billed as full hours, there is a 60-min default idle tail after disconnect, and the fixed monthly fee is charged even if the desktop is never used. AutoStop billing stops when the AutoStop Time expires (official).",
       "features": {
         "systemd": true
       }
@@ -411,7 +411,7 @@
       "min_billed_seconds": 0,
       "start_fee": 0,
       "multiplier": 1,
-      "note": "The GPU quota for every Graphics bundle defaults to 0 per Region, so a quota ticket is required. AutoStop variants: g6f.large $20/month + $0.54/h, g4dn $22 + $1.54/h, g6.xlarge $20 + $1.80/h, g7.2xlarge $38.46 + $5.77/h (JSON shows $42.14 fee for us-east-1). G7 is only in us-east-1/us-east-2/us-west-2. No hibernation on AutoStop for GPU bundles. Full list (Gr6, g6.8x/16x, g7.4x-12x) is in raw/aws-workspaces-daas-pricing.txt.",
+      "note": "The GPU quota for every Graphics bundle defaults to 0 per Region, so a quota ticket is required. AutoStop variants: g6f.large $20/month + $0.54/h, g4dn $22 + $1.54/h, g6.xlarge $20 + $1.80/h, g7.2xlarge $38.46 + $5.77/h (JSON shows $42.14 fee for us-east-1). G7 (RTX PRO 4500 Blackwell) is only in us-east-1, us-east-2, us-west-2 and eu-central-1. No hibernation on AutoStop for GPU bundles. Full list (Gr6, g6.8x/16x, g7.4x-12x) is in raw/aws-workspaces-daas-pricing.txt.",
       "features": {
         "nested_virt": false
       }
@@ -607,15 +607,20 @@
     "CORRECTION vs sweep: Standard 2 vCPU/4 GB is $33/mo AlwaysOn (not $31) and $7.25/mo + $0.30/h AutoStop (not $0.28/h), per AWS's official WorkSpaces price JSON fetched 2026-09-28.",
     "AutoStop monthly fee (month_fee_per_instance) is not an engine field: add $7.25 (or $9.75/$19 for bigger storage) per desktop per month by hand.",
     "No 4 vCPU / 8 GB bundle: 4 vCPU needs Power (16 GB).",
-    "Provisioning takes ~20+ min; AutoStop resume ~1-2 min; seat/desktop-oriented DaaS, not an API sandbox. No agent API.",
+    "Provisioning takes ~20+ min; AutoStop resume ~1-2 min; seat/desktop-oriented DaaS, not an API sandbox. WorkSpaces Personal has no agent or screen-control API and no preinstalled coding agents.",
+    "Separate AWS product, not encoded: Amazon WorkSpaces for AI agents (GA 2026-06-30). Your own agent connects to an AWS-managed MCP endpoint to see the screen, click and type in a WorkSpaces Applications desktop. It is billed per second of active session time plus the WorkSpaces Applications streaming-instance hour, with 10 free session hours per Region each month (https://aws.amazon.com/workspaces/ai-agents/faqs/, https://aws.amazon.com/about-aws/whats-new/2026/06/amazon-workspaces-ai/). It does not apply to WorkSpaces Personal desktops priced on this card.",
+    "Windows licence: Windows Server 2016-2025 bundles include the licence; Windows 10 and 11 are BYOL only (https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html). The Windows modes on this card are the licence-included Windows Server bundles.",
     "Office/Visual Studio application bundles, BYOL Windows 10/11 and WorkSpaces Pools/Core not encoded.",
     "Network egress for streaming is included; internet egress from the VPC (NAT etc.) is normal AWS data transfer, not encoded (null).",
     "Not encoded: (1) Windows BYOL, $4 cheaper per month on the small bundles (Value $21, Standard $29, Performance $41, Power $66, PowerPro $123, GP $272/$544 AlwaysOn; hourly $0.17/0.26/0.43/0.64/1.49/2.20/4.40). It requires a minimum of 50 WorkSpaces per Region per month (GPU: 4 AlwaysOn or 20 AutoStop) on dedicated hardware, enabled via account manager or ticket, with a 6-month grace period. (2) WorkSpaces Pools: closed to new customers since July 31, 2026. (3) WorkSpaces Core bundles: BYOL-only, via a VDI partner. (4) Office/Visio/Project/Visual Studio add-ons ($8.77-$304.15/month), charged monthly even on AutoStop.",
-    "Nested virtualization is opt-in per WorkSpace, DCV/BYOP only, and not available on the Value bundle (1 vCPU / 2 GB), GPU bundles, Windows Server 2016/Windows 10/Amazon Linux 2, or in Israel (Tel Aviv). The GPU mode is set to false; the Value size in the other modes cannot be excluded per size, so nested_virt reads true for it (checked 2026-10-14, https://docs.aws.amazon.com/workspaces/latest/adminguide/nested-virtualization.html)."
+    "Docker Engine runs on Linux WorkSpaces without nested virtualization. Nested virtualization (needed for Docker Desktop, WSL2, Hyper-V and KVM) is opt-in per WorkSpace, DCV/BYOP only, and not available on the Value bundle (1 vCPU / 2 GB), GPU bundles, Standby WorkSpaces, Windows Server 2016/Windows 10/Amazon Linux 2, or in Israel (Tel Aviv). With nested virtualization on, Windows Server 2025 and Windows 11 24H2-26H2 do not hibernate on AutoStop. The GPU mode is set to false; the Value size in the other modes cannot be excluded per size, so nested_virt reads true for it (checked 2026-10-14, https://docs.aws.amazon.com/workspaces/latest/adminguide/nested-virtualization.html)."
   ],
   "sources": [
     "https://aws.amazon.com/workspaces/desktop-as-a-service/pricing/",
-    "https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/workspaces/USD/current/workspaces.json"
+    "https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/workspaces/USD/current/workspaces.json",
+    "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html",
+    "https://docs.aws.amazon.com/workspaces/latest/adminguide/running-mode.html",
+    "https://aws.amazon.com/workspaces/ai-agents/faqs/"
   ],
   "fleet": {
     "default_max_instances": 1,
@@ -625,13 +630,13 @@
     "raise_time_days": null,
     "verification": "Personal details, email and phone; payment card may be required.",
     "tiers": null,
-    "notes": "Default quota is 1 WorkSpace per Region (adjustable). GeneralPurpose.4xlarge/8xlarge: 1 each. Every Graphics bundle (g4dn, g6*, gr6*, g6f*, g7*): 0. Standby: 5. Custom images: 40. WorkSpaces API throttling: 2 calls per second. You can resize up only once per 6 h and down once per 30 days. Use Service Quotas to request increases; applied quota and regional availability must be checked.",
+    "notes": "Default quota is 1 WorkSpaces Personal desktop per Region (adjustable). Other WorkSpaces products have other defaults: WorkSpaces Core Managed Instances 1,000 per Region, WorkSpaces Pools 10 pools (closed to new customers). GeneralPurpose.4xlarge/8xlarge: 1 each. Every Graphics bundle (g4dn, g6*, gr6*, g6f*, g7*): 0. Standby: 5. Custom images: 40. WorkSpaces API throttling: 2 calls per second. You can resize up only once per 6 h and down once per 30 days. Use Service Quotas to request increases; applied quota and regional availability must be checked.",
     "sources": [
       "https://docs.aws.amazon.com/workspaces/latest/adminguide/workspaces-limits.html",
       "https://docs.aws.amazon.com/general/latest/gr/wsp.html",
       "https://aws.amazon.com/free/complete-signup/"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 13,
@@ -639,12 +644,19 @@
     "reviewed": 9
   },
   "feature_evidence": {
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html",
+      "quote": "If you require nested virtualization for running Docker Desktop, WSL2, or other hypervisor-dependent tools, migrate your WorkSpace to a newer operating system version (Windows Server 2019 or later).",
+      "note": "Docker Engine runs on Linux WorkSpaces without nested virtualization. Docker Desktop and WSL2 on Windows need nested virtualization (not on Value, GPU, Standby, Windows Server 2016 or Windows 10).",
+      "checked": "2026-11-08"
+    },
     "snapshot_auto": {
       "value": true,
       "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/running-mode.html",
       "quote": "When the WorkSpaces support hibernation, the state of the desktop is saved to the root volume of the WorkSpace. The WorkSpace resumes when a user logs in. All open documents and running programs return to their saved state",
       "note": "AutoStop running mode only: triggered by the AutoStop timeout after disconnect (default 1 h) or a manual Stop; hibernation includes memory (running programs). Not for GPU bundles, GeneralPurpose.4xlarge/8xlarge, or Windows Server 2025 / Win11 24H2+ with nested virtualization. AlwaysOn never stops. Separately, automatic root+user volume snapshots every 12 h are used for Restore/Rebuild (scheduled backups, not this feature).",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -657,8 +669,8 @@
       "value": false,
       "source": "https://docs.aws.amazon.com/workspaces/latest/api/API_Operations.html",
       "quote": null,
-      "note": "WorkSpaces API covers desktop lifecycle, images, bundles, IP groups, directories and pools only; no agent/harness operations. Seat-oriented DaaS.",
-      "checked": "2026-09-29"
+      "note": "The WorkSpaces Personal API covers desktop lifecycle, images, bundles, IP groups, directories and pools. It has no operation to send a prompt to a coding agent. The separate product Amazon WorkSpaces for AI agents (GA 2026-06-30, on WorkSpaces Applications) gives your own agent an MCP endpoint for screen, click and type; it does not run or steer coding agents (https://aws.amazon.com/workspaces/ai-agents/faqs/).",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": true,
@@ -687,8 +699,8 @@
       "value": false,
       "source": "https://aws.amazon.com/workspaces/desktop-as-a-service/pricing/",
       "quote": "WorkSpaces Personal provides persistent virtual desktops for users such as developers, knowledge workers, and others who need to install applications, save files and data, and retain settings on their desktops for a personalized desktop experience.",
-      "note": "not offered: outside the product's scope. WorkSpaces Personal is a persistent Windows/Linux virtual desktop for human users, not an API-driven sandbox; there is no first-party proxy that injects HTTP/API credentials into the guest on a caller's behalf. Any credentials a user has (AD/IAM, application secrets) are configured inside the guest OS or via directory/AD integration, not via a secret-injecting network proxy. Checked the admin guide, API operations index, and VPC/networking pages; no credential-injection/secrets-proxy feature is documented anywhere.",
-      "checked": "2026-10-14"
+      "note": "No first-party proxy injects HTTP/API credentials for apps or agents inside the desktop; secrets are set inside the guest OS or through directory/AD integration. With the separate product Amazon WorkSpaces for AI agents, your agent runs outside the desktop and connects through an MCP endpoint (streaming URL or SAML), so its own model keys need not enter the desktop; that is an outcome of the design, not a credential proxy (https://aws.amazon.com/workspaces/ai-agents/faqs/).",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": false,
@@ -757,15 +769,15 @@
       "value": false,
       "source": "https://docs.aws.amazon.com/workspaces/latest/api/API_Operations.html",
       "quote": null,
-      "note": "not offered: outside the product's scope. The WorkSpaces API only covers desktop lifecycle, images/bundles, IP groups, directories and pools — there is no first-party browser/computer-use/research agent API.",
-      "checked": "2026-09-30"
+      "note": "AWS runs no agent of its own on WorkSpaces Personal. The WorkSpaces API covers desktop lifecycle, images/bundles, IP groups, directories and pools. Amazon WorkSpaces for AI agents (separate product, GA 2026-06-30) is infrastructure for your own agent, not an AWS-run agent.",
+      "checked": "2026-11-08"
     },
     "mcp_server": {
       "value": false,
       "source": "https://docs.aws.amazon.com/workspaces/latest/api/API_Operations.html",
       "quote": null,
-      "note": "No MCP server shipped by AWS for controlling Amazon WorkSpaces was found in the WorkSpaces docs, API reference, or GitHub org (aws/aws-sdk / AWS Labs MCP servers cover other services, not WorkSpaces).",
-      "checked": "2026-09-30"
+      "note": "WorkSpaces Personal has no MCP server. The separate product Amazon WorkSpaces for AI agents (GA 2026-06-30) has an AWS-managed MCP endpoint, but only for WorkSpaces Applications desktops: \"Agents connect through a standard Model Context Protocol (MCP) endpoint\" (https://aws.amazon.com/workspaces/ai-agents/faqs/). A separate card would be needed to rank that product.",
+      "checked": "2026-11-08"
     },
     "lang_python": {
       "value": false,
@@ -828,8 +840,8 @@
       "value": false,
       "source": "https://aws.amazon.com/workspaces/",
       "quote": "WorkSpaces Desktop as a Service (DaaS) — Secure cloud desktops that scale instantly across any device",
-      "note": "WorkSpaces is a human-facing virtual desktop (streamed via PCoIP/DCV to a client app); there is no agent/computer-use API to programmatically observe the screen and drive mouse/keyboard, and the WorkSpaces API (lifecycle, images, bundles, directories, pools) has no such operation.",
-      "checked": "2026-09-30"
+      "note": "WorkSpaces Personal streams the desktop to a person (PCoIP/DCV); its API has no operation to read the screen or drive mouse and keyboard. The separate product Amazon WorkSpaces for AI agents (GA 2026-06-30) does this for WorkSpaces Applications desktops: agents connect through an MCP endpoint, \"seeing the screen, clicking, and typing the way a human would\" (https://aws.amazon.com/workspaces/ai-agents/faqs/). It is billed per second of session time plus the streaming-instance hour, so it is not priced on this card.",
+      "checked": "2026-11-08"
     },
     "volumes": {
       "value": false,
@@ -857,15 +869,15 @@
       "value": false,
       "source": "https://docs.aws.amazon.com/workspaces/latest/api/API_Operations.html",
       "quote": null,
-      "note": "The WorkSpaces API surface (browsed at this operations index) covers only desktop/directory/bundle/image/pool lifecycle calls; there is no agent-harness registration, execution, or orchestration API, and no first-party CLI-agent integration is documented anywhere in the admin guide.",
-      "checked": "2026-09-30"
+      "note": "No coding agents (Claude Code, Codex, etc.) come preinstalled in public bundles, and no harness API is documented. You can install any agent yourself on the desktop, as on any VM. WorkSpaces for AI agents works with your own MCP-capable agent framework (LangChain, CrewAI, Strands) but ships no harness.",
+      "checked": "2026-11-08"
     },
     "macos": {
       "value": false,
       "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html",
-      "quote": "WorkSpaces supports several different operating systems (OS)... Windows Server 2016... Windows Server 2019... Windows Server 2022... Windows Server 2025... Windows 10... Windows 11... Amazon Linux 2... Ubuntu 22.04 LTS... Ubuntu 24.04 LTS... Rocky Linux 8... Rocky Linux 9... Red Hat Enterprise Linux 8... Red Hat Enterprise Linux 9",
-      "note": "The full official list of supported WorkSpace operating systems is Windows and several Linux distributions only; macOS is not offered as a WorkSpace guest OS (macOS appears only as a supported *client* OS for connecting, per the networking page).",
-      "checked": "2026-09-30"
+      "quote": "WorkSpaces supports several different operating systems (OS)... Windows Server 2016... Windows Server 2019... Windows Server 2022... Windows Server 2025... Windows 10... Windows 11... Amazon Linux 2 (deprecated)... Ubuntu 22.04 LTS... Ubuntu 24.04 LTS... Ubuntu 26.04 LTS... Rocky Linux 8... Rocky Linux 9... Rocky Linux 10... Red Hat Enterprise Linux 8... Red Hat Enterprise Linux 9... Red Hat Enterprise Linux 10",
+      "note": "Guest OS list: Windows Server 2016-2025 (licence included), Windows 10 and 11 (BYOL), Ubuntu 22.04-26.04, Rocky Linux 8-10, RHEL 8-10. Amazon Linux 2 reached end of life on 2026-06-30. macOS is not a WorkSpace guest OS (only a client OS for connecting).",
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": false,
@@ -915,8 +927,8 @@
       "value": true,
       "source": "https://docs.aws.amazon.com/workspaces/latest/adminguide/nested-virtualization.html",
       "quote": "Nested virtualization allows you to run hypervisors such as Hyper-V and KVM inside your WorkSpace.",
-      "note": "Opt-in per WorkSpace (Enable Nested Virtualization at creation or via Actions; WorkSpace goes to Modifying). Requires DCV (WSP) or BYOP, not PCoIP. \"Most non-GPU bundle sizes (Standard, Performance, Power, PowerPro, GeneralPurpose). The Value bundle is not supported.\" OS: Windows Server 2019+, Windows 11, Ubuntu 22.04+, RHEL 8+, Rocky 8+; \"WorkSpaces based on Windows Server 2016, Windows 10, and Amazon Linux 2 do not support nested virtualization.\" Not in China (Ningxia) or Israel (Tel Aviv). No extra cost. GPU mode overridden to false.",
-      "checked": "2026-10-14"
+      "note": "Opt-in per WorkSpace (Enable Nested Virtualization at creation or via Actions; WorkSpace goes to Modifying). Requires DCV (WSP) or BYOP, not PCoIP. \"Most non-GPU bundle sizes (Standard, Performance, Power, PowerPro, GeneralPurpose). The Value bundle is not supported.\" OS: Windows Server 2019+, Windows 11, Ubuntu 22.04+, RHEL 8+, Rocky 8+; \"WorkSpaces based on Windows Server 2016, Windows 10, and Amazon Linux 2 do not support nested virtualization.\" Not in China (Ningxia) or Israel (Tel Aviv), not on Standby WorkSpaces. No extra cost. GPU mode overridden to false. Docker Engine on Linux WorkSpaces does not need nested virtualization.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [

@@ -7,10 +7,16 @@ regular CPX, dedicated CCX), the region group (EU / US / Singapore), when the se
 before 2026-06-15), and add-ons (IPv4, backups, snapshots, volumes, traffic overage).
 All $ figures are Hetzner's own **USD list prices**, for accounts whose currency is USD. EUR accounts pay the EUR
 list, which is not an FX conversion (e.g. CPX32 EU €0.0569/h, cap €35.49). An account's currency cannot be changed.
-Prices exclude VAT and IPv4. Source for every server price is the official 15 June 2026 price-adjustment table:
-https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/ (last changed 2026-07-08).
-4 vCPU / 8 GiB reference: CX33 EU $0.0160/h (out of stock) · CAX21 EU $0.0200/h (arm64, out of stock) ·
-**CPX32 EU $0.0673/h (cap $41.99)** · CPX31 US $0.1178/h · CPX32 SIN $0.0929/h · CCX23 (4/16, dedicated) EU $0.1626/h.
+Prices exclude VAT and IPv4. Source for every server price is Hetzner's 15 June 2026 price-adjustment table. The
+docs page that held it now returns 404 (checked 2026-11-08). The change itself is confirmed at
+https://www.hetzner.com/pressroom/standardization-and-price-adjustment-of-our-server-products/ (new prices for new
+orders and rescales; existing contracts keep their terms). On 2026-11-08 hetzner.com shows CPX32 EU €35.99/month and
+€0.0577/h incl. IPv4, which matches the table.
+**Availability (2026-11-08):** hetzner.com marks every CX, CAX, CPX and CCX type "This product is currently
+unavailable. Please check back later." Hetzner's status page lists "Limited availability of cloud instances" since
+2026-06-26. On 2026-09-28 only CX and CAX showed this.
+4 vCPU / 8 GiB reference: CX33 EU $0.0160/h · CAX21 EU $0.0200/h (arm64) · **CPX32 EU $0.0673/h (cap $41.99)** ·
+CPX31 US $0.1178/h · CPX32 SIN $0.0929/h · CCX23 (4/16, dedicated) EU $0.1626/h. All are marked unavailable today.
 ## Regime table
 | Regime | When it applies | How billed | Numbers (USD, current = since 2026-06-15) | Source |
 |---|---|---|---|---|
@@ -26,14 +32,14 @@ https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustmen
 | Every-started-hour rounding | Always | ceil(hours) per server; cap reached at about cap/hourly ≈ 624 h | 5-minute server = 1 h. CPX32: 1 h = $0.0673 | billing FAQ |
 | Monthly cap (automatic always-on discount) | Server exists more than ~624 h in the month | Pays the cap instead of 730 × hourly | CPX32 $41.99 vs 730 × 0.0673 = $49.13 (−14.5%) | billing FAQ |
 | Powered off | Server stopped but not deleted | **Billed 100%** (resources stay allocated) | same as running | billing FAQ |
-| Snapshot + delete | Long idle | Snapshot billed per **compressed** GB-month, pro-rata; server not billed after deletion | €0.0143/GB-mo (**third-party only**: costgoat.com); USD rate not found on official pages. Default limit 30 snapshots | billing FAQ; https://costgoat.com/pricing/hetzner |
+| Snapshot + delete | Long idle | Snapshot billed per **compressed** GB-month, pro-rata; server not billed after deletion | $0.0199 / €0.0143 per GB-month (Hetzner price API, confirmed on hetzner.com 2026-09-29). Default limit 30 snapshots | billing FAQ; https://website-price-api.hetzner.com/api/v1/products/CLOUD_24 |
 | Backups | Opt-in per server | Flat **+20% of the server price**, 7 daily slots, deleted with the server | CPX32 kept all month: +$8.40 | billing FAQ |
 | Primary IPv4 | Any server with public IPv4 | Per existing IP, even unassigned; hourly with monthly cap | **$0.0010/h, cap $0.60/mo** (€0.0008/h, €0.50/mo). IPv6 free | https://docs.hetzner.com/general/infrastructure-and-availability/ipv4-pricing/, https://docs.hetzner.com/cloud/servers/primary-ips/overview/ |
 | IPv6-only / private-only server | No inbound IPv4 needed | Omit the Primary IPv4 at creation | Saves $0.60/server-month | primary-ips overview; billing FAQ |
 | Floating IPs | Failover addresses | Monthly, pro-rata | IPv4 $3.50/mo (€3.00), IPv6 $1.50/mo (€1.00) | ipv4-pricing page |
 | Included traffic | Per server per month, outgoing only; ingress + same-zone free | Pooled? Not stated; given per server | EU: CX/CAX/CPX 20 TB; CCX 20/20/30/40/50/60 TB. US: CPX 1/2/3/4/5 TB; CCX 1/2/3/4/6/8 TB. SIN: CPX 0.5/1/2/3/4/5 TB; CCX 1/2/3/4/6/8 TB | product pages (rendered 2026-09-28); https://docs.hetzner.com/robot/general/traffic/ |
 | Traffic overage | Beyond the included amount, 100 MB blocks | Per TB | EU/US **€1 ($1.20)/TB** (Hetzner traffic doc). Singapore **$8.49/TB** (official SIN page; costgoat says €7.40 / $8.72, which conflicts on USD) | https://docs.hetzner.com/robot/general/traffic/, https://www.hetzner.com/cloud-singapore/ |
-| Volumes (block storage) | Extra disk, up to 10 TB | Per GB-month | €0.0572/GB-mo (**third-party only**, costgoat); USD unknown | costgoat |
+| Volumes (block storage) | Extra disk, up to 10 TB | Per GB-month | $0.0767 / €0.0572 per GB-month (Hetzner price API) | https://website-price-api.hetzner.com/api/v1/products/CLOUD_23 |
 ### The two 2026 price increases
 1. **2026-04-01** (announced 2026-02-23): "price changes will affect both existing products and new orders"
    (https://www.hetzner.com/pressroom/statement-price-adjustment/). The official statement has no table. Third
@@ -47,21 +53,23 @@ https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustmen
 ## Gotchas
 1. **Hourly rounding kills short sessions.** Hetzner has no per-second billing. A 2-minute CI or agent run pays a full hour, so 100 short sandboxes a day means 100 billed hours. Reusing a pool of long-lived servers is the only efficient pattern.
 2. **Stopping does not stop billing.** Powered-off servers are billed like running ones. To pause cost you must snapshot, delete, and later recreate from the snapshot. Then you pay the snapshot storage, and recreating takes boot time plus a new hour.
-3. **The cheap line is out of stock.** CX and CAX (the "$4-10/month" Hetzner people quote) all showed "not available" on 2026-09-28. Hetzner describes their supply as limited. What you can actually order today is CPX (4.2x CX33's price for 4/8 in EU) or CCX.
+3. **Every line shows as unavailable.** On 2026-11-08 hetzner.com marked every CX, CAX, CPX and CCX type "currently unavailable". On 2026-09-28 only CX and CAX did. Hetzner's status page lists "Limited availability of cloud instances" since 2026-06-26. Restock timing is not published.
 4. **The June 2026 hike roughly tripled CPX/CCX, but not for existing servers.** Legacy servers keep the April price until you rescale them. Rescaling even *down* moves them to the new price, so resizing old servers is expensive.
 5. **The region changes the price a lot.** 4 vCPU/8 GB shared costs $0.0673 (EU), $0.0929 (SIN) or $0.1178 (US). In the US, dedicated CCX23 (4/16) at $0.1650 is only 40% more than shared CPX31. US sizes differ too (CPX21 = 3 vCPU).
 6. **Included traffic is regional.** EU servers get 20 TB each, US CPX 1-5 TB, SIN 0.5-5 TB. Singapore overage is $8.49/TB, about 7x EU/US.
 7. **IPv4 costs extra.** Price tables exclude IPv4 ($0.60/month), and the IP is billed even when unassigned. Hetzner product pages show "Price incl. IPv4", so a product page and a docs table can disagree by $0.60.
 8. **Currency is locked at signup.** EUR and USD lists are separate price points, not FX. Moving a legacy server to a project in another currency triggers the new price.
-9. **Snapshot and volume prices did not render on official pages** (JS). The €0.0143 and €0.0572/GB-month figures are third-party. Snapshots are billed on compressed size.
+9. **Snapshot and volume prices come from Hetzner's own price API** ($0.0199 and $0.0767 per GB-month). Snapshots are billed on compressed size.
 10. **No hard spend cap.** Cost alerts and traffic notifications (75%/100%) are informational only.
-11. **Default resource limits per project** (server count) must be raised by support ticket before running 50 servers. Exact defaults were not verified.
+11. **Per-account resource limits.** Hetzner sets limits per account, not per project. The Limits tab of the Console shows them; the numbers are not published. A raise is a support request that Hetzner reviews by hand during business hours (https://docs.hetzner.com/cloud/general/faq/).
+12. **Snapshots are yours to take, Backups are automatic.** Create snapshots in the Console, with the hcloud CLI or through the Cloud API, so you can script and schedule them. Backups are automatic daily copies (+20% of the server price, 7 slots). Nothing snapshots on stop.
 ## Worked example
 Workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days = **8,800 server-hours**, 30% CPU (irrelevant:
 allocated billing), 50 GiB snapshots retained, 100 GiB egress (inside every region's included traffic, so $0).
 "Delete after shift" means 50 servers are created each morning from a snapshot and deleted at night, which assumes
 the project limit has been raised to 50 servers. IPv4 is created with each server, so 8,800 h × $0.0010 = $8.80.
-Snapshots: 50 GiB × €0.0143 ≈ €0.72/month (third-party rate).
+Snapshots: 50 GiB × $0.0199 ≈ $1.00/month. On 2026-11-08 every line below shows as "currently unavailable" on
+hetzner.com, so "Yes" means the regime applies when Hetzner has stock, not that you can order it today.
 | Regime | Feasible? | Monthly total (USD, excl. VAT) |
 |---|---|---|
 | CPX32 EU, delete after shift, exactly 8 billed h/day | Yes | 8,800 × 0.0673 = $592.24 + $8.80 IPv4 = **$601.04** (+ ~€0.72 snapshots) |

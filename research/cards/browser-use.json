@@ -39,7 +39,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Plus bandwidth; proxy enabled by default. Running browser remains billable after agent run/CDP disconnect. Unspecified guest OS is not a selectable OS guarantee. Credits for the requested timeout (default 60 min, max 240) are reserved at creation and unused time refunded at stop; final charge rounded up to whole minute, 1-min min. Top-ups $5-$100,000 whole dollars, presets $100/$500/$1,000. API-key monthly spend caps are soft limits. EU (Frankfurt) deployment: same billing/balance, EU-only proxy countries (default de), automatic CAPTCHA solving disabled, standalone custom proxy unavailable."
+      "note": "Plus bandwidth; proxy enabled by default. Running browser remains billable after agent run/CDP disconnect. Unspecified guest OS is not a selectable OS guarantee. Credits for the requested timeout (default 60 min, max 240) are reserved at creation and unused time refunded at stop; final charge rounded up to whole minute, 1-min min. Top-ups $5-$100,000 whole dollars, presets $100/$500/$1,000. API-key monthly spend caps are soft limits. EU (Frankfurt) deployment: same billing/balance, EU-only proxy countries (default de), automatic CAPTCHA solving and response caching disabled, standalone custom proxy unavailable; schedules, webhooks, 1Password/secret bindings, judge evaluation and hosted web search unavailable; Anthropic, Gemini, DeepSeek and GLM agent models unavailable."
     }
   ],
   "storage": {
@@ -86,7 +86,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Requires $200 qualifying lifetime payments per pricing page and pricing.md ('Tier 1 | $200 | 50'); concurrency docs and docs llms.txt still say $100 (conflict persists 2026-10-14: pricing page \"$ 200 50\" vs concurrency.md \"| \\$100 | 50 |\" and \"10 / 50 / 250 / 500 / 1000 at $0 / $100 / $1000 / $5000 / $25000\"). Not a monthly fee."
+      "note": "Requires $100 of net settled lifetime payments. The pricing page (\"$100 total paid\", FAQ \"$100 gets 50\") and the concurrency docs agree (checked 2026-11-08). Not a monthly fee."
     },
     {
       "name": "Spend tier 250",
@@ -173,7 +173,7 @@
     "browser": true,
     "desktop": false,
     "computer_use": true,
-    "code_interpreter": null,
+    "code_interpreter": "diy",
     "agent_harnesses": false,
     "ssh": false,
     "public_ipv4": false,
@@ -220,7 +220,9 @@
     "egress_http_rules": false,
     "eu_data_residency": true,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "folder",
+    "persist_path": "agent /workspace (950 MiB upload quota)"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -234,11 +236,12 @@
     "Browser RAM is not published unless a specific mode overrides it.",
     "No current Dev/Business/Scaleup subscriptions offered; older comparisons are obsolete for new buyers. Legacy concurrency grants can be preserved.",
     "Concurrency is lifetime purchased-credit spend, not monthly fee. Card cannot enforce a historical spend gate; the zero-fee higher tiers must not be auto-selected without checking account qualification.",
-    "Pricing page says $200 lifetime spend unlocks 50 sessions; docs says $100. Keep both and inspect account grant before purchasing solely for concurrency.",
-    "V 4 agent browsers have four-hour hard timeout and roughly 20-minute idle cleanup after inactive runs. An eight-hour single session is not valid for that product; standalone browser limits may differ.",
-    "No 4/8 guarantee; model prices are separate token meters, not compute. Managed token prices already include the 20% fee; do not add it twice.",
+    "V4 agent browsers have a four-hour hard timeout. After the last run activity in a session, they stop in about 2 minutes (2-3 min in practice); the run keepAlive setting (120-14,400 s) extends this, and idle kept-alive time is billed as browser time. An eight-hour single session is not valid for that product; standalone browser limits may differ.",
+    "No 4/8 guarantee; model prices are separate token meters, not compute. Managed models have listed per-model token prices (bu-ultrafast: $0.006 per median task, $0.24/$1.20 per 1M input/output tokens). Bring-your-own-key costs the provider price plus 0.2x.",
     "Browser create API reserves the full requested runtime amount up front, refunding unused duration at stop proportionally; final billing remains rounded up to whole minutes. A prepaid wallet must cover the initial reservation.",
-    "V4 per-run spend caps scale per model up to $100 (changelog 2026-08-10); x402 (USDC on Base) pay-per-request top-ups from $0.01 to $100 with no account; BYOK cache-read overcharge fixed 2026-08-24."
+    "V4 per-run spend caps scale per model up to $100 (changelog 2026-08-10); x402 (USDC on Base) pay-per-request top-ups from $0.01 to $100 with no account; BYOK cache-read overcharge fixed 2026-08-24.",
+    "Each hosted V4 agent runs in its own Unikraft micro-VM. The agent can write and run Python and shell commands and save files in its /workspace (1 GiB persistent agent disk, 950 MiB upload quota). The user gets no direct shell, root or Docker in it.",
+    "Browser Harness (free, MIT) lets external coding agents drive a local Chrome or Browser Use cloud browsers ($0.02/hour) over CDP."
   ],
   "sources": [
     "https://browser-use.com/pricing",
@@ -246,7 +249,10 @@
     "https://docs.browser-use.com/cloud/guides/billing",
     "https://docs.browser-use.com/cloud/guides/concurrency",
     "https://docs.browser-use.com/cloud/eu-deployment",
-    "https://browser-use.com/pricing/legacy"
+    "https://browser-use.com/pricing/legacy",
+    "https://docs.browser-use.com/cloud/agent/scripts",
+    "https://docs.browser-use.com/cloud/agent/workspaces.md",
+    "https://browser-use.com/posts/two-ways-to-sandbox-agents"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -255,14 +261,15 @@
     "raise": "automatic",
     "raise_time_days": null,
     "verification": "Eligible Google/GitHub/Microsoft signup gets a one-time $1 credit without card (pricing page 2026-10-14). Paid tiers use net settled lifetime Stripe payments per project; refunds, disputes and grants excluded.",
-    "tiers": "10 at $0; 50 at $200 lifetime spend on pricing page versus $100 in concurrency docs (conflict); 250 at $1,000; 500 at $5,000; 1,000 at $25,000. Custom Enterprise by contact.",
-    "notes": "Browser and agent runs share project concurrency; more API keys do not add capacity. Qualifying cumulative purchases, not monthly fee or current wallet balance. Higher legacy grants preserved. Because first threshold conflicts, confirm project Billing/API limit before buying solely to raise it; no guaranteed processing time. HTTP request limits separate from concurrency: per-project general bucket (creates/lists/updates/deletes) = max(25, 2x concurrency) RPS capped at 100 RPS; status reads max(25, 2x concurrency) uncapped; edge WAF 1,000 RPS per source IP (raised 2026-09-09). Tier 0 (10 sessions) = 25 RPS floor. Start rate is not a practical constraint at <=1,000 sessions.",
+    "tiers": "10 at $0; 50 at $100 lifetime payments; 250 at $1,000; 500 at $5,000; 1,000 at $25,000. Custom Enterprise by contact.",
+    "notes": "Browser and agent runs share project concurrency; more API keys do not add capacity. Qualifying cumulative purchases, not monthly fee or current wallet balance. Higher legacy grants preserved. Docs: a small first purchase does not automatically grant 50 sessions; the $100 threshold must be crossed. no guaranteed processing time. HTTP request limits separate from concurrency: per-project general bucket (creates/lists/updates/deletes) = max(25, 2x concurrency) RPS capped at 100 RPS; status reads max(25, 2x concurrency) uncapped; edge WAF 1,000 RPS per source IP (raised 2026-09-09). Tier 0 (10 sessions) = 25 RPS floor. Start rate is not a practical constraint at <=1,000 sessions.",
     "sources": [
       "https://browser-use.com/pricing",
       "https://docs.browser-use.com/cloud/guides/concurrency",
       "https://docs.browser-use.com/cloud/guides/billing"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-09-28",
+    "checked": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 10,
@@ -303,7 +310,7 @@
       "source": "https://docs.browser-use.com/cloud/guides/secrets.md",
       "quote": "Aliases avoid putting raw credentials in the task text. They do not guarantee that the agent cannot see the value: once typed, it is accessible to the page and to an agent with browser/CDP access.",
       "note": "V4 secretBindings / 1Password vault bindings are typed into the page server-side by alias on allowed domains (the LLM never reads the value: 'Credentials this run may use without ever seeing them'), but the real value enters the browser, so it is not a network-level credential-injecting proxy. HTTP only (form fields); no DB/SSH/git.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": false,
@@ -330,8 +337,8 @@
       "value": false,
       "source": "https://browser-use.com/pricing",
       "quote": "Browser runtime ... $0.02/browser-hour",
-      "note": "not offered: outside the product's scope. No shell/root access to the underlying machine is exposed, so containers cannot be run inside it.",
-      "checked": "2026-09-30"
+      "note": "No Docker or root is documented for the browser or for the hosted agent micro-VM. The agent can run Python and shell commands in /workspace, without root.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -349,10 +356,10 @@
     },
     "ssh": {
       "value": false,
-      "source": "https://browser-use.com/pricing",
-      "quote": "Browser runtime ... $0.02/browser-hour",
-      "note": "not offered: outside the product's scope. Access is via CDP/REST/SDK only; no SSH into the underlying machine is documented.",
-      "checked": "2026-09-30"
+      "source": "https://browser-use.com/posts/two-ways-to-sandbox-agents",
+      "quote": "Dangerous operations (code execution, terminal access) run in a separate sandbox.",
+      "note": "The user gets no SSH or shell into the browser machine; access is via CDP/REST/SDK. The hosted agent can run shell commands in its own micro-VM, but only through agent runs.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
@@ -408,7 +415,7 @@
       "source": "https://docs.browser-use.com/cloud/agent/workspaces",
       "quote": "Workspace files are synchronized to storage between runs.",
       "note": "Workspace files (up to 950 MiB) and browser profiles (cookies/localStorage/login state) persist across runs/sessions, which is the functional equivalent of a persistent disk for this product, though it is object storage rather than a literal attached disk.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
@@ -533,8 +540,8 @@
       "value": true,
       "source": "https://browser-use.com/enterprise",
       "quote": "EU data residency for browsers and agents is available to enterprise customers on request.",
-      "note": "Also reflected in the EU (Frankfurt) deployment described on the pricing/eu-deployment docs.",
-      "checked": "2026-09-30"
+      "note": "Also reflected in the EU (Frankfurt) deployment. That deployment disables schedules, webhooks, secret bindings, judge evaluation, hosted web search, CAPTCHA solving and non-OpenAI-family models (Anthropic, Gemini, DeepSeek, GLM).",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,
@@ -543,6 +550,21 @@
       "note": "granularity: per-sandbox; cost: yes; Browser Use Cloud API (V4 REST+SDK) provides session/run management (POST /runs, GET /runs/{id}/events, POST /sessions/{id}/queue, list/get/delete/share sessions) but no documented endpoint to retrieve billable usage/credits spent per sandbox/run/session. Billing is dashboard/invoice-only; no usage breakdown API.",
       "confidence": "medium",
       "checked": "2026-01-09"
+    },
+    "code_interpreter": {
+      "value": "diy",
+      "source": "https://browser-use.com/posts/two-ways-to-sandbox-agents",
+      "quote": "Agents could write and run Python, execute shell commands, create files.",
+      "how": "ask the hosted agent to write and run a Python script in its workspace micro-VM; save it and reuse it on later runs (official scripts guide, https://docs.browser-use.com/cloud/agent/scripts). Code runs through an agent run, so model tokens are billed.",
+      "effort": "medium",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "folder",
+      "source": "https://docs.browser-use.com/cloud/agent/workspaces.md",
+      "quote": "Workspace files are synchronized to storage between runs.",
+      "note": "Workspace files (950 MiB upload quota, 1 GiB agent disk) survive between runs; the scripts guide says \"The file stays. The running process does not.\" Browser profiles keep cookies and logins. Installed packages and the rest of the machine are not documented to survive.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -565,5 +587,5 @@
   ],
   "locations_source": "https://browser-use.com/pricing",
   "locations_quote": "EU (Frankfurt) deployment: same billing/balance, EU-only proxy countries (default de), automatic CAPTCHA solving disabled, standalone custom proxy unavailable.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-11-08"
 }

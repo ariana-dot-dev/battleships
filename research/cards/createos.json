@@ -310,7 +310,7 @@
     "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": false,
-    "fork_running": false,
+    "fork_running": "diy",
     "memory_snapshot_fork": true,
     "webhooks": true,
     "scheduled_wakeups": null,
@@ -343,10 +343,10 @@
   "perf": {
     "cpu_runs_s": null,
     "cold_start_ms": 74.65,
-    "burst_tti_ms": 124.89,
-    "dax_s": 50.3
+    "burst_tti_ms": 331.88,
+    "dax_s": 52.68
   },
-  "perf_source": "benchmarks.json providers.createos.computesdk: cold_start_tti median 74.65 ms (2026-08-07), burst_tti median 124.89 ms at 100 concurrency (2026-09-25), dax 50.3 s (2026-09-25, 8 vCPU / 15.64 GiB x86_64 = the s-8vcpu-16gb shape). The stale 'createos-sandbox' entry (single July 2026 run: cold start 999.51 ms, burst 1,304.53 ms) measures the same Sandbox product under an older name and is not used. No hpc CPU run.",
+  "perf_source": "ComputeSDK (each provider at its SDK default size and runtime): burst 332 ms median at 100 at once, 80% succeeded (2026-11-06); DAX clone + install + typecheck 52.68 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86); one-at-a-time start 75 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [
     {
       "id": "credit_topup_multiplier",
@@ -394,7 +394,8 @@
     "Removed Beginner/Pro annual plans ($8/$60): the only source for \"20% off annual\" is createos.nodeops.network/pricing, which is the Deploy platform (Plus $49 / Pro $149 plans); the Sandbox pricing page says no annual lock-in and publishes no annual plan.",
     "The rendered createos.nodeops.network/pricing (the CreateOS app's own subscription page, whose sidebar includes Sandbox) DOES show CPU $0.00000095/vCPU-s, Memory $0.00000036/GB-s, Storage $0.00000005/GB-s and plans Free $0 / Beginner $10 / Pro $75 / Enterprise Custom with a Monthly/Annual '20% off' toggle and an 'AI Sandbox' row. The rate cards are not labelled per product; Sandbox pages all use $0.03616363/vCPU-h. The static (non-JS) HTML only contains the Deploy SEO block (Plus $49 / Pro $149), which is probably what the 2026-09-28 check read.",
     "Bandwidth: pricing page says egress is 'Unmetered, any volume $0.00', but each sandbox has a 50 GiB default quota; when exhausted 'Networking pauses ... until it's recharged', and 'Recharge consumes account credit' (price per GiB unpublished; max 100 GiB per recharge call). Egress-heavy sandboxes (>50 GiB each) cost an unknown extra and stop networking by default.",
-    "Disk sizes are a fixed menu 10/20/30/40/50/60 GiB (grow online, never shrink), capped by plan max disk 10/30/50/60 GiB."
+    "Disk size is chosen at create (10/20/30/40/50/60 GiB menu), capped by plan max disk 10/30/50/60 GiB. Live disk resize was removed (2026-11-08 check); restore a disk snapshot into a larger new sandbox instead.",
+    "Snapshots API (checked 2026-11-08): capture a running sandbox in disk or full (memory) mode; the source freezes briefly, then keeps running. Quota is 5 snapshots per user; external disks must be detached; each restore is a new sandbox and counts against concurrency and daily create caps. Snapshot storage price not published."
   ],
   "sources": [
     "https://createos.sh/products/sandbox",
@@ -405,7 +406,8 @@
     "https://nodeops.network/createos",
     "https://raw.githubusercontent.com/NodeOps-app/createos-sandbox-sdk/main/llms-full.txt",
     "https://createos.sh/pricing/sandbox",
-    "https://createos.sh/pricing"
+    "https://createos.sh/pricing",
+    "https://createos.sh/docs/Sandbox/REST-API/Snapshots"
   ],
   "fleet": {
     "default_max_instances": 1,
@@ -440,8 +442,8 @@
       "value": true,
       "source": "https://createos.sh/docs/Sandbox/REST-API/Pause-Resume-Fork",
       "quote": "Pausing snapshots the full VM state to object storage: Disk: filesystem contents Memory: full RAM image (processes, open files, network connections) CPU state: exact register values and execution context",
-      "note": "On-demand snapshot = pause (REST POST /v1/sandboxes/{id}/pause, SDK pause(), CLI `createos sandbox pause`); memory included. The live VM is torn down while paused (no snapshot-while-running). New machines boot from it via fork: 'Clone a paused sandbox into a new, independent sandbox identity' (own id/IP/placement; any number of forks; S3 disk attachments do not carry over). No named/persistent snapshot objects or snapshot-to-template: templates are Dockerfile builds only, and the AgentBox integration page says 'CreateOS has no matching snapshot feature yet' for checkpoints. Resume keeps the same sandbox id.",
-      "checked": "2026-09-29"
+      "note": "Two on-demand paths. (1) Pause (REST POST /v1/sandboxes/{id}/pause, SDK pause(), CLI `createos sandbox pause`) snapshots disk + memory and tears the VM down; fork clones a paused sandbox into new independent sandboxes (S3 disk attachments do not carry over). (2) Snapshots API (https://createos.sh/docs/Sandbox/REST-API/Snapshots): named snapshot objects of a RUNNING sandbox in `disk` or `full` (memory + execution state) mode; 'capture briefly freezes a running source and then resumes it'; restore by passing snapshot_id to POST /v1/sandboxes, repeatable; quota 'five snapshots across both types' per user; external disks must be detached first (409 otherwise). Snapshot storage price is not published. Templates are Dockerfile builds. Resume keeps the same sandbox id.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -539,9 +541,9 @@
     "live_resize": {
       "value": false,
       "source": "https://createos.sh/docs/Sandbox/REST-API/Bandwidth-And-Resize",
-      "quote": "POST /v1/sandboxes/{id}/resize Grow a sandbox's disk online. No sandbox restart is needed... Disk size can only increase, not decrease.",
-      "note": "The only documented \"resize\" endpoint changes disk size (and only upward, to a fixed menu of sizes). There is no documented way to change a running sandbox's vCPU or RAM allocation without recreating it; changing shape means creating a new sandbox with a different `shape`.",
-      "checked": "2026-09-30"
+      "quote": "Choose root disk size at creation; live disk resizing is no longer supported.",
+      "note": "The former POST /v1/sandboxes/{id}/resize endpoint has been removed. To get more disk, restore a disk snapshot into a new, larger sandbox. No documented way to change a running sandbox's vCPU or RAM; a new shape means a new sandbox.",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
@@ -580,11 +582,13 @@
       "checked": "2026-09-30"
     },
     "fork_running": {
-      "value": false,
-      "source": "https://raw.githubusercontent.com/NodeOps-app/createos-sandbox-sdk/main/llms.txt",
-      "quote": "Because `fork()` operates on a snapshot, the source must be `paused` (or `pausing`). Calling `fork()` on a `running` sandbox throws",
-      "note": "SDK docs and the fork() API reference both require the source sandbox to be paused before forking; forking a running sandbox raises CreateosSandboxValidationError. Confirmed no.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://createos.sh/docs/Sandbox/REST-API/Snapshots",
+      "quote": "capture briefly freezes a running source and then resumes it",
+      "how": "snapshot the running sandbox (full mode keeps memory), then create new sandboxes with that snapshot_id; 5 snapshots per user, detach external disks first",
+      "effort": "low",
+      "note": "fork() itself still needs a paused source (SDK: 'Calling fork() on a running sandbox throws'). The Snapshots API captures a running sandbox ('Only running sandboxes without attached external disks can be captured'), in disk or full (memory + execution state) mode; each restore is an independent sandbox with a new id and the snapshot stays reusable. Full restores must match the captured sizing. Each copy counts against the plan's concurrency and daily create caps.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,

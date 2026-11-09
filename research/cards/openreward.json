@@ -55,7 +55,7 @@
       "gpu": {
         "L4": 1.51
       },
-      "note": "List: $0.0504/vCPU-h, $0.0162/GiB-h, NVIDIA L4 $1.51/GPU-h, billed by the second. Presets CPU:RAM 0.5:0.5 ... 4:16 (RAM 1-4 GiB per vCPU in 1x/2x/4x steps). 4 vCPU/8 GiB = $0.3312/h. When used through a hosted OpenReward environment, the environment server is a separate, simultaneously billed component."
+      "note": "List: $0.0504/vCPU-h, $0.0162/GiB-h, NVIDIA L4 $1.51/GPU-h, billed by the second. Presets CPU:RAM 0.5:0.5 ... 4:16 (RAM 1-4 GiB per vCPU in 1x/2x/4x steps). 4 vCPU/8 GiB = $0.3312/h. Paid from prepaid organization credits (pricing page, checked 2026-11-08)."
     }
   ],
   "storage": {
@@ -133,6 +133,7 @@
     "pause_resume": false,
     "fork": false,
     "persistent_disk": false,
+    "persist_scope": "none",
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -141,7 +142,7 @@
     "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
@@ -206,24 +207,27 @@
   },
   "knobs": [],
   "caveats": [
-    "Sandboxes are tied to an OpenReward environment workspace ('not a general sandbox compute solution'). Usable for RL/eval environments, not as a general agent VM.",
-    "Only preset CPU:RAM sizes up to 4 vCPU / 16 GiB; no larger machines.",
+    "Sandboxes are tied to an OpenReward environment workspace. The docs say it is 'not a general sandbox compute solution'. It is built for RL and eval environments.",
+    "ORS environments 'work with any sandbox provider'. The environment author can run the sandbox on E2B, Daytona or Modal with their own credentials. The documented pattern still creates the sandbox at session start and terminates it at session end. This card prices OpenReward's own sandbox (concepts/sandboxes.md, sandboxes/modal.md, checked 2026-11-08).",
+    "Preset CPU:RAM sizes go up to 4 vCPU / 16 GiB in the docs.",
     "The nvidia-l4 preset's vCPU/RAM and whether CPU/RAM are billed on top of $1.51/GPU-h are undocumented; the engine adds the GPU rate on top of resource rates.",
     "Concurrency limits, max lifetime, minimum billed duration, disk and egress pricing are undocumented (null).",
-    "No pause/snapshot; the network option is all-or-nothing block_network (no allowlist).",
+    "No pause, snapshot or fork API is documented. The sandbox is torn down when its session ends. Cloud-storage buckets mount read-only. Network control is the block_network switch, which turns all outbound traffic on or off; no per-host allowlist is documented.",
+    "Browser: no built-in browser or desktop stream. You can add a headless browser such as Chromium to your own public linux/amd64 Docker Hub image. No inbound port or URL is documented to view a desktop.",
     "CPU/RAM rates are numerically identical to E2B's list rates; the backend is not disclosed.",
     "Academic credits are available on request (not modelled).",
-    "SSH: not offered in the docs (sandbox concepts/openreward pages, llms.txt index list no SSH); access is through the environment session SDK. Disk size and disk price are not published (pricing page lists CPU, memory and L4 GPU only), so extra disk stays unpriced (2026-09-28).",
-    "Hosted OpenReward environments bill an environment server in addition to the sandbox. Published examples use 1 vCPU/4 GiB = $0.0000320/s ($0.1152/h) at the public CPU+RAM rates. For example, JobTasks with a 2 vCPU/2 GiB sandbox totals $0.2484 per session-hour.",
-    "Machine sizes: docs (concepts/sandboxes) list 0.5:0.5 to 4:16 plus nvidia-l4. The official Python SDK added 8:8, 16:16, 8:16, 8:32 and 16:64 in v0.1.159 (2026-09-24), and backend availability of these sizes isn't documented. A separate docs page (sandboxes/openreward) claims sizes 'From 0.1:0.1', but no 0.1 size exists in the SDK or the size list.",
-    "Custom sandbox images must be public on Docker Hub and built for linux/amd64 (no private registries, no arm64).",
-    "Hosted-environment server sizes vary by environment: 1 vCPU/4 GB is the default (CLI default --cpu-memory 1:4), and 2:4 and 4:8 have also been seen. Each is billed per second of each session at the same CPU/RAM rates. Examples: DataScienceComps environment $0.0000920/s plus sandbox $0.0000640/s = $0.5616 per session-hour; KernelBench environment $0.0000460/s plus a task-dependent sandbox."
+    "No SSH or inbound URL is documented. Access is through the SDK: run, upload and download. Disk size and disk price are not published (the pricing page lists CPU, memory and L4 GPU only), so extra disk stays unpriced (checked 2026-11-08).",
+    "Machine sizes: concepts/sandboxes lists 0.5:0.5 to 4:16 plus nvidia-l4. The sandboxes/openreward page says 'From 0.1:0.1' to 4:16. The official Python SDK added 8:8, 16:16, 8:16, 8:32 and 16:64 in v0.1.159 (2026-09-24); the docs do not list these sizes yet.",
+    "Custom sandbox images must be public on Docker Hub and built for linux/amd64 (no private registries, no arm64)."
   ],
   "sources": [
     "https://openreward.ai/pricing",
     "https://docs.openreward.ai/concepts/sandboxes.md",
     "https://docs.openreward.ai/sandboxes/openreward.md",
-    "https://docs.openreward.ai/environments/gpu-environments.md"
+    "https://docs.openreward.ai/environments/gpu-environments.md",
+    "https://docs.openreward.ai/environments/docker-images.md",
+    "https://docs.openreward.ai/storage/buckets.md",
+    "https://docs.openreward.ai/sandboxes/modal.md"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -257,7 +261,7 @@
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "Available operations:\n\n* `run()`: Execute command and return output\n* `check_run()`: Execute command, raise on error if it returns a non-zero exit code\n* `upload()`: Upload files to sandbox\n* `download()`: Download files from sandbox",
       "note": "No snapshot/checkpoint/fork API in docs or SDK 0.1.160. Only custom (public Docker Hub) images as templates.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -292,7 +296,7 @@
       "source": "https://docs.openreward.ai/storage/buckets.md",
       "quote": "Configure storage access via `bucket_config` in `SandboxSettings`",
       "note": "Only the environment's own cloud bucket, mounted read-only ('Buckets are always mounted read-only'); no writable block/network volumes. SDK ephemeral disk_request/disk_limit fields are commented out.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -305,35 +309,37 @@
       "value": false,
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "A sandbox is an isolated container for executing arbitrary code.",
-      "note": "not offered: outside the product's scope. Isolation is `container` (shared kernel); no privileged mode or docker-in-docker is documented anywhere in the sandbox/docker-images docs.",
-      "checked": "2026-09-30"
+      "note": "Not documented. Isolation is a container (shared kernel). The sandbox and docker-images docs document no privileged mode and no Docker-in-Docker path.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "A sandbox is an isolated container for executing arbitrary code.",
-      "note": "not offered: outside the product's scope. Container isolation (shared kernel) with no /dev/kvm or privileged-mode option documented.",
-      "checked": "2026-09-30"
+      "note": "Not documented. Container isolation (shared kernel); no /dev/kvm or privileged-mode option is documented.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://docs.openreward.ai/concepts/sandboxes.md",
-      "quote": "Sandboxes are used in conjunction with environments when an agent needs access to a computer. For example, a software engineering task requires interacting with a filesystem, writing and executing files, and more.",
-      "note": "not offered: outside the product's scope. No browser/Playwright/Chromium/CDP feature is mentioned anywhere in the docs; sandboxes are plain code-execution containers for RL/eval environments.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://docs.openreward.ai/environments/docker-images.md",
+      "quote": "The image must be publicly accessible on Docker Hub. OpenReward pulls images from public repositories.",
+      "how": "add a headless browser such as Chromium to your own public linux/amd64 Docker Hub image and drive it with run()",
+      "effort": "medium",
+      "note": "No built-in browser, Playwright or CDP feature is documented, and no pre-made image ships one. Custom images are the documented path. No inbound port or URL is documented, so the browser is driven from inside the sandbox.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
       "source": "https://openreward.ai/pricing",
       "quote": "Pay-as-you-go environments. Simple, transparent pricing. You only pay for the resources you use, billed by the second.",
-      "note": "not offered: outside the product's scope. This is an RL/eval sandbox and environment-hosting product with no browser or web-automation stealth feature.",
+      "note": "Not documented. The product is an RL/eval sandbox and environment host; no browser stealth feature is listed.",
       "checked": "2026-09-30"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://openreward.ai/pricing",
       "quote": "Pay-as-you-go environments. Simple, transparent pricing. You only pay for the resources you use, billed by the second.",
-      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature is documented; product is a code sandbox / RL environment host, not a browser-automation service.",
+      "note": "Not documented. No CAPTCHA-solving feature is listed; the product is a code sandbox and RL environment host.",
       "checked": "2026-09-30"
     },
     "egress_ip_type": {
@@ -361,7 +367,7 @@
       "value": false,
       "source": "https://docs.openreward.ai/harnesses/quickstart.md",
       "quote": "This launches Claude Code as a subprocess against the terminal-bench-2-verified environment, running 5 tasks from the test split.",
-      "note": "not offered: outside the product's scope. OpenReward's `firehorse` runner drives third-party coding-agent CLIs (Claude Code, Codex, Gemini, etc.) against sandboxes; there is no first-party OpenReward-owned browser/computer-use/research agent product.",
+      "note": "Not documented. The firehorse runner drives third-party coding-agent CLIs (Claude Code, Codex, Gemini and others) against sandboxes; no OpenReward-owned agent product is documented.",
       "checked": "2026-09-30"
     },
     "mcp_server": {
@@ -396,15 +402,15 @@
       "value": false,
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "Available operations: run(), check_run(), upload(), download()",
-      "note": "No feature to expose an HTTPS URL to a port on the sandbox is documented; access is only via the SDK's run/upload/download calls.",
-      "checked": "2026-09-30"
+      "note": "No feature to expose an HTTPS URL to a sandbox port is documented. Ports appear only for sidecar containers (example ports=[6379]), not for inbound access.",
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": false,
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "OpenReward Sandboxes are tied to an environment workspace on OpenReward which provisions compute.",
-      "note": "not offered: outside the product's scope. No inbound-port exposure exists at all, so there is nothing to apply ingress/allowlist rules to.",
-      "checked": "2026-09-30"
+      "note": "Not documented. No inbound port or URL is documented, so no ingress rules apply.",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": false,
@@ -430,30 +436,37 @@
     "persistent_disk": {
       "value": false,
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
-      "quote": "await sandbox.stop() ... which will terminate the sandbox as soon as the session ends.",
-      "note": "No contradiction: pause_resume/snapshot/fork are all also false (only start()/run()/upload()/download()/stop() exist; stop deletes the container). The card's 'volumes: true' refers to environment cloud-storage buckets mounted into the sandbox 'always mounted read-only' (buckets.md) — a read-only external mount, not a writable persistent disk that survives a stop/pause. So persistent_disk=false is correct as-is.",
-      "checked": "2026-09-30"
+      "quote": "In the context of ORS, a sandbox is usually initialised when a new session is created and torn down when the session ends.",
+      "note": "No pause, snapshot or fork API is documented (start/run/check_run/upload/download/stop). Cloud-storage buckets are 'always mounted read-only' (https://docs.openreward.ai/storage/buckets.md), so they do not keep files the sandbox writes. Environments can use E2B, Daytona or Modal instead, but OpenReward's Modal guide uses the same lifecycle: 'when a session ends, we terminate the sandbox' (https://docs.openreward.ai/sandboxes/modal.md).",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "none",
+      "source": "https://docs.openreward.ai/concepts/sandboxes.md",
+      "quote": "In the context of ORS, a sandbox is usually initialised when a new session is created and torn down when the session ends.",
+      "note": "No snapshot or restore API and no writable volume are documented; buckets mount read-only (https://docs.openreward.ai/storage/buckets.md).",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "Available operations:\n\n* `run()`: Execute command and return output\n* `check_run()`: Execute command, raise on error if it returns a non-zero exit code\n* `upload()`: Upload files to sandbox\n* `download()`: Download files from sandbox",
       "note": "Full lifecycle documented is create -> start() -> run/upload/download -> stop() (delete). No snapshot/checkpoint API anywhere in the docs or SDK.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": false,
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "To delete an OpenReward Sandbox, we use the `stop` method ... which will terminate the sandbox as soon as the session ends.",
       "note": "Only start() and stop() lifecycle calls are documented; stop() terminates (deletes) the sandbox rather than pausing it. No pause/resume method exists.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "Available operations:\n\n* `run()`\n* `check_run()`\n* `upload()`\n* `download()`",
       "note": "No clone/fork operation in the documented sandbox API (start/run/check_run/upload/download/stop only); the only way to get a 'copy' is starting a new sandbox from the same base image.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
@@ -473,22 +486,22 @@
       "value": false,
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "Available operations:\n\n* `run()`: Execute command and return output\n* `check_run()`\n* `upload()`: Upload files to sandbox\n* `download()`: Download files from sandbox",
-      "note": "Access is exclusively through the SDK's run/upload/download calls proxied by the OpenReward API; the full docs index (llms.txt) lists no SSH/terminal-access page, and no ssh key or connection-string feature exists anywhere in the docs.",
-      "checked": "2026-09-30"
+      "note": "No SSH is documented. Access is through the SDK run/upload/download calls proxied by the OpenReward API. The docs index (llms.txt) has no SSH or terminal-access page.",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "A sandbox is an isolated container for executing arbitrary code. Sandboxes provide secure, temporary compute resources for running untrusted agent code in an ORS environment.",
-      "note": "Product is a headless code-execution container for RL/eval environments (run/upload/download/stop API only); no VNC/RDP/GUI desktop feature exists in the docs, so this is outside the product's scope.",
-      "checked": "2026-09-30"
+      "note": "No built-in desktop or stream is documented. A custom image can include Xvfb, but no inbound port or URL is documented to view or stream a desktop (access is run/upload/download only). The docs show no desktop example.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://docs.openreward.ai/concepts/sandboxes.md",
       "quote": "A sandbox is an isolated container for executing arbitrary code.",
-      "note": "No screenshot+click computer-use API is documented; the sandbox exposes only run()/check_run()/upload()/download(), consistent with a headless code sandbox rather than a GUI-driving product.",
-      "checked": "2026-09-30"
+      "note": "No screenshot-and-click computer-use API is documented; the sandbox exposes run(), check_run(), upload() and download().",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,

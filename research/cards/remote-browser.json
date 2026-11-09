@@ -152,8 +152,8 @@
     "desktop_control": false,
     "anti_bot": true,
     "captcha_solving": false,
-    "egress_ip_type": "datacenter+residential+mobile",
-    "ip_note": "Provider-managed proxy egress (residential, mobile, datacenter; per-request rotation or sticky; country routing), proxy can be disabled, BYO HTTP/SOCKS5 proxy supported; no per-GB price published.",
+    "egress_ip_type": "residential",
+    "ip_note": "Provider-managed residential proxy egress with country routing, proxy can be disabled, or bring your own HTTP/SOCKS5 proxy; no per-GB price published.",
     "isolation": "container",
     "image_oci": false,
     "snapshot_auto": false,
@@ -184,9 +184,11 @@
     "Model the top-up as a 20-hour purchase block, not unlimited metered $.245/hour. Credit expiry, proxy bandwidth, CPU/RAM, CAPTCHA fee and storage GiB price not published.",
     "OS (verified 2026-09-28, remote-browser.dev/architecture): 'Remote-browser runs on Kubernetes. Each session is a pod'; 'One Chromium per pod'. Sessions are Linux containers, so os = ['linux'] (a browser product, not a Linux machine you control).",
     "SSH: sessions are Chromium pods reached over a CDP socket (remote-browser.dev/architecture, 2026-09-28); no shell/SSH access is offered. ssh = false.",
-    "Default session timeout is 5 minutes (integration env REMOTE_BROWSER_TIMEOUT_MINUTES=5; profile CDP URL '...&timeout=5'); browser-hours accrue until the idle-timeout controller kills the pod or the client terminates it, so every abandoned session carries up to ~5 billed minutes.",
+    "Sessions close after a per-plan idle time with no CDP traffic; a ping keeps them open (architecture page: \"Per-plan T. Caller can extend with a ping.\"). Browser-hours accrue until that idle close or until the client ends the session. The idle time per plan is not published.",
     "Hard caps, no overage meter: when included browser-hours run out, more runtime only comes from $4.90/20 h one-time packs ('Simple caps, no surprise bills'; billing integration has 'Plan-aware caps'). Bandwidth and recording bytes are metered per org and bandwidth is throttled per session/plan, but no price is published.",
-    "Homepage claims 'Real Chromium in 14 regions' (API region example 'fra1', default 'auto') but publishes no region list (features.regions left null). It also advertises Web Tasks (/v1/tasks), Custom Models routing and 'Remote-browser v3', none of which are in the pricing table; SSH access is mentioned but not documented (ssh=false kept)."
+    "Regions (checked 2026-11-08): the homepage no longer states a region count. The docs show only the region values fra1 and auto; no region list is published (features.regions left null). Residential proxies can exit from a chosen country. The site also advertises Web Tasks (/v1/tasks) and Custom Models routing, which are not in the pricing table.",
+    "Integrations (llms.txt, checked 2026-11-08): guides for Browser Use, agent-browser, Stagehand, Playwright MCP, Chrome DevTools MCP, Claude Code and Codex, plus Hermes and OpenClaw installers. The MCP guides point third-party MCP servers at the CDP URL; Remote Browser does not ship its own MCP server.",
+    "Stealth page says sessions are anti-bot ready for CAPTCHA flows and verification gates; it does not document a CAPTCHA-solving service."
   ],
   "sources": [
     "https://remote-browser.dev/pricing",
@@ -194,7 +196,8 @@
     "https://remote-browser.dev/architecture",
     "https://remote-browser.dev/documentation/browser/proxies",
     "https://remote-browser.dev/documentation/browser/live-preview-recording",
-    "https://remote-browser.dev/documentation/browser/authentication/profiles"
+    "https://remote-browser.dev/documentation/browser/authentication/profiles",
+    "https://remote-browser.dev/documentation/browser/stealth"
   ],
   "fleet": {
     "default_max_instances": 1,
@@ -256,7 +259,7 @@
       "source": "https://remote-browser.dev/documentation/browser/stealth",
       "quote": "Anti-bot ready sessions for Cloudflare-style checks, PerimeterX-style defenses, CAPTCHA flows, and common browser verification gates.",
       "note": "docs describe stealth/anti-detect fingerprinting to reduce bot challenges, not an automated CAPTCHA-solving service; no CAPTCHA-solving API or third-party solver integration is documented",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
@@ -346,8 +349,8 @@
       "value": true,
       "source": "https://remote-browser.dev/documentation/integrations/skill",
       "quote": "Create an OpenClaw browser profile and route OpenClaw browser tasks through Remote Browser... Installs SKILL.md and agents/openai.yaml into the Codex skills directory. Also installs into ~/.claude/skills",
-      "note": "ships install scripts/skills wiring Remote Browser as the browser for Hermes, OpenClaw, Codex, and Claude coding-agent setups",
-      "checked": "2026-09-30"
+      "note": "install scripts and skills for Hermes, OpenClaw, Codex and Claude, plus guides for Browser Use, Stagehand, agent-browser, Playwright MCP and Chrome DevTools MCP",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -365,10 +368,10 @@
     },
     "mcp_server": {
       "value": false,
-      "source": "https://remote-browser.dev/sitemap.xml",
-      "quote": "documentation/integrations/hermes, documentation/integrations/openclaw, documentation/integrations/skill",
-      "note": "integrations are install scripts for Hermes/OpenClaw/Codex/Claude that point those tools at a CDP URL; no first-party MCP server for controlling sessions is listed in the docs sitemap",
-      "checked": "2026-09-30"
+      "source": "https://remote-browser.dev/llms.txt",
+      "quote": "Playwright MCP, Chrome DevTools MCP",
+      "note": "the docs show how to point third-party MCP servers (Playwright MCP, Chrome DevTools MCP) at a session CDP URL; no first-party MCP server is documented",
+      "checked": "2026-11-08"
     },
     "lang_python": {
       "value": false,
@@ -493,8 +496,8 @@
       "value": true,
       "source": "https://remote-browser.dev/documentation",
       "quote": "-d '{ \"region\": \"fra1\", \"profile\": \"agent-default\", \"stealth\": true, \"proxy\": { \"type\": \"residential\", \"country\": \"US\" } }'",
-      "note": "sessions can be created in region fra1 (Frankfurt, EU); homepage also claims 'Real Chromium in 14 regions' though no full region list is published",
-      "checked": "2026-09-30"
+      "note": "sessions can be created in region fra1 (Frankfurt, EU); no region list or region count is published",
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": false,
@@ -507,8 +510,8 @@
       "value": "none",
       "source": "https://remote-browser.dev/architecture",
       "quote": "Auto-terminate idle sessions. No CDP traffic for T, then graceful close. Per-plan T. Caller can extend with a ping.",
-      "note": "derived: the only documented termination mechanism is idle-timeout (default 5 minutes of no CDP traffic, resettable by activity), not a fixed maximum wall-clock session length. No pricing/docs/architecture page publishes an absolute max-duration cap for an actively-used session; runtime is otherwise bounded only by purchased/included browser-hours, not a per-session hour limit.",
-      "checked": "2026-09-30"
+      "note": "derived: the only documented termination mechanism is an idle close after a per-plan time with no CDP traffic, extendable by a ping. No page publishes an absolute max-duration cap for an active session; runtime is bounded only by included or purchased browser-hours.",
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": false,
@@ -545,10 +548,22 @@
       "quote": "Profiles preserve cookies, local storage, tabs, and logged-in state across repeated runs.",
       "note": "Only a saved browser profile (cookies, local storage, logins) carries over; no files survive.",
       "checked": "2026-10-01"
+    },
+    "egress_ip_type": {
+      "value": "residential",
+      "source": "https://remote-browser.dev/documentation/browser/proxies",
+      "quote": "This starts a browser whose network egress appears from Germany.",
+      "note": "docs show residential proxies with country routing, a custom HTTP/SOCKS5 proxy, or no proxy; mobile, datacenter, rotating and sticky are not documented",
+      "checked": "2026-11-08"
     }
   },
   "locations": [],
   "locations_source": "https://remote-browser.dev/",
-  "locations_quote": "Real Chromium in 14 regions. CDP-compatible. Sub-second cold start.",
-  "locations_checked": "2026-10-01"
+  "locations_quote": "A cloud browser. For AI agents.",
+  "locations_checked": "2026-11-08",
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "compare-fix findings/remote-browser.json, re-checked against proxies page, homepage and llms.txt",
+    "reviewed": 7
+  }
 }

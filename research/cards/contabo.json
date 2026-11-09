@@ -569,7 +569,7 @@
     "root": true,
     "systemd": true,
     "browser": false,
-    "desktop": false,
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
@@ -647,10 +647,12 @@
     "Shared vCPU (Cloud VPS / VPS Plus): Contabo does not publish a CPU guarantee for these tiers; oversold vCPU can see steal under sustained load. Only Cloud VDS gives dedicated physical cores. Encoded as cpu_class shared (not burstable: no published baseline).",
     "Monthly billing only (contabo.com/en-us/vps, checked 2026-10-14): \"Minimum initial contract length: 1 month\"; listed prices are \"the effective monthly rate for a 24-month subscription\"; the page offers no hourly billing and no per-session create/delete API economics. The estimate prices whole monthly rentals; bursty workloads must keep machines rented.",
     "Snapshots: Cloud VPS 4 includes 1 snapshot slot, VPS 6 2, VPS 8-18 3, VPS Plus 5 (catalog); VDS none listed. No per-GiB price for retained snapshots or extra slots is published, so snapshot_gib_month is null (was 0).",
-    "Setup fee: the product catalog flags a setup fee as displayed for 1-month terms (oneMonthSetupFeeDisplaySettings) but no amount is published in the catalog or on the VPS page; left unpriced (unknown, not zero).",
+    "Setup fee (contabo.com/en-us/vps, checked 2026-11-08): \"A one-time setup fee applies to new Cloud VPS 4 instances (monthly contracts only).\" The page publishes no amount, so the fee stays unpriced (unknown, not zero). Third-party trackers report the fee was dropped in April 2026; the official page still states it.",
+    "Automation (docs.contabo.com/docs/servers-hosting/vps, checked 2026-11-08): instances are created, started, stopped and snapshotted through the RESTful Contabo API (api.contabo.com, OAuth2), the open-source cntb CLI or the Control Panel, and accept cloud-init user-data scripts at boot. Provisioning still takes a few minutes and billing stays monthly.",
     "Boot time not measured; boot_overhead_s unset.",
     "VPS Auto Backup (paid add-on, Core and Performance VPS only; not Storage VPS, VDS, GPU VPS or dedicated): daily, up to 10 backups kept for at most 10 days; price not captured.",
-    "GPU VPS (Dedicated NVIDIA RTX PRO 6000 Blackwell, 96 GB VRAM) is sold at contabo.com/en-us/gpu-vps/ in Europe and US Central only; it is not priced as a mode in this card (checked 2026-10-14)."
+    "Contabo Firewall (docs.contabo.com/docs/network-services/firewall, checked 2026-11-08): network-level inbound firewall listed as \"Included\" for VPS, VDS and GPU VPS. Outbound traffic stays unrestricted.",
+    "GPU VPS (Dedicated NVIDIA RTX PRO 6000 Blackwell, 96 GB VRAM) is sold at contabo.com/en-us/gpu-vps/ in Europe and US Central only (more regions planned). The page charts an hourly-equivalent of $1.61 per hour on a 24-month term; it is not priced as a mode in this card (checked 2026-11-08)."
   ],
   "sources": [
     "https://contabo.com/en-us/pricing/",
@@ -694,8 +696,8 @@
       "value": true,
       "source": "https://docs.contabo.com/docs/servers-hosting/vps/",
       "quote": "Snapshots\tImage of the VPS disk, retained for 30 days; slots per family as in Products at a Glance",
-      "note": "Disk only, no memory. Create/list/update/delete/rollback via Control Panel, API (POST /v1/compute/instances/{id}/snapshots, .../rollback) and cntb CLI. Slots: Cloud VPS 4: 1, VPS 6: 2, VPS 8-18: 3, VPS Plus: 5; Storage VPS none; VDS/dedicated none listed. Restore is an in-place rollback of the same instance; no documented create-instance-from-snapshot (custom images come from a URL).",
-      "checked": "2026-09-29"
+      "note": "Disk only, no memory. Create/list/update/delete/rollback via Control Panel, API (POST /v1/compute/instances/{id}/snapshots, .../rollback) and cntb CLI, so a script can take one before each risky step. Slots: Cloud VPS 4: 1, VPS 6: 2, VPS 8-18: 3, VPS Plus: 5; Storage VPS none; VDS/dedicated none ('Snapshots and the Auto Backup add-on are not available'). Restore is an in-place rollback of the same instance; no documented create-instance-from-snapshot (custom images come from a URL). Core and Performance VPS can also add the paid daily Auto Backup.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -722,8 +724,8 @@
       "value": true,
       "source": "https://docs.contabo.com/docs/network-services/firewall/",
       "quote": "A firewall is attached to one or more instances; rules take effect immediately.",
-      "note": "Network-level Contabo Firewall for VPS/VDS/GPU VPS: default-drop inbound once activated, allow rules by TCP/UDP/ICMP, source IP/CIDR (v4/v6), port/list/range; managed via Control Panel, API, CLI. Docs page says 'Included' but the API spec says each protected instance 'requires a paid firewall add-on' (conflict). Not available for dedicated servers; does not cover private networks. Each VPS has a public IPv4 + /64 IPv6, all ports open unless a firewall is attached.",
-      "checked": "2026-09-29"
+      "note": "Network-level Contabo Firewall for VPS/VDS/GPU VPS: default-drop inbound once activated, allow rules by TCP/UDP/ICMP, source IP/CIDR (v4/v6), port/list/range; managed via Control Panel, API, CLI. The docs Availability table lists it as 'Included' for VPS (Core, Performance, Storage), VDS and GPU VPS (re-checked 2026-11-08); an older API spec line mentioned a paid firewall add-on. Not available for dedicated servers; does not cover private networks. Each VPS has a public IPv4 + /64 IPv6, all ports open unless a firewall is attached.",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
@@ -813,7 +815,7 @@
       "value": false,
       "source": "https://contabo.com/en-us/vps/",
       "quote": "Minimum initial contract length: 1 month",
-      "note": "not offered: outside the product's scope. Always-on monthly-rented KVM VMs with no sleep/idle/wake mechanism; customer starts/stops manually via Control Panel or API.",
+      "note": "not offered: outside the product's scope. Always-on monthly-rented KVM VMs with no sleep/idle/wake mechanism; customer starts/stops via Control Panel, API or cntb CLI.",
       "checked": "2026-10-14"
     },
     "auto_stop_idle": {
@@ -901,11 +903,27 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
-      "source": "https://docs.contabo.com/docs/servers-hosting/images/",
-      "quote": "1-Click App Images # An OS image with an application preinstalled and configured at first boot. Product 1-Click images VPS and VDS (Max Performance VPS) OpenClaw · n8n · Nextcloud · WireGuard · GitLab CE · cPanel · Plesk · Dokploy · Paperclip AI · Hermes Agent · Ollama",
-      "note": "Contabo is a plain KVM VPS/VDS hosting provider: OS images (Linux/BSD/Windows Server) and 1-Click app images, none of which is a managed graphical desktop/VNC-streaming product. Customers only get a rescue-system VNC console for OS installation/troubleshooting, not a delivered agent desktop environment.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "corrected_from": false,
+      "source": "https://contabo.com/blog/how-to-install-a-gui-and-xrdp-on-ubuntu-and-centos",
+      "quote": "Learn how to install a graphical user interface (GUI) and XRDP on Ubuntu and CentOS",
+      "how": "install the XFCE4 desktop and XRDP on the VPS (official Contabo guide), then connect over RDP",
+      "effort": "medium",
+      "note": "No desktop is preinstalled and no 1-Click desktop image exists (docs.contabo.com/docs/servers-hosting/images). Contabo's own guide documents the install path, so the value is diy, not false. Same rule as the oracle-cloud card (official VNC tutorial).",
+      "checked": "2026-11-08"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://contabo.com/blog/how-to-install-docker-on-ubuntu-step-by-step-guide/",
+      "quote": "you can either install Docker manually or preselect the Docker Add-On at checkout",
+      "note": "Full KVM VM with root (docs: \"inside a full virtual machine with root access\").",
+      "checked": "2026-11-08"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://docs.contabo.com/docs/servers-hosting/vps/",
+      "quote": "Access is via SSH on port 22 as `root` with the password set at activation.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,

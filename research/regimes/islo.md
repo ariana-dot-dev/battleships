@@ -1,5 +1,6 @@
 # Islo (islo.dev, by Incredibuild) — pricing regimes
 As of 2026-09-28. Islo launched on 2026-05-04 (PR Newswire). The public price list is short: three meters, and they apply only while a sandbox runs. Most of the nuance is in the plan tiers (these appear only in press coverage), the AWS Marketplace package, and what a paused or stopped sandbox is billed for.
+Re-checked 2026-11-08: https://islo.dev/pricing shows the same three rates, "No seat licenses, no idle fees" and "Cost limits per task help prevent runaway agent budgets." It names no plan and no concurrency limit, so the Free 5 / Team 50 caps below remain launch-press figures only.
 ## Regime table
 | # | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|---|
@@ -15,7 +16,7 @@ As of 2026-09-28. Islo launched on 2026-05-04 (PR Newswire). The public price li
 | 10 | **Harbor promo** | Harbor (Terminal-Bench / RL) users who enter promo code `HARBOR250` in Billing | One-time credit | **$250** | https://docs.islo.dev/integrations/harbor.md |
 | 11 | **Gateway inference** | Calls to Islo-managed LLMs via gateway.islo.dev (OpenAI- and Anthropic-compatible endpoints) | Drawn "from credits". This is a separate token meter, not compute. | Per-token prices not published | https://docs.islo.dev/concepts/gateway-inference.md ; github.com/islo-labs/skills |
 | 12 | **Per-task cost limits** | Optional spend cap per run or task | Hard stop, not a price | The limit is set by the user | https://islo.dev/pricing (FAQ "Can I cap spend per run?") |
-| — | Egress / IPv4 / region | — | Not published. There is no public IPv4 product: shares are HTTPS only, and non-HTTP access goes through a CLI tunnel. The only region seen is `us-west`. | null | — |
+| — | Egress / IPv4 / region | — | Not published. There is no public IPv4 product: shares are HTTPS only, and non-HTTP access goes through a CLI tunnel. Islo publishes no region list: the regions API returns the regions per tenant, with placeholder values in its example (checked 2026-11-08). | null | https://docs.islo.dev/api-reference/tenants/list-tenant-compute-regions.md |
 ## Gotchas
 - **CPU is billed on allocation.** "Per core while the env runs" means a sandbox at 30% utilisation pays the same as one at 100%. There is no active-CPU billing.
 - **RAM is expensive at $0.04/GB-h.** That is roughly 2.5× E2B's $0.0162, so RAM is more than half the bill for a 1:2 vCPU:GB shape (4/8: $0.32 of the $0.60/h).

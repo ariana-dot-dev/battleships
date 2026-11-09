@@ -23,7 +23,7 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 - DIY infrastructure rather than an agent-managed sandbox: guest installation, HTTPS/domain setup, abuse controls and operations are customer responsibilities. Linux guest administrative capabilities are not preinstalled agent features. 30% guest CPU utilization does not reduce allocated-compute charges. Unknowns remain null; a partial subtotal is not a complete invoice.
 - Compute Large 4/8/100 GB $0.059524/h; do not substitute Kubernetes Large 60 GB root-disk specs.
 - Hourly/monthly toggle is illustrative. Billing docs say 730h month, while displayed $40/month divided by hourly rate is ~672h; no cap inferred from inconsistent arithmetic.
-- Egress and ingress explicitly free/unlimited. Powered-off instances still charged until deleted.
+- Egress and ingress explicitly free/unlimited. Powered-off instances still charged until deleted. To keep data without paying for compute, keep it on a separate block-storage volume ($0.11 per GB per month), delete the instance and attach the volume to a new instance later (https://www.civo.com/docs/compute/instance-volumes, checked 2026-11-08).
 - Snapshot API lifecycle/current price not verified: linked snapshots page returned 404. Billing mentions snapshots but that alone does not establish usable snapshot entitlement. Custom OS images described for Civo Stack Enterprise; public-cloud custom image support left null.
 ## Worked example
 4 vCPU / 8 GiB; 50 concurrent × 8 h/day × 22 days = **8,800 guest-hours**; 30% CPU busy; **50 GiB-month total snapshots**, **100 GiB total egress**. 50 GiB retained state is total, not 50 GiB per VM. Compute-only subtotals below exclude unknown components and tax.

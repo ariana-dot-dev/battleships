@@ -123,6 +123,7 @@
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
+    "persist_scope": "whole",
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -197,22 +198,22 @@
   "perf": {
     "cpu_runs_s": null,
     "cold_start_ms": 16.83,
-    "burst_tti_ms": 43.58,
-    "dax_s": 32.79
+    "burst_tti_ms": 83.34,
+    "dax_s": 44.61
   },
-  "perf_source": "computesdk: cold_start_tti median 16.83 ms (2026-08-07), burst_tti median 43.58 ms at 100 concurrent (2026-09-25), DAX total 32.79 s (2026-09-25, 8 vCPU / 15.7 GiB x86_64 env). No hpc CPU run.",
+  "perf_source": "ComputeSDK (each provider at its SDK default size and runtime): burst 83 ms median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 44.61 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86); one-at-a-time start 17 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [],
   "caveats": [
-    "Public beta pricing ($0.025/vCPU-h + $0.015/GiB-h, launched v1.0.0 2026-06-16); no change since.",
+    "Public beta pricing ($0.025/vCPU-h + $0.015/GiB-h, launched v1.0.0 2026-06-16); unchanged on the pricing page (re-checked 2026-11-08).",
     "Allocation billing assumed: the pricing page bills \"by the second based on vCPU and RAM\" with an allocation-based example (1 vCPU+1 GiB x 90 s = $0.001), although destroy() says cpuMs/memPeakBytes are \"the numbers you are billed on\".",
     "Hibernation is $0 per the pricing page (\"you pay nothing while the sandbox is paused\"); storage price for explicit snapshot() checkpoints is unpublished (snapshot_gib_month 0 reflects hibernation only).",
     "Persistent disks (Tigris-backed) cost $0.02/GB-month on data actually stored, plus normal compute while attached; forks add only divergent writes. Encoded as disk_gib_month.",
-    "Default idle auto-DESTROY after 300 s (not hibernate): state is lost unless you hibernate or raise timeoutSec; a raised timeout keeps billing idle time.",
+    "Default idle timer destroys the sandbox after 300 s (it does not hibernate it). The destroy removes memory, processes and files outside an attached persistent disk. Files on a disk at /workspace survive and reattach to a new sandbox; a snapshot() taken before the destroy restores later in the same region. A raised or disabled timer keeps billing idle time.",
     "Concurrency/session limits, docker-in-VM and hypervisor (KVM microVM, VMM unnamed) unpublished. Org pinned to one region (US or EU); no regional price difference published.",
     "SOC 2 Type II listed as \"soon\".",
     "No SSH: docs (llms-full.txt) list only WebSocket PTY terminal, WebSocket shell sessions, exec() and HTTPS port URLs as access methods (verified 2026-09-28).",
     "Docs conflict on idle-timeout default: lifecycle page and SDK reference say 300 s; the Claude Managed Agents integration example says 'idle auto-destroy, default 600'. Timer can be disabled with 0 (then idle time bills indefinitely).",
-    "Port URLs: docs limits table says 'Auth: none; the sandbox ID is the credential' (homepage calls them 'signed'). Any TCP port can be exposed over HTTPS/WS; no raw TCP inbound.",
+    "Port URLs: the public-urls page contradicts itself. It says 'The URL is authenticated, not public' and every request needs the API key as a Bearer header, but its Limits table says 'Auth: none; the sandbox ID is the credential'. Treat it as API-key authenticated (no plain browser access). Any TCP port can be exposed over HTTPS/WS; no raw TCP inbound (checked 2026-11-08).",
     "Browser/computer-use image docker.io/isorun/computer-use:1 needs >= 2 vCPU and >= 4 GiB (docs sizing guidance: \"2 minimum\" vCPU, \"4 GiB minimum\", https://docs.isorun.ai/sandboxes/computer-use-vnc, checked 2026-10-14) = $0.11/h minimum at list rates.",
     "Allocation basis is corroborated by the API reference: a 1 vCPU / 1 GiB sandbox with uptime_ms 59000 but cpu_ms 48 and mem_peak 49 MB returns cost_cents 0.0007, which equals allocation price in dollars (0.04 $/h x 59 s = $0.00066), not a usage-based figure. The 'cost_cents' / costCents field appears to be denominated in dollars despite its name (pricing page: 90 s example = $0.001, costCents 'e.g. 0.00111')."
   ],
@@ -225,7 +226,9 @@
     "https://docs.isorun.ai/sandboxes/checkpoints-and-rollback",
     "https://docs.isorun.ai/changelog",
     "https://www.computesdk.com/benchmarks/sandboxes/",
-    "https://docs.isorun.ai/sandboxes/computer-use-vnc"
+    "https://docs.isorun.ai/sandboxes/computer-use-vnc",
+    "https://docs.isorun.ai/sandboxes/public-urls",
+    "https://www.computesdk.com/benchmarks/sandboxes/isorun/"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -248,19 +251,28 @@
     "reviewed": 1
   },
   "feature_evidence": {
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://docs.isorun.ai/getting-started/pricing",
+      "quote": "Hibernated sandboxes: not billed for active runtime; you pay nothing while the sandbox is paused.",
+      "how": "call hibernate() (the idle timer destroys instead); scratch-disk files, memory and processes come back on resume(). For files that must outlive a destroy, attach a persistent disk at /workspace or take a snapshot()",
+      "effort": "low",
+      "note": "Hibernate is Isorun's stop. Lifecycle page: files on the scratch disk remain intact, memory and processes are kept; the guest IP changes on resume. Persistent disk: 'Attach a disk and /workspace becomes durable: it survives the sandbox, snapshots, and forks' ($0.02 per GB-month stored, https://docs.isorun.ai/sandboxes/persistent-storage). Snapshots restore after destroy() in the same region (https://docs.isorun.ai/sandboxes/checkpoints-and-rollback). The default idle timer destroys the sandbox: 'When the timer fires, the sandbox is destroyed.'",
+      "checked": "2026-11-08"
+    },
     "snapshot_auto": {
       "value": false,
       "source": "https://docs.isorun.ai/sandboxes/lifecycle",
       "quote": "When the timer fires, the sandbox is destroyed.",
-      "note": "Idle timeout (default 300 s, timeoutSec; 0 disables) DESTROYS the sandbox; state is only kept if you call hibernate() yourself (memory+processes+filesystem, $0 while hibernated). Conflict: the Claude Managed Agents integration page advertises 'Hibernate-on-idle' but then says the server-side TTL 'reaps' idle sandboxes; the lifecycle page and SDK reference say auto-destroy.",
-      "checked": "2026-09-29"
+      "note": "Idle timeout (default 300 s, timeoutSec; 0 disables) DESTROYS the sandbox. Nothing is snapshotted automatically. Memory, processes and scratch files are kept only if you call hibernate() yourself ($0 while hibernated); files on an attached /workspace persistent disk survive the destroy. Conflict: the Claude Managed Agents integration page advertises 'Hibernate-on-idle' but then says the server-side TTL 'reaps' idle sandboxes; the lifecycle page and SDK reference say auto-destroy.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://docs.isorun.ai/sandboxes/checkpoints-and-rollback",
       "quote": "A checkpoint captures a sandbox's full state so you can restore it later or fork it into parallel copies.",
-      "note": "sandbox.snapshot() / POST /v1/runs/{id}/snapshot on a running VM; isorun.restore(id) boots a new sandbox from it (same region); snapshots persist until deleteSnapshot(). fork(n) clones a running sandbox: 'Each child inherits filesystem + memory state at fork time'. Memory included (changelog: 'checkpoint a running VM'). Separate disk-level snapshotDisk/forkDisk for persistent disks (copy-on-write).",
-      "checked": "2026-09-29"
+      "note": "sandbox.snapshot() / POST /v1/runs/{id}/snapshot on a running VM; isorun.restore(id) boots a new sandbox from it (same region); snapshots persist until deleteSnapshot() and restore after the source sandbox is destroyed (docs example: snapshot(), destroy(), then restore(snap.id) 'anywhere in the same region'). fork(n) clones a running sandbox: 'Each child inherits filesystem + memory state at fork time'. Memory included (changelog: 'checkpoint a running VM'). Separate disk-level snapshotDisk/forkDisk for persistent disks (copy-on-write). Snapshot storage price not published.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -289,7 +301,7 @@
       "source": "https://docs.isorun.ai/sandboxes/public-urls",
       "quote": "The URL is **authenticated, not public**.",
       "note": "Ports are reachable only via <apiUrl>/v1/runs/<id>/proxy/<port>/ requiring the account API key as Bearer (401 otherwise); no public IP, no raw TCP. Docs contradict themselves: the same page's 'Authentication model' section says 'The URL is anonymous: anyone with the URL can hit it' and the Limits table says 'Auth: none; the sandbox ID is the credential'; the SDK reference sides with 'authenticated'. No per-port exposure choice, IP allowlist or share tokens.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
@@ -310,8 +322,8 @@
       "value": true,
       "source": "https://docs.isorun.ai/sandboxes/persistent-storage",
       "quote": "Pass `disk` to `create`. `/workspace` *is* the disk",
-      "note": "Named persistent disks (Tigris Cloud Disk, real ext4 block device with NVMe write-back cache) mounted at /workspace; createDisk/listDisks/snapshotDisk/forkDisk/deleteDisk; $0.02/GB-month stored; global, attach from any region. Only at create time (one disk per sandbox). Note: published npm isorun@1.0.3 types have no disk option yet (docs ahead of SDK or REST-only).",
-      "checked": "2026-09-29"
+      "note": "Named persistent disks (Tigris Cloud Disk, real ext4 block device with NVMe write-back cache) mounted at /workspace; createDisk/listDisks/snapshotDisk/forkDisk/deleteDisk; $0.02/GB-month stored; global, attach from any region. Only at create time (one disk per sandbox). The disk survives destroy() and reattaches to a new sandbox: 'Attach a disk and /workspace becomes durable: it survives the sandbox, snapshots, and forks.' Note: published npm isorun@1.0.3 types have no disk option yet (docs ahead of SDK or REST-only).",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": false,
@@ -497,10 +509,10 @@
     },
     "fast_boot": {
       "value": true,
-      "source": "https://www.computesdk.com/benchmarks",
-      "quote": "burst of 100: p95 49 ms, 100% started",
-      "note": "ComputeSDK sandbox benchmark 2026-09-25",
-      "checked": "2026-09-25"
+      "source": "https://www.computesdk.com/benchmarks/sandboxes/isorun/",
+      "quote": "TTI (median) | 83 ms | 97 ms",
+      "note": "ComputeSDK Isorun page: burst time to interactive median 83 ms, p95 97 ms, success rate 100%. The page shows no 16.83 ms cold-start figure. Isorun homepage claims 'ready in 10 ms' (vendor claim, not used).",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": true,

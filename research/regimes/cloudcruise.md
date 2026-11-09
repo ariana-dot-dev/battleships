@@ -6,13 +6,13 @@ The developer platform for fast and reliable browser agents
 |---|---|---|---|---|
 | Managed browser service | Session tariff cannot be normalized to 4 vCPU/8 GiB without guaranteed resource specifications. | resource; CPU alloc, memory alloc | Unknown or native-unit billing; see facts below | https://cloudcruise.com/pricing |
 | Starter | Plan limits apply | Monthly fee; credits only as stated | fee=0; included usage=$0; concurrent=None; max session h=None | https://cloudcruise.com/pricing |
-| Enterprise | Plan limits apply | Monthly fee; credits only as stated | fee=700; included usage=$0; concurrent=None; max session h=None | https://cloudcruise.com/pricing |
+| Scale | Plan limits apply | Monthly fee; included hours and overage not published | fee=700; included usage=$0; concurrent=None; max session h=None | https://cloudcruise.com/pricing |
 | Retained disk / GiB-month | Lifecycle/scope must be checked | Native add-on | unverified, not $0 | https://cloudcruise.com/pricing |
 | Snapshots / GiB-month | Lifecycle/scope must be checked | Native add-on | unverified, not $0 | https://cloudcruise.com/pricing |
 | Egress / GiB | Lifecycle/scope must be checked | Native add-on | unverified, not $0 | https://cloudcruise.com/pricing |
 | IPv4 / month | Lifecycle/scope must be checked | Native add-on | unverified, not $0 | https://cloudcruise.com/pricing |
 ## Verified billing facts and gotchas
-1. Starter includes 2 automation-hours then $3/hour. Enterprise $700/month; workflow maintenance and model runtime differ from raw browser hosting. CPU/RAM unspecified.
+1. Starter ($0, up to 3 seats) includes 2 automation-hours then $3/hour (re-checked 2026-11-08). Scale is $700/month; Accelerate and Enterprise are custom. One automation hour includes VM, proxies and AI usage; workflow maintenance and model runtime differ from raw browser hosting. CPU/RAM unspecified.
 2. No invented browser vCPU or memory allocation: normalized 4/8 rate remains null. Proxy traffic is not necessarily equivalent to sandbox egress.
 ## Worked example
 Requested: 4 vCPU/8 GiB, 50 simultaneous × 8 h/day × 22 days = **8,800 instance-hours**, 30% CPU; 50 GiB snapshots and 100 GiB egress. A month is 730 hours only when explicitly used in rate conversion.

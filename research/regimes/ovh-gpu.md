@@ -1,6 +1,6 @@
 # OVHcloud: GPU regimes
-As of 2026-09-28. Public Cloud GPU instances.
-International USD page, ex VAT. Bundled CPU/RAM/storage. Region selection affects rate/availability. IPv4 starts billing separately October 1, 2026; not yet applicable on research date. Page mislabels multiple GPU memory technologies: do not copy HBM2 claims for L4/H100.
+As of 2026-09-28; flavor prices re-checked 2026-11-08 (unchanged). Public Cloud GPU instances.
+International USD page, ex VAT. Bundled CPU/RAM/local storage. Region selection affects rate/availability. Since October 1, 2026 the public IPv4 is a separately billed option on every instance range: Public IP IPv4 $0.00319/h (~$2.3287/mo) ([source](https://us.ovhcloud.com/resources/blog/public-cloud-our-prices-are-changing/)). The Cloud GPU product page no longer lists A100 or Tesla V100; the price page still lists a100-180 and t1-45. GPU flavors are not eligible for Savings Plans. Page mislabels multiple GPU memory technologies: do not copy HBM2 claims for L4/H100.
 | Regime | When applicable | Billing | Numbers ($/GPU-hour unless slice) | Source |
 |---|---|---|---|---|
 | on-demand  | l40s-90 ; count [1]; International USD price page default; select region before purchase. | per-hour; min unknowns | 1.8; list; per_gpu_hour | [source](https://www.ovhcloud.com/en/public-cloud/prices/) |
@@ -12,7 +12,7 @@ International USD page, ex VAT. Bundled CPU/RAM/storage. Region selection affect
 | on-demand  | rtx5000-28 ; count [1]; International USD price page default; select region before purchase. | per-hour; min unknowns | 0.6; list; per_gpu_hour | [source](https://www.ovhcloud.com/en/public-cloud/prices/) |
 | on-demand  | t1-45 ; count [1]; International USD price page default; select region before purchase. | per-hour; min unknowns | 0.77; list; per_gpu_hour | [source](https://www.ovhcloud.com/en/public-cloud/prices/) |
 ## Gotchas
-- International USD page, ex VAT. Bundled CPU/RAM/storage. Region selection affects rate/availability. IPv4 starts billing separately October 1, 2026; not yet applicable on research date. Page mislabels multiple GPU memory technologies: do not copy HBM2 claims for L4/H100.
+- International USD page, ex VAT. Bundled CPU/RAM/local storage. Region selection affects rate/availability. Public IPv4 billed separately since October 1, 2026 ($0.00319/h). Page mislabels multiple GPU memory technologies: do not copy HBM2 claims for L4/H100.
 - Any null count, CPU/RAM, billing increment or minimum is unverified, not unlimited/free.
 - This is GPU-product research, not a claim that every feature of the entire vendor documentation was audited. Unverified features are null.
 - GPU multi-count bundles, variant/region selection and fractional slices require a SKU-aware estimator; unsupported rows remain unpriced in strict cards.

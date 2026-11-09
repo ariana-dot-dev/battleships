@@ -27,11 +27,12 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 - DIY infrastructure rather than an agent-managed sandbox: guest installation, HTTPS/domain setup, abuse controls and operations are customer responsibilities. Linux guest administrative capabilities are not preinstalled agent features. 30% guest CPU utilization does not reduce allocated-compute charges. Unknowns remain null; a partial subtotal is not a complete invoice.
 - Hourly price discrepancy: vultr.com/pricing (Wayback 2026-09-26) and the billing doc imply hour = monthly/672 with a 672 h cap ($40/mo -> $0.060/h), but the public /v 2/plans API returns hourly_cost = monthly/730 (e.g. vc 2-4c-8gb 0.055). The card uses monthly/672 (the documented billing rule); if Vultr actually bills the API rate, part-time costs are ~8% lower.
 - Minimum billing unit is 1 hour (every started hour billed). Stopped instances and stopped bare metal bill in full until destroyed.
-- GPU instances bill on 730 h (actual hours) since 2024-10-01; VX1 bills actual hours with no 672 h cap.
+- GPU instances bill on 730 h (actual hours) since 2024-10-01; VX1 bills actual hours with no 672 h cap (vultr.com/pricing, Wayback 2026-10-17, re-checked 2026-11-08). The billing doc names 672 h for Cloud Compute, Optimized and Bare Metal and 730 h for GPU; it does not name VX1.
+- Desktop: Ubuntu Desktop (XFCE or GNOME) Marketplace images ship a VNC server; you install your own browser. No screenshot/click API.
 - Snapshots $0.05/GB-month on compressed size, usable in any region; deploy new instances from a snapshot to clone (fs only, no memory). No snapshots for bare metal.
 - One public IPv 4 per instance is included; Reserved IPs cost $3/month; additional instance IPv 4 price not captured.
 - Pricing may vary by location (e.g. Sao Paulo is 1.5x on many plans in the API location_cost field).
-- Nested virtualization: documented for VX1 ('support for virtualization') and inherent on bare metal; not documented for vc 2/vhp/vhf/voc (null).
+- Nested virtualization: pick VX1 ('support for virtualization') or bare metal; not documented for vc 2/vhp/vhf/voc (null).
 - Vultr Firewall filters inbound only (egress filtering must be done in the guest).
 - No published commitment/reserved discounts; free-tier plan vc 2-1c-0.5gb-free (1 vCPU/0.5 GB, $0) exists in SEA/FRA/MIA per API; promo-code credits not captured.
 - Default account instance limit not published; 50 concurrent instances likely needs a limit increase.

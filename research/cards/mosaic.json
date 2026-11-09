@@ -60,7 +60,7 @@
           "month_cap": null
         },
         {
-          "name": "8 vCPU / 16384 MiB (4 units, base template only, cold boot)",
+          "name": "8 vCPU / 16384 MiB (4 units, base template or custom environment, cold boot)",
           "vcpu": 8,
           "ram_gib": 16,
           "disk_gib": null,
@@ -68,7 +68,7 @@
           "month_cap": null
         },
         {
-          "name": "16 vCPU / 32768 MiB (8 units, base template only, cold boot)",
+          "name": "16 vCPU / 32768 MiB (8 units, base template or custom environment, cold boot)",
           "vcpu": 16,
           "ram_gib": 32,
           "disk_gib": null,
@@ -124,12 +124,12 @@
       "fee_is_credit": false,
       "included_usd": 0,
       "per_seat": 0,
-      "concurrency": 200,
+      "concurrency": 1000,
       "max_session_h": null,
       "max_vcpu": 16,
       "max_ram_gib": 32,
       "sizes_allowed": null,
-      "note": "Billing model 'metered_active_compute' via a hosted checkout (billing status 'requires_checkout' until a payment method/subscription exists). No base fee, plan tiers, free tier or trial are published; fee 0 assumes pure metering. Concurrency (checked 2026-10-14): pricing page 'Up to 200 sandboxes at once per organization.' / 'Sandboxes alive at once, hibernated ones included 200 Per organization, across all keys Self-serve · Contact us to raise it'; llms.txt 'An organization may have up to 200 sandboxes alive at once across all of its keys, hibernated ones included' (429 organization_sandbox_limit_reached past it; a key's max_active_sandboxes can only narrow it). 1,000 API requests / 5 s per org per edge location; max 100 named environments per org; batch tasks up to 4,000 concurrent; sync exec ceiling 15 min; up to 4 volumes per sandbox.",
+      "note": "Billing model 'metered_active_compute' via a hosted checkout (billing status 'requires_checkout' until a payment method/subscription exists). No base fee, plan tiers, free tier or trial are published; fee 0 assumes pure metering. Concurrency (checked 2026-11-08): llms.txt 'An organization may have up to 1,000 sandboxes alive at once across all of its keys, hibernated ones included'; docs 'The self-serve default is 1,000 retained sandboxes across all keys'; pricing page: 1,000 per organization, hibernated ones included, self-serve, contact them to raise it (429 organization_sandbox_limit_reached past it; a key's max_active_sandboxes can only narrow it). 1,000 API requests / 5 s per org per edge location; max 100 named environments per org; jobs accept concurrency up to 4,000 per request (llms.txt: 'The 4,000 concurrency maximum bounds a request; it is not a measured or guaranteed simultaneous fleet capacity'; default 4); sync exec ceiling 15 min; up to 4 volumes per sandbox.",
       "max_starts_per_min": null,
       "api_requests_per_5s": 1000
     }
@@ -149,6 +149,7 @@
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
+    "persist_scope": "whole",
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -222,10 +223,10 @@
   "perf": {
     "cpu_runs_s": null,
     "cold_start_ms": null,
-    "burst_tti_ms": 2146.64,
-    "dax_s": 60.74
+    "burst_tti_ms": 611.97,
+    "dax_s": 58.07
   },
-  "perf_source": "benchmarks.json providers.mosaic.computesdk: burst_tti median 2,146.64 ms at 100 concurrency (2026-09-25), dax 60.74 s (2026-09-25, 8 vCPU / 15.64 GiB x86_64). No cold_start_tti entry (null). No hpc CPU run.",
+  "perf_source": "ComputeSDK (each provider at its SDK default size and runtime): burst 612 ms median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 58.07 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [
     {
       "id": "awake_pct",
@@ -254,11 +255,13 @@
     "Regions: US only (Silicon Valley, Northern Virginia).",
     "Awake time is metered from the host record; if unreachable, billing falls back to wall-clock lifetime ('estimated' accounting status).",
     "Pricing page: 'RBAC, SSO, and audit logs included' (sso=true); no SOC 2 / HIPAA claim found.",
-    "Plan/concurrency: no plan tiers; up to 200 sandboxes alive at once per organization, hibernated ones included, across all keys ('Self-serve · Contact us to raise it', pricing page, checked 2026-10-14). API rate limit 1,000 req / 5 s per org. Fleet capacity can still refuse a create (429 capacity_unavailable).",
-    "Pricing page now says 'One SKU for everyone, at three sizes' and lists only 1/2 GB, 2/4 GB (default) and 4/8 GB; the 8/16 and 16/32 shapes (base template only, 4 and 8 units) are still in the docs /v1/limits body and on the roadmap 'Shipped' list, so they stay in the card.",
+    "Plan/concurrency: no plan tiers; up to 1,000 sandboxes alive at once per organization, hibernated ones included, across all keys (self-serve; contact them to raise it; pricing page and docs, checked 2026-11-08). Jobs accept concurrency up to 4,000 per request. API rate limit 1,000 req / 5 s per org. Fleet capacity can still refuse a create (429 capacity_unavailable).",
+    "Pricing page now says 'One SKU for everyone, at three sizes' and lists only 1/2 GB, 2/4 GB (default) and 4/8 GB; the 8/16 and 16/32 shapes (4 and 8 units) stay in the card: llms.txt '8 and 16 vCPU are served on `base` and on environments built with `POST /v1/environments`'. Custom environments accept 1-16 vCPU and 512-32768 MiB in 256 MiB steps (checked 2026-11-08).",
     "Volumes (/mnt/data, Mosaic Object Storage) hold files up to 78 GiB; still no published storage price. Archived (persist:true) sandboxes 'accrue no CPU metering' and are reclaimed after 7 days unresumed.",
-    "Roadmap: the 'published concurrency ceiling' item has shipped (200 per org, see plan). 'Later': GPU-backed sandboxes, an EU region and more regions. Per-organization tariffs exist in the metering model (usage segments capture the 'organization/resource-profile tariff'), so negotiated rates are possible, but no discount is published.",
-    "Docker inside runs only on the `base` template; node-20, node-22 and python-3.11 list docker under unavailable_tools (llms.txt, checked 2026-10-14)."
+    "Roadmap: the 'published concurrency ceiling' item has shipped (now 1,000 per org, see plan). 'Later': GPU-backed sandboxes, an EU region and more regions. Per-organization tariffs exist in the metering model (usage segments capture the 'organization/resource-profile tariff'), so negotiated rates are possible, but no discount is published.",
+    "Docker ships on the base, node-20, node-22 and python-3.11 templates; node-26, python-3.14 and node-22-agents lack it (llms.txt, checked 2026-11-08).",
+    "Files after a stop: a paused (hibernated) sandbox keeps its whole disk and memory at $0 and has no documented time limit, but it counts toward the 1,000 cap and still ends at its inactivity deadline unless that deadline is removed (ttl_seconds: 0) or persist: true archives it (kept 7 days unresumed). A snapshot keeps the whole filesystem and later sandboxes start from it; no snapshot retention or price is published.",
+    "Desktop, browser and computer use: Mosaic ships none, and its Daytona-compatible API lists computer use as unsupported. Guests have passwordless sudo, but no documented example installs a browser or a virtual display, so these stay false."
   ],
   "sources": [
     "https://sandbox.mosaicos.com/",
@@ -367,8 +370,8 @@
       "value": false,
       "source": "https://sandbox.mosaicos.com/",
       "quote": "Mosaic Sandbox runs untrusted code in Firecracker microVMs.",
-      "note": "not offered: outside the product's scope. Mosaic is a Linux code-execution/coding-agent sandbox (templates node-20/22/26, python-3.11/3.14, base); no browser binary, browser template, or browser-control API is documented anywhere in docs, pricing, use-cases or roadmap.",
-      "checked": "2026-09-30"
+      "note": "Mosaic ships no browser. It is a Linux code-execution/coding-agent sandbox (templates node-20/22/26, python-3.11/3.14, base) with passwordless sudo, but no docs page or example installs Chromium or offers a browser-control API (re-checked docs and llms.txt).",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -394,9 +397,9 @@
     "live_resize": {
       "value": false,
       "source": "https://sandbox.mosaicos.com/llms.txt",
-      "quote": "Shapes: 2 vCPU / 4096 MiB by default on every template, also 1/2048 and 4/8192, and on `base` 8/16384 and 16/32768 for work that does not fit the default. A larger shape is metered at the units it occupies (2x, 4x, 8x) and is a cold boot, because only the default shape is kept warm",
-      "note": "vcpu/memory_mb are set at POST /v1/sandboxes create time (and fixed on restore from a snapshot); the full REST endpoint list in llms.txt has no route to change a running sandbox's CPU/RAM allocation. Moving to a larger shape requires creating/booting a new sandbox at that shape, not resizing the running one.",
-      "checked": "2026-09-30"
+      "quote": "8 and 16 vCPU are served on `base` and on environments built with `POST /v1/environments`",
+      "note": "vcpu/memory_mb are set at POST /v1/sandboxes create time (and fixed on restore from a snapshot); the full REST endpoint list in llms.txt has no route to change a running sandbox's CPU/RAM allocation. Moving to a larger shape requires creating/booting a new sandbox at that shape, not resizing the running one. Larger shapes are metered at the units they occupy (2x, 4x, 8x) and cold boot.",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
@@ -434,6 +437,13 @@
       "note": "Contradiction confirmed: pause/hibernate and resume keep the guest's disk (and memory) intact, and `persist:true` archives the sandbox at its TTL deadline (7-day retention) instead of destroying it, resuming 'the same machine, disk and all'. Default behaviour without persist:true is that an unused sandbox is reaped/destroyed at its TTL deadline ('reaped_at_ttl' event), so the correct nuance is: disk persists across pause/resume and across archive (persist:true), but is deleted by default on TTL expiry unless persist:true or an explicit pause is used first. volumes=true and snapshot_auto=true in the card already point the same way.",
       "checked": "2026-09-30"
     },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://sandbox.mosaicos.com/docs/",
+      "quote": "A snapshot keeps the whole filesystem — packages, toolchains, cloned repositories, model weights.",
+      "note": "A stop is a pause (hibernate): the same machine, disk and memory, come back on resume at $0 while paused, with no documented time limit. The inactivity deadline still ends a sandbox unless it is removed (ttl_seconds: 0) or persist: true archives it ('is reclaimed after 7 days unresumed'). A snapshot keeps the whole filesystem and later sandboxes start from it; no retention or price published.",
+      "checked": "2026-11-08"
+    },
     "nested_virt": {
       "value": false,
       "source": "https://sandbox.mosaicos.com/security/",
@@ -445,15 +455,15 @@
       "value": false,
       "source": "https://sandbox.mosaicos.com/about/",
       "quote": "The service exposes a REST API for creating, executing, pausing, resuming, and destroying sandboxes. The mos CLI and the Python, TypeScript, and Go SDKs use the same service. An MCP server makes the lifecycle and command tools available to coding agents, and native SSH is available for sandboxes where SSH is enabled and a reachable endpoint is issued.",
-      "note": "Product is a headless Firecracker microVM reached via REST/CLI/SDK/MCP/SSH for coding-agent workloads; no VNC/desktop/GUI streaming interface is offered or mentioned anywhere in docs, llms.txt, or the security page.",
-      "checked": "2026-09-30"
+      "note": "Mosaic ships no desktop: sandboxes are reached via REST/CLI/SDK/MCP/SSH and HTTPS previews. Guests have passwordless sudo, but no docs page or example installs a virtual display or VNC, so no documented path for 'diy' (re-checked docs and llms.txt; no mention of desktop, Xvfb or VNC).",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://sandbox.mosaicos.com/docs/",
       "quote": "What Mosaic has no equivalent for raises where you called it, with the alternative in the message, rather than returning something plausible: Daytona's snapshot and image management APIs (a create naming an image builds a Mosaic environment instead), organization secrets, network settings changed after create, per-sandbox metrics, signed upload and download URLs, computer use, language servers, PTY sessions, GPU and spot.",
-      "note": "Explicitly listed as unsupported (the Daytona-compatibility shim raises VercelNotSupportedError/DaytonaNotSupportedError-style errors for 'computer use').",
-      "checked": "2026-09-30"
+      "note": "Listed as unsupported in the Daytona-compatible API (it raises a not-supported error for 'computer use'). Mosaic ships no desktop or browser and documents no example to add one, so no documented path for 'diy'.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -543,9 +553,9 @@
     "docker_inside": {
       "value": true,
       "source": "https://sandbox.mosaicos.com/llms.txt",
-      "quote": "POST /v1/sandboxes with `template: \"base\"` — the guest can run Docker itself: `docker run`, `docker build`, compose. ... `node-20`, `node-22` and `python-3.11` list `docker` under `unavailable_tools` in `/v1/limits`.",
-      "note": "Docker works only on the `base` template; the node-20, node-22 and python-3.11 templates do not ship it. Containers share the sandbox's own memory and vCPU.",
-      "checked": "2026-10-14"
+      "quote": "Those templates ship Docker and the guest mounts cgroup2, so nothing needs installing ... `node-26`, `python-3.14` and `node-22-agents` don't ship it.",
+      "note": "Docker ships on base, node-20, node-22 and python-3.11; node-26, python-3.14 and node-22-agents list docker under unavailable_tools in /v1/limits. Containers share the sandbox's own memory and vCPU.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [

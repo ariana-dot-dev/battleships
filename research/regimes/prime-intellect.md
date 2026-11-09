@@ -1,4 +1,4 @@
-# Prime Intellect Sandboxes: pricing regimes (as of 2026-09-28)
+# Prime Intellect Sandboxes: pricing regimes (as of 2026-11-08)
 Prime Sandboxes are hardware-isolated microVMs built for agentic RL. Each one boots a Docker/OCI image as the root filesystem
 with its own guest kernel. The VMM isn't disclosed, and the blog positions the product against gVisor containers.
 VM is now the default and only documented runtime. You drive sandboxes through the `prime` CLI, the `prime-sandboxes` Python SDK,
@@ -16,7 +16,9 @@ through 2026-12-22.** 4 vCPU / 8 GiB = 0.08 + 0.10 = **$0.18/h** (+$0.001/h for 
 | Per-sandbox size | Create request | Whole vCPUs; RAM and disk free-form | 1–16 vCPU, 128 MiB–64 GiB RAM, 2–128 GiB disk, 0–8 GPU (defaults 1 / 1 GiB / 5 GiB / 0) | overview.md |
 | Lifetime / idle timeout | Always / opt-in | Sandbox **terminated** (not paused) | Default 60 min, negative = unlimited; idle 1–1,440 min, SSH doesn't count as activity | https://docs.primeintellect.ai/sandboxes/cli.md |
 | GPU sandboxes | Not open | "Coming soon", VM-only, needs explicit grant | no types/prices published | overview.md |
-| Pause / snapshot / fork / volumes | Not available | "Coming soon" | n/a | overview.md, blog |
+| Paused sandbox | After `pause`; memory, processes and disk kept on the same node | Disk only | $0.0002/GiB-h disk; CPU and RAM stop. Ends if the node is lost or a finite timeout runs out. No pause with volumes or GPUs | https://docs.primeintellect.ai/sandboxes/pause-resume.md |
+| Checkpoints / fork | On demand, and automatically on every pause (files only) | Storage | $0.10/GiB-month, billed hourly, plus a one-time charge of one day of storage | overview.md |
+| Volumes | Named storage that outlives any sandbox, up to 8 per sandbox | Published data billed as checkpoint storage | 100 GiB to 10 TiB capacity, $0.10/GiB-month | https://docs.primeintellect.ai/sandboxes/volumes.md |
 | Hosted Evaluations (Prime Inference) | `prime eval` hosted, no `--api-base-url` | Tokens only; "sandbox runtime is not billed separately" | Prime Inference per-model token prices | https://docs.primeintellect.ai/tutorials-environments/hosted-evaluations |
 | Hosted Evaluations (custom endpoint) | `--api-base-url` set | Billed as sandbox compute; the external provider bills tokens | rates above | same |
 | Hosted Training (RL) | Managed RL runs | Per 1M tokens (input / output / train) | e.g. Qwen3.5-0.8B $0.02/$0.06/$0.06; Qwen3.6-35B-A3B $0.25/$0.75/$1.00; sandbox add-on undocumented | https://docs.primeintellect.ai/hosted-training/models-and-pricing |
@@ -25,23 +27,23 @@ through 2026-12-22.** 4 vCPU / 8 GiB = 0.08 + 0.10 = **$0.18/h** (+$0.001/h for 
 | (Separate) GPU Pods marketplace | GPU VMs from aggregated providers, not sandboxes | Per-offer $/h, dynamic, deducted per minute; spot "up to 90%" off | Prices only visible logged in; docs example 2x H100 80GB PCIe (runpod) $5.40/h | https://docs.primeintellect.ai/faq, llms-full.txt |
 ## Gotchas
 1. **The promo ends 2026-12-22.** Prime markets the launch rates as "a third of the cost of other large sandbox providers". Future rates are not published.
-2. **There is no pause and no persistence.** Keeping state between shifts means leaving the sandbox running at full price. Otherwise you rebuild it from a Prime Image.
+2. **Pause keeps state on one node.** A paused sandbox keeps memory, processes and disk and pays for disk only. It ends if that node is lost. Sandboxes with volumes or GPUs cannot pause; use checkpoints or volumes for those.
 3. **The idle timeout deletes the sandbox.** An open SSH session doesn't keep it alive.
 4. **Billing is on allocation.** Low CPU utilisation saves nothing.
 5. **The first launch of any new image converts it to a VM image.** The sandbox stays PENDING for "a few minutes" (~10 min per the verifiers docs). Whether that time is billed is undocumented. Pre-pushing with `--source-image` avoids it.
 6. **Concurrency for RL:** the default is 1,024 concurrent sandboxes, 4,096 vCPU and 4,096 GiB RAM. The vCPU cap binds first above 4 vCPU per sandbox (1,024 × 4 = 4,096). Thousands of rollouts need a support request.
-7. **There is no inbound port API.** Prime Tunnel is the workaround and is unpriced. Uploads are capped at 16 MiB per file, and SSH has no port forwarding, scp or sftp.
+7. **Public ports have no built-in auth.** An `internet` network rule serves listed ports at `https://<port>-<id>.sandbox-v2-prod.pinfra.io`, HTTP only. Raw TCP works only between sandboxes on a private network (https://docs.primeintellect.ai/sandboxes/networks.md). Uploads are capped at 16 MiB per file, and SSH has no port forwarding, scp or sftp.
 8. **GPU sandboxes can't be bought yet.** The GPU Pods marketplace is a different product (GPU VMs with SSH) and does not support the sandbox API.
 ## Worked example
 Workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days = **8,800 sandbox-hours**, 30% CPU, 50 GiB snapshots, 100 GiB egress.
 - Compute: 8,800 × $0.18 = **$1,584.00** (vCPU $704 + RAM $880). The 30% CPU figure is irrelevant because billing is on allocation.
 - Disk: the default 5 GiB costs 8,800 × 5 × $0.0002 = **$8.80** (50 GiB disks would cost $88.00).
-- Snapshots (50 GiB retained): **not possible** because the feature doesn't exist yet.
+- Snapshots (50 GiB retained as checkpoints): 50 × $0.10 = **$5.00**/month.
 - Egress 100 GiB: the price isn't published, so it is treated as unknown ($0 in the total).
 | Regime | Feasible? | Monthly total |
 |---|---|---|
-| Promo, sandboxes deleted after each 8 h shift | Yes (50 ≤ 1,024; 200 vCPU ≤ 4,096) | **$1,592.80** + unknown egress |
-| Promo, kept running 24 h on 22 workdays to preserve state | Yes | 26,400 h × $0.181 = **$4,778.40** |
+| Promo, sandboxes deleted after each 8 h shift | Yes (50 ≤ 1,024; 200 vCPU ≤ 4,096) | **$1,597.80** + unknown egress |
+| Promo, paused between shifts (5 GiB disk billed 730 h × 50) | Yes | $1,584.00 + 36,500 × 5 × $0.0002 = $36.50 + $5.00 = **$1,625.50** |
 | Promo, kept running all month (730 h × 50) | Yes | 36,500 h × $0.181 = **$6,606.50** |
 | After 2026-12-22 | ? | unknown |
 ## Sources

@@ -171,13 +171,15 @@
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
+    "persist_scope": "folder",
+    "persist_path": "a CFS file system mounted under /mnt/ (VPC function)",
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": 24,
     "custom_image": true,
     "docker_inside": false,
-    "nested_virt": false,
+    "nested_virt": null,
     "root": null,
     "systemd": null,
     "browser": false,
@@ -265,7 +267,10 @@
     "https://www.tencentcloud.com/document/product/583/39466",
     "https://www.tencentcloud.com/document/product/583/69483",
     "https://www.tencentcloud.com/document/product/583/11637",
-    "https://www.tencentcloud.com/document/product/583/17299"
+    "https://www.tencentcloud.com/document/product/583/17299",
+    "https://www.tencentcloud.com/document/product/583/9694",
+    "https://www.tencentcloud.com/document/product/583/37497",
+    "https://www.tencentcloud.com/document/product/583/40688"
   ],
   "fleet": {
     "default_max_instances": "128,000 MB (Guangzhou/Shanghai/Beijing/Chengdu/HK) or 64,000 MB (Singapore/Tokyo/Silicon Valley/Frankfurt) of memory per region",
@@ -292,8 +297,8 @@
       "value": false,
       "source": "https://www.tencentcloud.com/document/product/583/9694",
       "quote": "The platform will repossess instances that have not processed requests for a certain period of time.",
-      "note": "Idle instances are simply reclaimed; state is lost. /tmp (512 MB default, up to 10 GB paid) survives only while a warm instance is reused. No checkpoint-on-stop is documented anywhere in SCF docs.",
-      "checked": "2026-09-29"
+      "note": "Tencent reclaims idle instances and documents no checkpoint on stop. /tmp (512 MB default, up to 10 GB paid) \"may not be retained after function execution is completed\"; its contents stay while the container is kept. Files that must last go to a CFS mount under /mnt/ (see persist_scope) or to COS.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
@@ -336,7 +341,7 @@
       "source": "https://www.tencentcloud.com/document/product/583/37497",
       "quote": "Tencent Cloud SCF can be seamlessly integrated with CFS. After proper configuration, your functions can easily access files stored in CFS.",
       "note": "Network file systems only (CFS General and CFS Turbo series, mounted under /mnt/, per 583/122883 and 583/46199). The function must be in the same VPC as the CFS mount target, and CFS is billed separately by CFS. There are no block volumes. Ephemeral /tmp is 512 MB free, up to 10 GB paid.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -349,15 +354,15 @@
       "value": false,
       "source": "https://www.tencentcloud.com/document/product/583/9694",
       "quote": "The SCF platform is responsible for the creation, management, and deletion of all function runtime instances, and you have no permissions to manage them.",
-      "note": "not offered: outside the product's scope. SCF lets you deploy a container image AS the function itself (image deployment), but there is no documented ability to run a nested Docker daemon inside a function instance; instances are ephemeral, unprivileged, stateless containers you cannot manage.",
-      "checked": "2026-09-30"
+      "note": "A container image can be the function itself (image deployment, 583/41076). Tencent documents no way to run a Docker daemon inside a function instance. Tencent manages the instances, and you cannot manage them.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
-      "value": false,
-      "source": "https://cloud.tencent.com/document/product/583/17299",
-      "quote": "云函数 (isolation: container)",
-      "note": "not offered: outside the product's scope. SCF runs functions in shared-kernel container instances (isolation=container); no /dev/kvm or nested-VM capability is documented for function runtimes.",
-      "checked": "2026-09-30"
+      "value": null,
+      "source": "https://www.tencentcloud.com/document/product/583/9694",
+      "quote": "The SCF platform is responsible for the creation, management, and deletion of all function runtime instances, and you have no permissions to manage them.",
+      "note": "Not documented. SCF docs do not mention /dev/kvm or nested virtualization either way.",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
@@ -405,8 +410,8 @@
       "value": false,
       "source": "https://www.tencentcloud.com/document/product/583/9694",
       "quote": "The SCF platform is responsible for the creation, management, and deletion of all function runtime instances, and you have no permissions to manage them.",
-      "note": "not offered: outside the product's scope. There is no documented SSH access into function runtime instances; the platform explicitly reserves instance management to itself.",
-      "checked": "2026-09-30"
+      "note": "Tencent manages the instances and documents no login into them. A web function serves HTTP and WebSocket on port 9000 (583/40688), not SSH.",
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
@@ -444,11 +449,27 @@
       "checked": "2026-09-30"
     },
     "persistent_disk": {
-      "value": false,
-      "source": "https://www.tencentcloud.com/document/product/583/9210",
-      "quote": "Because of the nature of SCF, you must write your function code in a stateless style. State characteristics in the lifecycle of a function such as local file storage will be destroyed after the function invocation ends.",
-      "note": "The 512 MB /tmp space only survives while a warm instance happens to be reused, not guaranteed across stop/start; no true persistent local disk. (Network file storage via CFS is separate, already reflected as volume_attach/volume_shared.)",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://www.tencentcloud.com/document/product/583/37497",
+      "quote": "You can use a subdirectory in the /mnt/ directory to mount the CFS file system.",
+      "note": "Follows persist_scope \"folder\": files on a CFS mount under /mnt/ outlive the instance and are shared between functions. Local /tmp (512 MB) \"may not be retained after function execution is completed\" (583/9694). Packages stay only when you bake them into the code package or container image.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "folder",
+      "source": "https://www.tencentcloud.com/document/product/583/37497",
+      "quote": "Currently, SCF allows only CFS file systems whose network type is VPC to be added as mount targets.",
+      "how": "put the function in a VPC and mount a CFS file system under /mnt/; or write files to COS",
+      "effort": "low",
+      "note": "Only the mounted folder survives; /tmp and packages installed at run time do not. CFS is billed separately. 583/9694 also names COS or Redis/Memcached for data that must persist.",
+      "checked": "2026-11-08"
+    },
+    "inbound_https": {
+      "value": true,
+      "source": "https://www.tencentcloud.com/document/product/583/40688",
+      "quote": "Functions can directly receive and process HTTP or WebSocket requests",
+      "note": "Web functions listen on port 9000 behind API Gateway or a function URL, with HTTP and WebSocket. No raw inbound ports.",
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
@@ -595,8 +616,8 @@
       "value": 24,
       "source": "https://www.tencentcloud.com/document/product/583/39466",
       "quote": "The maximum execution duration currently supported for async execution is 24 hours.",
-      "note": "Async-only and fixed at creation: \"You can choose whether to enable the \"async execution\" feature only when creating a function.\" Sync/default functions are capped at 900 s (583/11637: \"Timeout period Minimum: 1 second, maximum: 900 seconds\"). Longer than 24 h by ticket. The execution role key is \"valid for up to 6 hours\", so long async runs must refresh credentials.",
-      "checked": "2026-10-14"
+      "note": "24 h applies to async execution only (this page), chosen at creation: \"You can choose whether to enable the \"async execution\" feature only when creating a function.\" The 900 s maximum timeout for other functions is on the quota page https://www.tencentcloud.com/document/product/583/11637 (\"Timeout period Minimum: 1 second, maximum: 900 seconds\"). Longer than 24 h by ticket. The execution role key is \"valid for up to 6 hours\", so long async runs must refresh credentials.",
+      "checked": "2026-11-08"
     },
     "lang_go": {
       "value": true,

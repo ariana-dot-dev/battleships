@@ -289,7 +289,8 @@
   "caveats": [
     "Durable TypeScript tasks, not arbitrary interactive VMs; mode is alt. Billed allocated machine seconds when executing plus $0.000025/run.",
     "Wait >5 seconds and parent waiting for subtasks are checkpointed and unbilled. No execution timeouts. Free 20 concurrency; Hobby 50; Pro 200 + $10/month per 50.",
-    "Extra Pro seats $20/month beyond 25; HIPAA BAA is add-on not an included plan fee.",
+    "Extra Pro seats $20/month beyond 25. HIPAA BAA is a $500/month add-on on Hobby and Pro (Enterprise: add-on, price not published). The SOC 2 report is shared with Enterprise only.",
+    "chat.agent gives each conversation a long-lived Linux process (ffmpeg, a browser or any CLI from the build image); its in-memory state and on-disk workspace survive idle gaps, deploys and crashes. You write the agent loop yourself.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "API rate limit 1,500 requests/min on all plans (raise on request, paid only); batchTrigger up to 1,000 runs per call; batch token bucket Free 1,200 burst + 100/10 s, Hobby/Pro 5,000 burst + 500/5 s per environment.",
@@ -330,6 +331,11 @@
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
   },
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "re-checked https://trigger.dev/pricing (all 7 per-second machine prices, $0.000025/run, plan fees, concurrency, HIPAA BAA $500/month, SOC 2 Enterprise only), playwright extension, how-it-works, ai-chat overview and chat-agent product page",
+    "reviewed": 5
+  },
   "feature_evidence": {
     "snapshot_auto": {
       "value": true,
@@ -349,8 +355,8 @@
       "value": true,
       "source": "https://trigger.dev/docs/ai-chat/server-chat.md",
       "quote": "`AgentChat` lets you chat with agents from server-side code. It works inside tasks (agent-to-agent), request handlers, webhook processors, and scripts.",
-      "note": "Provider's own harness: chat.agent (AI SDK-based, you define the agent). AgentChat.sendMessage() starts a run, streams output and sends follow-ups to the same run; Sessions give durable two-way streams; Management API lists sessions; MCP server to chat with agents. No first-party wrapper for Claude Code/Codex/OpenCode (only a Claude Agent SDK guide running inside a task).",
-      "checked": "2026-09-29"
+      "note": "Provider's own harness: chat.agent (AI SDK-based, you define the agent). Each conversation gets a long-lived Linux process that can run ffmpeg, a browser or any CLI from the build image (https://trigger.dev/product/chat-agent: \"A real Linux machine per agent\"). AgentChat.sendMessage() starts a run, streams output and sends follow-ups to the same run; Sessions give durable two-way streams; Management API lists sessions; MCP server to chat with agents. No first-party wrapper for Claude Code/Codex/OpenCode (only a Claude Agent SDK guide running inside a task).",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -369,9 +375,9 @@
     "isolation": {
       "value": "container",
       "source": "https://trigger.dev/docs/how-it-works",
-      "quote": "You can review the build output by running deploy with the --dry-run flag, which will output the Containerfile and the build output.",
-      "note": "Tasks are built into a container image (Containerfile) and each run executes in an isolated container on Trigger.dev's managed infrastructure; no VM/microVM hypervisor is exposed to customers on the public product (a Firecracker microVM runtime exists only as an invite-only private beta per the card).",
-      "checked": "2026-09-30"
+      "quote": "the code is packaged up into a Docker image and deployed to your Trigger.dev instance.",
+      "note": "Your code is packaged into a Docker image; each run executes \"in a secure, isolated environment\" built from that image (same page). The docs do not name the run boundary; container is inferred from the Docker image and CRIU checkpoints (a process-level tool). A Firecracker microVM runtime exists only as an invite-only private beta (see caveats).",
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": false,
@@ -398,15 +404,15 @@
       "value": false,
       "source": "https://trigger.dev/pricing",
       "quote": "Tasks are functions that can run for a long time and provide strong resilience to failure. They run on our servers so there are no timeouts and no infrastructure to manage.",
-      "note": "not offered: outside the product's scope — a durable TypeScript task/workflow platform, not a desktop/VNC/RDP product. Playwright's optional non-headless mode only spins up an internal Xvfb virtual display for debugging, not a user-facing desktop.",
-      "checked": "2026-09-30"
+      "note": "A durable task platform. Headed browsers run on a virtual Xvfb display (Playwright extension, headless: false), but the docs show no desktop you can watch, stream or click (no VNC/RDP/noVNC path or example).",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": true,
       "source": "https://trigger.dev/docs/config/extensions/playwright",
-      "quote": "Use the playwright build extension to use Playwright with Trigger.dev. Automatically installs Playwright and required browser dependencies. Allows you to specify which browsers to install (chromium, firefox, webkit)",
-      "note": "Real Chromium/Firefox/WebKit browsers can be installed and driven from inside tasks via the built-in playwright/puppeteer build extensions.",
-      "checked": "2026-09-30"
+      "quote": "If set to `false`, a virtual display (Xvfb) will be set up automatically.",
+      "note": "Chromium, Firefox or WebKit installed by the playwright/puppeteer build extensions and driven from inside tasks, headless or headed on an automatic Xvfb virtual display.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
@@ -603,8 +609,8 @@
       "corrected_from": false,
       "source": "https://trigger.dev/docs/how-it-works.md",
       "quote": "While waiting for a subtask or during a long programmed pause (e.g., `wait.for({ minutes: 5 })`), the system uses CRIU (Checkpoint/Restore In Userspace) to create a checkpoint of the task's entire state, including memory, CPU registers, and open file descriptors. ... The checkpoint is loaded back into a new execution environment, restoring the task to its exact state before suspension.",
-      "note": "Contradiction confirmed: the card already records pause_resume=true and snapshot_auto=true (CRIU checkpoint) but persistent_disk=false. The CRIU checkpoint captures the run's entire process/filesystem state (memory, CPU registers, open file descriptors), and restoration puts the task back in its exact prior state, so on-disk state written before a wait/pause does survive the pause-resume cycle automatically (default behaviour, no opt-in). Scope is narrower than a general persistent volume: it's per-task-run state preserved only across a checkpoint triggered by triggerAndWait/wait.for/wait.until (>=60s) or chat.agent idling, not a disk you can keep across separate deploys/task invocations or attach/detach at will. Corrected value: persistent_disk=true, with the caveat that it's scoped to a single run's pause/resume lifecycle rather than a durable attachable volume.",
-      "checked": "2026-09-30"
+      "note": "Files survive inside one run: the CRIU checkpoint restores the run to its exact state after a wait (triggerAndWait, wait.for/wait.until >= 60 s, chat.agent idling). For chat.agent, one conversation is one long-lived run, and https://trigger.dev/docs/ai-chat/overview says \"the same in-memory state and on-disk workspace survive across page refreshes, deploys, idle gaps, and crashes\". A new run starts fresh from the image; there is no attachable volume. Cloud only (self-hosted has no checkpoints).",
+      "checked": "2026-11-08"
     },
     "gpu": {
       "value": false,

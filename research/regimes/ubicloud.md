@@ -20,6 +20,9 @@ Open source alternative to AWS
 3. Burstable baseline up to 50% of allocated vCPU with micro-interval bursts to 100%; dedicated RAM/disk.
 4. VM IPv4 is $3/mo per minute prorated; runners include IPv4. VM allowance 0.625 TB egress per 2 vCPUs, then $3/TB; scope is per-VM not account-wide.
 5. Machine images billed compressed archive size $0.0000034722/GiB/min, approximated $0.15/GiB-month. CI $2.50 monthly credit only, not VM credit. New CI users default to premium.
+6. A stopped VM keeps its whole disk but bills as if it runs. To keep the disk without the VM charge: stop the VM, capture a machine image (one disk up to 40 GiB), delete the VM, and boot a new VM from the image later. Source: https://ubicloud.com/docs/machine-images/overview.md (checked 2026-11-08).
+7. GPUs on request: B200 in Istanbul ($3.00/GPU-h), A100 80GB in Germany ($1.226/GPU-h, active rate in the open-source billing file), RTX PRO 6000 (no public rate). Since Oct 2026, dedicated B300 hosts (full or half host) rent in the SF Bay Area for a flat monthly fee on request. Sources: https://ubicloud.com/docs/changelog/2025-12, https://ubicloud.com/docs/changelog/2026-10 (checked 2026-11-08).
+8. Self-serve regions: Falkenstein (DE), Helsinki (FI), Manassas (US). Source: https://ubicloud.com/docs/about/regions (checked 2026-11-08).
 ## Worked example
 Requested: 4 vCPU/8 GiB, 50 simultaneous × 8 h/day × 22 days = **8,800 instance-hours**, 30% CPU; 50 GiB snapshots and 100 GiB egress. A month is 730 hours only when explicitly used in rate conversion.
 Dedicated standard-4 (4/16) compute: 8,800×$0.1248=$1,098.24. Fifty public IPv4s kept all month add $150, optional. 50 GiB image archives add about $7.60 using exact per-minute×730 rate. 100 GiB total egress fits VM allowances if distributed within each VM quota. Subtotal $1,255.84; no monthly cap assumed. CI alternative standard-x64 = $1,320 minus $2.50 credit, with different lifecycle/network features.

@@ -59,12 +59,12 @@
       },
       "flags": [],
       "perf": {
-        "cpu_runs_s": 19.48,
+        "cpu_runs_s": 18.03,
         "cold_start_ms": 251.38,
-        "burst_tti_ms": 556.55,
-        "dax_s": 45.12
+        "burst_tti_ms": 364.26,
+        "dax_s": 61.05
       },
-      "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target"
+      "perf_source": "CPU 18.03 runs/s: V8 Web Tooling Benchmark (Phoronix node-web-tooling), StarSling hpc-sandbox-benchmarks run 37073680030 (2026-10-03), row \"Blaxel\", median of 5 sandboxes at a 4 vCPU / 8 GB target, rank 7 of 15 (shared: the run cannot separate it from the providers at the same rank). https://github.com/starslingdev/hpc-sandbox-benchmarks/blob/297198a96ee827df5edcd918bd37b949526cfe20/LEADERBOARD.md ComputeSDK (each provider at its SDK default size and runtime): burst 364 ms median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 61.05 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86); one-at-a-time start 251 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results"
     },
     {
       "key": "batch-job",
@@ -221,6 +221,7 @@
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
+    "persist_scope": "whole",
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -234,7 +235,7 @@
     "computer_use": true,
     "code_interpreter": false,
     "agent_harnesses": true,
-    "ssh": false,
+    "ssh": "diy",
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": true,
@@ -348,6 +349,9 @@
     "Sizes above 16 GB: core count undocumented (third-party cites XL 32 GB at $1.3248/h); up to 256 GB on Custom only.",
     "Batch Jobs mode is only valid for non-interactive tasks <= 24 h; MCP hosting ($0.0252/GB-h) omitted as a mode.",
     "No public inbound IPv4; dedicated egress IPs/gateway/proxy free during beta. Wildcard custom domains $20/domain-month.",
+    "SSH: no built-in SSH server; Blaxel documents SSH through Tailscale inside the sandbox (https://docs.blaxel.ai/Tutorials/Tailscale, checked 2026-11-08).",
+    "Domain allow/deny lists and method/path egress rules are in public preview, not recommended for production, and run only on Mark 3.0 (https://docs.blaxel.ai/Sandboxes/Proxy-domains, checked 2026-11-08).",
+    "Prices re-checked 2026-11-08 on https://blaxel.ai/pricing: sandbox $0.0000115/GB RAM-s, batch $0.000006/GB RAM-s, snapshots $0.20/GB-month, volumes $0.12/GB-month, HIPAA $250/month: unchanged.",
     "'Up to $200' free credits: exact amount not specified.",
     "Blaxel acquired by Baseten (2026-09-10); product/pricing stated unchanged.",
     "unverified: batch jobs may bill active (used) RAM, per \"billed by the memory it uses\" (https://blaxel.ai/pricing); card keeps alloc as the upper bound.",
@@ -421,16 +425,18 @@
       "value": true,
       "source": "https://docs.blaxel.ai/Sandboxes/Proxy-domains",
       "quote": "To enforce filtering even for tools that bypass those variables, add a `firewall` config with `rulesets: [\"proxy\"]`. This locks down the sandbox's egress at the network level so that all outbound traffic must flow through the proxy.",
-      "note": "allowedDomains / forbiddenDomains with wildcards, updatable on a running sandbox. Without firewall ruleset it only relies on HTTP(S)_PROXY env vars (bypassable). Enforcement set only at creation and only on Mark 3.0 (not Carbon). Private ranges/169.254.169.254 always bypass the proxy. No IP/CIDR egress rules documented.",
-      "checked": "2026-09-29",
+      "note": "Public preview: \"This feature is currently in public preview and is not recommended for production use.\" Runs only on Mark 3.0: \"this feature is not yet available on Carbon (Mark 3.1).\" allowedDomains / forbiddenDomains with wildcards, updatable on a running sandbox. Without the firewall ruleset it relies only on HTTP(S)_PROXY env vars (bypassable). Private ranges/169.254.169.254 always bypass the proxy. No IP/CIDR egress rules documented.",
+      "beta": true,
+      "checked": "2026-11-08",
       "level": "domain"
     },
     "egress_http_rules": {
       "value": true,
       "source": "https://docs.blaxel.ai/Sandboxes/Proxy-domains",
       "quote": "You can also scope a rule to specific HTTP methods and URL paths by adding method prefixes and a path suffix:",
-      "note": "Pattern [!]METHOD:...:domain[/path]; path prefix canonicalized. No header-based rules; the proxy also injects headers/body fields.",
-      "checked": "2026-09-29"
+      "note": "Public preview, not recommended for production, Mark 3.0 only (same page as egress_allowlist). Pattern [!]METHOD:...:domain[/path]; path prefix canonicalized. No header-based rules; the proxy also injects headers/body fields.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": true,
@@ -464,7 +470,8 @@
       "value": true,
       "source": "https://docs.blaxel.ai/Agent-drive/Overview",
       "quote": "Drives support concurrent read-write access (RWX) from multiple sandboxes simultaneously, with built-in replication for durability.",
-      "note": "Agent Drive: private preview, us-was-1 only; FUSE distributed FS, hot-mount on running sandboxes, read-write or read-only mounts, label-based ACLs, S3-compatible endpoint. Block Volumes themselves are single-attach.",
+      "beta": true,
+      "note": "Agent Drive: private preview, us-was-1 only, storage free during beta (https://blaxel.ai/pricing, checked 2026-11-08); FUSE distributed FS, hot-mount on running sandboxes, read-write or read-only mounts, label-based ACLs, S3-compatible endpoint. Block Volumes themselves are single-attach.",
       "checked": "2026-09-29"
     },
     "anti_bot": {
@@ -513,7 +520,7 @@
       "value": false,
       "source": "https://blaxel.ai/blog/soc-2-compliant-sandbox-providers",
       "quote": "Each sandbox runs in a dedicated Firecracker microVM with its own kernel",
-      "note": "Quote is from a Blaxel blog post, not the docs (the Sandboxes Overview doc does not mention Firecracker). Firecracker microVMs do not expose nested virtualization; the upstream Firecracker security test suite (test_nv.py) asserts guests have no /dev/kvm. Blaxel docs never mention KVM/nested-virt passthrough for sandboxes.",
+      "note": "Not documented by Blaxel either way; not tested in a Blaxel sandbox by us. Quote is from a Blaxel blog post, not the docs (the Sandboxes Overview doc does not mention Firecracker). Firecracker microVMs do not expose nested virtualization; the upstream Firecracker security test suite (test_nv.py) asserts guests have no /dev/kvm. Blaxel docs never mention KVM/nested-virt passthrough for sandboxes.",
       "checked": "2026-10-14"
     },
     "isolation": {
@@ -524,11 +531,28 @@
       "checked": "2026-10-14"
     },
     "ssh": {
-      "value": false,
-      "source": "https://docs.blaxel.ai/cli-reference/commands/bl_connect_sandbox",
-      "quote": "This command opens a direct terminal connection to your sandbox, similar to SSH.",
-      "note": "No native SSH server/port on sandboxes; interactive access is via `bl connect sandbox` (CLI terminal, explicitly described as SSH-like, not SSH) or WebSocket process API. Real SSH access requires installing and running the third-party Tailscale add-on/tutorial inside the sandbox, which is not first-party SSH support.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://docs.blaxel.ai/Tutorials/Tailscale",
+      "quote": "Once authenticated, the sandbox is reachable via SSH from any device on your Tailscale network.",
+      "how": "run Tailscale in the sandbox (official tutorial image) and connect with Tailscale SSH from a device on your tailnet; needs a Tailscale account",
+      "effort": "medium",
+      "note": "No built-in SSH server or port. The built-in terminal is `bl connect sandbox`, which the CLI docs describe as \"a direct terminal connection to your sandbox, similar to SSH\" (https://docs.blaxel.ai/cli-reference/commands/bl_connect_sandbox). The Tailscale image uses userspace networking; the manual setup needs iptables enabled through extraArgs at creation.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://docs.blaxel.ai/Sandboxes/Overview",
+      "quote": "When transitioning to standby mode, Blaxel automatically creates a snapshot of the entire state (including the complete file system in memory, preserving both files and running processes) and transitions the sandbox to standby mode within approximately 15 seconds.",
+      "note": "Blaxel has no stop: an idle sandbox goes to standby and the automatic snapshot keeps the whole filesystem, memory and processes. Snapshot storage is $0.20/GB-month. Tier 0 and Tier 1 delete sandboxes after up to 7 and 30 days; Tier 2 and up keep them with no limit (https://docs.blaxel.ai/Sandboxes/Expiration). One block volume can be attached at creation; Agent Drive (private preview, us-was-1) mounts a shared drive at runtime.",
+      "checked": "2026-11-08"
+    },
+    "static_egress_ip": {
+      "value": true,
+      "source": "https://blaxel.ai/pricing",
+      "quote": "Dedicated egress IP addresses that route any protocol: HTTP, PostgreSQL, TCP, and beyond.",
+      "note": "Beta: the pricing page lists them as \"Free during beta\".",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,

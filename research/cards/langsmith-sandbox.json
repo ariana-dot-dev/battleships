@@ -159,7 +159,7 @@
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": false,
+    "browser": true,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": null,
@@ -238,12 +238,14 @@
     "ENGINE_CARD cannot apply all independent free CPU/RAM/storage/request allowances exactly. Raw regimes/worked example retain them; any engine subtotal may overstate charges or miss eligibility. Do not subtract them twice.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
-    "No desktop or managed browser product is documented. SSH works through the CLI: sandbox ssh-setup writes a ProxyCommand over langsmith sandbox tunnel, but the image must run sshd on port 22 (the default image is not stated to). sandbox console gives a PTY shell. A browser could be installed in a custom image, but none is provided.",
+    "No desktop or screen stream is documented. The default image (Ubuntu 26.04) ships headless Chrome for Testing, agent-browser, Docker and an OpenSSH server. SSH works through the CLI: sandbox ssh-setup writes a ProxyCommand over langsmith sandbox tunnel to sshd on port 22. sandbox console gives a PTY shell.",
     "Restricted egress by default for non-Enterprise orgs: only a managed allowlist (PyPI, npm, GitHub, OpenAI, Anthropic, LangSmith, mostly HTTPS:443). Unrestricted egress needs a support-ticket exemption.",
     "Enterprise is invoiced annually upfront and LCUs draw down committed LangChain credits. Startups can get up to $10,000 in credits (application program).",
     "New organisations created manually must be on Plus. Developer is only the personal org.",
     "CPU bursts to 2x requested when the host has spare capacity. It is not documented whether burst CPU is billed; the billed allocation is presumably the requested vCPU.",
-    "Self-hosted sandboxes require an Enterprise plan; the hosted Developer/Plus plans cannot self-host."
+    "Self-hosted sandboxes require an Enterprise plan; the hosted Developer/Plus plans cannot self-host.",
+    "Stopped sandboxes are deleted after delete_after_stop_seconds: typically 14 days by default, up to 30 days, or 0 to keep them until you delete them.",
+    "Sandbox mounts attach customer-owned S3 or GCS buckets (read-write), public Git repos and Context Hub repos at create time; the bucket stays the durable store."
   ],
   "sources": [
     "https://www.langchain.com/pricing",
@@ -253,7 +255,8 @@
     "https://docs.langchain.com/langsmith/sandbox-auth-proxy",
     "https://docs.langchain.com/langsmith/sandbox-cli",
     "https://docs.langchain.com/langsmith/self-host-sandbox-architecture",
-    "https://docs.langchain.com/langsmith/enable-self-hosted-sandboxes"
+    "https://docs.langchain.com/langsmith/enable-self-hosted-sandboxes",
+    "https://docs.langchain.com/langsmith/sandbox-sdk"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -280,7 +283,7 @@
       "value": true,
       "source": "https://docs.langchain.com/langsmith/sandbox-snapshots",
       "quote": "preserve_memory_on_stop | true suspends RAM on a voluntary stop (idle timeout or explicit stop) so the sandbox resumes where it left off when it next wakes, rather than cold-booting. Defaults to false, which keeps only the filesystem. Restarts triggered by infrastructure maintenance preserve memory either way.",
-      "note": "Opt-in per sandbox at create time (REST API field; not yet in Python/TS SDK). Trigger: idle timeout (idle_ttl_seconds, default 600 s) or explicit stop; memory + running processes included; wake is automatic on next exec/file/service-URL request. Default (false) keeps only the filesystem across stop, which is persistent_disk, not this. Stopped sandboxes are deleted after delete_after_stop_seconds (default ~14 days, max 30).",
+      "note": "Opt-in per sandbox at create time (REST API field; not yet in Python/TS SDK). Trigger: idle timeout (idle_ttl_seconds, default 600 s) or explicit stop; memory + running processes included; wake is automatic on next exec/file/service-URL request. Default (false) keeps only the filesystem across stop, which is persistent_disk, not this. Stopped sandboxes are deleted after delete_after_stop_seconds (typically 14 days by default, up to 30 days; 0 disables stop-anchored deletion).",
       "checked": "2026-09-29"
     },
     "snapshot_on_demand": {
@@ -323,7 +326,7 @@
       "value": true,
       "source": "https://docs.langchain.com/langsmith/deploy-self-hosted-full-platform",
       "quote": "Sandbox runtime pods that run sandbox workloads on KVM-capable nodes.",
-      "note": "Firecracker microVMs with their own guest kernel (self-host-sandbox-architecture, checked 2026-10-14; self-host requires /dev/kvm) with an Ubuntu 24.04 ext4 root filesystem and root access (setup scripts run apt-get). Not documented explicitly; derived. Rules inside would sit behind the host-side egress proxy.",
+      "note": "Firecracker microVMs with their own guest kernel (self-host-sandbox-architecture, checked 2026-10-14; self-host requires /dev/kvm) with an Ubuntu 26.04 (default snapshot, checked 2026-11-08) ext4 root filesystem and root access (setup scripts run apt-get). Not documented explicitly; derived. Rules inside would sit behind the host-side egress proxy.",
       "checked": "2026-09-29",
       "derived": true
     },
@@ -345,8 +348,8 @@
       "value": true,
       "source": "https://docs.langchain.com/langsmith/sandbox-mounts",
       "quote": "For writable mounts, keep writeback_seconds low when another process needs to read the objects from S3 or GCS soon after the sandbox writes them.",
-      "note": "First-party mount feature for customer-owned S3/GCS buckets (read_only true/false; writable mounts write back to the bucket), plus Git (clone) and Context Hub (read-only, one-way sync) mounts. The same bucket/prefix can be mounted by several sandboxes (bucket is 'the source of truth'), but it is object storage with a local cache and writeback delay, not a POSIX shared filesystem; concurrent multi-sandbox mounting is not stated explicitly. Mounts are set at sandbox creation.",
-      "checked": "2026-09-29"
+      "note": "First-party mount feature for customer-owned S3/GCS buckets (read_only true/false; writable mounts write back to the bucket), plus Git (clone) and Context Hub (read-only, one-way sync) mounts. The same bucket/prefix can be mounted by several sandboxes (bucket is 'the source of truth'), but it is object storage with a local cache and writeback delay, not a POSIX shared filesystem; concurrent multi-sandbox mounting is not stated explicitly. Mounts are set at sandbox creation. Mounts make data outlive any one sandbox (the bucket is the durable store).",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -359,8 +362,8 @@
       "value": false,
       "source": "https://docs.langchain.com/langsmith/sandboxes",
       "quote": "Sandboxes are isolated environments that allow agents to safely execute potentially risky operations, like running arbitrary code or interacting with the filesystem, without affecting your main infrastructure.",
-      "note": "not offered: outside the product's scope. LangSmith sandboxes are a code-execution/filesystem VM primitive with no browser or stealth/fingerprinting product (browser: false in the card; caveats confirm no browser is provided).",
-      "checked": "2026-09-30"
+      "note": "not offered: no stealth or fingerprinting product is documented. The default image has headless Chrome for Testing and agent-browser, but no anti-bot layer.",
+      "checked": "2026-11-08"
     },
     "captcha_solving": {
       "value": false,
@@ -387,8 +390,8 @@
       "value": false,
       "source": "https://docs.langchain.com/langsmith/sandboxes",
       "quote": "Sandboxes are isolated environments that allow agents to safely execute potentially risky operations, like running arbitrary code or interacting with the filesystem, without affecting your main infrastructure.",
-      "note": "not offered: outside the product's scope. The default snapshot is a bare Ubuntu 24.04 dev-tools image; no coding-agent template (Claude Code, Codex, OpenCode, etc.) is preinstalled or offered. Managed Deep Agents (LangChain's own agent framework) requires you to write the agent's tools/instructions yourself, not a preinstalled harness.",
-      "checked": "2026-09-30"
+      "note": "not offered: outside the product's scope. The default snapshot is a Ubuntu 26.04 dev-tools image (Docker, headless Chrome, agent-browser, gh); no coding-agent template (Claude Code, Codex, OpenCode, etc.) is preinstalled or offered. Managed Deep Agents (LangChain's own agent framework) requires you to write the agent's tools/instructions yourself, not a preinstalled harness.",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
@@ -408,7 +411,7 @@
       "value": true,
       "source": "https://docs.langchain.com/langsmith/sandboxes",
       "quote": "with client.sandbox() as sb:\n      result = sb.run(\"python3 -c 'print(2 + 2)'\")\n      print(result.stdout)  # \"4\\n\"",
-      "note": "Default snapshot (Ubuntu 24.04 with common dev tools) includes Python out of the box, plus a first-party langsmith[sandbox] Python SDK.",
+      "note": "Default snapshot (Ubuntu 26.04 with common dev tools) includes Python out of the box, plus a first-party langsmith[sandbox] Python SDK.",
       "checked": "2026-09-30"
     },
     "lang_node": {
@@ -443,7 +446,7 @@
       "value": false,
       "source": "https://docs.langchain.com/langsmith/deploy-self-hosted-full-platform",
       "quote": "On AWS and GCP, use x86\\_64 Linux instances that expose `/dev/kvm` to the sandbox runtime.",
-      "note": "not offered: outside the product's scope. All documented sandbox environments and the default snapshot are Ubuntu 24.04 Linux; no Windows image or OS option is documented.",
+      "note": "not offered: outside the product's scope. All documented sandbox environments and the default snapshot are Ubuntu 26.04 Linux; no Windows image or OS option is documented.",
       "checked": "2026-09-30"
     },
     "macos": {
@@ -478,15 +481,15 @@
       "value": false,
       "source": "https://docs.langchain.com/langsmith/fleet/computer-use",
       "quote": "Computer use gives your Fleet agent access to an isolated virtual computer. The agent can write and execute code, manage files, install packages, and call authenticated external APIs without exposing credentials to the language model.",
-      "note": "not offered: the product's only 'computer' surface (LangSmith Sandboxes, including the Fleet-branded 'Computer use' feature built on the same sandboxes) is a headless VM reached via exec/files/tunnels/service-URLs; no VNC/RDP/streamed GUI desktop is documented anywhere in the sandbox, Fleet, or Deep Agents docs.",
-      "checked": "2026-09-30"
+      "note": "No VNC/RDP/streamed GUI desktop is documented in the sandbox, Fleet or Deep Agents docs. The default image has headless Chrome for Testing and agent-browser (see browser), but no screen stream.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://docs.langchain.com/langsmith/sandboxes",
-      "quote": "Computer use gives your Fleet agent access to an isolated virtual computer. The agent can write and execute code, manage files, install packages, and call authenticated external APIs without exposing credentials to the language model.",
-      "note": "not offered: no first-party/managed browser is documented for LangSmith Sandboxes or the Fleet 'computer'; access is exec/file APIs, service URLs and TCP tunnels on a bare Linux microVM. A browser could be installed inside a custom image, but none is provided or managed by LangChain.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://docs.langchain.com/langsmith/sandbox-snapshots",
+      "quote": "Browser automation: Chrome for Testing and `agent-browser`.",
+      "note": "The default snapshot (system/default:latest) ships headless Chrome for Testing and agent-browser for scripted browsing. No desktop or screen stream is documented. Non-Enterprise sandboxes reach only the managed egress allowlist.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
@@ -523,15 +526,15 @@
       "value": "whole",
       "source": "https://docs.langchain.com/langsmith/sandbox-snapshots",
       "quote": "preserve_memory_on_stop | true suspends RAM on a voluntary stop (idle timeout or explicit stop) so the sandbox resumes where it left off when it next wakes, rather than cold-booting. Defaults to false, which keeps only the filesystem. Restarts triggered by infrastructure maintenance preserve memory either way.",
-      "note": "The whole disk survives a stop, installed packages included.",
-      "checked": "2026-10-01"
+      "note": "The whole disk survives a stop, installed packages included. A stopped sandbox is deleted after delete_after_stop_seconds: typically 14 days by default, settable up to 2592000 s (30 days), or 0 to disable stop-anchored deletion (sandbox-sdk, checked 2026-11-08).",
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": true,
       "source": "https://docs.langchain.com/langsmith/sandbox-cli",
       "quote": "Use `sandbox ssh-setup` to configure standard SSH tools such as `ssh`, `scp`, `rsync`, and `sftp` through a sandbox tunnel.",
-      "note": "\"`ssh-setup` modifies local SSH configuration and writes a `ProxyCommand` that calls `langsmith sandbox tunnel`.\" and \"The sandbox image must run `sshd` on port `22`.\" Also \"Use `sandbox console` for a PTY-backed interactive shell\".",
-      "checked": "2026-10-14"
+      "note": "The default snapshot includes the OpenSSH client and server (sandbox-snapshots, checked 2026-11-08). `ssh-setup` writes a ProxyCommand that calls `langsmith sandbox tunnel`; the image must run sshd on port 22. `sandbox console` gives a PTY shell.",
+      "checked": "2026-11-08"
     },
     "isolation": {
       "value": "vm",

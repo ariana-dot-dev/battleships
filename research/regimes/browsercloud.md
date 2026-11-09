@@ -7,7 +7,7 @@ Browser-hour, bandwidth, residential-proxy and browser-agent charges all draw fr
 | Hobby | 5 concurrent | $19/mo;120h browser-time equivalent. | https://browsercloud.io/pricing |
 | Startup | 50 concurrent | $99/mo;1,000h browser-time equivalent. | https://browsercloud.io/pricing |
 | Business | 100 concurrent | $249/mo;3,000h browser-time equivalent. | https://browsercloud.io/pricing |
-| Dedicated clusters | 100–400+ concurrent | Separate unlimited-credit offer; quote required. | https://browsercloud.io/pricing |
+| Dedicated clusters | 100–400 concurrent | Unlimited credits, flat monthly: 100 sessions $690, 200 $940, 300 $1,100, 400 $1,250. More than 400: custom price. | https://browsercloud.io/unlimited |
 ## Gotchas
 - Browser-hour, bandwidth, residential-proxy and browser-agent charges all draw from one monthly credit pool. Displayed hours/GB are alternative uses of credits, not additive included pools. Dedicated-cluster/unlimited plans are a different regime.
 - Overage and eight-hour session eligibility need detailed plan confirmation; cannot stack the hours and traffic equivalents.

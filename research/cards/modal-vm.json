@@ -10,7 +10,7 @@
       "key": "on-demand",
       "label": "VM Sandbox, request = size",
       "pricing": "resource",
-      "vcpu_h": 0.141912,
+      "vcpu_h": 0.070956,
       "ram_gib_h": 0.024012,
       "cpu_basis": "max",
       "ram_basis": "max",
@@ -21,7 +21,7 @@
       ],
       "ram_fixed_per_vcpu": null,
       "vcpu_options": null,
-      "min_vcpu": 0.125,
+      "min_vcpu": 0.25,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes": null,
@@ -36,17 +36,17 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Card vCPU = 1 Modal `cpu` unit = 1 CPU the guest sees (nproc). Modal lists $0.00003942 per 'physical core (2 vCPU equivalent)' per second and bills that per `cpu` unit, so $0.141912 per card-vCPU-h; memory $0.00000667/GiB-s. A '4 vCPU / 8 GiB' sandbox = cpu=(4,4), memory 8192 = $0.759744/h. Measured: cpu=N with cpuLimit=N gives nproc N and N CPUs of throughput (hpc-sandbox-benchmarks PR #121). Rates already include the 3x non-preemptible multiplier over Function rates. Billed per second on max(request, actual): at request = W.vcpu, low utilisation saves nothing. Set cpuLimit = request: without it the soft limit is request + 16 cores, the guest sees ceil(limit) CPUs (17 observed at default request) and bursting is billed. GPU sandboxes are preemptible. Basis verified 2026-09-28: 'You pay for `max(request, actual)`' (modal.com/docs/guide/sandbox-resources); 'charged based on whichever is higher: your request or actual usage' (modal.com/docs/guide/resources). VM runtime (runtime=\"vm\"): same per-second CPU and memory rates as the gVisor sandboxes; \"CPU/memory bursting capabilities as previously\" (GA post, https://modal.com/blog/vm-sandboxes-agent-computers).",
+      "note": "Priced on Modal's own published unit: \"The `cpu` parameter specifies physical CPU cores (1 core = 2 vCPUs)\" (modal.com/docs/guide/sandbox-resources, checked 2026-11-08). $0.00003942 per core-second = $0.070956 per vCPU-hour; memory $0.00000667 per GiB-second (modal.com/pricing). A 4 vCPU / 8 GiB sandbox = cpu=2, memory 8192 = $0.283824 + $0.192096 = $0.47592/h. Rates include the 3x non-preemptible multiplier over Function rates. Billed per second on max(request, actual): \"You're charged `max(request, actual)` for both CPU and memory.\" Sandboxes burst above the request when the host has spare capacity; set a cpu limit to cap the burst, or bursting can bill above 2 cores. Caveat, not the price: StarSling measured cpu=N with a matching limit gives nproc N in the guest (hpc-sandbox-benchmarks PR #121, https://github.com/starslingdev/hpc-sandbox-benchmarks/pull/121). Speed rows measured at cpu=4 are therefore not like for like with this 2-core price. VM runtime (runtime=\"vm\"): same per-second CPU and memory rates as the gVisor sandboxes (https://modal.com/blog/vm-sandboxes-agent-computers).",
       "regions": null,
       "gpu_only": false,
       "flags": [],
       "perf": {
-        "cpu_runs_s": 15.54,
+        "cpu_runs_s": 15.48,
         "cold_start_ms": null,
         "burst_tti_ms": null,
         "dax_s": null
       },
-      "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
+      "perf_source": "VM runtime (runtime=\"vm\"). StarSling requested cpu=4 and the sandbox saw 4 CPUs (https://github.com/starslingdev/hpc-sandbox-benchmarks/pull/121); Modal prices 1 physical core = 2 vCPU, so match price and speed with care. ComputeSDK has no VM-runtime row. CPU 15.48 runs/s: V8 Web Tooling Benchmark (Phoronix node-web-tooling), StarSling hpc-sandbox-benchmarks run 37073680030 (2026-10-03), row \"Modal (VM)\", median of 5 sandboxes at a 4 vCPU / 8 GB target, rank 7 of 15 (shared: the run cannot separate it from the providers at the same rank). https://github.com/starslingdev/hpc-sandbox-benchmarks/blob/297198a96ee827df5edcd918bd37b949526cfe20/LEADERBOARD.md",
       "features": {
         "isolation": "cloud-hypervisor",
         "docker_inside": true,
@@ -62,18 +62,18 @@
       "key": "low-request-burst",
       "label": "VM Sandbox, minimal request + burst",
       "pricing": "resource",
-      "vcpu_h": 0.141912,
+      "vcpu_h": 0.070956,
       "ram_gib_h": 0.024012,
       "cpu_basis": "active",
       "ram_basis": "active",
-      "active_floor": 0.03125,
+      "active_floor": 0.0625,
       "ram_per_vcpu": [
         null,
         null
       ],
       "ram_fixed_per_vcpu": null,
       "vcpu_options": null,
-      "min_vcpu": 0.125,
+      "min_vcpu": 0.25,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes": null,
@@ -88,17 +88,17 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "The request is set to the minimum (cpu 0.125 = 0.125 card-vCPU; 128 MiB) and cpu/memory limits are set to the workload size, so the guest sees W.vcpu CPUs (nproc = ceil(limit)). Billing is max(request, actual) per second, so it tracks usage. active_floor 0.03125 = 0.125 / 4 vCPU (the exact floor is 0.125/W.vcpu). Burst capacity is NOT guaranteed (it needs spare host capacity), so the workload may be throttled. The memory limit is a hard OOM. Optimistic regime. Floor verified 2026-09-28: 'minimum of 0.125 cores per container' (modal.com/pricing); 'a default request of 0.125 CPU cores and 128 MiB of memory' (modal.com/docs/guide/resources). Docs do not say whether page cache counts toward memory usage. ASSUMES a small CPU/memory request (0.125 core / 128 MiB): guaranteed capacity is only that request; anything above it is best-effort burst. Memory above the request is not guaranteed either: Modal can EVICT a sandbox that exceeds its memory request (docs recommend requesting p90-95 of memory), so the RAM half of this regime is optimistic and can kill the session; only CPU is safe to under-request. VM runtime (runtime=\"vm\"): same per-second CPU and memory rates as the gVisor sandboxes; \"CPU/memory bursting capabilities as previously\" (GA post, https://modal.com/blog/vm-sandboxes-agent-computers).",
+      "note": "The request is set to the minimum (cpu 0.125 core = 0.25 vCPU; 128 MiB) and cpu/memory limits are set to the workload size. Billing is max(request, actual) per second, so it tracks usage. active_floor 0.0625 = 0.25 vCPU / 4 vCPU (the exact floor is 0.25/W.vcpu). Burst capacity is not guaranteed (it needs spare host capacity), so the workload can be throttled. The memory limit is a hard OOM, and Modal can evict a sandbox that uses more memory than it requested (docs recommend requesting p90-95 of memory), so the RAM half of this regime is optimistic. Floor: 'minimum of 0.125 cores per container' (modal.com/pricing); 'a default request of 0.125 CPU cores and 128 MiB of memory' (modal.com/docs/guide/resources). Price unit: 1 core = 2 vCPUs (modal.com/docs/guide/sandbox-resources, checked 2026-11-08). Caveat, not the price: StarSling measured cpu=N with a matching limit gives nproc N in the guest (hpc-sandbox-benchmarks PR #121, https://github.com/starslingdev/hpc-sandbox-benchmarks/pull/121). Speed rows measured at cpu=4 are therefore not like for like with this 2-core price. VM runtime (runtime=\"vm\"): same per-second CPU and memory rates as the gVisor sandboxes (https://modal.com/blog/vm-sandboxes-agent-computers).",
       "regions": null,
       "gpu_only": false,
       "flags": [],
       "perf": {
-        "cpu_runs_s": 15.54,
+        "cpu_runs_s": 15.48,
         "cold_start_ms": null,
         "burst_tti_ms": null,
         "dax_s": null
       },
-      "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
+      "perf_source": "VM runtime (runtime=\"vm\"). StarSling requested cpu=4 and the sandbox saw 4 CPUs (https://github.com/starslingdev/hpc-sandbox-benchmarks/pull/121); Modal prices 1 physical core = 2 vCPU, so match price and speed with care. ComputeSDK has no VM-runtime row. CPU 15.48 runs/s: V8 Web Tooling Benchmark (Phoronix node-web-tooling), StarSling hpc-sandbox-benchmarks run 37073680030 (2026-10-03), row \"Modal (VM)\", median of 5 sandboxes at a 4 vCPU / 8 GB target, rank 7 of 15 (shared: the run cannot separate it from the providers at the same rank). https://github.com/starslingdev/hpc-sandbox-benchmarks/blob/297198a96ee827df5edcd918bd37b949526cfe20/LEADERBOARD.md",
       "features": {
         "isolation": "cloud-hypervisor",
         "docker_inside": true,
@@ -165,7 +165,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "$250 fee of which only $100 returns as compute credit; unlimited seats; 5,000 containers, 50 GPU concurrency; egress 10 TiB/mo free (engine network block uses Starter's 1 TiB); static IP proxy; custom domains; environment budgets.",
+      "note": "$250/month fee with $100/month of free credits; unlimited seats; 5,000 containers, 50 GPU concurrency; egress 10 TiB/mo free (engine network block uses Starter's 1 TiB); static IP proxy; custom domains; environment budgets.",
       "flags": [],
       "gpu_concurrency": 50
     },
@@ -200,7 +200,7 @@
     "snapshot": "mem",
     "pause_resume": false,
     "fork": true,
-    "persistent_disk": true,
+    "persistent_disk": "diy",
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": 24,
@@ -209,12 +209,12 @@
     "nested_virt": true,
     "root": true,
     "systemd": true,
-    "browser": false,
-    "desktop": false,
-    "computer_use": false,
+    "browser": "diy",
+    "desktop": "diy",
+    "computer_use": "diy",
     "code_interpreter": false,
-    "agent_harnesses": false,
-    "ssh": true,
+    "agent_harnesses": "diy",
+    "ssh": "diy",
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": true,
@@ -244,7 +244,7 @@
     "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
-    "fork_running": true,
+    "fork_running": null,
     "memory_snapshot_fork": true,
     "webhooks": null,
     "scheduled_wakeups": null,
@@ -262,22 +262,22 @@
     "egress_allowlist_level": "both",
     "ingress_rules": true,
     "guest_firewall": true,
-    "secret_proxy": false,
+    "secret_proxy": "diy",
     "volume_attach": true,
     "volume_shared": true,
     "anti_bot": false,
     "captcha_solving": false,
     "egress_ip_type": "static-datacenter",
     "own_agent_api": false,
-    "fast_boot": true,
+    "fast_boot": null,
     "open_internet": true,
     "usage_api": null,
-    "persist_scope": "folder",
-    "persist_path": "Volumes",
+    "persist_scope": "snapshot",
     "fuse": true,
     "kernel_features": true,
     "sidecar": true,
-    "snapshot_mem": true
+    "snapshot_mem": true,
+    "whole_disk": "diy"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -312,7 +312,7 @@
         "low-request-burst",
         "vm-sandbox"
       ],
-      "why": "Modal multiplies all sandbox resource charges (incl. GPU) by 1.15x for a broad-region pin and 1.75x for a narrow-region pin; data residency (e.g. EU) requires a pin. Applied only to modes without a baked multiplier (region-broad / region-narrow already carry 1.15 / 1.75). VM Sandbox excluded: whether the multiplier applies there is not stated.",
+      "why": "Modal multiplies all sandbox resource charges by 1.15x for a broad-region pin and 1.75x for a narrow-region pin; data residency (e.g. EU) requires a pin.",
       "source": "https://modal.com/docs/guide/region-selection"
     },
     {
@@ -332,20 +332,22 @@
     }
   ],
   "caveats": [
+    "How we count Modal's CPU: same rule as the \"Modal\" card. We use Modal's own unit, 1 physical core = 2 vCPU, the lowest Modal price its own pages support: 4 vCPU / 8 GiB = cpu=2 = $0.47592/h. cpu=N gives the sandbox N CPUs, so if your code needs 4 CPUs, request cpu=4: $0.759744/h at 8 GiB. Rule: FAIRNESS.md, 'CPU units'.",
     "Generally available since 2026-10-01, announced at Modal's Runtime conference: \"Today we’re making VM Sandboxes generally available on Modal, built for those who need to give their agents the power of a full computer.\" (https://modal.com/blog/vm-sandboxes-agent-computers). Early customers (Linear Coding Sessions, Legora evals, Snorkel simulations) launched over 20 million VMs before GA.",
-    "Same API and prices as the gVisor sandboxes (card \"Modal\"); split out because the runtimes differ: real Linux 7.2 kernel here (Docker, FUSE, eBPF, systemd, nested cgroups), GPUs only on gVisor.",
-    "No GPUs: \"GPU Sandboxes are only supported with runtime=\\\"gvisor\\\"\".",
+    "Same API and prices as the gVisor sandboxes (card \"Modal\"); split out because the runtimes differ: a VM with its own Linux kernel on Cloud Hypervisor here (Docker, FUSE, eBPF, systemd, nested cgroups), GPUs only on gVisor.",
+    "No GPUs on this runtime: \"GPU Sandboxes are only supported with runtime=\\\"gvisor\\\"\". Use the gVisor runtime of the same provider for GPUs.",
     "Set runtime=\"vm\" explicitly to get this card's runtime: \"Switch runtimes via the `runtime` parameter, or leave unset to let Modal choose for you.\" (https://modal.com/docs/guide/sandboxes#runtimes, checked 2026-10-14).",
-    "Nested virtualization: Team and Enterprise plans only, on request.",
-    "Memory snapshots on VMs are no longer documented as invite-only but are alpha: they expire after 7 days, snapshotting terminates the sandbox, restore needs the same instance type, region can't be pinned, and a runtime=\"vm\" sandbox created with _experimental_enable_snapshot=True cannot mount Volumes (https://modal.com/docs/guide/sandbox-snapshots, checked 2026-10-14). Filesystem snapshots work for everyone and include /var/lib/docker.",
+    "Nested virtualization: Enterprise plan only, as an experimental option (experimental_options={\"enable_nested_virt\": True}) (https://modal.com/docs/guide/vm-sandboxes, checked 2026-11-08).",
+    "Memory snapshots are alpha: snapshotting terminates the sandbox, they expire after 7 days, no GPUs, restore needs the same instance type, and the region cannot be pinned. Modal recommends them with runtime=\"vm\" (https://modal.com/docs/guide/sandbox-snapshots, checked 2026-11-08).",
+    "Files after the sandbox ends: call snapshot_filesystem() and boot the next sandbox from that image (root filesystem incl. /var/lib/docker; 30-day default TTL, or ttl=None for indefinite), or mount a Volume. Volumes are not part of a filesystem snapshot.",
+    "Root filesystem on VMs is a fixed 512 GiB and cannot be increased (https://modal.com/docs/guide/sandbox-resources, checked 2026-11-08).",
     "Sidecars (beta) work on VMs but not with memory bursting: sidecar memory is reserved up front.",
-    "Sandboxes run 24 h at most; use filesystem snapshots to continue longer work.",
+    "Sandboxes run 24 h at most; Modal recommends filesystem snapshots to continue longer work in a new sandbox.",
     "free.monthly_credit ($30) IS the Starter plan's included_usd, so don't subtract both. Team replaces it with $100 included.",
-    "Uncapped burst can bill MORE than the requested size (default soft limit is request + 16 cores) and the gVisor guest then reports ceil(limit) CPUs (ComputeSDK DAX 2026-07-17 at SDK defaults: nproc 17). The engine can't model this; set cpu=(req, limit).",
-    "Egress at $0.04/GiB is charged only from 2026-10-01 (tracked, not billed, in Sep 2026). The allowance is plan-dependent (Starter 1 TiB, Team 10 TiB, Enterprise 100 TiB) and counts private container-to-container traffic and Cloud Bucket Mount uploads.",
+    "Burst above the request bills above the requested size when no cpu limit is set (default soft limit is request + 16 cores). The engine cannot model this; set cpu=(req, limit).",
+    "Egress is $0.04/GiB beyond the plan allowance (Starter 1 TiB, Team 10 TiB, Enterprise 100 TiB per month). The allowance counts private container-to-container traffic and Cloud Bucket Mount uploads. The engine network block uses the Starter allowance. https://modal.com/docs/guide/network-egress-billing",
     "GPU sandboxes are preemptible. GPU concurrency is 10 (Starter) and 50 (Team). H100->H200 and A100-40->80 auto-upgrades are billed at the requested type's price.",
     "Enterprise discounts and reservations are unpublished. Startup credits are unpublished. Academic grants are up to $10k one-time (not in free.one_time_credit).",
-    "Egress: not charged in September 2026 (usage shown only). From 2026-10-01 egress is $0.04/GiB beyond 1 TiB (Starter) / 10 TiB (Team) / 100 TiB (Enterprise) per workspace per billing cycle; first invoice 2026-11-01. Card uses the current (free) rate; switch egress_gib to 0.04 on 2026-10-01 and add plan egress_free_gib 10240 on Team. https://modal.com/docs/guide/network-egress-billing",
     "GPU concurrency caps: Starter 10, Team 50, Enterprise custom (modal.com/pricing, 2026-09-28). The engine plan concurrency is the container cap (100 / 5,000); a workload with >10 concurrent GPU sandboxes needs Team.",
     "Included compute ($30 Starter / $100 Team) applies to Functions, Sandboxes and Notebooks CPU/memory/GPU; Volumes have their own 1 TiB; Shared Endpoint tokens are billed from the first request (since 2026-09-01). Whether egress overage is covered by included compute is not stated."
   ],
@@ -366,8 +368,11 @@
     "https://modal.com/docs/guide/billing",
     "https://modal.com/docs/guide/budgets",
     "https://modal.com/docs/reference/changelog",
-    "https://github.com/AnicetNgrt/hpc-sandbox-benchmarks/pull/121",
-    "https://github.com/computesdk/benchmarks/tree/main/results/sandbox-dax"
+    "https://github.com/computesdk/benchmarks/tree/main/results/sandbox-dax",
+    "https://modal.com/docs/guide/vm-sandboxes",
+    "https://modal.com/docs/examples/computer_use_vnc",
+    "https://modal.com/docs/examples/sidecar_secrets_injection",
+    "https://modal.com/docs/examples/claude-slack-gif-creator"
   ],
   "fleet": {
     "default_max_instances": 100,
@@ -401,8 +406,8 @@
       "value": true,
       "source": "https://modal.com/docs/guide/sandbox-snapshots.md",
       "quote": "Sandbox memory snapshots are copies of a Sandbox’s entire state, both in memory and on the filesystem. These Snapshots can be restored later to create a new Sandbox, which is an exact clone of the original Sandbox.",
-      "note": "Filesystem snapshots (GA, snapshot_filesystem(), disk only, become Images that boot any number of new sandboxes; 30-day default TTL, ttl=None for indefinite) and directory snapshots (mount into running sandboxes). Memory snapshots (_experimental_snapshot, alpha): RAM + FS, but snapshotting terminates the sandbox, no GPU, 7-day expiry; restore via _experimental_from_snapshot creates a clone. VM-runtime memory snapshots are open (no longer gated) but cannot mount Volumes.",
-      "checked": "2026-10-14"
+      "note": "Filesystem snapshots (snapshot_filesystem(), disk only, become Images that boot any number of new sandboxes; 30-day default TTL, ttl=None for indefinite) and directory snapshots (snapshot_directory). Memory snapshots (alpha): RAM + FS, snapshotting terminates the sandbox, no GPU, 7-day expiry, same instance type, no region pin.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -442,18 +447,20 @@
       "derived": true
     },
     "secret_proxy": {
-      "value": false,
-      "source": "https://modal.com/docs/examples/sidecar_secrets_injection.md",
-      "quote": "Rather than passing that key into the Sandbox,\nyou can keep it in a separate, trusted container and let that container add it to\noutbound requests",
-      "note": "No managed credential-injecting proxy. modal.Secret = env vars injected into the container. A DIY pattern exists: run your own proxy (Caddy/nginx/Envoy/mitmproxy) as a Sidecar holding the Secret, optionally forced via proxy_traffic_via_sidecar; this can cover any HTTP API but you build/operate it; Sidecars are alpha and restricted to allowlisted workspaces.",
-      "checked": "2026-09-29"
+      "value": "diy",
+      "source": "https://modal.com/docs/examples/sidecar_secrets_injection",
+      "quote": "The Sandbox is told where the proxy is but is given no Secrets.",
+      "how": "run your own credential-injecting proxy in a Sidecar that holds the Secret (official example; Sidecars are experimental)",
+      "effort": "high",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": true,
       "source": "https://modal.com/docs/guide/volumes.md",
       "quote": "Volumes are a high-performance distributed file system for Modal applications.",
-      "note": "modal.Volume mounted via volumes={...} on Sandbox.create; also CloudBucketMount (S3/R2/GCS, read-write or read_only) and deprecated NetworkFileSystem. Distributed FS with explicit commit/reload semantics, not a block device.",
-      "checked": "2026-09-29"
+      "note": "modal.Volume mounted via volumes={...} on Sandbox.create; also CloudBucketMount (S3/R2/GCS). VM sandboxes: \"named Images and Volumes can be used just as with Functions\" (modal.com/docs/guide/vm-sandboxes). Volumes are not included in filesystem snapshots.",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -464,9 +471,9 @@
     },
     "docker_inside": {
       "value": true,
-      "source": "https://modal.com/docs/guide/sandboxes#runtimes",
-      "quote": "Use the VM runtime to run Docker in a Sandbox. Start dockerd as the Sandbox entrypoint and run containers with sb.exec.",
-      "checked": "2026-10-14"
+      "source": "https://modal.com/docs/guide/vm-sandboxes",
+      "quote": "Use the VM runtime to run Docker in a Sandbox.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -490,12 +497,12 @@
       "checked": "2026-09-30"
     },
     "fork_running": {
-      "value": true,
-      "corrected_from": false,
+      "value": null,
+      "corrected_from": true,
       "source": "https://modal.com/docs/guide/sandbox-snapshots",
-      "quote": "Create a new Sandbox using the snapshot as the image parameter: modal.Sandbox.create(image=image, app=app)",
-      "note": "snapshot_filesystem() runs on a live sandbox (the docs’ examples terminate it only afterwards), and any number of new sandboxes can start from the snapshot: a disk-level clone without stopping the original. Memory is not copied by this path; memory snapshots (alpha) copy RAM but terminate the source sandbox.",
-      "checked": "2026-10-14"
+      "quote": "Since Filesystem Snapshots are Images, you can create multiple Sandboxes from the same snapshot.",
+      "note": "The page does not say whether the source sandbox keeps running after snapshot_filesystem(): every example calls terminate() right after it. Memory snapshots copy RAM but \"Snapshotting a Sandbox will currently cause it to terminate.\" Not confirmed either way; same value as the gVisor card.",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -547,12 +554,13 @@
       "checked": "2026-09-30"
     },
     "persistent_disk": {
-      "value": true,
-      "corrected_from": false,
-      "source": "https://modal.com/docs/guide/volumes",
-      "quote": "Create a named, persistent modal.Volume. ... For Volumes, changes are persisted by background commits that run every few seconds while the Sandbox executes, with a final commit when the Sandbox terminates.",
-      "note": "A default Sandbox's own root disk is ephemeral (wiped on terminate; no pause state), so the card's plain 'no persistent disk' default is right about the root FS. But Volumes (already features.volumes=true) are first-party attachable persistent disks: they outlive the Sandbox and can be remounted into a new Sandbox with the same files. That makes persistent_disk true (opt-in via Volume attach; the ephemeral root FS remains the default).",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://modal.com/docs/guide/sandbox-snapshots",
+      "quote": "Filesystem Snapshots are copies of the Sandbox's root filesystem at a given point in time.",
+      "how": "snapshot the root filesystem before the sandbox ends and boot the next sandbox from it; Volumes also keep files across sandboxes",
+      "effort": "low",
+      "ttl_days": 30,
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": false,
@@ -567,43 +575,48 @@
       "source": "https://modal.com/docs/guide/sandbox-snapshots",
       "quote": "The new Sandbox will be a duplicate of your original Sandbox. All running processes will still be running, in the same state as when they were snapshotted, and any changes made to the filesystem will be visible.",
       "note": "Memory Snapshots (alpha, experimental API _experimental_snapshot / _experimental_enable_snapshot) capture RAM+FS and Sandbox._experimental_from_snapshot() clones them into a new, running Sandbox with processes' memory state intact. No longer documented as on-request for VMs (checked 2026-10-14). Snapshotting terminates the source sandbox, so this is a clone-on-restore, not a fork of a still-running original.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": true,
-      "source": "https://modal.com/docs/guide/sandboxes#runtimes",
-      "quote": "Nested virtualization is also available on the Team and Enterprise plans; to request access, reach out via Slack or email us at support@modal.com.",
-      "note": "Team and Enterprise plans only, on request.",
-      "checked": "2026-10-14"
+      "source": "https://modal.com/docs/guide/vm-sandboxes",
+      "quote": "Nested virtualization is available on the Enterprise plan ... by setting `experimental_options={\"enable_nested_virt\": True}` on a VM Sandbox.",
+      "note": "Enterprise plan only, as an experimental option.",
+      "checked": "2026-11-08"
     },
     "ssh": {
-      "value": true,
-      "corrected_from": false,
-      "source": "https://modal.com/llms-full.txt",
-      "quote": "This assumes you have a rsa keypair in ~/.ssh/id_rsa{.pub}, this is a bare-bones example letting you SSH into a Modal container. ... subprocess.Popen([\"/usr/sbin/sshd\", \"-D\", \"-e\"]) with modal.forward(port=22, unencrypted=True) as tunnel: ... connection_cmd = f'ssh -p {port} root@{hostname}'",
-      "note": "Officially documented pattern: install openssh-server in the image, run sshd, and expose it via modal.forward's raw-TCP tunnel (already features.raw_tcp_inbound=true) to get a real `ssh user@host -p port` session. It's DIY (you supply sshd + keys, not a managed 'SSH into your sandbox' button), so medium confidence rather than high, but it is a first-party documented capability, not absent -- corrected from false to true.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "corrected_from": true,
+      "source": "https://modal.com/docs/sdk/py/latest/forward",
+      "quote": "This can be used to SSH into a container (see example below).",
+      "how": "install openssh-server in the image, run sshd and expose port 22 as an unencrypted tunnel (official example)",
+      "effort": "medium",
+      "note": "Documented pattern, not a managed SSH endpoint: you supply sshd and keys. The example lines: .apt_install(\"openssh-server\"), subprocess.Popen([\"/usr/sbin/sshd\", \"-D\", \"-e\"]). Same value as the gVisor card.",
+      "checked": "2026-11-08"
     },
     "desktop": {
-      "value": false,
+      "value": "diy",
       "source": "https://modal.com/docs/examples/computer_use_vnc",
-      "quote": "By default, Browser Use launches Chromium headless. However, we want to watch the browser in real time. In each Sandbox, Xvfb provides a virtual display, x11vnc serves it over VNC, and websockify bridges the stream into the noVNC page that the UI embeds.",
-      "note": "The only VNC/desktop capability found is a user-built example (installs Xvfb/x11vnc/websockify themselves inside a generic Linux Sandbox) -- not a managed desktop product. No first-party 'desktop' offering.",
-      "checked": "2026-09-30"
+      "quote": "In each Sandbox, Xvfb provides a virtual display, x11vnc serves it over VNC, and websockify bridges the stream into the noVNC page that the UI embeds.",
+      "how": "install Xvfb, x11vnc and noVNC in the sandbox image (official runnable example)",
+      "effort": "medium",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
+      "value": "diy",
       "source": "https://modal.com/docs/examples/computer_use_vnc",
-      "quote": "This example builds one with Browser Use. ... The agent drives Chromium inside a Modal Sandbox running in a VM",
-      "note": "Chromium is not a managed/offered browser -- it's installed and driven by the user's own code (Browser Use) inside a generic Sandbox, per the example. No first-party managed browser.",
-      "checked": "2026-09-30"
+      "quote": "The agent drives Chromium inside a Modal Sandbox running in a VM.",
+      "how": "install Chromium in the sandbox image (official runnable example)",
+      "effort": "low",
+      "checked": "2026-11-08"
     },
     "computer_use": {
-      "value": false,
+      "value": "diy",
       "source": "https://modal.com/docs/examples/computer_use_vnc",
-      "quote": "Computer-use agents are LLMs that can interact with a web browser in a loop. Rather than calling a fixed set of APIs, they look at a rendered page or screen, decide what to click or type next, take that action, and look again. This example builds one with Browser Use.",
-      "note": "'Computer Use Vnc' is a code example showing how to wire up a third-party computer-use agent (Browser Use) yourself on top of generic Sandbox + Xvfb/VNC; Modal ships no first-party computer-use/screenshot-click API.",
-      "checked": "2026-09-30"
+      "quote": "Computer-use agents are LLMs that can interact with a web browser in a loop. ... This example builds one with Browser Use.",
+      "how": "run a computer-use agent (Browser Use) on the VNC desktop from the official example",
+      "effort": "medium",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -613,11 +626,12 @@
       "checked": "2026-09-30"
     },
     "agent_harnesses": {
-      "value": false,
-      "source": "https://modal.com/llms-full.txt",
-      "quote": "First, we define a Modal container Image with OpenCode installed. ... .run_commands(\"curl -fsSL https://opencode.ai/install | bash\")",
-      "note": "'Run OpenCode in a Modal Sandbox' is a customer-authored example that installs OpenCode itself via a shell command in a custom Image; Codex/Claude Code/OpenCode docs elsewhere are about pointing those external CLIs at a Modal-hosted model endpoint, not about Modal preinstalling/offering coding-agent harnesses as sandbox templates.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://modal.com/docs/examples/claude-slack-gif-creator",
+      "quote": "The bot runs on Modal and uses the Claude Agent SDK ... it runs inside a Modal Sandbox",
+      "how": "install the agent harness in the sandbox image yourself (official examples: Claude Agent SDK, Cursor Cloud Agents)",
+      "effort": "medium",
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
@@ -665,11 +679,12 @@
       "checked": "2026-09-30"
     },
     "fast_boot": {
-      "value": true,
-      "source": "https://www.computesdk.com/benchmarks",
-      "quote": "burst of 100: p95 1043 ms, 100% started",
-      "note": "ComputeSDK sandbox benchmark 2026-09-25",
-      "checked": "2026-09-25"
+      "value": null,
+      "corrected_from": true,
+      "source": "https://modal.com/blog/vm-sandboxes-agent-computers",
+      "quote": "This brings the same APIs, `modal.Image`s, sub-second cold-starts, and CPU/memory bursting capabilities as previously",
+      "note": "fast_boot means benchmarked. The old evidence was the ComputeSDK burst row, which runs Modal's default (gVisor) runtime; ComputeSDK burst_tti 2026-11-06 has no VM-runtime row. Modal claims sub-second cold starts for VMs, but no published 100-at-once measurement exists. gVisor: card \"Modal\" (benchmarked, true).",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": null,
@@ -680,11 +695,13 @@
       "checked": "2026-10-01"
     },
     "persist_scope": {
-      "value": "folder",
-      "source": "https://modal.com/docs/guide/volumes",
-      "quote": "Create a named, persistent modal.Volume. ... For Volumes, changes are persisted by background commits that run every few seconds while the Sandbox executes, with a final commit when the Sandbox terminates.",
-      "note": "Only Volumes survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
-      "checked": "2026-10-01"
+      "value": "snapshot",
+      "source": "https://modal.com/docs/guide/sandbox-snapshots",
+      "quote": "Filesystem Snapshots are copies of the Sandbox's root filesystem at a given point in time. ... Filesystem Snapshots now default to a 30-day TTL. You can configure a custom TTL when creating a snapshot, or opt out of expiry entirely to retain snapshots indefinitely.",
+      "how": "call snapshot_filesystem() before the sandbox ends, then start the next sandbox from that image (ttl=None keeps it indefinitely); or mount a Volume for files that must survive",
+      "effort": "low",
+      "ttl_days": 30,
+      "checked": "2026-11-08"
     },
     "isolation": {
       "value": "cloud-hypervisor",
@@ -706,16 +723,17 @@
     },
     "gpu": {
       "value": false,
-      "source": "https://modal.com/docs/guide/sandboxes#runtimes",
+      "source": "https://modal.com/docs/guide/vm-sandboxes",
       "quote": "GPU Sandboxes are only supported with `runtime=\"gvisor\"`.",
-      "checked": "2026-10-14"
+      "note": "GPUs are offered on the gVisor runtime of the same provider (card \"Modal\").",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "mem",
       "source": "https://modal.com/docs/guide/sandbox-snapshots",
-      "quote": "Sandboxes that specify `runtime=\"vm\"` cannot mount Volumes when created with `_experimental_enable_snapshot=True`.",
-      "note": "The VM-specific gating sentence (\"only available to a set of enabled customers\") is gone from the page; the only VM-specific Memory Snapshot limitation left is no Volumes. Memory snapshots (RAM + FS) are alpha (\"A number of known limitations currently apply\"), expire after 7 days and terminate the source sandbox. Filesystem and directory snapshots (GA, /var/lib/docker included) remain for everyone.",
-      "checked": "2026-10-14"
+      "quote": "Memory snapshots are supported on both runtimes, and we recommend using memory snapshots with `runtime=\"vm\"`.",
+      "note": "Memory snapshots (RAM + FS) are alpha: snapshotting terminates the sandbox, they expire after 7 days, no GPUs, restore needs the same instance type, and the region cannot be pinned. The page states no Volume rule for VMs. Filesystem snapshots (30-day default TTL, or indefinite) and directory snapshots work for everyone.",
+      "checked": "2026-11-08"
     },
     "sidecar": {
       "value": true,
@@ -729,7 +747,7 @@
       "source": "https://modal.com/pricing",
       "quote": "HIPAA compatibility",
       "note": "Enterprise plan only: the pricing table ticks HIPAA compatibility for Enterprise, not Starter or Team. The pricing page does not mention a BAA.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "burst": {
       "value": true,
@@ -741,9 +759,18 @@
     "snapshot_mem": {
       "value": true,
       "source": "https://modal.com/docs/guide/sandbox-snapshots",
-      "quote": "Sandbox memory snapshots are copies of a Sandbox’s entire state, both in memory and on the filesystem.",
-      "note": "Alpha, experimental API (_experimental_enable_snapshot / _experimental_snapshot); no longer documented as invite-only for runtime=\"vm\".",
-      "checked": "2026-10-14"
+      "quote": "Memory snapshots are supported on both runtimes, and we recommend using memory snapshots with `runtime=\"vm\"`.",
+      "note": "Alpha, experimental API (_experimental_enable_snapshot / _experimental_snapshot). Limits: terminates the source sandbox, 7-day expiry, no GPUs, same instance type on restore, no region pin.",
+      "checked": "2026-11-08"
+    },
+    "whole_disk": {
+      "value": "diy",
+      "source": "https://modal.com/docs/guide/sandbox-snapshots",
+      "quote": "Note that a Filesystem Snapshot only covers the Sandbox's root filesystem.",
+      "how": "snapshot_filesystem() saves the whole root filesystem (mounted Volumes are not included)",
+      "effort": "low",
+      "ttl_days": 30,
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -846,5 +873,10 @@
   ],
   "locations_source": "https://modal.com/docs/guide/region-selection",
   "locations_quote": "Modal offers different levels of granularity for container regions. Broad... us, eu, ap. Narrow: us-east, us-central, us-south, us-west, eu-west, eu-north, eu-south, ap-northeast, ap-southeast, ap-south, ap-melbourne, jp, au, uk, ca, sa, af, mx",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 12,
+    "source": "findings/modal-vm.json checked against modal.com pricing, sandbox-resources, vm-sandboxes, sandbox-snapshots and examples pages",
+    "reviewed": 16
+  }
 }

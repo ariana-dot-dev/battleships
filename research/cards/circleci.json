@@ -817,7 +817,7 @@
     "root": null,
     "systemd": false,
     "browser": true,
-    "desktop": false,
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
@@ -884,7 +884,7 @@
   "knobs": [],
   "caveats": [
     "Seat billing (not modelled beyond per_seat): since 2025-12-01 each unique unregistered contributor counts as a separate monthly active user (previously all unregistered users counted as one); Free/Performance include 5 active users, extra users at plan per-user rates. Annual committed plans moved over in April 2026 (Scale 40,000 credits/user/month, Custom 25,000 - forum-reported). Workflows triggered by many bots/outside contributors can cost more with unchanged compute rates; a 'Prevent unregistered user spend' toggle exists. Source: discuss.circleci.com/t/changes-to-unregistered-user-billing/54104 (+ /54446).",
-    "CircleCI jobs only (pipeline executors), not a general sandbox.",
+    "Priced modes are CircleCI jobs (pipeline executors), not a general sandbox. Chunk sidecars, CircleCI's remote Linux microVMs for agent validation (SSH, exec, snapshots), are in preview on every plan and not priced here: \"Sidecar usage is currently free. We'll let you know before we start charging.\" (https://chunk.ai/, checked 2026-11-08).",
     "USD derived from credits at the Performance-plan list price $15/25,000 credits = $0.0006/credit (stated on circleci.com/pricing); Scale-plan credit prices are negotiated.",
     "Network/storage beyond plan thresholds billed at 420 credits/GB (= $0.252/GB); thresholds not captured, so egress left null.",
     "Per-minute billing assumed (credits are quoted per minute).",
@@ -900,7 +900,12 @@
   ],
   "sources": [
     "https://circleci.com/pricing/price-list/",
-    "https://circleci.com/pricing/"
+    "https://circleci.com/pricing/",
+    "https://circleci.com/docs/guides/execute/ssh-access-jobs/",
+    "https://circleci.com/docs/guides/toolkit/how-to-use-chunk-cli/",
+    "https://circleci.com/blog/chunk-sidecar-snapshots/",
+    "https://chunk.ai/",
+    "https://circleci.com/docs/guides/test/browser-testing/"
   ],
   "fleet": {
     "default_max_instances": 30,
@@ -933,8 +938,9 @@
       "value": true,
       "source": "https://circleci.com/docs/guides/toolkit/how-to-use-chunk-cli/",
       "quote": "The command captures the configured state of the active Chunk sidecar and prints the snapshot ID. Use this ID with `chunk sidecar create --image <snapshot-id>` to boot new sidecars from the snapshot.",
-      "note": "Only for Chunk sidecars (preview, agent validation environments), NOT regular CI jobs. Snapshot deletes the source sidecar; new sidecars boot from it (template). Memory inclusion not stated (appears filesystem/image). chunk-cli CLI.md: sidecar --image is an 'E2B template ID or container image', suggesting sidecars run on E2B.",
-      "checked": "2026-09-29"
+      "note": "Chunk sidecars (remote Linux microVMs for agent validation, preview on all plans including Free, usage currently free) can be snapshotted: the snapshot is an org-scoped image and any number of new sidecars boot from it (warm boot ~25.8 s vs ~59.7 s cold, CircleCI blog). The snapshot command deletes the source sidecar. Memory inclusion is not documented, so treated as filesystem-only. Regular CI jobs have no snapshot; they carry chosen paths with caches, workspaces and artifacts.",
+      "checked": "2026-11-08",
+      "beta": true
     },
     "harness_api": {
       "value": true,
@@ -959,10 +965,10 @@
     },
     "ingress_rules": {
       "value": false,
-      "source": "https://circleci.com/docs/guides/execution-managed/ssh-access-jobs/",
+      "source": "https://circleci.com/docs/guides/execute/ssh-access-jobs/",
       "quote": "You must authenticate as the user who triggered the rerun and who has access to the project.",
-      "note": "Jobs expose no ports/preview URLs at all; the only inbound path is 'Rerun job with SSH', limited to the triggering user's SSH key (also for Chunk sidecars via add-ssh-key). No configurable ingress rules.",
-      "checked": "2026-09-29"
+      "note": "No configurable ingress rules and no documented inbound ports or URLs. Ways in: \"Rerun job with SSH\" (only the user who triggered the rerun; the VM waits 10 minutes for a first connection, then the session stays open 1 hour on Free or 2 hours on other plans), or `chunk sidecar ssh` / `chunk sidecar exec` on a Chunk sidecar (preview).",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
@@ -995,24 +1001,24 @@
     },
     "isolation": {
       "value": "qemu-kvm",
-      "source": "https://circleci.com/docs/guides/execution-managed/android-machine-image/",
+      "source": "https://circleci.com/docs/guides/execute/android-machine-image/",
       "quote": "The Android machine image supports nested virtualization and x86 Android emulators, so you can use it for Android UI testing.",
       "note": "Machine executor (Linux/Windows/macOS/Arm VM) is a full VM ('Docker container or an ephemeral VM', security docs) that supports nested virtualization (implying hardware-assisted KVM-style virtualization on the host); Docker executor jobs instead run in a shared-kernel container. Card models the VM/machine-executor product; exact hypervisor (e.g. QEMU/KVM vs proprietary) not named.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": true,
-      "source": "https://circleci.com/docs/guides/execution-managed/custom-images/",
+      "source": "https://circleci.com/docs/guides/execute/custom-images/",
       "quote": "CircleCI supports Docker, providing you with a powerful way to specify dependencies for your projects. If the Convenience Images do not suit your needs, consider creating a custom Docker image for your jobs.",
       "note": "Docker executor jobs can specify any public or private Docker image/registry via the `docker:` key (custom-built or convenience images).",
       "checked": "2026-09-30"
     },
     "nested_virt": {
       "value": true,
-      "source": "https://circleci.com/docs/guides/execution-managed/android-machine-image/",
+      "source": "https://circleci.com/docs/guides/execute/android-machine-image/",
       "quote": "The Android machine image supports nested virtualization and x86 Android emulators, so you can use it for Android UI testing.",
       "note": "Confirmed for the Linux machine-executor Android image; general availability across all machine-executor images not separately documented, but the machine executor is described elsewhere as full VMs with full OS/network control.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -1058,14 +1064,14 @@
     },
     "lang_python": {
       "value": true,
-      "source": "https://circleci.com/docs/guides/execution-managed/circleci-images/",
+      "source": "https://circleci.com/docs/guides/execute/circleci-images/",
       "quote": "| Python | Docker Hub | `- image: circleci/python:[TAG]` | Tags |",
       "note": "CircleCI maintains cimg/python convenience Docker images; also preinstalled on Linux/Windows/macOS machine-executor images.",
       "checked": "2026-09-30"
     },
     "lang_node": {
       "value": true,
-      "source": "https://circleci.com/docs/guides/execution-managed/circleci-images/",
+      "source": "https://circleci.com/docs/guides/execute/circleci-images/",
       "quote": "| Node.js | Docker Hub | `- image: circleci/node:[TAG]` | Tags |",
       "note": "CircleCI maintains cimg/node convenience Docker images (and -node variants of other language images); also preinstalled on machine-executor images.",
       "checked": "2026-09-30"
@@ -1089,29 +1095,29 @@
       "corrected_from": "none",
       "source": "https://circleci.com/docs/guides/toolkit/how-to-use-chunk-cli/",
       "quote": "The command captures the configured state of the active Chunk sidecar and prints the snapshot ID. Use this ID with `chunk sidecar create --image <snapshot-id>` to boot new sidecars from the snapshot.",
-      "note": "Contradiction confirmed: card already records snapshot_on_demand=true, but the top-level 'snapshot' field said 'none'. Chunk sidecars (CircleCI's beta agent-sandbox product, separate from regular CI jobs) support on-demand snapshot/checkpoint-and-restore. Memory inclusion is not documented (chunk-cli's --image flag is described as an 'E2B template ID or container image'), so treated as filesystem-only ('fs'), not full memory snapshot. Regular CI jobs (the main product) have no snapshot capability at all -- only artifacts/workspaces/caches (see persist-data quote).",
-      "checked": "2026-09-30"
+      "note": "Chunk sidecars (remote Linux microVMs for agent validation, preview on all plans including Free, usage currently free) can be snapshotted: the snapshot is an org-scoped image and any number of new sidecars boot from it (warm boot ~25.8 s vs ~59.7 s cold, CircleCI blog). The snapshot command deletes the source sidecar. Memory inclusion is not documented, so treated as filesystem-only. Regular CI jobs have no snapshot; they carry chosen paths with caches, workspaces and artifacts.",
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
       "value": false,
       "source": "https://circleci.com/docs/guides/optimize/persist-data/",
       "quote": "Use artifacts, workspaces, and caches to move data into, out of, and between jobs, persisting data for future use.",
-      "note": "No mounted persistent disk. Each job runs on a fresh executor; any data that must survive between jobs/steps must be explicitly copied via save_cache/persist_to_workspace/store_artifacts, not left on an attached disk.",
-      "checked": "2026-09-30"
+      "note": "CI jobs: no mounted persistent disk; each job runs on a fresh executor and chosen paths move with save_cache / persist_to_workspace / store_artifacts. Chunk sidecars (separate preview product, no published price, not a mode on this card) can be snapshotted and new sidecars booted from the snapshot (https://circleci.com/blog/chunk-sidecar-snapshots/).",
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": false,
-      "source": "https://circleci.com/docs/concepts/",
+      "source": "https://circleci.com/docs/reference/concepts/",
       "quote": "Jobs are the building blocks of your configuration. Jobs are collections of steps, which run commands/scripts as required. Each job must declare an executor that is either docker, machine, windows, or macos.",
       "note": "CircleCI's unit of compute is an ephemeral job/executor that runs to completion (or times out); there is no documented pause/suspend-then-resume-with-billing-paused mechanism for a running job. 'Rerun job with SSH' starts a brand-new execution, not a resume of the same machine.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
-      "source": "https://circleci.com/docs/concepts/",
+      "source": "https://circleci.com/docs/reference/concepts/",
       "quote": "A pipeline is a definition that specifies where your CircleCI configuration is stored and where your code is checked out from. A trigger references a pipeline and uses it when initiating a run.",
-      "note": "No documented API/CLI to clone a running or stopped executor into new ones; parallelism/rerun start fresh executors from the pipeline config, not a fork of an existing machine. (Chunk sidecar 'snapshot -> create --image' is closer to boot-from-template than a live fork, and deletes the source sidecar.)",
-      "checked": "2026-09-30"
+      "note": "No fork of a running job or sidecar. A Chunk sidecar snapshot (org-scoped image, source sidecar deleted) can boot many new sidecars from the same state; that is boot-from-image, not a live fork. CI parallelism/reruns start fresh executors from config.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
@@ -1128,18 +1134,19 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
-      "source": "https://circleci.com/docs/concepts/",
-      "quote": "Jobs are collections of steps, which run commands/scripts as required. Each job must declare an executor that is either docker, machine, windows, or macos.",
-      "note": "CircleCI executors run CI steps/scripts headlessly; no VNC/RDP/streamed desktop is offered on any executor type.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://circleci.com/docs/guides/test/browser-testing/",
+      "quote": "You can use x11vnc to attach a VNC server to X.",
+      "how": "run Xvfb and x11vnc in a machine job, then connect over an SSH rerun (official browser-testing guide); no built-in desktop stream, and the job time limit applies",
+      "effort": "medium",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://circleci.com/docs/guides/toolkit/how-to-use-chunk-cli/",
       "quote": "Replace `<name-or-uuid>` with the name or UUID of the Chunk task definition you want to run, and `<prompt text>` with the instructions to send to the task.",
-      "note": "CircleCI's own agent product (Chunk) drives text/code tasks via prompts, not screenshot+click computer-use; there is no desktop to drive in the first place (see desktop claim).",
-      "checked": "2026-09-30"
+      "note": "No computer-use API. Chunk (CircleCI's own agent) runs text/code tasks from prompts. A desktop can be set up in a machine job with Xvfb + x11vnc (see desktop), but CircleCI ships no screenshot/click agent.",
+      "checked": "2026-11-08"
     },
     "custom_image": {
       "value": true,
@@ -1158,10 +1165,10 @@
     },
     "inbound_https": {
       "value": false,
-      "source": "https://circleci.com/docs/guides/execution-managed/ssh-access-jobs/",
+      "source": "https://circleci.com/docs/guides/execute/ssh-access-jobs/",
       "quote": "You must authenticate as the user who triggered the rerun and who has access to the project.",
-      "note": "The only inbound path into a job's executor is 'Rerun job with SSH', restricted to the triggering user's own SSH key; there are no exposed HTTP(S) ports or preview URLs for jobs.",
-      "checked": "2026-09-30"
+      "note": "No exposed HTTP(S) ports or preview URLs for jobs or Chunk sidecars. Access is SSH only: a job SSH rerun (triggering user only, 10 minutes to connect, then 1 h Free / 2 h paid) or `chunk sidecar ssh`. A preview server can be reached by one person through SSH port forwarding, but there is no shareable URL.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -1181,9 +1188,9 @@
       "value": true,
       "corrected_from": false,
       "source": "https://circleci.com/docs/server-admin/latest/overview/circleci-server-overview/",
-      "quote": "CircleCI Server 4.10 is a continuous integration and continuous delivery (CI/CD) platform that you can install on your GCP or AWS Kubernetes cluster.",
-      "note": "CircleCI Server is a self-hosted/on-prem deployment customers install and run on their own Kubernetes cluster; self_host should be true, not false.",
-      "checked": "2026-09-30"
+      "quote": "CircleCI Server can be installed using cloud resources (GCP or AWS), locally, and in an air-gapped environment.",
+      "note": "CircleCI Server installs on your own Kubernetes cluster. Tested on Amazon EKS, Google GKE and local installation; Azure, DigitalOcean and Rancher are untested. Air-gapped install is supported.",
+      "checked": "2026-11-08"
     },
     "byoc": {
       "value": false,
@@ -1213,6 +1220,13 @@
       "note": "granularity: per-project; cost: no; CircleCI provides Insights API endpoints (GET /insights/pages/{project-slug}/summary, GET /insights/{org-slug}/summary, GET /insights/time-series/{project-slug}/workflows/{workflow-name}/jobs) that return total_credits_used for projects, workflows, and jobs. Granularity is per-project and finer (per-workflow, per-branch, per-job). Returns credits (billable quantity), not USD cost. Critical caveat: Insights documentation explicitly states it is 'not a financial reporting tool' and discrepancies exist between Insights credit data and the actual Plan Overview billing information. Usage export API (POST /usage-export, GET /usage-export) is listed in API reference but not fully documented.",
       "confidence": "medium",
       "checked": "2026-10-01"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://circleci.com/docs/guides/execute/ssh-access-jobs/",
+      "quote": "The job VM will remain available for an SSH connection for 10 minutes after the pipeline finishes running.",
+      "note": "Job SSH rerun: only the user who triggered it; session stays open one hour on Free, two hours on other plans. Chunk sidecars (preview) also offer `chunk sidecar ssh` (interactive shell) and `chunk sidecar exec` (https://circleci.com/docs/guides/toolkit/how-to-use-chunk-cli/).",
+      "checked": "2026-11-08"
     }
   },
   "locations": [

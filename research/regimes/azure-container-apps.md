@@ -1,8 +1,10 @@
 # Azure Container Apps (Consumption, Dedicated, Dynamic Sessions) — pricing regimes (as of 2026-09-28)
 All rates below are from the **Azure Retail Prices API** (`prices.azure.com/api/retail/prices`, serviceName
 "Azure Container Apps", eastus unless noted, fetched 2026-09-28), cross-checked with
-https://learn.microsoft.com/en-us/azure/container-apps/billing. ACA Sandboxes are covered in
-azure-container-apps-sandboxes.md.
+https://learn.microsoft.com/en-us/azure/container-apps/billing. eastus meters re-checked 2026-11-08: no change.
+ACA Sandboxes (GA September 2026) are covered in azure-container-apps-sandboxes.md. They use the same
+Consumption per-second meters, run one microVM per sandbox, suspend with memory and disk, clone from snapshots,
+and scale to 16 cores / 32 GiB. Use them, not code-interpreter sessions, to price a stateful agent sandbox on Azure.
 Reference 4 vCPU / 8 GiB Consumption active: 4 x 0.0864 + 8 x 0.0108 = **$0.432/h**.
 ## Regime table
 | Regime | When it applies | How billed | Numbers | Source |
@@ -25,14 +27,14 @@ Reference 4 vCPU / 8 GiB Consumption active: 4 x 0.0864 + 8 x 0.0108 = **$0.432/
 ## Gotchas
 1. **West Europe and UK South are +42%** on CPU; North Europe, Sweden Central, Germany West Central and France Central carry US prices.
 2. **Idle rate is strict**: any request, >0.01 vCPU or >1 KB/s of traffic flips the replica to the active rate.
-3. **Consumption replicas max 4 vCPU / 8 GiB with a fixed 1:2 ratio** (docs knowledge, not re-verified).
+3. **Consumption replicas max 4 vCPU / 8 GiB with a fixed 1:2 ratio** (containers doc, re-checked 2026-11-08; 2 vCPU / 4 GiB in a Consumption-only environment).
 4. **Code-interpreter sessions bill in whole hours** per session identifier: 1,000 one-minute sessions = $30, not $0.50.
 5. **Custom-container session pools run on E16 dedicated nodes** you pay for whether sessions are busy or not, plus the $73/month environment fee.
 6. **Private endpoints or planned maintenance add $0.10/h per environment** even on pure Consumption.
 7. Previous research had GPU prices from a different region/page (T4 $0.324, A100 $2.3436); the eastus Retail API shows $0.263 and $1.904.
 ## Worked example
 4 vCPU / 8 GiB, 50 replicas x 8 h/day x 22 days = **8,800 replica-hours** (scale to zero overnight), 30% CPU
-(no effect: allocated billing), 50 GiB state (no snapshots; Azure Files not priced), 100 GiB egress (free 100 GB).
+(no effect: allocated billing), 50 GiB state (apps have no snapshots, so state goes on Azure Files, not priced here; Sandboxes snapshot instead), 100 GiB egress (free 100 GB).
 | Regime | Calculation | Total / month |
 |---|---|---|
 | Consumption active, eastus / northeurope | 8,800 x 0.432 = $3,801.60 - free grant $5.40 | **$3,796.20** |

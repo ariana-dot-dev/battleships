@@ -9,7 +9,7 @@ running process, though, keeps the sandbox awake.
 | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|
 | Active compute, default shape | Sandbox awake, 2 vCPU / 4096 MiB (kept warm) | Per awake second (meter `sandbox_active_seconds`), RAM + storage included | $0.05/h | https://sandbox.mosaicos.com/, https://sandbox.mosaicos.com/docs/ |
-| Larger shapes | 4/8192 (all templates); 8/16384, 16/32768 (`base` template only) | Metered at units occupied; cold boot (only default kept warm) | 2x = $0.10/h, 4x = $0.20/h, 8x = $0.40/h | https://sandbox.mosaicos.com/llms.txt |
+| Larger shapes | 4/8192 (all templates); 8/16384, 16/32768 (`base` template and custom environments) | Metered at units occupied; cold boot (only default kept warm) | 2x = $0.10/h, 4x = $0.20/h, 8x = $0.40/h | https://sandbox.mosaicos.com/llms.txt |
 | Small shape 1 vCPU / 2048 MiB | Any template | "The 1 vCPU guest still bills as one" unit | $0.05/h (same as default) | https://sandbox.mosaicos.com/pricing |
 | Idle hibernation | Automatic after 3 quiet seconds (no running process); wakes on use; also explicit `pause` | Not metered | $0 | https://sandbox.mosaicos.com/docs/ |
 | Archived (`persist: true`) | Sandbox reaches its TTL deadline | Resumable under same id within 7-day retention | unpublished (assumed $0) | docs |
@@ -24,7 +24,8 @@ Dated changes: none published.
 2. **Unit confirmed (verify 2026-09-28)**: the pricing page states $0.05/h is "at 2 vCPU / 4 GB"; 4 vCPU bills as two units and the 1 vCPU guest still bills as one, so downsizing below 2/4 saves nothing. If the host awake-time record is unreachable, billing falls back to wall-clock lifetime.
 3. **Non-default shapes are cold boots.** Only 2/4 is kept warm, so 4/8 and above lose the fast-start advantage.
 4. **"Includes storage"** covers the running sandbox. Archived sandboxes, named environments and volumes have no published storage price.
-5. No published egress price, free tier or concurrency cap ("fleet capacity bound"). US regions only.
+5. Egress is $0 ("No per-GB charge"). No free tier is published. Concurrency cap: 1,000 sandboxes alive per organization, hibernated ones included (self-serve; contact them to raise it; checked 2026-11-08). US regions only.
+7. **Files after a stop**: a paused sandbox keeps its whole disk and memory at $0, until its inactivity deadline (removable with `ttl_seconds: 0`). `persist: true` archives it for 7 days. A snapshot keeps the whole filesystem for later sandboxes; no snapshot retention or price is published.
 6. **Name collision**: the mosaic.so pricing page (video credits) is sometimes cited for this sandbox. It is unrelated.
 ## Worked example
 Workload: 4 vCPU / 8 GiB (2 units), 50 concurrent × 8 h/day × 22 days = **8,800 sandbox-hours**, 30% CPU,

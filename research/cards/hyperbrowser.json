@@ -14,7 +14,8 @@
       ],
       "gpu_only": false,
       "features": {
-        "max_session_h": 12
+        "max_session_h": 12,
+        "persist_scope": "profile"
       },
       "pricing": "sizes",
       "vcpu_h": null,
@@ -88,7 +89,8 @@
         "fork": true,
         "memory_snapshot_fork": true,
         "volumes": true,
-        "persistent_disk": false,
+        "persistent_disk": "diy",
+        "persist_scope": "snapshot",
         "custom_image": true,
         "image_oci": true,
         "root": true,
@@ -97,7 +99,63 @@
         "max_session_h": 24,
         "browser": true
       },
-      "note": "Default 2 vCPU / 2048 MiB / 8192 MiB disk; API limits vcpus 1-32, memMiB 512-262144, diskSizeMiB 2048-32768, timeoutMinutes max 1440 ('Maximum sandbox lifetime in minutes, measured from VM start'). Billing granularity and minimum not stated (browser sessions are per second). Custom images built from local Docker images via 'hx vm image build' into Firecracker images. Memory snapshots can start many new sandboxes. Volumes are team-scoped, persistent, multi-attach. Default 'ubuntu' sudo user. Outbound internet allowed by default; allowOut/denyOut policies. Plan concurrency caps are stated for browsers only; sandbox concurrency limits unpublished. Snapshot/volume/disk storage prices unpublished.",
+      "note": "CPU sandbox. Default 2 vCPU / 2048 MiB / 8192 MiB disk; API limits vcpus 1-32, memMiB 512-262144, diskSizeMiB 2048-65536 (64 GiB, 'subject to plan and host limits'), timeoutMinutes max 1440 ('Maximum sandbox lifetime in minutes, measured from when it starts running'). A stopped CPU sandbox cannot be restarted: files survive in a snapshot (memory, processes and filesystem) taken while it runs, or on a mounted volume. Billing granularity and minimum not stated (browser sessions are per second). Custom images built from local Docker images via 'hx vm image build' into Firecracker images. Memory snapshots can start many new sandboxes. Volumes are team-scoped, persistent, multi-attach. Default 'ubuntu' sudo user. Outbound internet allowed by default; allowOut/denyOut policies. Plan concurrency caps are stated for browsers only; sandbox concurrency limits unpublished. Snapshot/volume/disk storage prices unpublished.",
+      "product_class": "sandbox-api"
+    },
+    {
+      "key": "gpu-sandbox",
+      "label": "Hyperbrowser GPU Sandbox, per GPU-hour + vCPU-h + GiB-h (on request)",
+      "flags": [],
+      "os": [
+        "linux"
+      ],
+      "gpu_only": true,
+      "pricing": "resource",
+      "vcpu_h": 0.045,
+      "ram_gib_h": 0.015,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": 1,
+      "max_vcpu": 32,
+      "max_ram_gib": 256,
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
+      "start_fee": 0,
+      "multiplier": 1,
+      "gpu": {
+        "L4": 0.7992,
+        "A10G": 1.1016,
+        "L40S": 1.9512,
+        "A100-40GB": 2.0988,
+        "A100-80GB": 2.4984,
+        "RTX-PRO-6000": 3.0312,
+        "H100": 3.9492,
+        "H200": 4.5396,
+        "B200": 6.2496,
+        "B300": 7.0992
+      },
+      "features": {
+        "isolation": "firecracker",
+        "snapshot": "none",
+        "fork": false,
+        "memory_snapshot_fork": false,
+        "volumes": false,
+        "volume_attach": false,
+        "persistent_disk": false,
+        "persist_scope": "none",
+        "custom_image": true,
+        "root": true,
+        "max_session_h": 24,
+        "gpu": true
+      },
+      "note": "1 to 8 GPUs of one type per sandbox, 'subject to available capacity and host sizes'. GPU billed 'per allocated GPU-second' from the moment the sandbox runs; provisioning not billed; disk adds no separate charge. vCPU and RAM at the CPU sandbox rates. Region us only; GPU access must be enabled for the team by Hyperbrowser support; needs a GPU-ready image built by the team. Disk 12-64 GiB, deleted on stop. No memory snapshots, shared volumes or managed secrets.",
       "product_class": "sandbox-api"
     }
   ],
@@ -194,14 +252,26 @@
   "features": {
     "linux": true,
     "windows": false,
-    "macos": false,
+    "macos": true,
     "arm64": null,
-    "gpu": false,
-    "gpu_types": [],
+    "gpu": true,
+    "gpu_types": [
+      "L4",
+      "A10G",
+      "L40S",
+      "A100-40GB",
+      "A100-80GB",
+      "RTX-PRO-6000",
+      "H100",
+      "H200",
+      "B200",
+      "B300"
+    ],
     "snapshot": "mem",
     "pause_resume": false,
     "fork": true,
-    "persistent_disk": false,
+    "persistent_disk": "diy",
+    "persist_scope": "snapshot",
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": 24,
@@ -294,8 +364,11 @@
     }
   ],
   "caveats": [
-    "Two products: browser sessions at $0.10 per browser-hour (vCPU/RAM undisclosed, not comparable to a 4 vCPU/8 GiB VM) and Sandboxes (Firecracker VMs, 1-32 vCPU, 0.5-256 GiB RAM, 2-32 GiB disk) at $0.045/vCPU-h + $0.015/GiB-h, i.e. $0.30/h for 4 vCPU / 8 GiB. The engine picks the cheapest mode, so compute workloads can still land on the browser-hour; for coding-agent workloads read the 'sandbox' mode price.",
-    "isolation null: session isolation technology is not documented (only 'isolated cookies, storage, cache').",
+    "Two products: browser sessions at $0.10 per browser-hour (vCPU/RAM undisclosed, not comparable to a 4 vCPU/8 GiB VM) and Sandboxes (Firecracker VMs, 1-32 vCPU, 0.5-256 GiB RAM, 2-64 GiB disk) at $0.045/vCPU-h + $0.015/GiB-h, i.e. $0.30/h for 4 vCPU / 8 GiB. The engine picks the cheapest mode, so compute workloads can still land on the browser-hour; for coding-agent workloads read the 'sandbox' mode price.",
+    "GPU sandboxes: 1 to 8 GPUs (L4 $0.7992 to B300 $7.0992 per GPU-hour) plus vCPU and RAM at the CPU rates; us region only; GPU access is enabled for a team on request. Their disk is deleted on stop, and they have no snapshots or volumes.",
+    "macOS sandboxes are in beta, us region only, enabled for a team on request. Stopping one saves its disk (files and installed apps), and a new sandbox boots that disk by diskId. Price unpublished, so no macOS mode is priced.",
+    "Persistence (CPU sandboxes): a stopped sandbox cannot be restarted. Files survive in a snapshot of memory, processes and filesystem that you take while it runs (one API call), or on a team volume mounted at launch. Snapshot retention and storage price are not published.",
+    "Isolation: Sandboxes are Firecracker VMs; browser-session isolation technology is not documented (only 'isolated cookies, storage, cache').",
     "Proxy bandwidth $10/GB is not modelled as egress (egress_gib null); for scraping it usually dominates the bill (100 GB = $1,000).",
     "Free plan 5,000 credits modelled as one-time $5: 'Enough for 50 browser hours or 5,000 fetched pages at base rates.' and 'If you use all the credits on Free, upgrade to continue.'",
     "Plan fees convert 1:1 into credits (fee_is_credit true); purchased top-up credits expire after 12 months.",
@@ -314,7 +387,11 @@
     "https://hyperbrowser.ai/docs/api-reference/create-new-session.md",
     "https://hyperbrowser.ai/docs/sandboxes/create.md",
     "https://www.hyperbrowser.ai/security",
-    "https://hyperbrowser.ai/docs/api-reference/create-new-sandbox.md"
+    "https://hyperbrowser.ai/docs/api-reference/create-new-sandbox.md",
+    "https://hyperbrowser.ai/docs/sandboxes/gpu.md",
+    "https://hyperbrowser.ai/docs/sandboxes/macos.md",
+    "https://hyperbrowser.ai/docs/sandboxes/snapshots.md",
+    "https://hyperbrowser.ai/docs/sandboxes/secrets.md"
   ],
   "fleet": {
     "default_max_instances": 1,
@@ -398,7 +475,7 @@
       "value": false,
       "source": "https://hyperbrowser.ai/docs/sandboxes/processes.md",
       "quote": "Environment variables to inject into the process.",
-      "note": "No credential-injecting egress proxy documented; sandbox secrets are passed as env vars / files (e.g. OpenClaw guide puts the model key in the sandbox). Related but not a proxy: Browser Use tasks' sensitive-data map keeps real values from the LLM ('The LLM only sees placeholders (x\\_user, x\\_pass)... Real values are injected directly into form fields after the LLM call'), but the values do enter the browser; browser Profiles persist logins.",
+      "note": "No credential-injecting egress proxy documented. Managed Secrets, Vaults and a 1Password integration exist: 'the value is decrypted on the host running the sandbox and set in that process's environment', and 'anything else in the sandbox running as the same user, or as root' can read it (secrets.md, checked 2026-11-08). Related but not a proxy: Browser Use tasks' sensitive-data map keeps real values from the LLM ('The LLM only sees placeholders (x\\_user, x\\_pass)... Real values are injected directly into form fields after the LLM call'), but the values do enter the browser; browser Profiles persist logins.",
       "checked": "2026-09-29"
     },
     "volume_attach": {
@@ -507,11 +584,32 @@
       "checked": "2026-09-30"
     },
     "persistent_disk": {
-      "value": false,
-      "source": "https://hyperbrowser.ai/docs/sandboxes/lifecycle.md",
-      "quote": "When a sandbox is created, it is always running until you stop it or it times out.",
-      "note": "The sandbox's own root/data disk does not survive stop/timeout - there is no pause/resume or stop-then-restart-same-disk mechanism, only start-a-new-sandbox-from-image or from-a-memory-snapshot. Persistence is opt-in via a separate 'Volume' (see volumes.md: 'A volume persists even after all sandboxes are stopped') or a memory snapshot (which captures filesystem+memory but must be explicitly created and restored into a new sandbox instance, not the same one). Not a contradiction with volumes/snapshot/fork - those are the mechanisms by which you get persistence, not evidence the default disk itself persists.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "corrected_from": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/snapshots.md",
+      "quote": "When you take a snapshot, you are freezing the sandbox's memory, processes, and filesystem at that point in time.",
+      "how": "take a snapshot while the CPU sandbox runs, then start the next sandbox from it; or mount a team volume at launch",
+      "effort": "low",
+      "note": "No endpoint restarts a stopped CPU sandbox, so its own disk does not come back. The whole filesystem comes back through a snapshot taken before the stop. GPU sandboxes: files deleted on stop, no snapshots or volumes. macOS sandboxes (beta, on request): stopping saves the disk.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "snapshot",
+      "source": "https://hyperbrowser.ai/docs/sandboxes/snapshots.md",
+      "quote": "When you take a snapshot, you are freezing the sandbox's memory, processes, and filesystem at that point in time.",
+      "how": "call createMemorySnapshot before the CPU sandbox stops, then create the next sandbox with snapshotName; files on a mounted volume also survive",
+      "effort": "low",
+      "note": "Snapshot retention and storage price not published. Not available on GPU sandboxes ('do not support memory snapshots'). Browser sessions keep only an opt-in profile.",
+      "checked": "2026-11-08"
+    },
+    "macos": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/macos.md",
+      "quote": "Stopping a Mac sandbox saves its disk changes and releases the VM.",
+      "note": "macOS sandboxes are in beta, region us only, and 'macOS access must be enabled for your team'. Minimum 2 vCPU / 4 GiB. Price unpublished, so no macOS mode is priced.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "mem",
@@ -563,8 +661,8 @@
       "corrected_from": false,
       "source": "https://hyperbrowser.ai/docs/sandboxes/base-images.md",
       "quote": "A default `ubuntu` sudo user with home directory at `/home/ubuntu`.",
-      "note": "Contradicts the card's own sandbox-mode features (root:true). Every base image ships a sudo-capable default user, i.e. root access via sudo. Correct top-level value is true (Sandbox product only; not applicable to browser sessions, which have no shell).",
-      "checked": "2026-09-30"
+      "note": "Every base image ships a sudo-capable default user; exec and process APIs also take runAs: \"root\" (processes.md). Sandbox product only; browser sessions have no shell.",
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": false,
@@ -604,25 +702,19 @@
       "checked": "2026-09-30"
     },
     "gpu": {
-      "value": false,
-      "source": "https://hyperbrowser.ai/docs/api-reference/create-new-sandbox.md",
-      "quote": "vcpus: ... memMiB: ... diskSizeMiB: ... timeoutMinutes: ... allowInternetAccess: ...",
-      "note": "The full CreateSandboxParams schema (vcpus, memMiB, diskSizeMiB, region, mounts, network, exposedPorts, timeoutMinutes) has no GPU-related field, and no GPU option is mentioned anywhere on the pricing page or sandbox docs.",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://hyperbrowser.ai/docs/sandboxes/gpu.md",
+      "quote": "You can request 1–8 GPUs of the same type on one host, subject to available capacity and host sizes.",
+      "note": "GPU types L4, A10G, L40S, A100-40GB, A100-80GB, RTX-PRO-6000, H100, H200, B200, B300 at $0.7992 to $7.0992 per GPU-hour (pricing.md), plus vCPU and RAM. Region us; 'Contact us ... to enable GPU access for your team.' Files deleted on stop; no snapshots, volumes or managed secrets.",
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
       "source": "https://hyperbrowser.ai/docs/sandboxes/base-images.md",
       "quote": "Ubuntu 24.04 as the base OS.",
-      "note": "All base images and the browser product run on Linux (Ubuntu 24.04); no Windows image or OS option exists in the CreateSandboxParams schema.",
-      "checked": "2026-09-30"
-    },
-    "macos": {
-      "value": false,
-      "source": "https://hyperbrowser.ai/docs/sandboxes/base-images.md",
-      "quote": "Ubuntu 24.04 as the base OS.",
-      "note": "Same as windows: this is a Linux-only (Ubuntu) Firecracker sandbox / cloud-browser product; no macOS option is offered or documented.",
-      "checked": "2026-09-30"
+      "note": "Base images and the browser product run on Linux (Ubuntu 24.04); macOS sandboxes are a separate beta runtime. No Windows image or option exists in the CreateSandboxParams schema.",
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": null,

@@ -1103,7 +1103,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Free tier: 100 build minutes/month on general1.small or arm1.small = $0.50 (encoded on general1.small). Build timeout max 36 h (CodeBuild quota, not verified today)."
+      "note": "Free tier (does not expire): 100 build minutes/month on general1.small or arm1.small = $0.50 (encoded on general1.small). Build timeout max 36 h (CodeBuild quota, not verified today)."
     }
   ],
   "free": {
@@ -1130,7 +1130,7 @@
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": false,
+    "browser": true,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
@@ -1204,11 +1204,12 @@
   "perf_source": "No benchmark row: provider is not in ComputeSDK results or the HPC run (as of 2026-09-28). See research/perf-map.json.",
   "knobs": [],
   "caveats": [
-    "Lambda compute (per-second, 1-10 GB) and reserved-capacity fleets not encoded.",
+    "Docker daemon is on by default for non-VPC Linux builds; VPC builds need privileged mode; Windows and Lambda compute do not run Docker.",
     "Prices are us-east-1; other regions differ.",
     "CloudWatch Logs, S3 artifacts and data transfer billed separately.",
     "EC2 on-demand builds run in containers on CodeBuild-managed hosts (LINUX_CONTAINER) or EC2 (LINUX_EC2).",
-    "Free tier also includes 6,000 Lambda build-seconds/month on lambda.arm.1GB or lambda.x86-64.1GB (about $0.06-$0.12); not encoded, and it does not cover Sandbox, reserved or Docker image server usage."
+    "The free tier does not expire. It also includes 6,000 Lambda build-seconds/month on lambda.arm.1GB or lambda.x86-64.1GB (about $0.06-$0.12); not encoded, and it does not cover Sandbox, reserved or Docker image server usage.",
+    "The pricing page also lists Managed NACL as a separate charge; not encoded."
   ],
   "sources": [
     "https://aws.amazon.com/codebuild/pricing/",
@@ -1318,11 +1319,19 @@
       "checked": "2026-09-30"
     },
     "browser": {
-      "value": false,
-      "source": "https://aws.amazon.com/codebuild/pricing/",
-      "quote": "AWS CodeBuild is a fully managed continuous integration service that compiles source code, runs tests, and produces software packages that are ready to deploy.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://raw.githubusercontent.com/aws/aws-codebuild-docker-images/master/ubuntu/standard/7.0/Dockerfile",
+      "quote": "# Install Chrome",
+      "note": "The curated aws/codebuild/standard:7.0 Ubuntu image installs Google Chrome, chromedriver, Firefox, geckodriver and Xvfb, so headless browser runs work without setup. Scope: Ubuntu standard image (x86-64). There is no built-in way to watch the browser (see desktop).",
+      "checked": "2026-11-08"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker-custom-image.html",
+      "quote": "By default, Docker daemon is enabled for non-VPC builds. If you would like to use Docker containers for VPC builds ... enable privileged mode. Also, Windows does not support privileged mode.",
+      "note": "Docker daemon is on by default for non-VPC Linux builds. VPC builds need privileged mode. Windows does not support privileged mode. Lambda compute does not run Docker (mode-level false).",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -1442,15 +1451,15 @@
       "value": false,
       "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sandbox.html",
       "quote": "In AWS CodeBuild, you can debug a build by using CodeBuild sandbox to run custom commands and troubleshoot your build.",
-      "note": "CodeBuild's interactive access is a command-shell/SSH sandbox for build debugging, not a graphical desktop; the product is a CI build service and no VNC/RDP/streamed-desktop feature is documented anywhere in the userguide or console.",
-      "checked": "2026-09-30"
+      "note": "The Ubuntu standard image includes Xvfb (a virtual display) and Chrome/Firefox for headless runs. AWS documents no built-in desktop stream (VNC/RDP/web viewer) to watch or embed; sandbox access is a shell over SSH or Session Manager. A user could install a VNC server and forward it over the sandbox SSH session, but AWS documents no such path, so the value stays false.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/sandbox.html",
       "quote": "In AWS CodeBuild, you can debug a build by using CodeBuild sandbox to run custom commands and troubleshoot your build.",
-      "note": "CodeBuild is a CI build/compute service; there is no screenshot+click computer-use API. Its only interactive surface is a command/SSH sandbox for build debugging.",
-      "checked": "2026-09-30"
+      "note": "CodeBuild documents no screenshot-and-click computer-use API. Headless browser automation (Chrome/Firefox drivers under Xvfb) works in the Ubuntu standard image; interactive access is a shell over SSH or Session Manager.",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -1463,8 +1472,8 @@
       "value": false,
       "source": "https://docs.aws.amazon.com/codebuild/latest/userguide/vpc-support.html",
       "quote": "Make sure that your security groups have no inbound (ingress) traffic allowed to your builds.",
-      "note": "AWS explicitly recommends builds accept no inbound traffic at all; there is no first-party feature to expose a build/sandbox over inbound HTTPS.",
-      "checked": "2026-09-30"
+      "note": "AWS recommends that builds accept no inbound traffic, and builds get no public IP. AWS documents no feature to expose a build or sandbox over inbound HTTPS. A tunnel client run inside the build (outbound connection) can still publish an app; that is a third-party setup, not an AWS path.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,

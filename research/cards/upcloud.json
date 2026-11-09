@@ -840,7 +840,7 @@
   ],
   "free": {
     "monthly_credit": 0,
-    "one_time_credit": 0
+    "one_time_credit": 11.38
   },
   "features": {
     "linux": true,
@@ -869,7 +869,7 @@
     "root": true,
     "systemd": true,
     "browser": false,
-    "desktop": false,
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
@@ -903,7 +903,7 @@
     "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": true,
-    "fork_running": false,
+    "fork_running": "diy",
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
@@ -948,7 +948,7 @@
     "New Starter 1GB/1CPU plan limited to 5 simultaneous deployments. 7-day trial resources may be deleted without deposit.",
     "2026-09-28 fix pass: boot_overhead_s 45 on all three plan families from the vendor claim \"launching new instances in just 45 seconds from deployment to login\" (upcloud.com/products/cloud-servers/, rendered in headless Chrome); vendor figure, not measured. Billing is per started hour (min 1 h per server), so short sessions pay a full hour each; the engine re-prices as kept-on machines when that is cheaper. Category stays hyperscaler (plain IaaS VM, no sandbox API).",
     "Egress $0 is a pooled fair-transfer share (0.5 TB for Starter 1c/1GB up to 100 TB per server). Above it, bandwidth is throttled to 100 Mbps, or you can opt in to paid transfer at EUR 0.01/GB (no USD price published). egress_gib 0 stays correct for normal workloads.",
-    "The 7-day trial has no stated $ credit. It is quota-limited (2 cores/4 GB total, 60 GB per storage tier, 2 IPv4, locked firewall ports) and has no GPU or Windows. The $10 minimum deposit goes into the prepaid balance, so it is not a fee. Referral signups get $25 of credit (valid only after 2 payments and 28 days); promo-code credits expire after 60 days and need manual activation for GPUs. free.one_time_credit stays 0.",
+    "The 7-day trial gives EUR 10 of credit (\"You also get €10 of free credit, which pays for the resources you use during the trial.\"; \"Any free credit you haven't used expires when the trial ends.\", upcloud.com/docs/getting-started/free-trial/, checked 2026-11-08). free.one_time_credit 11.38 = EUR 10 at the card's 1.1378 USD/EUR. It is quota-limited (2 cores/4 GB total, 180 GB block storage total, 2 IPv4) and has no GPU or Windows. The 10 minimum deposit goes into the prepaid balance, so it is not a fee. Referral signups get $25 of credit (valid only after 2 payments and 28 days); promo-code credits expire after 60 days and need manual activation for GPUs.",
     "Not modelled: Private Cloud dedicated hosts (sales, from $3,669/mo; 64C/128T with 1920 or 1280 GB, or 32C with 640 GB), GPU reservations of 3+ months (sales), and B200/B300 Dedicated GPU Clusters (sales, delivery from December 2026). All are sales-only and would need flags [\"sales\"]."
   ],
   "sources": [
@@ -956,7 +956,9 @@
     "https://upcloud.com/docs/products/cloud-servers/configurations/",
     "https://upcloud.com/docs/products/block-storage/backups/",
     "https://upcloud.com/docs/products/networking/network-transfer/",
-    "https://upcloud.com/fair-transfer-policy/"
+    "https://upcloud.com/fair-transfer-policy/",
+    "https://upcloud.com/docs/products/gpu-servers/availability/",
+    "https://upcloud.com/docs/guides/connecting-to-cloud-server-over-vnc/"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -990,8 +992,8 @@
       "value": true,
       "source": "https://upcloud.com/docs/products/block-storage/backups/",
       "quote": "On-demand backups offer instant snapshots of the selected storage devices and can be taken manually at any time.",
-      "note": "Disk only (per block-storage device), no memory. Taken while running ('created without interruption'), via control panel/API (POST storage backup) /CLI; $0.06/GB-month (card). Restore to origin requires the server to be shut down; 'backups can be cloned to a new storage device ... used as a primary storage device to run an earlier state of the Cloud Server' => new machines can boot from it; any storage can also become a custom image (template) for new servers in the same data centre.",
-      "checked": "2026-09-29"
+      "note": "Disk only (per block-storage device), no memory. Taken while running ('created without interruption or slowing down the storage operations on the Cloud Server'), via control panel/API (POST storage backup) /CLI; $0.06/GB-month (card). Restore to origin requires the server to be shut down; a clone to a new storage device 'does not require downtime of the server' and can run 'independently of the origin server' => new machines can boot from it; any storage can also become a custom image (template) for new servers in the same data centre.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -1087,11 +1089,13 @@
       "checked": "2026-09-30"
     },
     "fork_running": {
-      "value": false,
-      "source": "https://upcloud.com/docs/guides/custom-server-images/",
-      "quote": "Note that the source storage cannot be in use during imaging. To start imaging a server, log in to your UpCloud Control Panel and shut down the server.",
-      "note": "Cloning into a custom image requires shutting the source server down first; no clone-while-running capability.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://upcloud.com/docs/products/block-storage/backups/",
+      "quote": "The new storage can also be used as a primary storage device to run an earlier state of the Cloud Server independently of the origin server.",
+      "how": "take an on-demand backup of the running server, clone it to a new storage device, then create a new server on that device (several API calls, disk only, no memory)",
+      "effort": "medium",
+      "note": "Backups are 'created without interruption or slowing down the storage operations on the Cloud Server', and cloning 'does not require downtime of the server'. The custom-image route (https://upcloud.com/docs/guides/custom-server-images/) is the other way and needs the source server shut down. Processes and memory are not copied.",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -1178,11 +1182,20 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
-      "source": "https://upcloud.com/docs/products/cloud-servers/faq/",
-      "quote": "Will I have access to a console on my server? Yes, within seconds of deploying a server! You can use SSH, VNC, RDC for Windows, as well as the convenient web Console at your UpCloud control panel.",
-      "note": "reviewed: proposed correction rejected (Every Cloud Server gets a first-party VNC console (and RDP for Windows) reachable from the UpCloud Control Panel — a graphical desktop is available out of the box, so 'false' is wrong.)",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://upcloud.com/docs/guides/connecting-to-your-server/",
+      "quote": "Windows servers employ their own remote desktop connection that allows you to operate your Windows Server just like your own desktop.",
+      "how": "deploy a Windows Server template (paid licence add-on) and connect over Remote Desktop (official guide)",
+      "effort": "low",
+      "note": "2026-11-08 adversarial check: the VNC guide (connecting-to-cloud-server-over-vnc) only turns on the provider console VNC and assumes 'servers with a desktop environment installed'; it has no install steps, so a Linux desktop alone is not a documented path. The documented path is the Windows Server template over RDP. Windows Server is a paid add-on on Premium and Cloud Native plans.",
+      "checked": "2026-11-08"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://upcloud.com/docs/guides/run-docker-containers-gpu-server/",
+      "quote": "sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+      "note": "Official UpCloud guide installs Docker Engine on an Ubuntu Server 24.04 server ('On Ubuntu Server 24.04 LTS, you install and set up both yourself'). Full KVM VM with root; Docker is not preinstalled on standard templates.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
@@ -1387,6 +1400,7 @@
     }
   ],
   "locations_source": "https://upcloud.com/docs/products/cloud-servers/availability/",
-  "locations_quote": "Cloud Servers are available in all UpCloud locations. GPU Servers are currently available with NVIDIA L4, L40S, RTX Pro 6000, H100 and B200 GPUs from the following locations.",
-  "locations_checked": "2026-10-01"
+  "locations_quote": "Cloud Servers are available in all UpCloud locations.",
+  "locations_note": "GPU Servers (NVIDIA L4, L40S, RTX Pro 6000, H100, B200 and B300) are in fi-hel2 only, per https://upcloud.com/docs/products/gpu-servers/availability/ (B300 added 2026-10-15).",
+  "locations_checked": "2026-11-08"
 }

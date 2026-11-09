@@ -19,6 +19,7 @@ Base rates (product page + docs): vCPU $0.0000100455/s = **$0.03616363/vCPU-h**;
 | Paused (memory + disk snapshot) | `pause()` or auto-pause (`auto_pause_after_seconds` 60–86,400 s; **off by default**) | vCPU stops; **RAM and storage keep billing**; retained indefinitely | Paused 4/8 = 8 × $0.01159 = $0.0927/h ≈ **$67.7/month** | https://createos.sh/docs/Sandbox/Limits |
 | Destroyed | `destroy()` | Nothing | $0 | SDK docs |
 | Fork | `fork()` of a paused sandbox | Child is a new sandbox billed separately | full rate per child | SDK llms-full.txt |
+| Snapshot of a running sandbox | `POST` snapshot, `disk` or `full` (memory + execution state); source freezes briefly, then keeps running; restore with `snapshot_id` on create, any number of times | Each restore is a new sandbox at full rate; counts against concurrency and daily create caps | 5 snapshots per user; no external disks attached during capture; snapshot storage price not published | https://createos.sh/docs/Sandbox/REST-API/Snapshots |
 | Storage | Overlay disk (shape default or `disk_mib`) | Per GB-hour while it exists | $0.0001584/GB-h (~$0.1156/GB-mo) | product page |
 | Disks (volumes) | BYO S3/R2/MinIO buckets mounted | Paid to your own object store | $0 from CreateOS | SDK docs |
 | Egress / bandwidth | All traffic | Unmetered, but a **50 GiB per-sandbox bandwidth quota** (rechargeable; recharge price unpublished) | $0 | https://createos.sh/docs/Sandbox/Limits |
@@ -26,7 +27,7 @@ Base rates (product page + docs): vCPU $0.0000100455/s = **$0.03616363/vCPU-h**;
 | Deploy-platform plans (NOT sandbox) | createos.nodeops.network/pricing | Different product (app deploys) | Free / Plus $49 / Pro $149 / Enterprise; the ~10x cheaper per-second table seen earlier is no longer shown (2026-09-28) | https://createos.nodeops.network/pricing |
 Dated changes: none found. The SDK repository and docs carry no changelog entries on pricing.
 ## Gotchas
-1. **Paused sandboxes still pay RAM.** Unlike E2B, Daytona or Mosaic, pausing only removes the vCPU charge. An 8 GiB sandbox parked all month costs ~$68. Destroy it, or snapshot to a template, if you don't need warm memory. The SDK docs say "compute billing stopped ... only storage" but the Limits doc and product page say RAM keeps billing.
+1. **Paused sandboxes still pay RAM.** Unlike E2B, Daytona or Mosaic, pausing only removes the vCPU charge. An 8 GiB sandbox parked all month costs ~$68. Destroy it, or take a `disk` snapshot (Snapshots API, 5 per user) and destroy, if you don't need warm memory. The SDK docs say "compute billing stopped ... only storage" but the Limits doc and product page say RAM keeps billing.
 2. **Auto-pause is off by default and there is no max session length**, so a forgotten sandbox runs (and bills) forever.
 3. **Shape caps per plan are much lower than the headline "Up to 48 / 1,000 cores"** on the pricing page. Those caps belong to the Deploy platform. For Sandbox, Beginner tops out at **4 vCPU / 4 GB** and a 4/8 box needs Pro.
 4. **Hard concurrency ceiling of 30** even on Enterprise per the docs, plus daily creation caps (10/50/200/300). Burst-heavy agent fleets hit these first.

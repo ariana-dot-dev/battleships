@@ -593,8 +593,8 @@
     "max_session_h": null,
     "custom_image": null,
     "docker_inside": true,
-    "nested_virt": null,
-    "root": null,
+    "nested_virt": false,
+    "root": true,
     "systemd": null,
     "browser": false,
     "desktop": false,
@@ -666,6 +666,8 @@
   "knobs": [],
   "caveats": [
     "VM stop/shelve state billing needs state-table verification.",
+    "Newer families m1ix (general, 1:4) and c1ix (compute, 1:2) launched 2026-10-12 (vm-release-note). List prices (pricing page, checked 2026-11-08, VAT excluded): m1ix.xlarge 4/16 KRW 250/h, c1ix.xlarge 4/8 KRW 196/h. Both cost more per hour than m2a (KRW 204) and c2a (KRW 164) at the same size, so the card keeps c2a/m2a as the priced modes.",
+    "Nested virtualization is not supported: the VM has no direct hardware access, so WSL 2 does not run on Windows instances (vm-release-note 2025-01-23).",
     "t1i is burstable (CPU credits). Per-size baseline usage/vCPU is published (https://docs.kakaocloud.com/en/service/bcs/bcs-specifications/general-purpose/instance-type): t1i.nano 5%, t1i.micro 10%, t1i.small 20%, t1i.medium 20%, t1i.large 30%, t1i.xlarge 40%, t1i.2xlarge 40%. The mode carries baseline_pct 40 (4-8 vCPU sizes); the 2 vCPU sizes (nano to large) are throttled lower, which one per-mode baseline cannot express.",
     "Unknowns remain null, not free. c2a / t1i are ordinary self-serve VMs (no longer flagged alt, fix 2026-09-28).",
     "Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.",
@@ -692,7 +694,7 @@
     "raise_time_days": null,
     "verification": null,
     "tiers": null,
-    "notes": "Published per-project quotas: 500 instances, 4,000 vCPU, 8,000 GiB memory, shared with bare-metal and GPU instances; volume quotas 1,000 volumes / 100,000 GB and 1,000 snapshots / 100,000 GB; all raisable via Helpdesk. GPU-specific count and new-account verification/SLA not established; project ceiling is not reserved capacity. Only general region is kr-central-2 (Seoul; kr-central-1 discontinued 2025-03-31); kr-gov-central-1/2 for public institutions.",
+    "notes": "Published per-project quotas: 500 instances, 4,000 vCPU, 8,000 GiB memory, shared with bare-metal and GPU instances; volume quotas 1,000 volumes / 100,000 GB and 1,000 snapshots / 100,000 GB; all raisable via Helpdesk. GPU-specific count and new-account verification/SLA not established; project ceiling is not reserved capacity. Only general region is kr-central-2 (Seoul; zones kr-central-2-a, -b, -c, with -d planned; kr-central-1 discontinued 2025-03-31); kr-gov-central-1 and kr-gov-central-2 serve Korean public institutions (https://docs.kakaocloud.com/en/start/region-az, checked 2026-11-08).",
     "sources": [
       "https://docs.kakaocloud.com/en/service/bcs/vm/vm-pricing"
     ],
@@ -704,19 +706,33 @@
     "reviewed": 4
   },
   "feature_evidence": {
+    "nested_virt": {
+      "value": false,
+      "source": "https://docs.kakaocloud.com/en/service/bcs/vm/vm-release-note",
+      "quote": "WSL version 2 requires nested virtualization, which involves direct access to hardware. Since KakaoCloud's Virtual Machine environment does not currently support direct hardware access, WSL 2 is not supported.",
+      "note": "Release note of 2025-01-23. The VM gives no direct hardware access, so nested virtualization (and WSL 2 on Windows) does not work. Bare Metal Server is a separate product.",
+      "checked": "2026-11-08"
+    },
+    "root": {
+      "value": true,
+      "source": "https://docs.kakaocloud.com/en/service/bcs/vm/how-to-guides/vm-create-instance",
+      "quote": "Ubuntu: sudo cat /var/log/syslog ... CentOS: sudo cat /var/log/messages",
+      "note": "Full VM from a base OS image; the docs have the user run sudo inside the instance. Docker can be installed (see docker_inside).",
+      "checked": "2026-11-08"
+    },
     "snapshot_auto": {
       "value": false,
       "source": "https://docs.kakaocloud.com/en/service/bcs/vm/how-to-guides/vm-manage-instance",
       "quote": "Stop the instance (stop)",
-      "note": "Stop / Shut down (shelve) just power the VM off; volumes persist (persistent_disk), no memory checkpoint on stop is documented. Snapshot Schedules can create volume snapshots on a cron-like cycle with retention ('automatically create and delete snapshots of the current state of a volume according to a configured cycle') - that is scheduled backup, not stop-triggered.",
-      "checked": "2026-09-29"
+      "note": "Stop / Shut down (shelve) just power the VM off; volumes persist (persistent_disk), no memory checkpoint on stop is documented. Snapshot Schedules can create volume snapshots on a cron-like cycle with retention ('automatically create and delete snapshots of the current state of a volume according to a configured cycle'); since 2026-01-13 a volume takes several schedule policies (vm-release-note). That is scheduled backup, not stop-triggered.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://docs.kakaocloud.com/en/service/bcs/vm/how-to-guides/vm-manage-snapshot",
       "quote": "You can create a new snapshot from the current state of a volume.",
-      "note": "Block-volume snapshots (full or incremental) via console and OpenAPI (POST /volumes/:volume_id/snapshots); restore creates a NEW volume ('스냅샷을 복원하여 신규 볼륨을 생성합니다', openapi/bcs/restore-snapshot). Custom images from an instance's root volume can boot new instances ('You can create an image from the current state of an instance. This custom image can then be used when creating an instance.', vm-manage-image). Disk only, no memory.",
-      "checked": "2026-09-29"
+      "note": "Block-volume snapshots (full or incremental) via console and OpenAPI (POST /volumes/:volume_id/snapshots); restore creates a NEW volume ('스냅샷을 복원하여 신규 볼륨을 생성합니다', openapi/bcs/restore-snapshot). Custom images from an instance's root volume can boot new instances ('You can create an image from the current state of an instance. This custom image can then be used when creating an instance.', vm-manage-image). Snapshot Schedules add automatic snapshots with retention by count or age, several policies per volume (vm-release-note 2026-01-13). Disk only, no memory.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -857,8 +873,8 @@
       "value": true,
       "source": "https://docs.kakaocloud.com/en/service/bcs/vm/how-to-guides/vm-manage-instance",
       "quote": "You can create an image when the instance is in the Stopped or Active state, but for data consistency, creating an image in the Stopped state is recommended.",
-      "note": "Image (fork source) can be created while the instance stays Active/running, though Stopped is recommended for consistency.",
-      "checked": "2026-09-30"
+      "note": "Image (fork source) can be created while the instance stays Active/running, though Stopped is recommended for consistency (re-verified on vm-manage-instance; the vm-manage-image page itself does not say to stop first). Only the root volume is imaged.",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,

@@ -29,6 +29,7 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 - Hourly post-trial traffic costs $0.01/GB both directions. Monthly plans include 5 TB in most locations, 1 TB in Hong Kong/Sydney/Tokyo/Singapore. A single card network block cannot encode both; monthly estimate is conservative.
 - 50 Mbps unmetered option has an inbound/outbound ratio restriction, not unrestricted symmetric free bandwidth.
 - Powered-off hourly calculator formula retains $5/month/IP plus $0.05/GB/month storage; for oneIP/50 GB $7.50/730h. This is not full VM billing. Primary IP while running included in selected total; no additional recurring IPv 4 line added by card.
+- Published plans (pricing page, checked 2026-11-08): Basic $4/mo (1 Type A vCPU, 1 GB, 20 GB), Standard $25/mo (2 Type B vCPU, 2 GB, 20 GB), Pro $39/mo (2 Type B vCPU, 4 GB, 20 GB). Other sizes come from the pricing-page calculator (NY2, Linux, CPU + RAM + 50 GB disk).
 - Setup/minimum billing increment beyond advertised hourly basis not independently contractual-verified. Snapshot standalone price unknown.
 ## Worked example
 4 vCPU / 8 GiB; 50 concurrent × 8 h/day × 22 days = **8,800 guest-hours**; 30% CPU busy; **50 GiB-month total snapshots**, **100 GiB total egress**. 50 GiB retained state is total, not 50 GiB per VM. Compute-only subtotals below exclude unknown components and tax.

@@ -138,7 +138,7 @@
     "auto_stop_idle": false,
     "max_session_h": 6,
     "custom_image": null,
-    "docker_inside": true,
+    "docker_inside": "diy",
     "nested_virt": false,
     "root": null,
     "systemd": null,
@@ -187,6 +187,8 @@
     "spend_limits": true,
     "mcp_server": true,
     "isolation": "gvisor",
+    "persist_scope": "folder",
+    "persist_path": "persistent workspace volume",
     "image_oci": false,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
@@ -216,7 +218,7 @@
     "Not fully priceable in ENGINE_CARD: unknown USD resource rates or machine shape. Null is not zero; do not rank as a free provider.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
-    "Re-checked 2026-09-28: pricing page publishes plan fees, concurrency, max runtime and included CPU-/GB-hours only; no per-resource or overage rate, so the card stays unpriced.",
+    "Re-checked 2026-09-28 and 2026-11-08 (Hacker $3, Developer $11, same allowances): pricing page publishes plan fees, concurrency, max runtime and included CPU-/GB-hours only; no per-resource or overage rate, so the card stays unpriced.",
     "Brimble app/project compute is $1/vCPU-month and $1/GB-month (~$0.0014/h, region multipliers e.g. 1.45x) but the docs explicitly exclude sandboxes from that page; do NOT use these as sandbox overage rates.",
     "Snapshots expire: each has expires_at set by plan-dependent retention; an hourly reaper deletes expired snapshots. Snapshot storage bills while held ('Metered above plan-included snapshot allowance').",
     "Auto-destroy timers only 30m/1h/3h/6h/12h/18h plus a platform max-lifetime ceiling; spending limit with action 'pause' rejects every new sandbox create until raised or the cycle rolls.",
@@ -330,22 +332,38 @@
       "value": false,
       "source": "https://paper.brimble.io/sandboxes/overview.md",
       "quote": "A sandbox is a short-lived, isolated compute environment you can spin up on Brimble to run code, execute shell commands, write and read files, snapshot state, and pause or resume.",
-      "note": "not offered: outside the product's scope. Sandboxes expose exec/file/snapshot operations only, no VNC/RDP/streamed graphical desktop of any kind.",
-      "checked": "2026-09-30"
+      "note": "The docs and cookbooks (llms.txt index, checked 2026-11-08) show no desktop, VNC or RDP setup. Sandboxes have no inbound port or preview URL, so a self-installed VNC server has no documented way to be reached.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
-      "source": "https://paper.brimble.io/sandboxes/overview.md",
-      "quote": "A sandbox is a short-lived, isolated compute environment you can spin up on Brimble to run code, execute shell commands, write and read files, snapshot state, and pause or resume.",
-      "note": "not offered: outside the product's scope. No managed/real browser inside sandboxes is documented anywhere in the docs, cookbooks, or API reference.",
-      "checked": "2026-09-30"
+      "source": "https://paper.brimble.io/llms.txt",
+      "quote": "Run untrusted code in a sandbox",
+      "note": "The cookbook index lists untrusted code, AI coding agent, Docker inside a sandbox and a persistent dev environment; it lists no browser or Playwright recipe. The ubuntu-24 template has apt, so a headless browser install may work, but Brimble does not document it.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://paper.brimble.io/sandboxes/overview.md",
       "quote": "A sandbox is a short-lived, isolated compute environment you can spin up on Brimble to run code, execute shell commands, write and read files, snapshot state, and pause or resume.",
-      "note": "not offered: outside the product's scope (no desktop/browser to drive, no screenshot+click API).",
-      "checked": "2026-09-30"
+      "note": "No documented desktop or screenshot-and-click API to drive.",
+      "checked": "2026-11-08"
+    },
+    "docker_inside": {
+      "value": "diy",
+      "source": "https://paper.brimble.io/sandboxes/cookbook/docker-in-sandbox.md",
+      "quote": "Docker is not installed automatically — you install it yourself after the sandbox is `ready`",
+      "how": "install Docker on an apt-based template (ubuntu-24, node-22, python-3.12) and start a gVisor-compatible dockerd with /var/lib/docker on tmpfs (official cookbook)",
+      "effort": "medium",
+      "note": "Limits from the same page: no -p port publishing (use --network=host), you set outbound SNAT yourself, plan at least 1 GB of RAM, nested containers run slower than on a VM, and dockerd must be reinstalled and restarted after each resume.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "folder",
+      "source": "https://paper.brimble.io/sandboxes/overview.md",
+      "quote": "only persistent volumes survive a pause",
+      "note": "A persistent volume (persistent: true, 10-50 GB) mounts at the sandbox's workspace directory and survives pause. RAM, processes and the rest of the filesystem do not. Filesystem snapshots (snapshots.create, restore into a new sandbox) also exist; the docs do not say whether they cover the whole filesystem, and each snapshot expires after a plan-dependent retention window.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,

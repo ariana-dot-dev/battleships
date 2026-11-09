@@ -2646,7 +2646,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "No platform fee. Per-region, per-family vCPU quotas (new subscriptions often start low, e.g. tens of vCPUs; raised by quota request). Exact defaults not verified."
+      "note": "No platform fee. Per-region, per-family vCPU quotas: default 20 vCPUs per region (total, per series and Spot each), raised by support request (azure-subscription-service-limits, checked 2026-11-08)."
     }
   ],
   "free": {
@@ -2673,7 +2673,7 @@
     "root": true,
     "systemd": true,
     "browser": false,
-    "desktop": false,
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
@@ -2754,10 +2754,13 @@
     "Egress (Retail Prices API, Bandwidth \"Rtn Preference: MGN\", eastus and swedencentral identical): first 100 GB/month free, then $0.087/GB to 10 TB, $0.083 to 50 TB, $0.07 to 150 TB, $0.05 beyond. Engine uses the first paid tier. Internet routing preference is slightly cheaper ($0.08/GB first tier per azure-windows research).",
     "Public IPv4: Standard static public IP $0.005/h = $3.65/month (azure-windows research); outbound-only VMs can use NAT Gateway (extra) instead.",
     "Free account: $200 credit for 30 days (one_time_credit) plus 750 h/month for 12 months of B1s, B2pts v2 (Arm) and B2ats v2 (AMD) Linux; these are 1-2 GiB machines, far below 4 vCPU/8 GiB, so not modelled as a mode.",
-    "B-series baselines are % of the whole VM on Microsoft's 2024 normalised 0-100% scale: Basv2 \"l\" sizes 30%, Basv2 standard 40%, Bv1 B2s 20% / B2ms 30% / B4ms 22.5% / B8ms 17%. Azure B-series has no pay-for-surplus unlimited mode: above baseline it throttles when credits run out.",
-    "Nested virtualization per Microsoft Learn size pages: Supported on Dsv5, Dasv5, Dlsv5, Fsv2; Not supported on Dpsv5, Dpsv6 and Dplsv6 (Arm), Basv2, Bv1 (arm64 and burstable modes set false; mode features override the provider-level nested_virt true, which holds only for the x86 D/F modes).",
+    "B-series baselines are % of the whole VM on Microsoft's 2024 normalised 0-100% scale: Basv2 B2ats_v2 20%, Basv2 \"l\" sizes 30%, Basv2 standard 40% (so 20% to 40% by size; the 30% and 40% modes here price the \"als\" and \"as\" sizes), Bv1 B2s 20% / B2ms 30% / B4ms 22.5% / B8ms 17%. Azure B-series has no pay-for-surplus unlimited mode: above baseline it throttles to the base once credits run out (Basv2 page re-checked 2026-11-08).",
+    "Nested virtualization per Microsoft Learn size pages (re-checked 2026-11-08): Supported on many Intel and AMD sizes, including Dsv5, Dasv5, Dlsv5, Dsv6, Esv5 and Fsv2; Not supported on Arm (Dpsv5, Dpsv6, Dplsv6) or B-series burstable (Basv2, Bv1). The arm64 and burstable modes set false; mode features override the provider-level nested_virt true, which holds for the x86 D/E/F modes.",
     "No automatic snapshots (checked 2026-10-14): Hibernation keeps memory but is a manual operation (\"You can only hibernate a VM using the Azure portal, CLI, PowerShell, SDKs and API.\", https://learn.microsoft.com/en-us/azure/virtual-machines/hibernate-resume), and it is not available on Spot VMs or with Azure Backup. Scheduled disk snapshots need Azure Backup, a separate paid service, so snapshot_auto = false (same as the azure-windows and gcp-compute cards).",
-    "Hibernation (Linux and Windows): a hibernated VM is not billed for compute; OS/data disks and IPs keep billing. Guest-OS-initiated hibernate does not count and keeps billing. 'Stopped Allocated' (OS shutdown) still bills compute."
+    "Hibernation (Linux and Windows): supported on general-purpose v5 sizes (Dsv5, Dasv5, Esv5 and related) with up to 64 GB RAM and on GPU sizes NVv4 and NVadsA10v5 with up to 112 GB RAM. A hibernated VM is not billed for compute; OS/data disks and IPs keep billing. Guest-OS-initiated hibernate does not count and keeps billing. 'Stopped Allocated' (OS shutdown) still bills compute.",
+    "Image capture (re-checked 2026-11-08): the current path is Azure Compute Gallery, which accepts specialized or generalized captures and stops the VM only briefly. Legacy managed images need a generalized, deallocated VM. Disk snapshots work on a running VM, but Microsoft asks for a clean shutdown before a snapshot that boots a new VM.",
+    "Desktop: no managed desktop ships with the VM; Microsoft Learn documents installing xfce and xrdp on an Ubuntu VM (desktop = diy, effort medium).",
+    "Prices re-checked 2026-11-08 against the Retail Prices API for D4s_v5, D4as_v5, D4ls_v5, F4s_v2, D4als_v7, B4als_v2, B4as_v2, B4ms, D4ps_v5, D4ps_v6 and D4pls_v6 in eastus and swedencentral: unchanged from 2026-09-28."
   ],
   "sources": [
     "https://azure.microsoft.com/en-us/pricing/details/virtual-machines/linux/",
@@ -2769,7 +2772,13 @@
     "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/general-purpose/bv1-series",
     "https://learn.microsoft.com/en-us/azure/virtual-machines/spot-vms",
     "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/general-purpose/dpsv5-series",
-    "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/general-purpose/dsv5-series"
+    "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/general-purpose/dsv5-series",
+    "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/memory-optimized/esv5-series",
+    "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/general-purpose/dsv6-series",
+    "https://learn.microsoft.com/en-us/azure/virtual-machines/capture-image-portal",
+    "https://learn.microsoft.com/en-us/azure/virtual-machines/snapshot-copy-managed-disk",
+    "https://learn.microsoft.com/en-us/azure/virtual-machines/hibernate-resume",
+    "https://learn.microsoft.com/en-us/azure/virtual-machines/linux/use-remote-desktop"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -2779,11 +2788,12 @@
     "raise_time_days": null,
     "verification": "Paid subscriptions can request increases in the portal (Quotas); starting quota is subscription/region/family specific.",
     "tiers": "Separate total regional, VM-family, and Spot vCPU quotas.",
-    "notes": "Deallocated VMs still count against quota; capacity is separate from quota.",
+    "notes": "Deallocated VMs still count against quota; capacity is separate from quota. Default verified 2026-11-08 on the subscription limits page: \"VM total cores per subscription | 20 per region. Contact support to increase limit.\" and \"For security, subscriptions default to 20 cores to prevent large core deployments.\" Enterprise Agreement default is 350.",
     "sources": [
-      "https://learn.microsoft.com/en-us/azure/virtual-machines/quotas"
+      "https://learn.microsoft.com/en-us/azure/virtual-machines/quotas",
+      "https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits"
     ],
-    "researched": "2026-09-29"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 3,
@@ -2796,22 +2806,22 @@
       "corrected_from": true,
       "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/hibernate-resume",
       "quote": "You can only hibernate a VM using the Azure portal, CLI, PowerShell, SDKs and API. Hibernating the VM using guest OS operations don't result in the VM moving to a hibernated state and the VM continues to be billed.",
-      "note": "Hibernation (memory saved to the OS disk, restored on Start) is a manual operation you call, not an automatic snapshot: \"Hibernation is triggered on a VM using the Azure portal, CLI, PowerShell, SDKs, or APIs.\" It is supported only on some sizes (Dsv5/Dasv5 and other v5 general-purpose families up to 64 GB RAM) and lists Spot VMs and Azure Backup under Azure feature limitations. That is pause_resume, not snapshot_auto. No auto-hibernate on idle; VM auto-shutdown schedules only deallocate. Scheduled Azure Backup snapshots are a separate paid backup service and do not count (same rule as the azure-windows and gcp-compute cards). Plain Stop (deallocate) keeps the whole disk (persist_scope whole).",
-      "checked": "2026-10-14"
+      "note": "Hibernation (memory saved to the OS disk, restored on Start) is a manual operation you call, not an automatic snapshot: \"Hibernation is triggered on a VM using the Azure portal, CLI, PowerShell, SDKs, or APIs.\" It is supported only on some sizes (Dsv5/Dasv5/Esv5 and other v5 general-purpose families up to 64 GB RAM; GPU NVv4 and NVadsA10v5 up to 112 GB RAM) and lists Spot VMs and Azure Backup under Azure feature limitations. That is pause_resume, not snapshot_auto. No auto-hibernate on idle; VM auto-shutdown schedules only deallocate. Scheduled Azure Backup snapshots are a separate paid backup service and do not count (same rule as the azure-windows and gcp-compute cards). Plain Stop (deallocate) keeps the whole disk (persist_scope whole).",
+      "checked": "2026-11-08"
     },
     "persist_scope": {
       "value": "whole",
       "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview",
       "quote": "Every virtual machine has one attached OS disk. This disk has a preinstalled operating system, which you selected when creating the VM. This disk contains the boot volume.",
       "note": "The managed OS disk and any data disks survive Stop (deallocate) and hibernation (\"The OS disk, data disks, and NICs remain attached to your VM.\", hibernate-resume), so the whole machine, installed packages included, persists. Only the temporary disk is lost: \"Data on the temporary disk might be lost during a maintenance event, when you redeploy a VM, or when you stop the VM.\" Set explicitly so whole_disk does not depend on snapshot_auto.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/snapshot-copy-managed-disk",
       "quote": "An Azure managed disk snapshot is a full, read-only copy of a managed disk. Use a snapshot as a point-in-time backup or to help troubleshoot virtual machine (VM) issues. You can take a snapshot of either an operating system (OS) disk or a data disk. These snapshots exist independently of the source disk, and you can use them to create new managed disks.",
-      "note": "Disk only, no memory. Managed-disk snapshots (full or incremental) of running or stopped VMs; new disks/VMs can be created from them (docs advise cleanly shutting down first). VM restore points add multi-disk crash- or application-consistent points ('Restore points are incremental'). Images / Azure Compute Gallery for templating. No live memory fork.",
-      "checked": "2026-09-29"
+      "note": "Disk only, no memory. Managed-disk snapshots (full or incremental) of running or stopped VMs; new disks/VMs can be created from them (Microsoft: \"If you want to use a snapshot to create a new VM, ensure that you first cleanly shut down the VM.\"). VM restore points add multi-disk crash- or application-consistent points. Azure Compute Gallery images for templating (VM stops briefly during capture). No live memory fork.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -2958,31 +2968,34 @@
     "fork": {
       "value": true,
       "corrected_from": false,
-      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/windows/capture-image-resource",
-      "quote": "Stop/deallocate the VM. ... Mark the VM as generalized. ... Create the image.",
-      "note": "You can capture a stopped VM as a managed image (generalized or, via a disk snapshot, specialized) and deploy any number of new VMs from it -- this is 'clone a machine into new ones' (fork), just not while running. Corrected to true; fork_running/memory_snapshot_fork stay false since it always requires stopping first and never carries live memory state.",
-      "checked": "2026-09-30"
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/capture-image-portal",
+      "quote": "An image can be created from a VM and then used to create multiple VMs. ... For images stored in an Azure Compute Gallery (formerly known as Shared Image Gallery), you can use VMs that already have accounts created on them (specialized) or you can generalize the VM before creating the image",
+      "note": "Capture a specialized or generalized image into Azure Compute Gallery (the VM stops briefly during capture), or snapshot its managed disks, then create any number of new VMs from it. New VMs boot cold. Legacy managed images need a generalized, deallocated VM; Compute Gallery does not.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
-      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/windows/capture-image-resource",
-      "quote": "Stop/deallocate the VM.",
-      "note": "Image/snapshot capture (the only cloning path) requires the VM to be stopped first; no clone-while-running capability exists.",
-      "checked": "2026-09-30"
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/capture-image-portal",
+      "quote": "When capturing an image of a virtual machine in Azure, the virtual machine will be temporarily stopped to ensure data consistency and prevent any potential issues during the image creation.",
+      "note": "Image capture stops the VM for a short time. A managed-disk snapshot can be taken of a running VM, but Microsoft says: \"If you want to use a snapshot to create a new VM, ensure that you first cleanly shut down the VM.\" (snapshot-copy-managed-disk). So no documented clone without a pause.",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
-      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/windows/capture-image-resource",
-      "quote": "Stop/deallocate the VM. ... Mark the VM as generalized.",
-      "note": "Image capture happens after deallocation; disk state is preserved but no running-process/memory state is captured or restorable -- clones always cold-boot.",
-      "checked": "2026-09-30"
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/capture-image-portal",
+      "quote": "When capturing an image of a virtual machine in Azure, the virtual machine will be temporarily stopped to ensure data consistency and prevent any potential issues during the image creation.",
+      "note": "Image capture and disk snapshots hold disk state only, no process or memory state. Clones always boot cold. Hibernation keeps memory but only for the same VM, not for copies.",
+      "checked": "2026-11-08"
     },
     "desktop": {
-      "value": false,
-      "source": "https://azure.microsoft.com/en-us/pricing/details/virtual-machines/linux/",
-      "quote": "linux virtual machine, virtual machine linux",
-      "note": "Azure Virtual Machines is a plain IaaS VM (root SSH access to a kernel you manage); no managed VNC/RDP/stream desktop is provided by the VM service itself (a customer could install one, and Azure Virtual Desktop is a wholly separate product/SKU).",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "corrected_from": false,
+      "source": "https://learn.microsoft.com/en-us/azure/virtual-machines/linux/use-remote-desktop",
+      "quote": "This article details how to install and configure a desktop environment (xfce) and remote desktop (xrdp) for your Linux VM running Ubuntu.",
+      "how": "install xfce4 and xrdp on the VM and open port 3389 (official Microsoft Learn guide)",
+      "effort": "medium",
+      "note": "No managed desktop ships with the VM. Microsoft documents the install: \"Most Linux VMs in Azure don't have a desktop environment installed by default.\" Azure Virtual Desktop is a separate product.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
@@ -3637,5 +3650,10 @@
   ],
   "locations_source": "https://azure.microsoft.com/en-us/global-infrastructure/regions/",
   "locations_quote": "Azure is available or coming soon to the following regions: South Central US, West US, West US 2, West US 3, Central US, East US, East US 2, East US 3, West Central US, North Central US, Brazil South, Brazil Southeast, Canada Central, Canada East, Chile North Central, Mexico Central, East Asia, Sout",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "findings/azure-vm.json (nested virt scope, B-series baseline, capture wording, hibernation sizes) + fairness model (desktop diy); prices re-checked on the Retail Prices API",
+    "reviewed": 8
+  }
 }

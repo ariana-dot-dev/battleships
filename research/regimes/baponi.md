@@ -14,6 +14,7 @@ Public credit-metered execution, not per-second CPU/RAM product. One credit cove
 ## Worked workload
 4 vCPU / 8 GiB; 50 simultaneous instances × 8 h/day × 22 days = **8,800 instance-hours**, **35,200 vCPU-hours**, **70,400 GiB-hours**. At 30% observed CPU:10,560 active-vCPU-hours only where the meter actually uses utilization. Assume one start/instance/day:1,100starts. Retain50GiB snapshots for a month;100GiB outbound. Active disk capacity was not specified.
 Requested 4/8 exceeds Pro maximum RAM4GiB and 8h exceeds 1h execution maximum. Enterprise quote required. Credit arithmetic for an unsupported 4/8 shape is deliberately not invented.
+Nearest Pro shape (rechecked 2026-11-08): 4 CPU / 4 GiB = 4 credits per minute. One instance at 8 h x 22 days = 42,240 credits = $97 + $32.24 overage, plus about $4 for 40 GB storage over the free 10 GB: about $133 per instance-month, in one-hour calls. Each execution rounds up to whole 60 s credits. Persistence: thread_id saves the /home/baponi diff (24 h to forever), and your own S3/GCS/Azure bucket or a managed volume mounts on every call. Custom OCI images: 1 on Free, unlimited on Pro.
 ## Sources
 - https://baponi.ai/pricing/
 - https://baponi.ai/docs/guides/deep-agents

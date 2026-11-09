@@ -5,6 +5,7 @@ The cloud platform built for coding agents
 | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|
 | Hosted services | alt | sizes; CPU alloc, memory alloc | Tiny: 0.25 vCPU/0.5 GiB $0.009/h; Small: 1 vCPU/2 GiB $0.025/h; Medium: 2 vCPU/4 GiB $0.12/h; Large: 4 vCPU/8 GiB $0.24/h; XL: 4 vCPU/16 GiB $0.32/h; 2XL: 8 vCPU/32 GiB $0.62/h | https://specific.dev/pricing |
+| Free | 3 projects; 0.25 vCPU / 512 MB per service; 512 MB database; 1 GB file storage | $0; no usage credits listed | fee=0; Tiny size only | https://specific.dev/pricing (2026-11-08) |
 | Pro | Plan limits apply | Monthly fee; credits only as stated | fee=25; included usage=$25; concurrent=None; max session h=None | https://specific.dev/pricing |
 | Scale | Plan limits apply | Monthly fee; credits only as stated | fee=299; included usage=$299; concurrent=None; max session h=None | https://specific.dev/pricing |
 | Enterprise | Plan limits apply | Monthly fee; credits only as stated | fee=None; included usage=$None; concurrent=None; max session h=None | https://specific.dev/pricing |

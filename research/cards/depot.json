@@ -327,28 +327,11 @@
       "product_class": "ci-runner"
     },
     {
-      "key": "agent-sandboxes",
-      "label": "Depot Agent sandboxes",
-      "pricing": "sizes",
-      "sizes": [
-        {
-          "name": "default remote agent sandbox",
-          "vcpu": 2,
-          "ram_gib": 4,
-          "disk_gib": null,
-          "hour": 0.6,
-          "per_minute_usd": 0.01
-        }
-      ],
-      "granularity_s": 1,
-      "min_billed_seconds": 0,
-      "note": "All plans; no included usage; filesystem and agent context persist across sessions. Each agent session is an isolated container."
-    },
-    {
-      "key": "sandbox-sdk-beta",
-      "label": "Depot Sandbox SDK public beta",
-      "flags": [
-        "beta"
+      "key": "sandboxes",
+      "label": "Depot Sandboxes (SDK, Depot CI, Managed Agents), per vCPU-second",
+      "flags": [],
+      "os": [
+        "linux"
       ],
       "pricing": "resource",
       "vcpu_h": 0.18,
@@ -359,16 +342,23 @@
       "max_vcpu": 64,
       "granularity_s": 1,
       "min_billed_seconds": 0,
+      "start_fee": 0,
       "sizes": [
         {
-          "name": "default",
+          "name": "SDK default (2 vCPU / 4 GB / 100 GB)",
           "vcpu": 2,
           "ram_gib": 4,
           "disk_gib": 100,
           "hour": 0.36
         }
       ],
-      "max_session_h": 24
+      "max_session_h": 24,
+      "features": {
+        "arm64": true,
+        "docker_inside": true
+      },
+      "note": "https://depot.dev/pricing (2026-11-08): sandbox compute for Depot CI, Depot Sandboxes and Managed Agents is \"$0.00005 / second / vCPU\" = $0.18 per vCPU-hour; RAM and disk are not billed separately. Plans include a shared pool of sandbox minutes \"measured at 2 vCPUs\", so a 4-vCPU sandbox uses 2 included minutes per minute; the pool is not a hard cap. SDK defaults: \"2 vCPUs, 4096 MB of memory, and 100 GB of disk\"; 2 to 64 vCPUs; max lifetime 24 hours (https://depot.dev/docs/api/sandbox-sdk-reference.md). Isolated Linux microVMs with Docker, x86-64 or ARM64 (https://depot.dev/docs/sandboxes/overview.md). The old $0.01/min agent sandbox rate is no longer listed.",
+      "product_class": "sandbox"
     }
   ],
   "storage": {
@@ -407,10 +397,11 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "1 user; 2,000 GitHub Actions minutes, 500 Docker build minutes, 2,000 Depot CI minutes, 25 GB cache. Billed minutes = elapsed x runner multiplier; GHA overage $0.006/min. Included 2,000 GHA minutes = $12 at $0.006/min (Linux). Depot CI overage \"$0.00005 / second / vCPU\" (pricing page, 2026-10-14); Depot CI is not a priced mode on this card, so its included minutes are not modelled.",
+      "note": "1 user; 2,000 GitHub Actions minutes, 2,000 sandbox minutes (shared by Depot CI, Depot Sandboxes and Managed Agents, measured at 2 vCPUs), 500 container build minutes, 25 GB cache. GHA: billed minutes = elapsed x runner multiplier, overage $0.006/min; 2,000 GHA minutes = $12. Sandbox: overage $0.00005 per vCPU-second; 2,000 minutes at 2 vCPUs = $12. The two pools are separate and each equals $12, so included_usd applies to whichever mode is priced. Source https://depot.dev/pricing (2026-11-08).",
       "included_applies_to_modes": [
         "linux",
-        "linux-arm64"
+        "linux-arm64",
+        "sandboxes"
       ],
       "included_cache_gb": 25
     },
@@ -426,10 +417,11 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Unlimited users; 20,000 GitHub Actions minutes, 5,000 Docker build minutes, 20,000 Depot CI minutes, 250 GB cache. Included 20,000 GHA minutes = $120 at $0.006/min (Linux). Depot CI overage \"$0.00005 / second / vCPU\"; included Depot CI minutes not modelled.",
+      "note": "Unlimited users; 20,000 GitHub Actions minutes, 20,000 sandbox minutes (shared by Depot CI, Depot Sandboxes and Managed Agents, measured at 2 vCPUs), 5,000 container build minutes, 250 GB cache. 20,000 GHA minutes = $120 at $0.006/min; 20,000 sandbox minutes at 2 vCPUs = $120. Separate pools of equal value. Source https://depot.dev/pricing (2026-11-08).",
       "included_applies_to_modes": [
         "linux",
-        "linux-arm64"
+        "linux-arm64",
+        "sandboxes"
       ],
       "included_cache_gb": 250
     },
@@ -464,8 +456,8 @@
     "gpu_types": [],
     "snapshot": "fs",
     "pause_resume": false,
-    "fork": false,
-    "persistent_disk": true,
+    "fork": "diy",
+    "persistent_disk": "diy",
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": 24,
@@ -503,7 +495,7 @@
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
-    "credential_injection": null,
+    "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
@@ -517,11 +509,11 @@
     "scoped_api_keys": null,
     "spend_limits": true,
     "mcp_server": false,
-    "snapshot_auto": false,
+    "snapshot_auto": true,
     "snapshot_on_demand": true,
     "harness_api": true,
     "guest_firewall": true,
-    "secret_proxy": false,
+    "secret_proxy": "any-http",
     "volume_attach": true,
     "volume_shared": true,
     "isolation": "dedicated-vm",
@@ -532,7 +524,10 @@
     "own_agent_api": false,
     "ingress_rules": false,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "snapshot",
+    "persist_path": "home directory and /workspace (SDK snapshot)",
+    "whole_disk": false
   },
   "perf": {
     "cpu_runs_s": null,
@@ -543,15 +538,21 @@
   "knobs": [],
   "caveats": [
     "Included GHA minutes are 'billed minutes' after runner multipliers; the $ value of included minutes for macOS/Windows is unclear, so included_usd is null.",
-    "Granularity: Depot CI (a different product) bills per second ($0.00005/s/vCPU); for GitHub Actions runners the docs only describe elapsed x multiplier minutes, so per-minute is assumed.",
     "No Hyper-V on Windows runners; macOS capacity not fully elastic.",
     "Included GitHub Actions minutes are billed (multiplied) minutes; encoded as $ at the 2-vCPU rate and applied to Linux modes only (macOS/Windows draw-down not modelled).",
     "2026-09-28 re-check: Linux runners are $0.006/min per 2 vCPU (runner-types + pricing page), not the $0.004/min the audit suggested. Pricing page: unlimited concurrency on every plan.",
-    "2026-10-14: nested virtualization (/dev/kvm) exists only on Depot CI sandboxes, not on the GitHub Actions runners priced here (Linux and Windows runner modes carry nested_virt=false). Depot CI itself (\"$0.00005 / second / vCPU\", 2,000 / 20,000 included Depot CI minutes on Developer / Startup) is not a priced mode on this card."
+    "2026-10-14: nested virtualization (/dev/kvm) exists only on Depot CI sandboxes, not on the GitHub Actions runners priced here (Linux and Windows runner modes carry nested_virt=false). Depot CI itself (\"$0.00005 / second / vCPU\", 2,000 / 20,000 included Depot CI minutes on Developer / Startup) is not a priced mode on this card.",
+    "GitHub Actions runners: the pricing page says per-second billing with no one-minute minimum; billed minutes = elapsed x runner multiplier.",
+    "2026-11-08: Depot Sandboxes, Depot CI and Managed Agents share one pool of included sandbox minutes measured at 2 vCPUs, then $0.00005 per vCPU-second. The $0.01/min agent sandbox price is gone. The Sandbox SDK is no longer labeled beta; only detached commands are beta.",
+    "2026-11-08: snapshots keep files (home directory and /workspace, up to 25 GiB), not processes. A stopped sandbox cannot restart; restore makes a new sandbox."
   ],
   "sources": [
     "https://depot.dev/pricing",
-    "https://depot.dev/docs/github-actions/runner-types"
+    "https://depot.dev/docs/github-actions/runner-types",
+    "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+    "https://depot.dev/docs/sandboxes/overview.md",
+    "https://depot.dev/docs/managed-agents/overview",
+    "https://depot.dev/security"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -582,25 +583,25 @@
       "checked": "2026-10-14"
     },
     "snapshot_auto": {
-      "value": false,
-      "source": "https://depot.dev/docs/github-actions/overview.md",
-      "quote": "Builds run on ephemeral EC2 instances that are never reused.",
-      "note": "GHA runners and Depot CI jobs are ephemeral, nothing is saved automatically. Exception in a different Depot product: remote agent sandboxes (`depot claude`) automatically persist the filesystem and Claude Code conversation when the agent exits ('When Claude Code has finished it's work and exits, the session state is preserved for later resumption'); filesystem only, no memory.",
-      "checked": "2026-09-29"
+      "value": true,
+      "source": "https://depot.dev/docs/managed-agents/overview",
+      "quote": "Depot automatically saves workspace snapshots.",
+      "note": "Managed Agents only: snapshots restore files when a session moves to a new sandbox (\"Snapshots preserve files, not running processes\"). GHA runners and Sandbox SDK sandboxes save nothing automatically.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
-      "source": "https://depot.dev/docs/ci/how-to-guides/custom-images.md",
-      "quote": "Add [`depot/snapshot-action`](https://github.com/depot/snapshot-action) as a step (after your setup steps). It captures the full state of the sandbox environment and pushes it to the Depot registry as a reusable image.",
-      "note": "Depot CI only ('The snapshot action can only be used in workflows running on Depot CI. It's not compatible with GitHub Actions'); taken from inside a job step; disk/filesystem image, no memory; any later job can boot from it as its custom image. Not available on the GHA runners the card prices. Sandbox SDK lists Snapshots as 'Coming soon'.",
-      "checked": "2026-09-29"
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+      "quote": "Call sandbox.snapshot() while the sandbox is running to save its files.",
+      "note": "Sandbox SDK: files from the home directory and /workspace, up to 25 GiB, no memory. Depot CI also has depot/snapshot-action for custom images. Not on the GHA runners.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": true,
-      "source": "https://depot.dev/docs/cli/reference/agents.md",
-      "quote": "Run Claude Code in remote agent sandboxes backed by Depot with automatic session & file system saving and resuming. Sessions are stored by Depot and can be resumed by session ID",
-      "note": "Separate Depot product (remote agent sandboxes, $0.01/min), not the GHA runners: `depot claude [--repository --branch --session-id] \"prompt\"` starts Claude Code remotely, `--resume <id> \"follow-up\"`, `--wait`, `depot claude list-sessions --output json`, dashboard shows full conversation. Claude Code only ('more agents coming soon'). No documented event-streaming API. GHA runners/Depot CI themselves have no harness API.",
-      "checked": "2026-09-29"
+      "source": "https://depot.dev/docs/managed-agents/overview",
+      "quote": "Connect your existing agent provider to Depot Sandboxes without managing runners or workers yourself.",
+      "note": "Managed Agents runs Amp, Claude Code, Claude Managed Agents, Devin and OpenAI agents in Depot sandboxes, started from those tools or the depot claude CLI. No Depot-own prompt/steer/events API is documented.",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
@@ -610,11 +611,11 @@
       "checked": "2026-09-29"
     },
     "secret_proxy": {
-      "value": false,
-      "source": "https://depot.dev/docs/ci/how-to-guides/manage-secrets-and-variables.md",
-      "quote": "When a Depot CI job starts, secrets are decrypted on demand and dispatched to the sandbox in an isolated VM. The sandbox hydrates the environment with those secrets on a per-step basis as configured in your workflow YAML.",
-      "note": "Secrets enter the machine as env vars (GHA runners use GitHub Actions secrets; Depot CI secrets; `depot claude secrets` are 'available as environment variables in sandbox sessions'). No credential-injecting proxy.",
-      "checked": "2026-09-29"
+      "value": "any-http",
+      "source": "https://depot.dev/docs/managed-agents/overview",
+      "quote": "Depot puts the real value into request headers sent through its gateway to those hosts, and never into the run.",
+      "note": "Managed Agents host-bound secrets (\"Send only to hosts\"): the sandbox sees only a placeholder. Run secrets, CI secrets, GHA runners and the Sandbox SDK still pass secrets as environment variables.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": true,
@@ -634,15 +635,15 @@
       "value": "dedicated-vm",
       "source": "https://depot.dev/docs/security",
       "quote": "Each GitHub Actions job runs on a new EC2 instance that has never been used before, ensuring complete isolation at the hardware level.",
-      "note": "Applies to GHA runners (the card's primary product); Depot itself doesn't run a custom hypervisor, it provisions dedicated single-tenant AWS EC2 instances per job/sandbox.",
-      "checked": "2026-09-30"
+      "note": "GHA runners: a new EC2 instance per job. Depot CI, Depot Sandboxes and Managed Agents run in \"isolated Linux microVMs for running code, tests, and agents\" (https://depot.dev/docs/sandboxes/overview.md).",
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": false,
-      "source": "https://depot.dev/docs/ci/how-to-guides/custom-images.md",
-      "quote": "The custom image is in the Depot registry (`registry.depot.dev`). Images from external registries aren't supported.",
-      "note": "No product lets you boot a machine from an arbitrary externally-built Docker/OCI image today: Depot CI custom images must be built via Depot's own snapshot action into Depot's registry; GHA runner custom images are AMIs (Business plan only, not OCI); the Sandbox SDK docs list 'arbitrary OCI image reference' custom runtimes under 'Coming soon' / not yet part of the SDK surface.",
-      "checked": "2026-09-30"
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+      "quote": "Standard container images can't boot, even if pushed to Depot Registry.",
+      "note": "Custom images must be Depot snapshot images in Depot Registry; public registries are not supported. GHA runner custom images are AMIs (Business plan).",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -669,22 +670,22 @@
       "value": false,
       "source": "https://depot.dev/docs/github-actions/overview",
       "quote": "GitHub Actions runners launch on-demand in response to webhook events from your organization.",
-      "note": "GHA runners/CI jobs launch fresh on job trigger (not a sleeping machine woken by an inbound network request); no documented wake-on-request behavior for a persistent sandbox/service. Sandbox SDK / agent sandboxes require an explicit create/resume API call, not an incoming request.",
-      "checked": "2026-09-30"
+      "note": "Sandboxes start only by an explicit Sandbox.create (or a Managed Agents session); no wake on an incoming request.",
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
-      "source": "https://depot.dev/docs/api/sandbox-sdk-reference",
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
       "quote": "resources: the compute to request, as {vcpus?, memoryMb?, diskGb?} ... Sandboxes support 2 to 64 vCPUs.",
       "note": "Resources are fixed at sandbox creation; only `setTimeout` (lifetime extension) is documented for a running sandbox, no API to change vCPU/RAM of a running machine.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
-      "source": "https://depot.dev/docs/agents/overview",
-      "quote": "Depot's remote agent sandboxes provide a secure, isolated environment for running AI coding agents like Claude Code in the cloud. Current agent sandboxes support Claude Code, with more agents coming soon.",
-      "note": "not offered: Depot's agent API drives a third-party coding harness (Claude Code) inside a sandbox (already modeled as harness_api), not a first-party Depot browser/computer-use/research agent.",
-      "checked": "2026-09-30"
+      "source": "https://depot.dev/docs/managed-agents/overview",
+      "quote": "Connect your existing agent provider to Depot Sandboxes without managing runners or workers yourself.",
+      "note": "Managed Agents hosts third-party agents (modeled as harness_api); Depot ships no first-party agent of its own.",
+      "checked": "2026-11-08"
     },
     "mcp_server": {
       "value": false,
@@ -730,25 +731,25 @@
     },
     "soc2": {
       "value": true,
-      "source": "https://depot.dev/blog/depot-soc-2",
-      "quote": "We're very excited to announce that Depot is now SOC 2 Type I compliant",
-      "note": null,
-      "checked": "2026-09-30"
+      "source": "https://depot.dev/security",
+      "quote": "Depot is SOC 2 Type 2 compliant",
+      "note": "Type II. The Type I post (https://depot.dev/blog/depot-soc-2) dates from March 2024.",
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": 24,
-      "source": "https://depot.dev/docs/api/sandbox-sdk-reference",
-      "quote": "Defaults to 120 minutes. The maximum sandbox lifetime is 24 hours.",
-      "note": "Stated explicitly for the Sandbox SDK (beta) product. GitHub Actions runner jobs and remote agent (Claude Code) sandboxes have no documented hard session-length cap other than the job/session simply running until it finishes or is stopped.",
-      "checked": "2026-09-30"
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+      "quote": "The maximum sandbox lifetime is 24 hours.",
+      "note": "Sandbox SDK. Managed Agents continue a session in a new sandbox from the latest workspace snapshot. GHA runner jobs have no documented cap here.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "fs",
       "corrected_from": "none",
-      "source": "https://depot.dev/docs/ci/how-to-guides/custom-images.md",
-      "quote": "Add depot/snapshot-action as a step (after your setup steps). It captures the full state of the sandbox environment and pushes it to the Depot registry as a reusable image.",
-      "note": "Contradiction confirmed as described: card said snapshot='none' but feature_evidence already recorded snapshot_on_demand=true for the same on-demand disk/filesystem snapshot (Depot CI only, not the priced GHA runners; no memory/process state, so 'fs' not 'mem').",
-      "checked": "2026-09-30"
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+      "quote": "Snapshots preserve files, not running processes or memory.",
+      "note": "Sandbox SDK snapshot() (up to 25 GiB) and Depot CI snapshot-action; filesystem only, so fs not mem.",
+      "checked": "2026-11-08"
     },
     "volumes": {
       "value": true,
@@ -762,29 +763,31 @@
       "value": false,
       "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
       "quote": "sandbox.stop stops the sandbox gracefully. The sandbox ends in the finished status. ... sandbox.kill cancels the sandbox immediately. The sandbox ends in the cancelled status.",
-      "note": "Sandbox SDK lifecycle only has create/stop/kill/setTimeout; no pause or resume API. GHA runners and Depot CI jobs are single-use ephemeral VMs with no pause concept either.",
-      "checked": "2026-09-30"
+      "note": "No pause or resume. A stopped sandbox ends in the finished status and cannot restart; continue by snapshot + Sandbox.create (see persist_scope).",
+      "checked": "2026-11-08"
     },
     "fork": {
-      "value": false,
+      "value": "diy",
       "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
-      "quote": "A Sandbox represents one sandbox running on the server. You don't construct it directly: use the static Sandbox.create, Sandbox.get, Sandbox.list, or Sandbox.listAll entry points",
-      "note": "No fork/clone API in the Sandbox SDK, CI, or Remote Agents docs (only Git repo cloning, which is unrelated to machine forking).",
-      "checked": "2026-09-30"
+      "quote": "Pass the returned snapshot (or its snapshotId) to Sandbox.create, which restores the files into a new sandbox.",
+      "how": "snapshot a running sandbox and create several new sandboxes from that snapshot; files only, no live processes or memory",
+      "effort": "low",
+      "note": "No fork or clone call; a file-level copy through snapshot + create.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
       "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
       "quote": "Sandbox.create provisions a new sandbox. Every option is optional; the server fills in defaults for anything you leave unset.",
-      "note": "Same as fork: no clone/fork mechanism exists at all, so cloning a running machine is not offered.",
-      "checked": "2026-09-30"
+      "note": "No live fork. snapshot() keeps files only (\"Snapshots preserve files, not running processes or memory\"), so a running machine with its processes cannot be cloned. A file-level copy works: see fork.",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
-      "source": "https://depot.dev/docs/ci/how-to-guides/custom-images.md",
-      "quote": "Snapshots capture only the sandbox filesystem. Environment variables exist only in the running process (not the filesystem) so they aren't included in the snapshot.",
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+      "quote": "Snapshots preserve files, not running processes or memory.",
       "note": "Depot's only snapshot mechanism explicitly excludes running process/memory state, and there is no fork feature to combine it with.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": true,
@@ -812,8 +815,8 @@
       "value": false,
       "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
       "quote": "networkUsage: bytes sent and received, as {ingressBytes, egressBytes}.",
-      "note": "The Sandbox SDK only reports network byte counters; no documented way to expose an HTTPS URL to a port on the sandbox/runner. Egress-filtering docs describe outbound-only controls.",
-      "checked": "2026-09-30"
+      "note": "No documented way to expose an inbound URL or port on a sandbox or runner. Private access goes the other way, through Tailscale.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -824,11 +827,10 @@
     },
     "agent_harnesses": {
       "value": true,
-      "corrected_from": false,
-      "source": "https://depot.dev/docs/agents/overview.md",
-      "quote": "Depot's remote agent sandboxes provide a secure, isolated environment for running AI coding agents like Claude Code in the cloud. ... Current agent sandboxes support Claude Code, with more agents coming soon.",
-      "note": "Claude Code is a preinstalled/offered coding-agent harness in Depot's remote agent sandboxes; `depot claude` starts it directly. Card wrongly had agent_harnesses=false even though its own feature_evidence already documents harness_api=true for this same Claude Code integration.",
-      "checked": "2026-09-30"
+      "source": "https://depot.dev/docs/managed-agents/overview",
+      "quote": "Connect your existing agent provider to Depot Sandboxes without managing runners or workers yourself.",
+      "note": "Providers listed: Amp, Claude Code, Claude Managed Agents, Devin, OpenAI.",
+      "checked": "2026-11-08"
     },
     "gpu": {
       "value": true,
@@ -865,8 +867,8 @@
       "corrected_from": false,
       "source": "https://depot.dev/docs/integrations/tailscale.md",
       "quote": "By connecting Depot to your Tailscale network, you can enable secure access to private services, such as databases, within your tailnet without opening up those services to the public internet... Depot GitHub Actions runners, container builders, and CI jobs join your tailnet as ephemeral nodes.",
-      "note": "First-party Tailscale integration lets runners/sandboxes join the customer's private network (not supported on Windows runners). Card wrongly had private_network=false.",
-      "checked": "2026-09-30"
+      "note": "Tailscale: GHA runners, container builders, CI jobs, and also Depot Sandboxes and Managed Agents sandboxes (\"Agent sandboxes automatically join your organization's Tailscale tailnet\", https://depot.dev/docs/managed-agents/overview). Not on Windows runners.",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,
@@ -875,6 +877,22 @@
       "note": "granularity: account-only; cost: no; Extensive feature documentation and 2026-09-30 audit found no programmatic usage API for individual sandboxes or projects. Monitoring is byte-level only; billing is account/invoice level.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "persist_scope": {
+      "value": "snapshot",
+      "source": "https://depot.dev/docs/api/sandbox-sdk-reference.md",
+      "quote": "Call sandbox.snapshot() while the sandbox is running to save its files. ... Pass the returned snapshot (or its snapshotId) to Sandbox.create, which restores the files into a new sandbox.",
+      "how": "call sandbox.snapshot() before the sandbox ends, then pass the snapshot to Sandbox.create; files in the home directory and /workspace come back (up to 25 GiB), not processes or memory. Managed Agents do this automatically.",
+      "effort": "low",
+      "note": "A stopped sandbox cannot restart; a restore always makes a new sandbox, and changes after the last snapshot are lost. GHA runners are never reused. Sandboxes with repository- or environment-scoped secrets cannot be snapshotted (https://depot.dev/docs/sandboxes/overview.md).",
+      "checked": "2026-11-08"
+    },
+    "credential_injection": {
+      "value": true,
+      "source": "https://depot.dev/docs/managed-agents/overview",
+      "quote": "Depot puts the real value into request headers sent through its gateway to those hosts, and never into the run.",
+      "note": "Managed Agents only (host-bound secrets).",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -897,5 +915,9 @@
   ],
   "locations_source": "https://depot.dev/blog/project-region-selection",
   "locations_quote": "For Depot-hosted projects, you can select between our US East and EU Central regions. This feature allows you to launch your image builders in the region closest to your registry by selecting your desired region when creating a new project.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 10,
+    "source": "findings/depot.json checked against depot.dev pricing, Sandbox SDK reference, Sandboxes overview, Managed Agents overview and security pages"
+  }
 }

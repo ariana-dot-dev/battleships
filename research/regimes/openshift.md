@@ -5,6 +5,7 @@ Harbor adapter runs workload on customer OpenShift cluster. Licence/controlplane
 |---|---|---|---|
 | Self-managed | OpenShift subscription plus own nodes | Licence quote + VM/baremetal/storage/network. | https://www.redhat.com/en/technologies/cloud-computing/openshift/pricing |
 | Managed OpenShift | Cloud-specific service | ROSA/ARO/etc not interchangeable prices. | https://www.redhat.com/en/technologies/cloud-computing/openshift/pricing |
+| OpenShift Virtualization VMs | Full VMs next to pods (included with any edition) | Needs bare-metal worker nodes (on ROSA, AWS metal instances), priced by the infrastructure vendor; not in the OpenShift Dedicated rate. | https://www.redhat.com/en/technologies/cloud-computing/openshift/virtualization |
 ## Gotchas
 - Harbor adapter runs workload on customer OpenShift cluster. Licence/controlplane and worker infrastructure are not free or included in a universal sandbox hourlyprice.
 - Not fully priceable in ENGINE_CARD: unknown USD resource rates or machine shape. Null is not zero; do not rank as a free provider.

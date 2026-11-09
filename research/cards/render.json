@@ -441,10 +441,9 @@
     },
     {
       "key": "sandbox-early-access",
-      "label": "Render Sandboxes (early access, price unpublished)",
+      "label": "Render Sandboxes (public beta, rates unpublished)",
       "flags": [
-        "beta",
-        "sales"
+        "beta"
       ],
       "os": [
         "linux"
@@ -455,18 +454,27 @@
       "gpu_only": false,
       "features": {
         "snapshot": "mem",
-        "persistent_disk": false,
-        "max_session_h": 24,
+        "snapshot_auto": true,
+        "snapshot_on_demand": true,
+        "auto_stop_idle": true,
+        "persist_scope": "snapshot",
+        "max_session_h": null,
         "fork": true,
         "code_interpreter": false,
-        "fork_running": null,
-        "isolation": null,
-        "image_oci": null
+        "fork_running": true,
+        "isolation": "firecracker microVM",
+        "docker_inside": true,
+        "image_oci": null,
+        "egress_allowlist": true,
+        "inbound_https": false,
+        "ssh": false,
+        "volume_attach": false,
+        "private_network": false
       },
       "pricing": "sizes",
       "vcpu_h": null,
       "ram_gib_h": null,
-      "cpu_basis": "alloc",
+      "cpu_basis": "active",
       "ram_basis": "alloc",
       "active_floor": 0,
       "ram_per_vcpu": [
@@ -475,15 +483,39 @@
       ],
       "ram_fixed_per_vcpu": null,
       "vcpu_options": null,
-      "min_vcpu": null,
-      "max_vcpu": 2,
-      "max_ram_gib": 4,
+      "min_vcpu": 1,
+      "max_vcpu": 8,
+      "max_ram_gib": 16,
       "sizes": [
         {
-          "name": "sandbox (EA limit 2 CPU / 4 GB / 10 GB)",
+          "name": "1c-2g (default)",
+          "vcpu": 1,
+          "ram_gib": 2,
+          "disk_gib": 40,
+          "hour": null,
+          "month_cap": null
+        },
+        {
+          "name": "2c-4g",
           "vcpu": 2,
           "ram_gib": 4,
-          "disk_gib": 10,
+          "disk_gib": 40,
+          "hour": null,
+          "month_cap": null
+        },
+        {
+          "name": "4c-8g",
+          "vcpu": 4,
+          "ram_gib": 8,
+          "disk_gib": 40,
+          "hour": null,
+          "month_cap": null
+        },
+        {
+          "name": "8c-16g",
+          "vcpu": 8,
+          "ram_gib": 16,
+          "disk_gib": 40,
           "hour": null,
           "month_cap": null
         }
@@ -491,7 +523,7 @@
       "pool_tiers": null,
       "requires_always_on": false,
       "always_on_month_per_instance": null,
-      "commit_note": "Access by request to select workspaces; discuss production use with Render contact.",
+      "commit_note": null,
       "min_billed_seconds": null,
       "granularity_s": null,
       "start_fee": null,
@@ -499,7 +531,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Ephemeral isolated sandboxes for untrusted code (exec API, CLI, TS/Python SDK). EA limits: 2 CPU / 4 GB / 10 GB per sandbox (raisable), 100 concurrent per workspace (raisable), 100 API req/min, 24 h timeout, Oregon only. Snapshots: filesystem (default) or runtime (memory+CPU state), restorable into new sandboxes, expire after 3 days. No price published anywhere (hour null). Re-checked 2026-09-28: render.com/docs/sandboxes and render.com/pricing state no billing basis or idle behaviour (basis fields unverifiable)."
+      "note": "Public beta since 2026-11-04 on all workspace plans (render.com/blog/introducing-render-sandboxes). Each sandbox is a Firecracker microVM; Docker and Docker Compose run inside. Plans 1c-2g (default) to 8c-16g, 40 GB writable storage. Runtime timeout up to 30 days, or disabled. Idle timeout 15 min by default (5 min to 24 h, or disabled): Render snapshots and suspends the sandbox and wakes it on the next command; suspended sandboxes stay resumable for 30 days and do not count toward concurrency. Snapshots: filesystem or runtime (memory + CPU state), restored into new sandboxes, expire 30 days after capture by default (custom expiry allowed). Egress: allow all, block all, or an HTTPS hostname allowlist of up to 100 rules. Limits: 10 groups per workspace, 1,000 concurrent sandboxes per group, Oregon only. No public URLs, SSH or private networking yet (roadmap). Billing: active CPU plus allocated memory while running; only snapshot storage while suspended. Render publishes no rates (render.com/pricing shows Sandboxes as 'Beta' only), so hour stays null. Re-checked 2026-11-08."
     }
   ],
   "storage": {
@@ -605,7 +637,7 @@
     "nested_virt": false,
     "root": null,
     "systemd": false,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
@@ -725,13 +757,14 @@
     "snapshot_gib_month = persistent-disk price ($0.25/GB-mo): Render has no priced snapshot product; daily disk snapshots (kept >= 7 days, full restore only) have no separate published charge. Disk billed while the service exists (incl. suspended; assumed from FAQ 'storage capacity' billing).",
     "Persistent disk pins a service to a single instance and makes compute-plan changes require downtime.",
     "No public IPv4 per instance; dedicated outbound IPs are $100/month per IP set (Pro+).",
-    "Render Sandboxes (early access, 2 CPU/4 GB/10 GB, Oregon only, runtime memory snapshots) has NO published price; mode kept with hour null and flags beta+sales.",
+    "Render Sandboxes (public beta since 2026-11-04, all workspace plans, Oregon only): Firecracker microVMs with Docker inside, 1 to 8 CPU / 2 to 16 GB / 40 GB, idle auto-suspend with snapshot, runtime and filesystem snapshots kept 30 days by default. Render bills active CPU plus allocated memory, and only snapshot storage while suspended, but publishes no rates; mode kept with hour null and flag beta, so it is not priced. No public URLs, SSH or private networking yet.",
     "HIPAA: +20% on all usage via knob; Singapore unavailable for HIPAA workspaces.",
     "Workflows/cron are batch products (flag alt), not interactive machines; workflow flex caps at 1 CPU / 4 GB.",
     "Compute plans renamed in Aug 2026 (Starter/Standard/Pro/Pro Plus/Pro Max/Pro Ultra -> 0.5c-512mb ... 8c-32g) with no price change; new sizes 2c-16g, 8c-64g, 12c-48g added.",
     "Startup credits (up to $100K) and migration credits (up to $10K) are application-based and not modelled.",
     "Postgres, Key Value, build minutes ($5/1K, performance $25/1K) and custom domains ($0.25/mo) not modelled.",
-    "No benchmark data for Render in the research set (perf null). Isolation 'container' per Render docs ('containerized environments').",
+    "No benchmark data for Render in the research set (perf null). Card-level isolation 'container' is for services; the Sandboxes mode is a Firecracker microVM.",
+    "Card-level features describe services (the priced mode). Services run as containers without Docker inside; Render Sandboxes (unpriced beta mode) run Docker and Compose. A browser runs in a service from a Docker image: Render ships a Puppeteer guide and a Browser Use template with Chromium preinstalled.",
     "Workflows pricing changed at GA on 2026-09-01: workspace-wide run-concurrency limits and +$10/50 add-ons removed, replaced by per-workflow resource limits; flex $0.20/active CPU-h + $0.05/active GB-h with a 1 s / 0.1 CPU / 0.1 GB minimum; task state $0.25/GB-month. Flat Pro $25 / Scale $499 workspace plans were opt-in from 2026-04-23 and applied to all workspaces 2026-08-01. (patch v8-history, re-checked render.com/blog/upcoming-changes-to-workflows-pricing 2026-09-28)",
     "Free web service tier (0.1 CPU / 512 MB, spins down after 15 min idle, 750 instance-hours/workspace/month, not for production; render.com/docs/free) removed from priced regimes on 2026-09-28: it cannot run any preset's workload and was being clamped into $0-compute rows.",
     "Per-service scaling cap: 100 instances for compute plans up to 8c-32g, but only 5 instances for 8c-64g, 12c-48g and 12c-96g (contact Render to exceed).",
@@ -747,6 +780,12 @@
     "https://render.com/docs/outbound-bandwidth",
     "https://render.com/docs/workflows-limits",
     "https://render.com/docs/sandboxes",
+    "https://render.com/docs/sandboxes-limits",
+    "https://render.com/docs/sandboxes-snapshots",
+    "https://render.com/docs/sandboxes-creating",
+    "https://render.com/blog/introducing-render-sandboxes",
+    "https://render.com/docs/deploy-puppeteer-node",
+    "https://render.com/templates/browser-use",
     "https://render.com/docs/regions",
     "https://render.com/docs/hipaa-compliance",
     "https://render.com/blog/upcoming-changes-to-workflows-pricing"
@@ -763,13 +802,13 @@
     "raise": "ticket",
     "raise_time_days": null,
     "verification": "credit card on file ($1 authorization check) for paid compute",
-    "tiers": "Hobby: max 25 services, 1 seat, manual scaling only. Pro+: unlimited services and seats, autoscaling. Per service: up to 100 instances on plans up to 8c-32g, only 5 instances on 8c-64g and larger; beyond that 'reach out'. Workflows: 10,000 CPU / 40,000 GB total per workflow, new runs 16 CPU/64 GB per minute (Hobby) or 32 CPU/128 GB per minute (Pro+). Sandboxes EA: 100 concurrent per workspace (raisable).",
+    "tiers": "Hobby: max 25 services, 1 seat, manual scaling only. Pro+: unlimited services and seats, autoscaling. Per service: up to 100 instances on plans up to 8c-32g, only 5 instances on 8c-64g and larger; beyond that 'reach out'. Workflows: 10,000 CPU / 40,000 GB total per workflow, new runs 16 CPU/64 GB per minute (Hobby) or 32 CPU/128 GB per minute (Pro+). Sandboxes (public beta): 10 groups per workspace, 1,000 concurrent sandboxes per group (suspended ones do not count), HTTP 429 at the limit.",
     "notes": "default_max_instances = per-service instance cap (a workspace on Pro can create unlimited services, so the account-level cap is effectively not published). No quota system beyond these.",
     "sources": [
       "https://render.com/docs/scaling.md",
       "https://render.com/docs/platform-features-by-plan.md",
       "https://render.com/docs/workflows-limits",
-      "https://render.com/docs/sandboxes"
+      "https://render.com/docs/sandboxes-limits"
     ]
   },
   "feature_evidence": {
@@ -777,29 +816,29 @@
       "value": false,
       "source": "https://render.com/docs/sandboxes.md",
       "quote": "When you terminate a sandbox, its filesystem state is permanently lost. To preserve data from a sandbox, see [Snapshots](#snapshots).",
-      "note": "Services: no state capture on suspend (only persistent-disk mount path survives); persistent disks get automatic daily snapshots ('Render automatically creates a snapshot of your persistent disk once every 24 hours', kept >= 7 days, full restore only) = scheduled backup, not stop-triggered. Sandboxes (early access): timeout terminates; snapshots are explicit calls. CLI lists a 'suspended'/'resuming' sandbox status but no documented auto-suspend.",
-      "checked": "2026-09-29"
+      "note": "Card-level value = services: no state capture on suspend (only persistent-disk mount path survives); persistent disks get automatic daily snapshots (kept >= 7 days, full restore only) = scheduled backup, not stop-triggered. Sandboxes (public beta mode, snapshot_auto true there): 'Render automatically snapshots and suspends it, and then wakes it back up on the next command' after the idle timeout (default 15 min) (render.com/blog/introducing-render-sandboxes).",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://render.com/docs/sandboxes.md",
       "quote": "A snapshot captures the state of a running sandbox. You can use a snapshot to reuse a prepared filesystem or resume a running process in a new sandbox. Creating a snapshot does not stop the source sandbox.",
-      "note": "Render Sandboxes only (early access, Oregon, 2 CPU/4 GB/10 GB). Kinds: filesystem (default) or runtime ('The writable filesystem, memory, and CPU state', restore must use same plan). Restore = new sandbox in same group (fork/template). Snapshots expire after 3 days by default. Regular services: no on-demand snapshot (only daily auto disk snapshots restorable from dashboard).",
-      "checked": "2026-09-29"
+      "note": "Render Sandboxes only (public beta, Oregon). Kinds: filesystem or runtime ('Captures the writable filesystem, along with memory and CPU state'). 'Each restore creates a new sandbox, preserving the snapshot for reuse.' 'By default, snapshots expire 30 days after capture'; a custom expiry can be set (render.com/docs/sandboxes-snapshots). Regular services: no on-demand snapshot (only daily auto disk snapshots restorable from dashboard).",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
       "source": "https://render.com/docs/sandboxes.md",
       "quote": "Inside the sandbox, you (and your agents) can run commands and manage files without exposing your production infrastructure to untrusted code.",
-      "note": "Sandbox SDK/CLI = create/exec (streamed output)/files/snapshots only; no API to drive Claude Code/Codex etc. inside. Render's agent features (MCP server, agent skills, setup guides for Claude Code/Codex/Cursor) are for agents operating the Render platform, not a harness API.",
-      "checked": "2026-09-29"
+      "note": "Sandbox SDK/CLI = create/exec (streamed output)/files/snapshots; no API to drive Claude Code/Codex etc. inside. Render publishes setup guides to use a sandbox as the tool environment for Claude Managed Agents, Cursor Cloud Agents and the OpenAI Agents API (the agent loop runs at that vendor, not through a Render harness API).",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": true,
-      "source": "https://render.com/docs/sandboxes-cli-reference.md",
-      "quote": "Outbound network policy: allow-all, deny-all. Defaults to `allow-all`.",
-      "note": "Sandboxes only: all-or-nothing no-internet mode (deny-all), no documented domain/IP lists. Regular services: no egress filtering documented (only outbound IP ranges / $100/mo Dedicated IPs for allowlisting on the destination side).",
-      "checked": "2026-09-29"
+      "source": "https://render.com/docs/sandboxes-creating",
+      "quote": "An allowlist supports up to 100 rules.",
+      "note": "Sandboxes only: allow all (default), block all, or an allowlist of up to 100 lowercase hostnames (wildcards for subdomains); with an allowlist, non-HTTPS traffic is blocked. Regular services: no egress filtering documented (only outbound IP ranges / $100/mo Dedicated IPs for allowlisting on the destination side).",
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": true,
@@ -819,8 +858,8 @@
       "value": true,
       "source": "https://render.com/docs/disks.md",
       "quote": "You can attach a *persistent disk* to a paid Render [web service](web-services), [private service](private-services), or [background worker](background-workers).",
-      "note": "One persistent SSD per service at a mount path; rest of filesystem ephemeral; disk prevents scaling and zero-downtime deploys. Not available for sandboxes (10 GB ephemeral fs).",
-      "checked": "2026-09-29"
+      "note": "One persistent SSD per service at a mount path; rest of filesystem ephemeral; disk prevents scaling and zero-downtime deploys. Not available for sandboxes (40 GB writable fs kept through idle-suspend snapshots; shared filesystems are on Render's roadmap, not shipped).",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": false,
@@ -833,15 +872,15 @@
       "value": "container",
       "source": "https://render.com/docs/sandboxes",
       "quote": "Render Sandboxes provides managed, ephemeral environments for executing untrusted code. Spin up a sandbox, install what you need, and run your workload.",
-      "note": "Render's docs never name a specific hypervisor/microVM technology for services or sandboxes; the product is a container PaaS (custom Docker images run as 'containerized environments', per pricing/docs language and the card's existing top-level isolation value). No firecracker/gVisor/kata mention found on official pages within the research window.",
-      "checked": "2026-09-30"
+      "note": "Card-level value = services: a container PaaS (custom Docker images run as 'containerized environments'); no hypervisor named for services. Sandboxes mode: 'Each sandbox runs in its own Firecracker microVM.' (render.com/blog/introducing-render-sandboxes), set on the mode.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
       "source": "https://render.com/docs/compute-plans",
       "quote": "Your Render service's compute plan determines the CPU and RAM specs for its instances.",
-      "note": "not offered: outside the product's scope. Render runs services/sandboxes as containers on a shared-kernel PaaS; no docs page mentions /dev/kvm or nested virtualization support, and container-based isolation typically has no exposed KVM device.",
-      "checked": "2026-09-30"
+      "note": "No Render docs page mentions /dev/kvm or nested virtualization for services or for Sandboxes (Firecracker microVMs), and no documented way to get it exists.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -911,7 +950,7 @@
       "corrected_from": false,
       "source": "https://render.com/docs/sandboxes.md",
       "quote": "You can restore the snapshot only to a new sandbox in that group... Create a new sandbox from the saved filesystem. `render ea sandboxes create --snapshot-id snp-abc123 --timeout 300`",
-      "note": "Render Sandboxes (early access) let you snapshot a sandbox's filesystem (or, with a 'runtime' snapshot, filesystem+memory+CPU state) and restore it into a brand-new sandbox in the same group - this is a clone/fork. The card's own mode block for 'sandbox-early-access' already lists fork: true; only the top-level features.fork was left false with no evidence.",
+      "note": "Render Sandboxes (public beta since 2026-11-04) let you snapshot a sandbox's filesystem (or, with a 'runtime' snapshot, filesystem+memory+CPU state) and restore it into a brand-new sandbox in the same group - this is a clone/fork. The card's own mode block for 'sandbox-early-access' already lists fork: true; only the top-level features.fork was left false with no evidence.",
       "checked": "2026-09-30"
     },
     "fork_running": {
@@ -919,7 +958,7 @@
       "corrected_from": false,
       "source": "https://render.com/docs/sandboxes.md",
       "quote": "Creating a snapshot does not stop the source sandbox.",
-      "note": "The source sandbox keeps running (uninterrupted) while its snapshot is captured and then restored into a new sandbox - i.e. you can clone a running sandbox without stopping it. Applies to Render Sandboxes (early access) only; regular services/workflows have no fork concept.",
+      "note": "The source sandbox keeps running (uninterrupted) while its snapshot is captured and then restored into a new sandbox - i.e. you can clone a running sandbox without stopping it. Applies to Render Sandboxes (public beta since 2026-11-04) only; regular services/workflows have no fork concept.",
       "checked": "2026-09-30"
     },
     "memory_snapshot_fork": {
@@ -927,43 +966,45 @@
       "corrected_from": false,
       "source": "https://render.com/docs/sandboxes.md",
       "quote": "`runtime` | The writable filesystem, memory, and CPU state | Must restore using the snapshot's `plan` value",
-      "note": "A 'runtime' snapshot captures memory and CPU state (running processes), and restoring it resumes that state in a new sandbox - satisfies memory_snapshot_fork. Render Sandboxes (early access) only.",
+      "note": "A 'runtime' snapshot captures memory and CPU state (running processes), and restoring it resumes that state in a new sandbox - satisfies memory_snapshot_fork. Render Sandboxes (public beta since 2026-11-04) only.",
       "checked": "2026-09-30"
     },
     "docker_inside": {
       "value": false,
       "source": "https://render.com/docs/docker.md",
       "quote": "Render fully supports Docker-based deploys... Render can build your service's Docker image based on the Dockerfile in your project repo.",
-      "note": "Render's 'Docker' feature is about building/deploying your service FROM a Dockerfile/image; the running service is itself a container instance (isolation: container) with no documented privileged mode, /dev/kvm, or docker socket access to run nested Docker/containers inside it. No docs mention docker-in-docker support for services, workflows, or sandboxes.",
-      "checked": "2026-09-30"
+      "note": "Card-level value = services: Render's 'Docker' feature builds/deploys a service FROM a Dockerfile/image; the running service is a container with no documented privileged mode or docker socket. Render Sandboxes (public beta, unpriced mode) do run Docker: 'agents can use Docker and Docker Compose to start a copy of your app and its database side by side' (render.com/blog/introducing-render-sandboxes); set true on that mode.",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
       "source": "https://render.com/pricing",
       "quote": "Render is a cloud application platform for deploying and scaling web applications, APIs, databases, AI workloads, workflows, and agent infrastructure.",
-      "note": "Not offered: outside the product's scope. Render's products (web/private services, background workers, cron, workflows, sandboxes) are headless server/compute products; no VNC/RDP/streamed graphical desktop is offered anywhere in the docs.",
-      "checked": "2026-09-30"
+      "note": "No Render docs page, guide or template shows a graphical desktop (VNC/RDP/noVNC) on a service or sandbox, so no documented path exists. Render does not forbid desktop packages in a custom image; it does not document them.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://render.com/pricing",
-      "quote": "Render is a cloud application platform for deploying and scaling web applications, APIs, databases, AI workloads, workflows, and agent infrastructure.",
-      "note": "Not offered: outside the product's scope. No managed/embedded browser product exists; Render Sandboxes provide a bare Debian-based ephemeral fs/exec environment for running arbitrary code, not a browser.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://render.com/templates/browser-use",
+      "quote": "Dockerfile based on Playwright Python image with Chromium and dependencies pre-installed for headless browser execution.",
+      "how": "deploy Render's Browser Use template (or the Puppeteer guide) as a service from a Docker image with Chromium",
+      "effort": "low",
+      "note": "Render also documents 'You can deploy a sample Puppeteer service on Render in just a few clicks.' (render.com/docs/deploy-puppeteer-node). No managed browser product.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://render.com/docs/sandboxes.md",
       "quote": "Inside the sandbox, you (and your agents) can run commands and manage files without exposing your production infrastructure to untrusted code.",
-      "note": "Not offered: outside the product's scope. Sandbox API is exec/files/snapshots only (no screenshot+click driving API); no computer-use product exists elsewhere on Render.",
-      "checked": "2026-09-30"
+      "note": "Sandbox API is exec/files/snapshots (no screenshot+click API), and no Render guide or template sets up a desktop for computer use. Browser-only automation is covered under 'browser' (diy).",
+      "checked": "2026-11-08"
     },
     "auto_stop_idle": {
       "value": false,
       "source": "https://render.com/docs/faq.md",
       "quote": "Free web service instances spin down if they receive no incoming traffic for 15 consecutive minutes... Paid compute plans do _not_ spin down.",
-      "note": "Confirmed false for the modeled paid compute plans (the card's priced regimes exclude the free tier per its own caveats). Only the (unpriced, excluded) Free web service tier auto-idles; workflows scale-to-zero between discrete task runs, which is normal serverless behavior, not an idle-timeout on a persistent machine; Sandboxes terminate on a fixed timeout, not idle detection.",
-      "checked": "2026-09-30"
+      "note": "False for the priced paid service plans. The Free web service tier auto-idles (excluded). Render Sandboxes (public beta, unpriced mode, auto_stop_idle true there) auto-suspend after an idle timeout (default 15 min, 5 min to 24 h, or disabled) and stop CPU and memory billing while suspended (render.com/docs/sandboxes-creating, render.com/blog/introducing-render-sandboxes).",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -976,8 +1017,8 @@
       "value": false,
       "source": "https://render.com/agents.md",
       "quote": "This is a procedure. Execute the steps in order... Determine which agent product you are... | Claude Code | ... | Cursor | ... | Codex CLI | ... |",
-      "note": "Render's 'agents' page and MCP server/skills are for driving Render's own platform (deploys, services) FROM an external coding agent - not preinstalled coding-agent harnesses running inside a Render sandbox/service. No template/image ships Claude Code, Codex, etc. as a runnable harness.",
-      "checked": "2026-09-30"
+      "note": "None preinstalled. Render's MCP server/skills drive Render's platform from an outside agent. Render Sandboxes have setup guides for Claude Managed Agents, Cursor Cloud Agents and the OpenAI Agents API, which use a sandbox as their tool environment; no image ships Claude Code, Codex etc. as a runnable harness.",
+      "checked": "2026-11-08"
     },
     "gpu": {
       "value": false,
@@ -1040,8 +1081,8 @@
       "value": "folder",
       "source": "https://render.com/docs/sandboxes.md",
       "quote": "When you terminate a sandbox, its filesystem state is permanently lost. To preserve data from a sandbox, see [Snapshots](#snapshots).",
-      "note": "Only the persistent disk’s mount path survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
-      "checked": "2026-10-01"
+      "note": "Card-level value = services: only the persistent disk's mount path survives a stop; the rest of the filesystem resets. Render Sandboxes mode (public beta, unpriced) uses persist_scope 'snapshot': idle suspend snapshots the whole filesystem (and memory) and the sandbox stays resumable for 30 days; snapshots expire 30 days after capture by default.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [

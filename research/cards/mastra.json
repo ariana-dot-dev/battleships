@@ -204,16 +204,16 @@
     "snapshot": "fs",
     "pause_resume": false,
     "fork": true,
-    "persistent_disk": true,
+    "persistent_disk": "diy",
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": null,
-    "docker_inside": null,
+    "docker_inside": "diy",
     "nested_virt": null,
     "root": null,
     "systemd": null,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
     "code_interpreter": null,
@@ -271,7 +271,9 @@
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
     "max_session_unlimited": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "snapshot",
+    "whole_disk": "diy"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -286,7 +288,11 @@
     "Enterprise CPU time: 'Custom' included hours, then 'add-on $0.00008/sec' (about $0.29/hour).",
     "Sandbox size behind the CPU-hour rate is not selectable on the default provider: 'Railway currently ignores `cpuCount()` and `memoryMB()`'; on the E2B provider templates 'default to 2 CPUs and 1,024 MB' (PlatformSandbox reference). So a CPU hour cannot be mapped to a vCPU/RAM shape.",
     "Isolation 'dedicated-vm' is the PlatformSandbox (Railway VM). Mastra Server deploys, which the Persistent Server add-on covers, run as an 'API server container' built from a generated Dockerfile.",
-    "PlatformSandbox stop() only releases the client's lease: 'The VM keeps running under the environment's idle policy', so a stopped sandbox keeps consuming CPU time until idle timeout or destroy()."
+    "PlatformSandbox stop() releases the lease only: the VM keeps running under the idle policy, and a later start() reattaches. Only destroy() or the idle timeout tears it down, so a stopped sandbox keeps consuming CPU time until then.",
+    "Files survive through filesystem checkpoints when you pass a stable id (snapshot() saves at once). Running processes and writes after the last checkpoint are lost.",
+    "Sandbox ports: private HTTPS URLs for signed-in org members via getPortUrl(port), or a 1-hour cookie via getPortAuthCookie(port). No public port, SSH or raw TCP documented.",
+    "Docker: Template().docker() installs Docker Engine and Compose on the E2B backend (2,048 MB minimum); not documented on the Railway default. Root and /dev/kvm are not documented.",
+    "Mastra Factory (https://factory.mastra.ai/) is an open-source environment that turns issues into plans, code and reviewed pull requests with coding agents running in Mastra or other sandboxes."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/mastra",
@@ -296,7 +302,9 @@
     "https://mastra.ai/llms.txt",
     "https://mastra.ai/reference/workspace/platform-sandbox.md",
     "https://mastra.ai/docs/mastra-platform/workspaces.md",
-    "https://mastra.ai/docs/mastra-platform/deploy.md"
+    "https://mastra.ai/docs/mastra-platform/deploy.md",
+    "https://mastra.ai/integrations/browsers/browser-viewer.md",
+    "https://factory.mastra.ai/"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -322,14 +330,14 @@
       "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
       "quote": "Checkpoint recovery constructs a brand new sandbox and restores its filesystem from the latest checkpoint the platform captured for the previous sandbox with that `id`. Running processes and any filesystem writes made after the last checkpoint aren't restored.",
       "note": "Mastra platform workspace sandboxes (PlatformSandbox, backed by Railway or E2B). Opt-in: only when you pass a stable id. The platform captures filesystem checkpoints itself and the next start() with that id boots from it ('Pass a stable `id` to preserve a sandbox's filesystem across sessions or across a `destroy()`/`start()` cycle'); idle timeout destroys the sandbox. stop() does not stop the VM: 'stop() releases this process's lease without touching the remote sandbox. The VM keeps running under the environment's idle policy' (workspaces page), so it keeps billing until idle timeout or destroy(). On Railway, destroy() 'also deletes the recovery checkpoint associated with a caller-supplied recovery `id`'. Filesystem only, no memory. Exact capture trigger/frequency not documented. Mastra Server deploys sleep after ~10 min without outbound traffic, but no state snapshot is described.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
       "quote": "Call `snapshot()` after a filesystem update to capture the configured recovery checkpoint immediately.",
       "note": "Filesystem only; one recovery checkpoint per id (overwritten), not a list of named snapshots. New sandboxes can boot from it by reusing the id, or from a named seedCheckpointName ('boot-only fallback'). Also content-addressed reusable Template() builds. No snapshot of Mastra Server deploys.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": true,
@@ -363,8 +371,8 @@
       "value": true,
       "source": "https://mastra.ai/docs/mastra-platform/studio.md",
       "quote": "By default, every Studio deploy on Mastra platform is protected by platform auth. Members of your platform organization sign in with their platform account, and no one else can access the deployed Studio.",
-      "note": "Studio UI only: 'Platform auth applies to the Studio UI only. Your server's API routes are governed by your own server.auth configuration, or remain open if you haven't set one.' Server deploys get a public URL (custom domains); auth is app-level in your code. Platform sandboxes expose no ports (exec over a WebSocket lease); PRIVATE mode joins the environment's private network.",
-      "checked": "2026-09-29"
+      "note": "Studio UI: platform auth. Platform sandbox ports: private URLs for signed-in org members, or a 1-hour auth cookie from getPortAuthCookie(port) (platform-sandbox reference). Server API routes use your own server.auth. PRIVATE network mode joins the environment's private network.",
+      "checked": "2026-11-08"
     },
     "secret_proxy": {
       "value": false,
@@ -405,15 +413,16 @@
       "value": false,
       "source": "https://mastra.ai/docs/sandbox/computer.md",
       "quote": "[`DaytonaSandbox`](https://mastra.ai/integrations/sandboxes/daytona) and [`E2BDesktopSandbox`](https://mastra.ai/integrations/sandboxes/e2b-desktop) support this capability. Other sandbox backends don't register the computer tools.",
-      "note": "Mastra's own PlatformSandbox does not expose a desktop/computer capability; only bring-your-own-account third-party sandbox integrations (Daytona, E2B Desktop) do.",
-      "checked": "2026-09-30"
+      "note": "Mastra's own PlatformSandbox documents no desktop. A desktop comes through the Daytona or E2B Desktop sandbox integrations, which use those providers' own accounts.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://mastra.ai/docs/sandbox/overview.md",
-      "quote": "A sandbox gives your agent an isolated environment where it can run commands, execute code, install dependencies, and manage processes.",
-      "note": "not offered: no managed/real browser is documented as part of Mastra's own PlatformSandbox or Server product.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://mastra.ai/integrations/browsers/browser-viewer.md",
+      "quote": "BrowserViewer launches Chrome via Playwright, exposes a Chrome DevTools Protocol (CDP) URL",
+      "how": "add Chrome through a sandbox template (aptInstall/npmInstall) and drive it with Mastra browser tools (AgentBrowser, BrowserViewer); none is preinstalled",
+      "effort": "medium",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
@@ -447,15 +456,15 @@
       "value": false,
       "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
       "quote": "`executeCommand` runs over the direct-exec data plane (a WebSocket to the Railway tcp-proxy)",
-      "note": "Command execution is via an API/WebSocket exec lease, not SSH; no SSH access documented.",
-      "checked": "2026-09-30"
+      "note": "Commands run over an exec WebSocket; ports get private URLs (getPortUrl). No SSH or raw TCP documented.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "fs",
       "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
       "quote": "Checkpoint recovery constructs a brand new sandbox and restores its filesystem from the latest checkpoint the platform captured for the previous sandbox with that `id`. Running processes and any filesystem writes made after the last checkpoint aren't restored.",
       "note": "Filesystem-only checkpoint; running processes are not restored.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": true,
@@ -493,18 +502,20 @@
       "checked": "2026-09-30"
     },
     "persistent_disk": {
-      "value": true,
+      "value": "diy",
       "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
       "quote": "Pass a stable `id` to opt into checkpoint recovery so a new sandbox boots from the previous one's filesystem.",
       "note": "Requires passing a stable id and relies on checkpoint recovery; sandboxes without a stable id are fully ephemeral.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08",
+      "how": "pass a stable id so a new sandbox boots from the last filesystem checkpoint; call snapshot() to save at once",
+      "effort": "low"
     },
     "auto_stop_idle": {
       "value": true,
       "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
       "quote": "**idleTimeoutMinutes** (`number`): How long the sandbox stays alive with no activity before the platform destroys it.",
       "note": null,
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
@@ -545,15 +556,15 @@
       "value": false,
       "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
       "quote": "`executeCommand` runs over the direct-exec data plane (a WebSocket to the Railway tcp-proxy)",
-      "note": "Sandboxes are reached only through the platform's own exec API/WebSocket lease, not a public IPv4 address.",
-      "checked": "2026-09-30"
+      "note": "Sandboxes are reached through the exec WebSocket and private port URLs (getPortUrl), not a public IPv4 address.",
+      "checked": "2026-11-08"
     },
     "inbound_https": {
       "value": true,
-      "source": "https://mastra.ai/docs/mastra-platform/deploy.md",
-      "quote": "One command builds your project and validates it before deploying, plus creates the platform project and environment on your first run, deploys, streams build logs, and prints your public URL once the deploy is serving traffic.",
-      "note": "Applies to Mastra Server deploys (public HTTPS URL), not to on-demand PlatformSandbox instances which have no exposed ports.",
-      "checked": "2026-09-30"
+      "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
+      "quote": "Ports are private: the URL opens in a browser for members of the sandbox's organization once they sign in to Mastra.",
+      "note": "Platform sandboxes: getPortUrl(port) gives a private HTTPS URL for signed-in org members; getPortAuthCookie(port) lets an agent's browser open it for one hour. No public access and no raw TCP documented. Mastra Server deploys get a public URL.",
+      "checked": "2026-11-08"
     },
     "static_egress_ip": {
       "value": false,
@@ -625,6 +636,22 @@
       "note": "granularity: account-only; cost: no; Mastra's pricing is based on CPU hours, storage, runs, traces, and other resources, but no public REST API, SDK call, or CLI command exists to retrieve per-sandbox or per-project usage programmatically. Observability/tracing APIs capture execution traces only, not usage metering. Usage tracking appears limited to the Mastra platform dashboard.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "docker_inside": {
+      "value": "diy",
+      "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
+      "quote": "`docker()` installs Docker Engine and Compose in the E2B template.",
+      "how": "pick the E2B backend and add Template().docker() (needs at least 2,048 MB of memory); not documented on the Railway default",
+      "effort": "low",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "snapshot",
+      "source": "https://mastra.ai/reference/workspace/platform-sandbox.md",
+      "quote": "Call `snapshot()` after a filesystem update to capture the configured recovery checkpoint immediately.",
+      "how": "pass a stable id; the platform checkpoints the filesystem and the next start() with that id restores it; call snapshot() to save at once. Running processes and writes after the last checkpoint are lost",
+      "effort": "low",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -663,5 +690,9 @@
   ],
   "locations_source": "https://mastra.ai/docs/mastra-platform/regions.md",
   "locations_quote": "Mastra platform offers two residency zones today, `us` and `eu`, backed by specific compute regions on Railway. The residency selector offers four Railway regions across two zones.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 9,
+    "source": "compare-fix findings/mastra.json, re-checked against the platform-sandbox reference"
+  }
 }

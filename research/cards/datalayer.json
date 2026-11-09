@@ -32,11 +32,27 @@
       "max_ram_gib": null,
       "sizes": [
         {
-          "name": "1-CPU",
+          "name": "small",
           "vcpu": 1,
-          "ram_gib": 1,
+          "ram_gib": 2,
           "disk_gib": null,
-          "hour": 0.3,
+          "hour": 0.0288,
+          "month_cap": null
+        },
+        {
+          "name": "medium",
+          "vcpu": 4,
+          "ram_gib": 8,
+          "disk_gib": null,
+          "hour": 0.0576,
+          "month_cap": null
+        },
+        {
+          "name": "large",
+          "vcpu": 8,
+          "ram_gib": 16,
+          "disk_gib": null,
+          "hour": 0.1152,
           "month_cap": null
         }
       ],
@@ -45,13 +61,13 @@
       "always_on_month_per_instance": null,
       "commit_note": null,
       "min_billed_seconds": null,
-      "granularity_s": null,
+      "granularity_s": 1,
       "start_fee": null,
       "boot_overhead_s": null,
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Only currently priced available environment. Larger environments markedUnavailable; not scalable linearly to4/8."
+      "note": "Datalayer bills in credits per second: small 0.0008, medium 0.0016, large 0.0032 credits/s (https://datalayer.ai/docs/environments-user). The docs say 'a credit is a cent' and call prices provisional, so the hourly USD here = credits/s x 3600 / 100. Datalayer sandboxes run CPU classes only; GPU classes run on your own Modal or Daytona account and are billed there."
     }
   ],
   "storage": {
@@ -131,6 +147,8 @@
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
+    "persist_scope": "folder",
+    "persist_path": "Home Folder or an attached Volume",
     "volumes": null,
     "auto_stop_idle": false,
     "max_session_h": null,
@@ -139,11 +157,11 @@
     "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
     "code_interpreter": true,
-    "agent_harnesses": false,
+    "agent_harnesses": true,
     "ssh": false,
     "public_ipv4": false,
     "inbound_https": false,
@@ -161,7 +179,7 @@
     "gpu_types": [],
     "regions": [],
     "lang_python": true,
-    "lang_node": false,
+    "lang_node": "diy",
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -182,7 +200,7 @@
     "mcp_server": true,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
-    "harness_api": false,
+    "harness_api": null,
     "secret_proxy": false,
     "volume_attach": true,
     "volume_shared": true,
@@ -204,15 +222,28 @@
   },
   "knobs": [],
   "caveats": [
-    "Rendered official pricing exposes one available CPU sandbox:1vCPU/1GiB at$0.30/h. Listed7CPU, T4 andA100 environments markedUnavailable. Wallet-credit plans, agentrun caps andorganization seats are separate.",
-    "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
-    "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
-    "Pricing page lists 7 CPUs / 30 GiB, T4 GPU + 2 CPUs / 10 GiB and A100 80GB GPU + 4 CPUs / 20 GiB as Unavailable."
+    "Docs list three CPU size classes, billed per second in credits: small 1 CPU / 2 GiB, medium 4 CPU / 8 GiB, large 8 CPU / 16 GiB. A credit is a cent and the docs call prices provisional. The pricing page is client-rendered and could not be read on 2026-11-08, so the older $0.30/h 1 vCPU / 1 GiB row is not used.",
+    "Runtime pods reach no outside network by default: the Shield refused example.com, pypi.org and api.anthropic.com from a fresh pod on 2026-10-15. Install packages at environment build time (apt, conda, uv, Dockerfile FROM an approved base). Web access goes through the gateway's signed-fetch toolset or a host grant in the Appspec.",
+    "A code sandbox runs for a time reserved up front and can be paused to keep its state. An application can be kept always on under a daily credit limit. No Docker daemon inside a runtime is documented. Datalayer does not publish how many runtimes can run at once.",
+    "GPUs: Datalayer runs CPU classes only. A GPU environment builds for your own Modal or Daytona account and is billed by that provider. Code sandboxes can also run on E2B, CoreWeave, Cloudflare or Kaggle with your own credentials.",
+    "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims.",
+    "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free."
   ],
   "sources": [
+    "https://datalayer.ai/docs/environments-user",
+    "https://datalayer.ai/docs/applications/computer",
+    "https://datalayer.ai/docs/applications/coding-agents",
+    "https://datalayer.ai/docs/code-sandbox-providers",
+    "https://github.com/datalayer/agent-runtimes/blob/main/docs/docs/shield/index.mdx",
+    "https://github.com/datalayer/agent-runtimes/blob/main/docs/docs/harnesses/index.mdx",
     "https://datalayer.io/pricing",
     "https://github.com/datalayer/code-sandboxes/blob/d9c39925d87447dab5f3f7f1bdf9451ec4ebca2a/code_sandboxes/providers.py"
   ],
+  "audit_2026_11_08": {
+    "applied": 8,
+    "source": "findings/datalayer.json; docs text read from the datalayer.ai docs bundle and the agent-runtimes GitHub docs",
+    "reviewed": 9
+  },
   "audit_2026_09_29": {
     "applied": 10,
     "source": "checked against the provider's live pricing and docs pages",
@@ -234,18 +265,18 @@
       "checked": "2026-09-29"
     },
     "harness_api": {
-      "value": false,
-      "source": "https://agent-runtimes.datalayer.tech/endpoints/",
-      "quote": "Agent Runtimes exposes a comprehensive REST and WebSocket API for managing agents, executing prompts, and monitoring system status",
-      "note": "Reviewed: drives Datalayer’s own Agent Runtimes (pydantic-ai agents), not a coding harness. Harness = Datalayer's own open-source Agent Runtimes (pydantic-ai-based agents defined by Agentspecs), launched into a cloud runtime pod as a sidecar next to the Jupyter kernel (`agent-runtimes agents create ai-agents-env ... --cloud`; `create_runtime(agent_spec_id=...)`), then driven from outside via AG-UI (SSE), Vercel AI, ACP (WebSocket) or A2A with streaming, tool approvals, pause/resume and conversation persistence (`run_cloud_agent_chat` sends a prompt to a cloud runtime agent). Not Claude Code/Codex/OpenCode: those connect the other way, as MCP clients of the hosted Datalayer MCP server (mcp.datalayer.run).",
-      "checked": "2026-09-29"
+      "value": null,
+      "source": "https://github.com/datalayer/agent-runtimes/blob/main/docs/docs/harnesses/index.mdx",
+      "quote": "Each harness runs on the vendor's own credential — the person's, never Datalayer's.",
+      "note": "Not confirmed. Agent Runtimes launches Claude Code, Codex, OpenCode and pi in a runtime pod and drives each over ACP (stdio). Agent Runtimes has its own REST/WebSocket API (AG-UI, ACP, A2A), but no doc says that API sends prompts to a coding harness from outside, so this stays null.",
+      "checked": "2026-11-08"
     },
     "secret_proxy": {
       "value": false,
       "source": "http://web.archive.org/web/20251011032842/https://docs.datalayer.app/secrets/",
       "quote": "The secrets will be injected in all Runtimes as environment variables. The environment variable name will be the secret name.",
-      "note": "Live core SDK docs: 'Secrets are encrypted at rest and securely transmitted to runtimes when needed.' Agent-runtimes identity OAuth tokens (GitHub, GitLab, Google...) are also handed to skills/codemode as env vars (GITHUB_TOKEN etc.). Model inference can route via Datalayer ('inferenceProvider = local | datalayer') but no credential-injecting egress proxy is documented.",
-      "checked": "2026-09-29"
+      "note": "Live core SDK docs: 'Secrets are encrypted at rest and securely transmitted to runtimes when needed.' Agent-runtimes identity OAuth tokens (GitHub, GitLab, Google...) are also handed to skills/codemode as env vars (GITHUB_TOKEN etc.). Model calls are the exception: for Claude Code, Codex and OpenCode on Datalayer, the runtime never holds the model key and calls go through Datalayer's ai-inference service (harnesses doc). No general credential-injecting proxy for other secrets is documented.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": true,
@@ -286,13 +317,13 @@
       "value": false,
       "source": "https://datalayer.ai/docs/environments-user",
       "quote": "A resolve and a build reach only the hosts packages come from: PyPI and PyTorch's wheels, the public conda channels, the Ubuntu and Debian snapshot mirrors, GitHub releases, and the image registries.",
-      "note": "not offered: outside the product's scope. Datalayer Code Sandboxes are Jupyter-kernel execution pods for Python code; no docs describe a Docker/dockerd daemon usable inside a running sandbox.",
-      "checked": "2026-09-30"
+      "note": "No docs describe a Docker daemon usable inside a running Datalayer runtime. A Dockerfile is used only at environment build time, FROM an approved base. A separate path exists: Datalayer code can run in a Docker container on your own machine as a code-sandbox provider, which is not this hosted product.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
-      "source": "https://datalayer.io/pricing",
-      "quote": "1 CPU | 1 vCPU (1 GiB) | No GPU | 0.3 | Agentic automation, lightweight API tasks, and orchestration.",
+      "source": "https://datalayer.ai/docs/environments-user",
+      "quote": "A sandbox of a user environment burns the rate of the size class its version names, per second: small 1 CPU 2 GiB, medium 4 CPU 8 GiB, large 8 CPU 16 GiB.",
       "note": "not offered: outside the product's scope. Sandboxes are small Kubernetes-pod-based Python kernels; no /dev/kvm or nested-VM capability is documented anywhere in the docs.",
       "checked": "2026-09-30"
     },
@@ -304,18 +335,20 @@
       "checked": "2026-09-30"
     },
     "browser": {
-      "value": false,
-      "source": "https://datalayer.ai/docs/code-sandboxes",
-      "quote": "A CodeSandbox is the execution boundary for agent-generated code.",
-      "note": "not offered: outside the product's scope. No managed/controllable browser instance inside a Code Sandbox is documented.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://datalayer.ai/docs/applications/computer",
+      "quote": "Browse | Open web pages in its browser, read them, look at them, click and type in them. ... Browse is a preview, not released yet: it is marked preview, and only a previewer can turn it on.",
+      "how": "turn on Browse in an application's Computer settings (preview, previewer role only); a person can take over the browser",
+      "effort": "low",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
-      "source": "https://datalayer.ai/docs/code-sandboxes",
-      "quote": "A CodeSandbox is the execution boundary for agent-generated code.",
-      "note": "not offered: outside the product's scope. No screenshot+click desktop-driving API is documented; the platform exposes code execution, notebooks and an MCP server instead.",
-      "checked": "2026-09-30"
+      "source": "https://datalayer.ai/docs/applications/computer",
+      "quote": "It opens a web page and reads its title and text, looks at it (a picture of the page, as you would see it), and clicks a link or a button, or types in a field.",
+      "note": "The preview Browse part drives a web browser (page picture, click, type), but no desktop or screen-level control is documented.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -387,6 +420,13 @@
       "note": "The Home Folder / Volumes persist independently of any single sandbox's lifecycle and can be reattached to new sandboxes, so files survive stop/terminate.",
       "checked": "2026-09-30"
     },
+    "persist_scope": {
+      "value": "folder",
+      "source": "https://datalayer.ai/docs/contents/volumes",
+      "quote": "Attach the Volume to a Code Sandbox at an absolute path with read-only or read/write access.",
+      "note": "Files in the Home Folder or an attached Volume survive. Pause keeps a sandbox's state; Runtime Snapshots keep picklable Python variables only, not the filesystem.",
+      "checked": "2026-11-08"
+    },
     "auto_stop_idle": {
       "value": false,
       "source": "https://datalayer.ai/docs/credits",
@@ -396,17 +436,17 @@
     },
     "live_resize": {
       "value": false,
-      "source": "https://datalayer.io/pricing",
-      "quote": "1 CPU | 1 vCPU (1 GiB) | No GPU | 0.3 | Agentic automation, lightweight API tasks, and orchestration.",
+      "source": "https://datalayer.ai/docs/environments-user",
+      "quote": "A sandbox of a user environment burns the rate of the size class its version names, per second: small 1 CPU 2 GiB, medium 4 CPU 8 GiB, large 8 CPU 16 GiB.",
       "note": "not offered: outside the product's scope. CPU/RAM is fixed per Environment/size class at launch; no API to change resources on a running sandbox is documented.",
       "checked": "2026-09-30"
     },
     "agent_harnesses": {
-      "value": false,
-      "source": "https://agent-runtimes.datalayer.tech/endpoints/",
-      "quote": "Agent Runtimes exposes a comprehensive REST and WebSocket API for managing agents, executing prompts, and monitoring system status",
-      "note": "Datalayer ships its own open-source Agent Runtimes (pydantic-ai agents), not preinstalled third-party coding harnesses. Claude Code/Codex/OpenCode/Cursor connect the other way, as MCP clients of the hosted Datalayer MCP server — they are not offered as sandbox templates.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://datalayer.ai/docs/applications/coding-agents",
+      "quote": "An application can run on a coding agent you already know — Claude Code, Codex, OpenCode or pi, the four Datalayer offers today",
+      "note": "The harness runs in a Datalayer runtime pod behind the Shield (policy + audit). Key handling differs between docs: the live docs say model calls go through Datalayer and are paid in credits; the agent-runtimes harnesses doc says each runs on the account's own vendor key, relayed by ai-inference. Any MCP client can also connect from outside to mcp.datalayer.run.",
+      "checked": "2026-11-08"
     },
     "mcp_server": {
       "value": true,
@@ -423,11 +463,12 @@
       "checked": "2026-09-30"
     },
     "lang_node": {
-      "value": false,
-      "source": "https://datalayer.ai/docs/environments-spec",
-      "quote": "spec.language | name | \"python\" | No | \"python\"",
-      "note": "not offered: the Environment specification's language.name field only accepts \"python\"; no Node.js/JavaScript runtime is documented for Code Sandboxes.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://datalayer.ai/docs/environments-user",
+      "quote": "packages: ... system: apt: - gdal-bin",
+      "how": "add Node.js as an apt system package (or in a Dockerfile FROM an approved Datalayer base) in a custom environment; the kernel stays Python",
+      "effort": "medium",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -454,8 +495,8 @@
       "value": true,
       "source": "https://datalayer.ai/docs/environments-user",
       "quote": "A resolve and a build reach only the hosts packages come from: PyPI and PyTorch's wheels, the public conda channels, the Ubuntu and Debian snapshot mirrors, GitHub releases, and the image registries. A RUN step that reaches anywhere else fails",
-      "note": "Documented for the Environment build step (host-level allowlist enforced server-side); not confirmed for arbitrary code execution inside a running sandbox.",
-      "checked": "2026-09-30"
+      "note": "Build step: a host-level allowlist. Running pods: the Shield's Operator writes what a pod may reach and refuses the rest with iptables; example.com, pypi.org and api.anthropic.com were refused from a fresh pod on 2026-10-15. An Appspec can grant a host (https://github.com/datalayer/agent-runtimes/blob/main/docs/docs/shield/index.mdx).",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": false,
@@ -468,8 +509,8 @@
       "value": false,
       "source": "https://datalayer.io/pricing",
       "quote": "A100 GPU + 4 CPUs | Unavailable | 4 vCPU (20 GB) | 1 A100 (80 GB) | Unavailable ... T4 GPU + 2 CPUs | Unavailable",
-      "note": "Datalayer's own GPU-backed sandbox tiers are listed but marked Unavailable; docs confirm 'Datalayer sandboxes run the CPU classes for now' (https://datalayer.ai/docs/environments-user), with GPU classes only buildable against a customer's own Modal/Daytona account.",
-      "checked": "2026-09-30"
+      "note": "Datalayer's own sandboxes run CPU classes: 'Datalayer sandboxes run the CPU classes for now' (https://datalayer.ai/docs/environments-user). The way to a GPU: build a GPU class (gpu-small / gpu-large) for your own Modal or Daytona account, or run a code sandbox on CoreWeave or a Kaggle GPU session; 'A GPU class is priced by the provider that runs it, on your own account with them.' That GPU is another provider's product and bill, so it is not counted here.",
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
@@ -480,8 +521,8 @@
     },
     "macos": {
       "value": false,
-      "source": "https://datalayer.io/pricing",
-      "quote": "1 CPU | 1 vCPU (1 GiB) | No GPU | 0.3 | Agentic automation, lightweight API tasks, and orchestration.",
+      "source": "https://datalayer.ai/docs/environments-user",
+      "quote": "A sandbox of a user environment burns the rate of the size class its version names, per second: small 1 CPU 2 GiB, medium 4 CPU 8 GiB, large 8 CPU 16 GiB.",
       "note": "not offered: outside the product's scope. No macOS machine option is documented.",
       "checked": "2026-09-30"
     },
@@ -489,8 +530,8 @@
       "value": true,
       "source": "https://datalayer.io/pricing",
       "quote": "For organizations needing scale, compliance, and dedicated support with SSO/SAML, audit logs, custom SLAs, onboarding, and flexible deployment. ... On-premise deployment option",
-      "note": "Enterprise plan offers an 'on-premise deployment option' distinct from the standard SaaS, consistent with a customer-controlled-infrastructure deployment; exact BYOC mechanics (own cloud account vs on-prem hardware) are not detailed.",
-      "checked": "2026-09-30"
+      "note": "Two ways: Agent Nodes (alpha) run Datalayer agents on your own AWS account (CloudFormation templates for EC2 or Fargate, https://datalayer.ai/docs/agent-nodes-aws) or on your own machine with docker run (https://datalayer.ai/docs/agent-nodes-localhost); the Enterprise plan names an on-premise deployment option.",
+      "checked": "2026-11-08"
     },
     "open_source": {
       "value": false,

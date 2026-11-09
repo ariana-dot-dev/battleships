@@ -20,7 +20,7 @@ As of 2026-09-28. USD unless explicitly stated; public list prices unless a row 
 | Enterprise | Account plan | Monthly fee / commitment | Quote / unknown; concurrency unpublished/custom; Custom concurrency, bulk credits, SLA, ZDR, SSO. | https://www.firecrawl.dev/pricing |
 ## Gotchas
 - Docs distinguish 2 credit code sessions from 7 credit prompt sessions; pricing table omits prompt premium. Never assume 2 credit rate for all agents.
-- Page-render concurrency (2/5/25/50/100) is published; browser-sandbox per-endpoint admission may differ. Sessions default TTL 10 min, max 60 min; idleTTL 5 min.
+- Page-render concurrency (2/5/25/50/100) is published; browser-sandbox per-endpoint admission may differ. The browser docs still say all plans get up to 20 concurrent browser sessions during launch (re-checked 2026-11-08). Sessions default TTL 10 min, max 60 min; idleTTL 5 min.
 - Plan credits reset monthly even under annual commitment. Rollover docs narrow it to annual Scale 1 month/Enterprise 2 months whereas pricing table omits annual condition.
 - Source pricing rendered in EUR by geolocation; canonical pricing.md gives binding USD and yearly totals. Use annual totals rather than rounded $16/$83/$333/$599 headlines.
 - Storage, snapshot GiB-month and public IPv4 prices are not published in the reviewed sources; null is not free.

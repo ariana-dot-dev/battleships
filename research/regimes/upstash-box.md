@@ -1,5 +1,5 @@
 # Upstash Box: pricing regimes (as of 2026-09-28)
-Upstash Box is a Docker container per box (AWS us-east-1 only) with a built-in coding agent. There are three fixed sizes: Small 2 vCPU/4 GB/5 GB, Medium 4/8/10 and Large 8/16/20. RAM is never billed. The same box can be paid for in two very different ways:
+Upstash Box is a Docker container per box (AWS us-east-1 only) with a built-in coding agent. There are three fixed sizes: Small 2 vCPU/4 GB/10 GB, Medium 4/8/20 and Large 8/16/30 (re-checked 2026-11-08; the pricing table lists Medium at 30 GB, while the docs and the pricing FAQ say 20 GB). RAM is never billed. The same box can be paid for in two very different ways:
 - **Pay as You Go (PAYG):** you pay for CPU core-hours actually consumed, plus $0.10/GB-month storage.
 - **Keep-Alive ("Fixed"):** a flat $8/$16/$32 per box per month covers CPU at any utilisation and the box's storage.
 There was no price change.
@@ -21,9 +21,9 @@ Reading A is the only one consistent with both the table and the FAQ/blog arithm
 | 5 | Frozen / paused (auto) | After 6 h idle on PAYG (1 h on Free). Processes stopped, filesystem kept, auto-wakes on the next request | Storage only | $0.10/GB-month. Retention limit unpublished | /pricing/box, https://upstash.com/docs/box/overall/how-it-works |
 | 6 | Keep-Alive Small / Medium / Large | `keepAlive: true`. Never pauses. `initCommand` on start | **Flat per box per month.** "This is the only charge for that Keep Alive box": CPU (any utilisation) and storage included | **$8 / $16 / $32** per month (= $0.011 / $0.022 / $0.044 per hour at 730 h) | /pricing/box, https://upstash.com/docs/box/overall/keep-alive |
 | 7 | Keep-Alive fleet used part-time | Keep C persistent keep-alive boxes and reuse them for your sessions | C × flat price, whatever the hours used | Medium beats PAYG above 20 h/month at 100% CPU, or 67 h at 30% | derived from #2 and #6 |
-| 8 | Storage (PAYG) | "All data on disk, including snapshots", for live and paused boxes | Per GB-month (presumably on data used, not the size cap) | $0.10/GB-month. Disk caps 5/10/20 GB | /pricing/box FAQ |
+| 8 | Storage (PAYG) | "All data on disk, including snapshots", for live and paused boxes | Per GB-month (presumably on data used, not the size cap) | $0.10/GB-month. Disk caps 10/20/30 GB (Medium 30 GB in the pricing table) | /pricing/box FAQ |
 | 9 | Snapshots | Filesystem + agent config. They survive box deletion and can be restored into a different size | Counted in storage | $0.10/GB-month. No retention limit published | /pricing/box, https://upstash.com/docs/box/overall/snapshots |
-| 10 | EphemeralBox | `EphemeralBox.create()`: exec + files only, TTL ≤ 3 days then auto-deleted. No agent, git, public URLs or pause | No separate price published. Presumably the same active-CPU rates | null | https://upstash.com/docs/box/overall/ephemeral-box |
+| 10 | EphemeralBox | `EphemeralBox.create()`: exec, files, schedules and snapshots. Ready at once with no polling. TTL ≤ 3 days then auto-deleted. No agent, git, public URLs or pause/resume API | No separate price published. Presumably the same active-CPU rates | null | https://upstash.com/docs/box/overall/ephemeral-box |
 | 11 | Free plan | No card | **Hard cap** of 5 active CPU-hours/month (≈ $0.50 at the Small rate). Small only, 10 concurrent, 1 h idle freeze, storage free. $1 LLM budget, then the API returns 400 | $0 | /pricing/box |
 | 12 | Pay as You Go plan | Card on file | No fee. 1,000 concurrent boxes (soft limit, raised on request). $100/month LLM budget | $0 fee | /pricing/box |
 | 13 | Enterprise | Contact sales | Custom sizes, limits, regions, prices. Dedicated support | null | /pricing/box |
@@ -37,12 +37,12 @@ Reading A is the only one consistent with both the table and the FAQ/blog arithm
 4. **Storage is billed on everything,** including snapshots that outlive their box and frozen boxes you forgot about. It is included only in Keep-Alive. Whether snapshots *taken from* a Keep-Alive box are also included is unclear.
 5. **The Free plan is a hard wall.** It is 5 CPU-h, Small boxes only. After the $1 LLM budget the agent API returns 400. It is not a credit against paid usage.
 6. **Unpublished:** billing granularity, minimum billed time, Keep-Alive proration for mid-month create/delete, fair-use limits on 100%-CPU Keep-Alive boxes, and egress.
-7. **Custom Docker images are "coming soon".** Environments are templated through filesystem snapshots instead.
+7. **Custom Docker images are "coming soon".** Environments are templated through filesystem snapshots instead. The docs do not say whether Docker runs inside a box.
 8. **The benchmark host is aarch64.** Inside the box it reports 48 logical CPUs and 185 GiB, so the container sees host resources. Research notes say x86_64.
 ## Worked example
 Workload: 4 vCPU / 8 GiB → **Medium**. 50 concurrent × 8 h/day × 22 days = **8,800 box-hours**. At 30% CPU that is 8,800 × 4 × 0.3 = **10,560 core-hours**. Also: 50 GiB of retained snapshots and 100 GiB egress.
 Assumptions:
-- 50 persistent boxes, each with its full 10 GB disk: 50 × 10 × $0.10 = $50/month (an upper bound, since storage is on data used).
+- 50 persistent boxes, each with 10 GB of data on disk (Medium disk cap is 20 GB): 50 × 10 × $0.10 = $50/month (an upper bound, since storage is on data used).
 - Snapshots: 50 × $0.10 = $5.
 - Egress unpublished ($0 assumed).
 - PAYG plan: no fee, and 50 concurrent is within the 1,000 limit.

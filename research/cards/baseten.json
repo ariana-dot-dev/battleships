@@ -463,15 +463,14 @@
       "min_billed_seconds": 60,
       "granularity_s": 60,
       "boot_overhead_s": 900,
-      "note": "Per-minute list prices x60. Shared CPU instance types; cannot select a region. Truss model-serving containers; general agent sandboxes are the separate private-preview Sandboxes product (mode \"sandboxes\", unpriced).",
+      "note": "Per-minute list prices x60. Shared CPU instance types; cannot select a region. Truss model-serving containers. Baseten Sandboxes, its agent product (mode \"sandboxes\"), are free until 2026-11-16 and have no published price after that, so scenarios price these CPU instances.",
       "cpu_class": "shared"
     },
     {
       "key": "sandboxes",
-      "label": "Sandboxes (private preview)",
+      "label": "Sandboxes (launched 2026-11-05, free until 2026-11-16)",
       "flags": [
-        "beta",
-        "sales"
+        "beta"
       ],
       "os": [
         "linux"
@@ -481,6 +480,7 @@
       "features": {
         "pause_resume": true,
         "persistent_disk": true,
+        "persist_scope": "whole",
         "wake_on_request": true,
         "live_resize": false,
         "max_session_h": null,
@@ -491,18 +491,18 @@
         "custom_image": true,
         "image_oci": true,
         "inbound_https": true,
-        "isolation": null,
+        "isolation": "microvm",
         "ssh": null,
         "gpu": null,
         "gpu_types": [],
-        "snapshot": null,
+        "snapshot": "mem",
         "snapshot_on_demand": null,
-        "snapshot_auto": null,
+        "snapshot_auto": true,
         "fork": null,
         "fork_running": null,
         "memory_snapshot_fork": null,
-        "volume_attach": null,
-        "volume_shared": null,
+        "volume_attach": true,
+        "volume_shared": false,
         "egress_allowlist": null,
         "egress_http_rules": null,
         "usage_api": null,
@@ -519,14 +519,14 @@
       "ram_basis": "alloc",
       "active_floor": 0,
       "ram_per_vcpu": [
-        null,
-        null
+        1,
+        8
       ],
       "ram_fixed_per_vcpu": null,
       "vcpu_options": null,
-      "min_vcpu": null,
-      "max_vcpu": null,
-      "max_ram_gib": null,
+      "min_vcpu": 1,
+      "max_vcpu": 32,
+      "max_ram_gib": 256,
       "sizes": null,
       "pool_tiers": null,
       "requires_always_on": false,
@@ -540,7 +540,7 @@
       "windows_vcpu_h": null,
       "gpu": null,
       "cpu_class": null,
-      "note": "No sandbox price published; unpriced, never 0. \"Sandboxes is in Private Preview. Contact Baseten to request access.\" and \"A sandbox is an isolated environment where an agent runs commands and works with files.\" (https://docs.baseten.co/sandboxes/overview). Started from a container image (built-in Base Image or your own Dockerfile / registry import); the runtime isolation technology is not published. Sized by memory only: \"memory (which also sets its CPU allocation), and a region. Name, image, memory, and region can't change after creation.\" Default 4096 MiB; \"An organization can run up to 10 sandboxes at once.\" (https://docs.baseten.co/sandboxes/manage). Standby keeps state: \"`DEACTIVATED`: the sandbox is on standby. Its files and processes persist, and the next request resumes it.\"; \"By default, sandboxes expire 7 days after creation.\" (TTL_MAX_AGE / TTL_IDLE / DATE policies, list can't be empty); \"Deletion and expiration permanently remove a sandbox's local data.\" (https://docs.baseten.co/sandboxes/lifecycle). Ports reached through the API server's /port/<PORT>/ route; per-sandbox MCP endpoint https://<sandbox-url>/mcp; TypeScript (@basetenlabs/sandbox), Python and Go SDKs; CLI baseten sandbox create/exec/connect. Checked 2026-10-14."
+      "note": "Unpriced, never 0: \"Baseten Sandboxes are now available and free to use until November 16.\" Pricing after 2026-11-16 is not published (https://docs.baseten.co/sandboxes/lifecycle, https://docs.baseten.co/sandboxes/manage). No access-request step is documented; the org needs sandbox access and team permission to create resources, and \"Sandbox commands are in pre-release. Arguments, flags, and output may change.\" Size: \"choose from 1 to 32 vCPUs, with 1 to 8 GiB of memory per vCPU\"; CLI default 4096 MiB. \"Each organization can run up to 10 sandboxes at once\"; support raises it (https://docs.baseten.co/sandboxes/manage). Isolation: Baseten's docs do not name it; launch coverage says \"The isolation boundary is a dedicated microVM for every environment, with a separate kernel and hardware-level isolation.\" (https://www.unite.ai/?p=505187; tech from Blaxel, acquired by Baseten: https://thenextweb.com/news/baseten-acquires-blaxel-ai-agent-sandboxes). Standby: \"On standby, it keeps its files and running processes, and you pay only for its storage.\" Launch coverage: \"Disconnection triggers a snapshot covering the filesystem, memory and active processes.\" and \"Baseten reports a 25-millisecond resume time\" (vendor figure). Expiry: \"By default, sandboxes expire 7 days after creation.\" (TTL_MAX_AGE / TTL_IDLE / DATE policies, configurable); \"Deletion and expiration permanently remove files stored on the sandbox.\" (https://docs.baseten.co/sandboxes/lifecycle). Volumes: \"A sandbox volume is a persistent disk that keeps its files after the sandboxes that mount it are deleted or expire.\" One region, one sandbox at a time (https://docs.baseten.co/sandboxes/volumes). Previews: private (token) or public HTTPS URL per port, plus the /port/<PORT>/ route (https://docs.baseten.co/sandboxes/previews). Root, Docker inside and /dev/kvm are not documented for sandboxes. Per-sandbox MCP endpoint https://<sandbox-url>/mcp; TypeScript, Python and Go SDKs. Checked 2026-11-08."
     }
   ],
   "storage": {
@@ -718,7 +718,7 @@
   },
   "knobs": [],
   "caveats": [
-    "Bundled CPU/RAM; billed by minute. Deployment/load/scale time billed; scale-to-zero is not free warm replicas. H100 MIG is 3/7 compute and 1/2 memory, not half a full H100. Custom model packaging via Truss; model deployments are not a general secure code-exec sandbox (see the separate private-preview Sandboxes caveat).",
+    "Bundled CPU/RAM; billed by minute. Deployment/load/scale time billed; scale-to-zero is not free warm replicas. H100 MIG is 3/7 compute and 1/2 memory, not half a full H100. Custom model packaging via Truss; model deployments are not a general secure code-exec sandbox (see the separate Sandboxes caveat).",
     "Any null count, CPU/RAM, billing increment or minimum is unverified, not unlimited/free.",
     "This is GPU-product research, not a claim that every feature of the entire vendor documentation was audited. Unverified features are null.",
     "GPU multi-count bundles, variant/region selection and fractional slices require a SKU-aware estimator; unsupported rows remain unpriced in strict cards.",
@@ -727,7 +727,7 @@
     "Larger CPU/RAM shapes on the same GPU cost more (T4x8x32 $0.01504/min, T4x16x64 $0.02408/min, A10Gx16x64 $0.03248/min); multi-GPU SKUs are linear (H100:8 $0.86664/min). Card models only the smallest single-GPU shape.",
     "Image builds are billed on every push; cold start/model load is billed; failed boots and image pulls are not; development deployments (--watch) are listed as not billed. Partial minutes round up.",
     "Default autoscaling scale-down delay is 900 s (configurable 0-3600 s): with defaults each burst keeps the replica billed ~15 more idle minutes, plus billed cold start/model load. Not modelled.",
-    "Sandboxes (agent sandboxes, private preview, access by contacting Baseten) is modelled as the unpriced mode \"sandboxes\": no sandbox price, billing unit or isolation technology is published (https://docs.baseten.co/sandboxes/overview, checked 2026-10-14). Its 10-concurrent-sandbox organization quota (\"An organization can run up to 10 sandboxes at once.\", https://docs.baseten.co/sandboxes/manage) is per product and is not expressible in the card-level fleet fields.",
+    "Baseten Sandboxes (agent sandboxes, launched 2026-11-05) are modelled as the unpriced mode \"sandboxes\": they are free until 2026-11-16 and no later price or billing unit is published (https://docs.baseten.co/sandboxes/manage, checked 2026-11-08). Standby keeps files, memory and running processes and bills only storage; sandboxes expire 7 days after creation by default (configurable); sandbox volumes keep files after deletion (https://docs.baseten.co/sandboxes/lifecycle, https://docs.baseten.co/sandboxes/volumes). Isolation is a microVM per sandbox per launch coverage (https://www.unite.ai/?p=505187), not per Baseten's docs. Its 10-concurrent-sandbox organization quota (\"Each organization can run up to 10 sandboxes at once.\", https://docs.baseten.co/sandboxes/manage) is per product and is not expressible in the card-level fleet fields.",
     "Default egress from a deployment is open only on TCP 443 and 80 (\"By default, a deployment can make outbound requests to any host on the internet on TCP ports 443 and 80.\", https://docs.baseten.co/development/model/egress-restrictions); other outbound ports are not reachable by default. The card's internet level (configurable) cannot express a port limit.",
     "Monthly budget enforcement covers Model APIs only; dedicated deployments and training keep running and billing past the budget (https://docs.baseten.co/organization/billing)."
   ],
@@ -738,7 +738,11 @@
     "https://docs.baseten.co/development/model/egress-restrictions",
     "https://docs.baseten.co/sandboxes/overview",
     "https://docs.baseten.co/sandboxes/lifecycle",
-    "https://docs.baseten.co/sandboxes/manage"
+    "https://docs.baseten.co/sandboxes/manage",
+    "https://docs.baseten.co/sandboxes/volumes",
+    "https://docs.baseten.co/sandboxes/previews",
+    "https://www.unite.ai/?p=505187",
+    "https://thenextweb.com/news/baseten-acquires-blaxel-ai-agent-sandboxes"
   ],
   "audit_2026_09_29": {
     "applied": 6,
@@ -753,7 +757,7 @@
     "raise_time_days": null,
     "verification": "payment method after credits; org verification for regional deployments",
     "tiers": "Pro advertises 'Unlimited autoscaling and priority compute access'; per-deployment max_replica defaults to 1 (user-adjustable); organization-level concurrent GPU limits exist (docs example: 16 H100) and are raised by contacting Baseten",
-    "notes": "Default org GPU quota for a new Basic workspace is not published. Private-preview Sandboxes: \"An organization can run up to 10 sandboxes at once. To raise this quota, contact Baseten support with your organization ID.\" (https://docs.baseten.co/sandboxes/manage, 2026-10-14).",
+    "notes": "Default org GPU quota for a new Basic workspace is not published. Sandboxes: \"Each organization can run up to 10 sandboxes at once.\"; support raises the limit (https://docs.baseten.co/sandboxes/manage, checked 2026-11-08).",
     "sources": [
       "https://docs.baseten.co/deployment/autoscaling/overview.md",
       "https://docs.baseten.co/llms-full.txt",
@@ -774,16 +778,16 @@
       "value": false,
       "source": "https://docs.baseten.co/inference/model-apis/coding-agents",
       "quote": "Use [Baseten Switch](/reference/cli/baseten-switch) to route requests from Claude Code or Codex CLI to Model APIs.",
-      "note": "Baseten's coding-agent features are an LLM routing CLI (Baseten Switch) and an MCP/skill to manage the workspace. The private-preview Sandboxes product runs an agent's tool calls (exec, files, per-sandbox MCP tools: \"To have your coding agent work in it, let the agent run the same CLI commands.\", https://docs.baseten.co/sandboxes/overview), but there is no first-party API that runs or drives an agent harness inside a sandbox.",
-      "checked": "2026-10-14"
+      "note": "Baseten's coding-agent features are an LLM routing CLI (Baseten Switch) and an MCP/skill to manage the workspace. The Sandboxes product runs an agent's tool calls (exec, files, per-sandbox MCP tools: \"To have your coding agent work in it, let the agent run the same CLI commands.\", https://docs.baseten.co/sandboxes/overview), but there is no first-party API that runs or drives an agent harness inside a sandbox.",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": true,
       "source": "https://docs.baseten.co/development/model/egress-restrictions",
       "quote": "Egress restrictions limit a deployment's outbound traffic to an allow list of IP ranges and domains that you define in its config.yaml, so you can lock down a sensitive model without affecting any other deployment in your organization.",
-      "note": "Per-deployment runtime.egress_restrictions with ip_allow_list (public IPv4 / CIDR only, no IPv6) and fqdn_allow_list (wildcards anywhere in a label); both empty blocks all egress. Gated: \"Egress restrictions must be enabled for your organization. Contact support to request access.\" Fixed per deployment version (\"Allow lists can't be updated in place on an existing deployment\"). Model deployments only, not Chains or training jobs, and traffic through the BDN proxy bypasses it. Enterprise single-tenant can also run replicas without direct internet access (https://docs.baseten.co/hosting-options/single-tenant). Not documented for Sandboxes.",
+      "note": "Per-deployment runtime.egress_restrictions with ip_allow_list (public IPv4 / CIDR only, no IPv6) and fqdn_allow_list (wildcards anywhere in a label); both empty blocks all egress. Gated: \"Egress restrictions must be enabled for your organization. Contact support to request access.\" Fixed per deployment version (\"Allow lists can't be updated in place on an existing deployment\"). Model deployments only, not Chains or training jobs, and traffic through the BDN proxy bypasses it. Enterprise single-tenant can also run replicas without direct internet access (https://docs.baseten.co/hosting-options/single-tenant). Not documented for Sandboxes (checked 2026-11-08).",
       "level": "both",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": true,
@@ -796,8 +800,8 @@
       "value": false,
       "source": "https://docs.baseten.co/inference/ssh",
       "quote": "Your container runs as the non-root `app` user.",
-      "note": "Kubernetes containers (Calico/Cilium network isolation); 'Workloads and nodes run with minimal privileges'. No root or NET_ADMIN, so iptables/nftables inside is not possible.",
-      "checked": "2026-09-29",
+      "note": "Model deployments: Kubernetes containers, non-root app user, so iptables/nftables inside is not possible. The sandbox docs do not state the user or a guest firewall.",
+      "checked": "2026-11-08",
       "derived": true
     },
     "secret_proxy": {
@@ -839,50 +843,50 @@
       "value": false,
       "source": "https://docs.baseten.co/inference/ssh",
       "quote": "Your container runs as the non-root `app` user.",
-      "note": "not offered: outside the product's scope. Model containers are single-purpose serving containers with no root/privileged access; running Docker-in-Docker is not documented.",
-      "checked": "2026-09-30"
+      "note": "Model deployments run as the non-root app user; Docker-in-Docker is not documented. The sandbox docs do not document root, Docker or /dev/kvm; the sandboxes mode leaves docker_inside unknown.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
       "source": "https://docs.baseten.co/inference/ssh",
       "quote": "Your container runs as the non-root `app` user.",
-      "note": "not offered: outside the product's scope. No /dev/kvm or nested virtualization documented for a non-root Kubernetes pod.",
-      "checked": "2026-09-30"
+      "note": "Model deployments: no /dev/kvm for a non-root container. The sandbox docs do not document /dev/kvm.",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. Baseten is a model-serving/inference platform, not a desktop/VNC provider. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. Baseten is a model-serving/inference platform, not a desktop/VNC provider. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. No managed browser product is documented. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. No managed browser product is documented. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. No screenshot/click desktop-driving API is documented. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. No screenshot/click desktop-driving API is documented. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. Baseten serves models, not stealth/anti-bot browsing infrastructure. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. Baseten serves models, not stealth/anti-bot browsing infrastructure. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. No CAPTCHA-solving feature documented; not relevant to a model-serving GPU cloud. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. No CAPTCHA-solving feature documented; not relevant to a model-serving GPU cloud. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "egress_ip_type": {
       "value": "datacenter",
@@ -916,15 +920,15 @@
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. Baseten scales by adding fresh replicas from the same image, not by cloning a running machine's state. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. Baseten scales by adding fresh replicas from the same image, not by cloning a running machine's state. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. No clone-a-running-machine capability documented. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. No clone-a-running-machine capability documented. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
@@ -937,15 +941,15 @@
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Choose 'Enabled' switch to pause it without removing it.",
-      "note": "The 'Enabled' toggle removes/disables a deployment (scales to zero replicas) rather than pausing a live machine with reduced billing state preserved; pause/resume documented elsewhere refers to rolling-deployment traffic promotion, not machine pause. No true machine-level pause/resume with preserved state is documented. Model deployments only: the private-preview sandboxes mode does pause (https://docs.baseten.co/sandboxes/lifecycle: \"`DEACTIVATED`: the sandbox is on standby. Its files and processes persist, and the next request resumes it.\"), set in its mode features.",
-      "checked": "2026-10-14"
+      "note": "The Enabled toggle scales a model deployment to zero replicas; no machine-level pause with preserved state is documented for model deployments. Sandboxes do pause: \"On standby, it keeps its files and running processes, and you pay only for its storage.\" (https://docs.baseten.co/sandboxes/lifecycle), set in the sandboxes mode features.",
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
       "value": false,
       "source": "https://docs.baseten.co/development/model/runtime-caching",
       "quote": "It's a volume mounted over the network onto each of your replicas",
-      "note": "Container filesystem itself is ephemeral per replica; durable storage is via BDN volumes (versioned/read-only) or b10cache (explicitly a cache, not durable), not a generic persistent root disk that survives stop/start of a given machine. Model deployments only: sandbox files persist on standby until deletion or expiry (default 7 days after creation), set in the sandboxes mode features.",
-      "checked": "2026-10-14"
+      "note": "Model deployments: the container filesystem is per replica and ephemeral; durable storage is BDN volumes (versioned, read-only) or b10cache (a cache, not durable). Sandboxes: files persist on standby until deletion or expiry (7 days after creation by default, configurable), and sandbox volumes keep files after deletion (https://docs.baseten.co/sandboxes/volumes). Set in the sandboxes mode features.",
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
@@ -965,15 +969,15 @@
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. Baseten is a model-inference/training platform; it has no first-party browser/computer-use/research task agent product. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. Baseten is a model-inference/training platform; it has no first-party browser/computer-use/research task agent product. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "mcp_server": {
       "value": true,
       "source": "https://docs.baseten.co/llms-full.txt",
       "quote": "Add the backend MCP server at https://api.baseten.co/mcp with the header \"Authorization: Bearer $BASETEN_MCP_KEY\". Add the docs MCP server at https://docs.baseten.co/mcp.",
-      "note": "Backend MCP server (workspace management) plus docs MCP server; each private-preview sandbox also exposes its own MCP endpoint at https://<sandbox-url>/mcp with tools for commands and file edits (https://docs.baseten.co/sandboxes/manage).",
-      "checked": "2026-10-14"
+      "note": "Backend MCP server (workspace management) plus docs MCP server; each sandbox also exposes its own MCP endpoint at https://<sandbox-url>/mcp with tools for commands and file edits (https://docs.baseten.co/sandboxes/manage).",
+      "checked": "2026-11-08"
     },
     "lang_python": {
       "value": true,
@@ -1014,22 +1018,22 @@
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. All model deployment compute is Linux containers; Windows only appears as a client OS for the CLI/SSH tooling. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. All model deployment compute is Linux containers; Windows only appears as a client OS for the CLI/SSH tooling. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "macos": {
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. No macOS compute product; macOS only appears as a client OS (CLI, Baseten Switch) for developers. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. No macOS compute product; macOS only appears as a client OS (CLI, Baseten Switch) for developers. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": false,
       "source": "https://docs.baseten.co/deployment/resources",
       "quote": "Every deployed model runs on an instance, a dedicated set of CPU, memory, and optional GPU resources.",
-      "note": "not offered for model deployments. Baseten's deployment compute (GPU and CPU-only instances) is x86_64; ARM only appears for client-side CLI binaries (macOS arm64 laptops), not server-side compute. The private-preview Sandboxes pages (overview, lifecycle, manage) document none either.",
-      "checked": "2026-10-14"
+      "note": "not offered for model deployments. Baseten's deployment compute (GPU and CPU-only instances) is x86_64; ARM only appears for client-side CLI binaries (macOS arm64 laptops), not server-side compute. The Sandboxes pages (overview, lifecycle, manage, volumes, previews) document none either.",
+      "checked": "2026-11-08"
     },
     "open_source": {
       "value": false,

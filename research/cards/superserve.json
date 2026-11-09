@@ -30,8 +30,8 @@
       "ram_fixed_per_vcpu": null,
       "vcpu_options": null,
       "min_vcpu": 1,
-      "max_vcpu": 10,
-      "max_ram_gib": 20,
+      "max_vcpu": 16,
+      "max_ram_gib": 64,
       "sizes": null,
       "pool_tiers": null,
       "requires_always_on": false,
@@ -44,7 +44,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "$0.000014/vCPU-s and $0.0000045/GiB-s (effective 2026-06-17 per public billing API). Memory is 'allocated memory, billed per second of active runtime'. Shape is fixed per template: docs build-spec lists 1-4 vCPU, 256-4096 MiB RAM, 1-8 GiB disk, but the OpenAPI ceiling is 10 vCPU / 20480 MiB / 65536 MiB (used here); new teams capped at 2 vCPU / 2 GiB until support raises it. Paused = no compute. Auto-pause (timeoutSeconds, max 7 d) is off by default and counts active time, not idleness: a forgotten sandbox bills until paused/killed. Basis check 2026-09-28: vCPU 'Per-second billing. Pay only while sandboxes are running.'; memory 'Allocated memory, billed per second of active runtime.' (https://superserve.ai/pricing): 'active runtime' means the running state, not CPU use, so alloc/alloc. Auto-pause 'is a cap on active time, not idle time' and is off by default (https://docs.superserve.ai/sandbox/lifecycle), so auto_stop_idle stays false."
+      "note": "$0.000014/vCPU-s and $0.0000045/GiB-s (effective 2026-06-17 per public billing API; pricing page 2026-11-08: $0.0504 per vCPU-hour, $0.0162 per GiB-hour, same on every plan). Billed on allocated vCPU and RAM while the sandbox is active. Shape is fixed per template and capped by plan (build-spec 2026-11-08): Free 2 vCPU / 4 GiB, Developer 4 vCPU / 16 GiB, Pro 16 vCPU / 64 GiB. Paused = no compute. Two opt-in auto-pause timers: idleTimeoutSeconds (60 s to 7 d with no activity) and timeoutSeconds (cap on active time). Both are unset by default."
     }
   ],
   "storage": {
@@ -75,21 +75,35 @@
   },
   "plans": [
     {
-      "name": "Pay-as-you-go",
-      "fee": 0,
+      "name": "Developer",
+      "fee": 20,
       "flags": [],
       "fee_is_credit": false,
-      "included_usd": 0,
+      "included_usd": 20,
       "per_seat": 0,
-      "concurrency": 20,
+      "concurrency": 100,
       "max_session_h": null,
-      "max_vcpu": 10,
-      "max_ram_gib": 20,
+      "max_vcpu": 4,
+      "max_ram_gib": 16,
       "sizes_allowed": null,
-      "note": "No fee, no card to start. Per-team active-sandbox limit (429 too_many_sandboxes) defaults to 20 for new teams: not on the pricing page or docs, but set in vendor source (team.max_sandboxes DEFAULT 20, migration 20260612000001) and printed in the 429 message ('team has reached the limit of %d sandboxes'). Paused sandboxes do not count; raise via support. New teams capped at 2 vCPU / 2 GiB per sandbox."
+      "note": "$20/month, 'Includes $20 of usage' (fee 20 + included 20 = you pay the larger of $20 and usage). 'Up to 100 concurrent sandboxes', 'Up to 4 vCPU and 16 GiB memory per sandbox', 'Unlimited runtime'. Paused sandboxes do not count toward concurrency (OpenAPI). https://superserve.ai/pricing, checked 2026-11-08."
     },
     {
-      "name": "Enterprise (on-prem)",
+      "name": "Pro",
+      "fee": 250,
+      "flags": [],
+      "fee_is_credit": false,
+      "included_usd": 250,
+      "per_seat": 0,
+      "concurrency": 2000,
+      "max_session_h": null,
+      "max_vcpu": 16,
+      "max_ram_gib": 64,
+      "sizes_allowed": null,
+      "note": "$250/month, 'Includes $250 of usage'. 'Up to 2,000 concurrent sandboxes', 'Up to 16 vCPU and 64 GiB memory per sandbox', 'Unlimited runtime'. Self-serve. https://superserve.ai/pricing, checked 2026-11-08."
+    },
+    {
+      "name": "Enterprise",
       "fee": null,
       "flags": [
         "sales"
@@ -102,12 +116,12 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "On-premise deployment and dedicated support; contact sales. Pricing unpublished."
+      "note": "Custom price ('Volume pricing available'), custom concurrency and sandbox sizes, dedicated hardware, BYOC: 'Deploy in your own VPC on AWS, GCP, or Azure (early partners)'. Self-hosting / on-premise is no longer listed. https://superserve.ai/pricing, checked 2026-11-08."
     }
   ],
   "free": {
     "monthly_credit": 0,
-    "one_time_credit": 100
+    "one_time_credit": null
   },
   "features": {
     "linux": true,
@@ -120,8 +134,9 @@
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
+    "persist_scope": "whole",
     "volumes": true,
-    "auto_stop_idle": false,
+    "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
@@ -141,14 +156,14 @@
     "egress_allowlist": true,
     "static_egress_ip": false,
     "private_network": false,
-    "self_host": true,
+    "self_host": null,
     "byoc": true,
     "open_source": false,
     "regions": [
       "us"
     ],
-    "soc2": true,
-    "hipaa": true,
+    "soc2": null,
+    "hipaa": null,
     "sso": false,
     "lang_python": true,
     "lang_node": true,
@@ -193,24 +208,24 @@
   "perf": {
     "cpu_runs_s": null,
     "cold_start_ms": 316.3,
-    "burst_tti_ms": 516.33,
-    "dax_s": 94.14
+    "burst_tti_ms": 496.76,
+    "dax_s": 59.36
   },
-  "perf_source": "benchmarks.json computesdk: cold_start_tti median 316.3 ms (2026-08-07), burst_tti median 516.33 ms at 100 concurrency (2026-09-25), DAX total 94.14 s (2026-09-25; env 8 logical CPUs / 15.7 GiB / x86_64 - larger than the documented 4 vCPU ceiling, so the benchmark account likely had raised limits). No hpc CPU run.",
+  "perf_source": "ComputeSDK (each provider at its SDK default size and runtime): burst 497 ms median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 59.36 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86); one-at-a-time start 316 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [],
   "caveats": [
-    "Per-sandbox shape is fixed per template. Platform ceiling is 10 vCPU / 20 GiB RAM / 64 GiB disk (OpenAPI schema + controlplane absoluteMax* constants; the docs build-spec table still shows the older 4 vCPU / 4096 MiB / 8192 MiB). New teams are capped at 2 vCPU / 2 GiB / 8 GiB disk and 10 templates; larger shapes need an email to support. A 4 vCPU / 8 GiB workload is feasible only after support raises the cap.",
-    "Storage $0.000108/GiB-h (= $0.07884/GiB-month at 730 h) is on the pricing page ('Paused sandboxes are billed only for storage'), but the public billing API (effective 2026-06-17) marks storage billable:false and the usage-series docs say storage 'remains tracked-only and is excluded' from billed totals. Card uses the published list price; today's invoices appear to charge $0 for storage/snapshots. Whether running-sandbox disk is also metered as storage is not stated.",
-    "Paused sandboxes are kept forever by default (autoDeleteSeconds optional, max 30 days); with storage unbilled they currently cost nothing.",
-    "Auto-pause is opt-in and based on active time, not idleness: an idle but running sandbox bills full allocated vCPU+RAM.",
-    "Free credit: pricing page only says 'Start for free, no credit card'. Vendor source code (superserve-ai/sandbox PR #454, merged 2026-09-25) shows a $5 signup trial grant plus a $95 activation bonus on Stripe checkout (card added), one redemption per user; encoded as one_time_credit 100 (not on the pricing page).",
+    "Plans (pricing page, checked 2026-11-08): Developer $20/month with $20 of usage included, 100 concurrent sandboxes, up to 4 vCPU / 16 GiB per sandbox; Pro $250/month with $250 included, 2,000 concurrent, up to 16 vCPU / 64 GiB; Enterprise custom. Plan changes are self-serve. The build spec also lists a Free max of 2 vCPU / 4 GiB.",
+    "Free use: the pricing page says 'Start free, no card required. Then pay for usage.' The docs say 'A new account gets a limited free trial for its first sandbox.' The trial amount is not published, so the card does not count a credit.",
+    "Per-sandbox shape is fixed per template ('sandboxes inherit these and cannot override them per-sandbox'). Disk limits per plan are not listed on the build-spec page.",
+    "Storage: $0.000108/GiB-h (= $0.07884/GiB-month at 730 h) on the pricing page. The docs say storage is billed copy-on-write: a shared template counts once and each sandbox pays for its own retained changes, paused sandboxes included. The public billing API (checked 2026-11-08) still marks storage billable:false. The card uses the published price.",
+    "Paused sandboxes are kept until deleted (autoDeleteSeconds is optional).",
+    "Auto-pause is opt-in. idleTimeoutSeconds pauses after 60 s to 7 days with no activity. Running commands and open terminals count as activity; outbound traffic and background processes started with nohup or & do not. timeoutSeconds caps active time. Both are unset by default.",
     "Startup program: up to $50k credits (application).",
     "Egress/ingress not metered in the public rate card (only vcpu, memory_gib, storage_gib meters exist); not stated as free, so null.",
     "Billing granularity per second; minimum billed time not published. Regions not documented (API is cell-based).",
-    "Rates are identical to E2B's list rates.",
-    "Active-sandbox cap of 20 per team (concurrency) is from vendor source and the 429 message, not the pricing page or docs; support can raise it, with no published higher tier or turnaround, so 50+ parallel scenarios show as not fitting self-serve.",
-    "Other per-team limits: 100 snapshots per team, 20 per sandbox, 4 in flight (docs, raisable via support); API request rate 50 req/s with burst 150 per team (vendor source ratelimit.go, not documented).",
-    "Vendor source (migration 20260929000001_prospective_storage_billing) adds a per-team storage-billing activation cutoff; the public billing API still marks storage billable:false, so the listed $0.000108/GiB-h storage may start being invoiced team by team."
+    "Usage rates are identical to E2B's list rates.",
+    "Other per-team limits: 100 snapshots per team, 20 per sandbox, 4 in flight (docs, raisable via support).",
+    "SOC 2, HIPAA, GDPR and Y Combinator backing are no longer stated on superserve.ai or the pricing page (checked 2026-11-08), so soc2 and hipaa are null. The pricing page links a trust center that was not checked."
   ],
   "sources": [
     "https://superserve.ai/pricing",
@@ -220,47 +235,55 @@
     "https://docs.superserve.ai/sandbox/lifecycle",
     "https://docs.superserve.ai/templates/build-spec",
     "https://docs.superserve.ai/errors",
-    "https://raw.githubusercontent.com/superserve-ai/sandbox/refs/heads/main/api/openapi.yaml",
-    "https://github.com/superserve-ai/sandbox/pull/454",
-    "https://github.com/superserve-ai/sandbox/blob/main/supabase/migrations/20260612000001_lower_default_limits.sql",
+    "https://docs.superserve.ai/llms-full.txt",
     "https://www.computesdk.com/benchmarks/sandboxes/"
   ],
   "fleet": {
-    "default_max_instances": 20,
+    "default_max_instances": 100,
     "default_max_vcpu": null,
     "default_max_gpus": null,
-    "raise": "ticket",
-    "raise_time_days": null,
-    "verification": "No credit card to start.",
+    "raise": "self-serve",
+    "raise_time_days": 0,
+    "verification": "No card to start; a paid plan is needed after the free trial.",
     "tiers": null,
-    "notes": "Official error docs enforce a per-team active sandbox count (429 too_many_sandboxes: pause/delete or contact support); paused sandboxes do not count (OpenAPI). The numeric default (20) is not in public docs; it comes from vendor source (supabase/migrations/20260612000001_lower_default_limits.sql: 'ALTER TABLE team ALTER COLUMN max_sandboxes SET DEFAULT 20;', unchanged by later migrations; new-team creation inserts only name/home_region) and is echoed in the 429 message. Higher limits unpublished; no guaranteed 50/300/1,000 fleet or review SLA. Checked 2026-10-14.",
+    "notes": "Concurrency is set by plan on the pricing page: 'Up to 100 concurrent sandboxes' (Developer, $20/month) and 'Up to 2,000 concurrent sandboxes' (Pro, $250/month); Enterprise is custom. A plan upgrade is self-serve. Paused sandboxes do not count (OpenAPI). Over the cap the API returns 429 too_many_sandboxes (docs/errors). Checked 2026-11-08.",
     "sources": [
       "https://superserve.ai/pricing",
-      "https://docs.superserve.ai/errors",
-      "https://github.com/superserve-ai/sandbox/blob/main/supabase/migrations/20260612000001_lower_default_limits.sql",
-      "https://github.com/superserve-ai/sandbox/blob/main/internal/api/handlers.go"
+      "https://docs.superserve.ai/errors"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 2,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 15
   },
+  "audit_2026_11_08": {
+    "applied": 11,
+    "source": "fairness audit: plans, sizes, concurrency, idle auto-pause, deployment, license, compliance re-checked on superserve.ai/pricing and docs.superserve.ai",
+    "reviewed": 13
+  },
   "feature_evidence": {
     "concurrency": {
-      "value": 20,
-      "source": "https://github.com/superserve-ai/sandbox/blob/main/supabase/migrations/20260612000001_lower_default_limits.sql",
-      "quote": "-- max_sandboxes default 100 -> 20; bumps rows still on the old default. Templates default in code.\nALTER TABLE team ALTER COLUMN max_sandboxes SET DEFAULT 20;",
-      "note": "Vendor source, not a public pricing/docs page. The 429 handler prints the team's value: \"team has reached the limit of %d sandboxes; delete some or contact support@superserve.ai for higher\" (internal/api/handlers.go). Public docs (https://docs.superserve.ai/errors) only say: \"Team has reached its active sandbox count limit. Pause/delete one or contact support.\" OpenAPI: 'paused sandboxes do not count'. No later migration changes the default and create_team_with_signup_trial inserts only name/home_region, so new teams get 20. Raise via support (no published higher tier).",
-      "checked": "2026-10-14"
+      "value": 100,
+      "source": "https://superserve.ai/pricing",
+      "quote": "Up to 100 concurrent sandboxes",
+      "note": "Developer plan ($20/month). Pro ($250/month): 'Up to 2,000 concurrent sandboxes'. Enterprise: 'Custom concurrency and sandbox sizes'. Paused sandboxes do not count (OpenAPI).",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://docs.superserve.ai/sandbox/lifecycle.md",
+      "quote": "`pause()` checkpoints the full VM state (memory, processes, filesystem) to disk and stops billing for compute.",
+      "note": "Pause is the stop: the whole filesystem and memory survive, and 'Resume restores full memory and filesystem.' Paused sandboxes are kept until deleted (autoDeleteSeconds optional) and pay storage only.",
+      "checked": "2026-11-08"
     },
     "snapshot_auto": {
       "value": true,
       "source": "https://docs.superserve.ai/sandbox/lifecycle.md",
-      "quote": "Set `timeoutSeconds` to auto-pause a sandbox after it has been active for that long. Pausing checkpoints its state and stops compute billing, so a sandbox you forget about won't keep running and billing.",
-      "note": "Opt-in (off by default); trigger is a cap on active time, not idleness ('It's a cap on active time, not idle time'). Memory included: 'Resume restores full memory and filesystem.' Next commands.run()/file op/connect() auto-resumes. No idle-based pause.",
-      "checked": "2026-09-29"
+      "quote": "Set `idleTimeoutSeconds` to auto-pause a sandbox after this many seconds with no activity.",
+      "note": "Opt-in, unset by default. Two timers: idleTimeoutSeconds (60 s to 7 d with no activity) and timeoutSeconds (cap on active time). Memory included: 'Resume restores full memory and filesystem.' Next commands.run()/file op/connect() auto-resumes.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -317,7 +340,7 @@
       "value": false,
       "source": "https://docs.superserve.ai/api-reference/sandboxes/create-a-new-sandbox.md",
       "quote": null,
-      "note": "No first-party volume: create-sandbox schema has no volume/mount field and the docs never mention volumes. Storage docs are guides for third-party FUSE mounts inside the VM: Archil elastic disks, Mesa versioned filesystems, S3/GCS/R2 buckets (mountpoint-s3/gcsfuse/rclone style). Disk per sandbox is fixed by template (platform ceiling 8 GiB in docs).",
+      "note": "No first-party volume: create-sandbox schema has no volume/mount field and the docs never mention volumes. Storage docs are guides for third-party FUSE mounts inside the VM: Archil elastic disks, Mesa versioned filesystems, S3/GCS/R2 buckets (mountpoint-s3/gcsfuse/rclone style). Disk per sandbox is fixed by template.",
       "checked": "2026-09-29"
     },
     "volume_shared": {
@@ -329,10 +352,10 @@
     },
     "nested_virt": {
       "value": false,
-      "source": "https://docs.superserve.ai/templates/build-spec.md",
-      "quote": "Powered by Firecracker MicroVMs.",
-      "note": "Not documented anywhere (no /dev/kvm, nested virtualization, or 'run VMs inside your sandbox' mention across docs/build-spec/OpenAPI). Firecracker microVMs do not expose hardware virtualization extensions to the guest by default, so nested KVM is not available; derived.",
-      "checked": "2026-09-30"
+      "source": "https://docs.superserve.ai/llms-full.txt",
+      "quote": "run inside an isolated Firecracker microVM instead of on your machine.",
+      "note": "Not documented (no /dev/kvm or nested virtualization mention in the docs). Firecracker microVMs do not expose hardware virtualization extensions to the guest by default, so nested KVM is not available; derived.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
@@ -408,7 +431,7 @@
       "value": false,
       "source": "https://docs.superserve.ai/api-reference/rbac/add-or-invite-a-team-member.md",
       "quote": "Get team management state ... Returns the caller-visible team members, role assignments, and capability flags used by customer-facing member management UI.",
-      "note": "Team membership is managed by email invite plus role assignment; no SAML/OIDC/SSO endpoint, field, or mention exists anywhere in the RBAC API, docs, pricing, or enterprise page (enterprise plan only advertises 'on-premise deployment and dedicated support').",
+      "note": "Team membership is managed by email invite plus role assignment; no SAML/OIDC/SSO endpoint, field, or mention exists anywhere in the RBAC API, docs, pricing, or enterprise page (Enterprise on the pricing page lists BYOC, dedicated hardware, custom concurrency and dedicated support; no SSO, checked 2026-11-08).",
       "checked": "2026-09-30"
     },
     "eu_data_residency": {
@@ -420,10 +443,10 @@
     },
     "max_session_h": {
       "value": "none",
-      "source": "https://superserve.ai",
-      "quote": "Indefinite sessions - NO 24-HOUR LIMIT",
-      "note": "A sandbox stays active until paused/deleted or an opt-in timeout_seconds cap (off by default, max 7 days for the auto-pause trigger) is set; there is no mandatory maximum runtime after which the platform force-stops a sandbox.",
-      "checked": "2026-09-30"
+      "source": "https://superserve.ai/pricing",
+      "quote": "Unlimited runtime",
+      "note": "Listed on every plan. A sandbox stays active until paused/deleted or an opt-in auto-pause timer fires (idleTimeoutSeconds or timeoutSeconds, both unset by default).",
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
       "value": true,
@@ -437,7 +460,7 @@
       "value": false,
       "source": "https://docs.superserve.ai/llms-full.txt",
       "quote": "system: \"You are a coding assistant with a Linux sandbox.\"",
-      "note": "Superserve is a headless Firecracker microVM sandbox for code exec/agents (exec, files, templates from OCI images); no VNC/RDP/streamed GUI desktop is offered or documented anywhere in the docs.",
+      "note": "No VNC/RDP/streamed GUI desktop, desktop template or desktop example is documented (docs searched 2026-11-08 for desktop, VNC, Xvfb, computer use). Templates accept any linux/amd64 OCI image, but no documented desktop path exists, so not 'diy'.",
       "checked": "2026-09-30"
     },
     "computer_use": {
@@ -448,11 +471,11 @@
       "checked": "2026-09-30"
     },
     "auto_stop_idle": {
-      "value": false,
-      "source": "https://docs.superserve.ai/sandbox/lifecycle",
-      "quote": "It's a cap on active time, not idle time. Running work doesn't reset it, so a task still going when the window elapses is paused mid-run.",
-      "note": "Auto-pause (timeoutSeconds) is opt-in and keyed to cumulative active seconds, not idleness; an idle-but-running sandbox is not detected/stopped. No separate idle-detection feature exists.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://docs.superserve.ai/sandbox/lifecycle.md",
+      "quote": "Set `idleTimeoutSeconds` to auto-pause a sandbox after this many seconds with no activity.",
+      "note": "Opt-in, 60 to 604800 s (7 days); 'By default, the idle timeout is unset, and the sandbox never pauses for being idle.' Commands and open terminals count as activity; outbound traffic and nohup/& background processes do not. A paused sandbox pays storage only.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -491,10 +514,10 @@
     },
     "open_source": {
       "value": false,
-      "source": "https://raw.githubusercontent.com/superserve-ai/sandbox/refs/heads/main/LICENSE",
-      "quote": "Open Core Ventures Source Available License (OCVSAL) version 1.0 ... Using software and associated documentation files (the \"Software\") in production requires a valid commercial agreement from the copyright holder.",
-      "note": "The core sandbox repo (superserve-ai/sandbox, source of the OpenAPI spec) is source-available, not OSI open source; production use needs a paid commercial agreement. Other public superserve-ai repos (langchain-superserve, guides) are example/integration code, not the core product.",
-      "checked": "2026-09-30"
+      "source": "https://superserve.ai",
+      "quote": "The TypeScript and Python SDKs are open source under Apache-2.0.",
+      "note": "Only the SDKs are open source (Apache-2.0, per superserve.ai). The sandbox platform repo (superserve-ai/sandbox) and its LICENSE now return 404. Self-hosting is no longer listed; Enterprise lists BYOC / own VPC instead.",
+      "checked": "2026-11-08"
     },
     "private_network": {
       "value": false,

@@ -66,6 +66,41 @@ test('idle suspension reduces running time charged at the hourly minimum', () =>
   near(price(c, { idleShare: 0.5 }, { idleSuspend: true, idleCapture: 1 }).total, 0.02);
 });
 
+// ---- fairness model (FAIRNESS.md)
+const { priceSoft, testFeature, rankRows, cardChecked, isStale, diyHow, DIY } = globalThis.PM;
+test('a required "diy" feature is a match with your own setup, not a missing feature', () => {
+  const c = card(); c.features.desktop = 'diy';
+  c.feature_evidence = { desktop: { value: 'diy', source: 'https://example.com/vnc', quote: 'q', how: 'install Xvfb + noVNC', effort: 'medium', checked: '2026-11-08' } };
+  assert.equal(testFeature(c.features, 'desktop'), DIY);
+  const r = priceSoft(c, workload, { ...options, required: ['desktop'] });
+  assert.equal(r.eligible, true); assert.ok(!r.soft, JSON.stringify(r.compromises)); assert.deepEqual(r.diy, ['desktop']);
+  assert.equal(diyHow(c).desktop.how, 'install Xvfb + noVNC');
+});
+test('a "diy" row is a full match, ranked after the full matches that include the feature', () => {
+  const cheap = card(); cheap.id = 'cheap'; cheap.features.desktop = 'diy';
+  const dear = card(); dear.id = 'dear'; dear.features.desktop = true; dear.modes[0].vcpu_h *= 3;
+  const o = { ...options, required: ['desktop'] };
+  const R = rankRows([priceSoft(cheap, workload, o), priceSoft(dear, workload, o)], workload);
+  assert.deepEqual(R.meets.map(r => r.card.id), ['dear', 'cheap']); assert.equal(R.soft.length, 0);
+});
+test('a snapshot you restore yourself counts as persistence; a false feature stays missing', () => {
+  assert.equal(testFeature({ persist_scope: 'snapshot' }, 'persistent_disk'), DIY);
+  assert.equal(testFeature({ persist_scope: 'snapshot' }, 'whole_disk'), DIY);
+  assert.equal(testFeature({ persist_scope: 'snapshot', persist_path: '/workspace' }, 'whole_disk'), false);
+  const c = card(); c.features.persist_scope = 'snapshot'; c.features.snapshot = 'fs';
+  const r = priceSoft(c, { ...workload, persistentDisk: true }, options);
+  assert.ok(!r.soft, JSON.stringify(r.compromises)); assert.deepEqual(r.diy, ['persistent_disk']);
+  const d = card(); d.features.desktop = false;
+  assert.equal(priceSoft(d, workload, { ...options, required: ['desktop'] }).soft, true);
+});
+test('start caps of the chosen plan are reported; checked date and staleness come from the card', () => {
+  const c = card(); c.plans = [{ name: 'Pro', fee: 0, concurrency: 10, max_starts_per_min: 12, max_starts_per_day: 200 }];
+  assert.deepEqual(price(c).startLimits, { plan: 'Pro', per_min: 12, per_hour: null, per_day: 200 });
+  c.feature_evidence = { a: { checked: '2026-09-01' }, b: { checked: '2026-10-14' } }; c.audit_2026_09_29 = {};
+  assert.equal(cardChecked(c), '2026-10-14');
+  assert.equal(isStale('2026-10-14', '2026-11-08'), false); assert.equal(isStale('2026-09-29', '2026-11-08'), true);
+});
+
 test('plan credits apply after the allocation minimum', () => {
   const c = card();
   c.plans = [{ name: 'Credit plan', fee: 0.02, included_usd: 0.01, concurrency: 1 }];

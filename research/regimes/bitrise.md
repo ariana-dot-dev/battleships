@@ -12,11 +12,14 @@ The sweep flagged $0.0072-0.0096/min as about 10x too low. They are low because 
 | 6 | Per-minute machine cost, macOS | Any plan that allows the machine | Per minute | Medium M4 5 CPU/6 GB (or M2 Pro 4/6) **$0.0072**; Large M4 5/14 **$0.0096**; 4Large M4 Pro 7/27 $0.0144; X Large M4 10/28 $0.0192; 4X Large M4 Pro 14/54 $0.0293 | same ("How much does a minute on different machines cost?") |
 | 7 | Per-minute machine cost, Linux | same | Per minute | 2S 2/8 $0.0022; M 4/16 $0.0044; 2M 6/24 $0.0066; L 8/32 $0.0089; 4L 14/56 $0.0154; XL 16/56 $0.0177; 3XL 24/96 $0.0264; 5XL 32/128 $0.0352; 7XL 48/192 $0.0528 | same |
 | 8 | Enterprise | 2,000+ builds/month | Custom. Dedicated or self-hosted AWS runners, X Large / M4 Pro machines, up to 4 h builds | Contact sales | same |
-| 9 | Remote Dev Environments / Build Hub | Separate products | Monthly base + per-minute up to caps (e.g. macOS overage $0.0288/min Basic, $0.0576/min Pro) | Not encoded | same |
+| 9 | Remote Dev Environments (RDE) | Dev sessions and long-running agents; no session cap, idle auto-terminate only | Monthly fee + per-minute overage up to a monthly cap per OS, then free for the rest of the month | Basic $20/$40/$60 (1/3/5 VMs); Linux $0.0044/min, cap $39/$117/$195; macOS $0.0288/min, cap $99/$297/$495. Pro costs double. One 4 vCPU / 16 GB Linux agent all month = $59 (Basic T1). Encoded as modes rde-macos, rde-linux (checked 2026-11-08) | same |
+| 10 | Build Hub | GitHub Actions runners | Prepaid monthly compute budget | Basic from $15, Pro from $210. Encoded as mode build-hub-macos | same |
 ## Gotchas
 1. The per-minute figures are a **floor**. The real bill is dominated by the plan fee and by PAYG premium rates, which are not published.
 2. Starter's "unlimited usage" is capped by 4 concurrent Medium machines (6 GB RAM each).
-3. Builds are workflow runs with a 90-240 min timeout. This is not a general sandbox. No Windows.
+3. CI builds are workflow runs with a 90-240 min timeout, and CI Pro offers Linux 2S and L only. For a long-running agent, price RDE (regime 9), not CI Pro. No Windows.
+4. RDE has a REST API, a CLI with headless `session exec --output json`, and an open-source MCP server. It has no API to prompt or steer the agent itself.
+5. RDE keeps a terminated session's disk until you delete it (or its stack is retired), but does not back it up. Self-serve RDE tiers run at most 5 VMs; more needs Enterprise.
 ## Worked example
 Workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days (8,800 h = 528,000 min), 30% CPU, 50 GiB snapshots, 100 GiB egress. Illustrative only: CI jobs, not sessions.
 - **Machine cost** (macOS Large, M4 5/14): 8,800 × $0.576 = **$5,068.80/month**.

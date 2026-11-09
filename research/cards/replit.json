@@ -137,7 +137,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "$0.60 per 1M compute units; 1 CPU-second = 18 CU ($0.03888/vCPU-h), 1 GB-second RAM = 2 CU ($0.00432/GiB-h). Plus $0.40 per 1M requests and a per-deployment base fee ($2/mo on the deployment-pricing page; $1/mo in the Aug-2026 update table: conflict). Billed only while serving requests (concurrent requests share an instance); instance goes idle after 15 min without traffic. Request-driven web apps only, not interactive sandboxes (hence 'alt'). Machine size options and max machines are set in the UI but not published. Verified 2026-09-28: cost is 'a unit of cloud computing based on the CPU and memory you choose'; 'You pay while requests are being served. When your app is idle, it scales to zero and costs nothing to run' (docs.replit.com/features/publishing/machine-configuration.md); 'Pay only when your app serves requests - nothing when idle', instance 'goes idle after 15 minutes of inactivity' (deployment-pricing). So basis = chosen machine size (alloc) during request-serving time only (autoscale_busy_share knob); the 15-min warm tail is not described as billed. MERGED 2026-09-28 with the former 'scheduled' regime (Scheduled deployments: identical $0.60/1M CU rate, $2/mo base fee, cron batch runs; scheduler free)."
+      "note": "$0.60 per 1M compute units; 1 CPU-second = 18 CU ($0.03888/vCPU-h), 1 GB-second RAM = 2 CU ($0.00432/GiB-h). Plus $0.40 per 1M requests and a $2/mo base fee per deployment (deployment-pricing page, re-checked 2026-11-08; the Aug-2026 update table said $1/mo, the live pricing page wins). Billed only while serving requests (concurrent requests share an instance); instance goes idle after 15 min without traffic. Request-driven web apps only, not interactive sandboxes (hence 'alt'). Machine size options and max machines are set in the UI but not published. Verified 2026-09-28: cost is 'a unit of cloud computing based on the CPU and memory you choose'; 'You pay while requests are being served. When your app is idle, it scales to zero and costs nothing to run' (docs.replit.com/features/publishing/machine-configuration.md); 'Pay only when your app serves requests - nothing when idle', instance 'goes idle after 15 minutes of inactivity' (deployment-pricing). So basis = chosen machine size (alloc) during request-serving time only (autoscale_busy_share knob); the 15-min warm tail is not described as billed. MERGED 2026-09-28 with the former 'scheduled' regime (Scheduled deployments: identical $0.60/1M CU rate, $2/mo base fee, cron batch runs; scheduler free)."
     }
   ],
   "storage": {
@@ -357,10 +357,10 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": false,
-    "docker_inside": false,
+    "docker_inside": null,
     "nested_virt": false,
     "root": null,
-    "systemd": false,
+    "systemd": null,
     "browser": false,
     "desktop": true,
     "computer_use": false,
@@ -453,7 +453,8 @@
     "Development workspace time is 'Unlimited' on Core/Pro and not billed per hour, but workspace vCPU/RAM per plan is no longer published (usage docs say 'determined by plan'). THIRD-PARTY ONLY: Core workspace 4 vCPU / 8 GiB, Starter 2 GiB RAM (nocode.mba / eesel.ai / p0stman.com). Hard limit: 20 concurrent Replit Apps per account. Not modelled as a mode.",
     "Agent usage is effort-based (billed per checkpoint by task complexity, at provider API rates) and is deducted from the same credits; Core/Pro get a daily 'Free Mode' allowance. Not modelled.",
     "Reserved VM hourly rates come from the Aug-2026 update table; the deployment-pricing page lists monthly prices ($15/$35/$50/$130) that equal ~720 h. Engine at 730 h gives ~1.4% more. Whether a Reserved VM can be stopped to avoid charges is undocumented, so reserved-vm has requires_always_on=true (verifier 2026-09-28; before, the engine billed it per session hour, the 'unverified' $1,589 scenario in the regime file, instead of the documented always-on $6,500).",
-    "Autoscale base fee conflict (re-confirmed 2026-09-28): deployment-pricing page constants AutoscaleBaseFee '$2' / AutoscaleDeployment '$2.00' vs the Aug-2026 update table 'Autoscale base fee $1 / mo' in both the current and new columns. Unresolved; base fee not modelled (start_fee 0). Autoscale machine sizes and max machines not published. Request fee $0.40/1M not modelled.",
+    "Autoscale and Scheduled deployments each cost a $2/mo base fee per deployment (docs.replit.com/billing/deployment-pricing, re-checked 2026-11-08). The older Aug-2026 update table said $1/mo; the live page wins. Base fee not modelled (start_fee is per start, not per month). Autoscale machine sizes and max machines not published. Request fee $0.40/1M not modelled.",
+    "Replit Agent runs background tasks in parallel: 1 active on Core, 10 on Pro (docs.replit.com/core-concepts/agent, checked 2026-11-08). The MCP server drives Agent per app.",
     "Pro tiers verified from the rendered pricing page 2026-09-29: $100 ($90/mo annual), $250 ($215), $500 ($425), $1,000 ($825), $2,500 ($2,000). The selector labels each tier by its credit amount ('$100 credits'), and the FAQ says 'Pro subscribers get at least $100 in monthly credits'.",
     "Aug 2026 price cut (effective first billing cycle on/after 2026-08-01): CU $3.20 -> $0.60/1M, requests $1.20 -> $0.40/1M, outbound $0.10 -> $0.05/GiB, App Storage $0.03 -> $0.015/GiB-mo, DB storage $1.50 -> $0.35/GiB-mo; Reserved VMs changed per size (dedicated 4/16 $0.22 -> $0.1806/h; legacy shared 1/4 rose $0.042 -> $0.0486/h).",
     "Outbound: 100 GiB/month included for deployments on Core and Pro (plus 100 GiB Core / 1,000 GiB Pro for development), then $0.05/GiB; ingress free. Egress free allowance encoded per account.",
@@ -506,8 +507,8 @@
       "value": true,
       "source": "https://docs.replit.com/platforms/mcp-server",
       "quote": "Start an Agent update for an existing app.",
-      "note": "Replit MCP Server (https://mcp.replit.com/server/mcp, OAuth) drives Replit's own Agent from outside: create_app_from_prompt, update_app_using_prompt (follow-ups), ask_question, list_apps, publish_app, get_publish_status. Replit Agent only (no Claude Code/Codex inside); no documented event streaming or conversation resume; MCP rather than REST SDK.",
-      "checked": "2026-09-29"
+      "note": "Replit MCP Server (https://mcp.replit.com/server/mcp, OAuth) drives Replit's own Agent from outside: create_app_from_prompt, update_app_using_prompt (follow-ups), ask_question, list_apps, publish_app, get_publish_status. Replit Agent only (no Claude Code/Codex inside); no documented event streaming or conversation resume; MCP rather than REST SDK. Agent runs background tasks in parallel: 1 active on Core, 10 on Pro (https://docs.replit.com/core-concepts/agent).",
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": true,
@@ -671,11 +672,20 @@
       "checked": "2026-09-30"
     },
     "docker_inside": {
-      "value": false,
+      "value": null,
+      "was": false,
       "source": "https://docs.replit.com/features/project-setup/configuration",
       "quote": "Replit uses `Nix` to manage packages and environments.",
-      "note": "Replit Apps are configured via .replit/replit.nix and system dependencies are managed through the Nix package manager, not Docker; Replit historically ran on Docker internally (REPL_IMAGE env var exposes the underlying image) but publicly moved app environments to Nix, and no docs describe running/managing Docker containers inside a Replit workspace or deployment.",
-      "checked": "2026-09-30"
+      "note": "Not published. Replit docs manage packages with Nix and do not describe Docker inside a workspace or deployment. No official page says Docker is absent, so the value is null, not false (audit 2026-11-08).",
+      "checked": "2026-11-08"
+    },
+    "systemd": {
+      "value": null,
+      "was": false,
+      "source": "https://docs.replit.com/features/project-setup/configuration",
+      "quote": "Replit uses `Nix` to manage packages and environments.",
+      "note": "Not published. Replit docs do not mention systemd for workspaces or deployments. No official page says it is absent, so the value is null, not false (audit 2026-11-08).",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,

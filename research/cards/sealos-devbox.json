@@ -87,7 +87,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Plan capacity is what you can allocate at once (sum of DevBox/app CPU and memory), shared with managed DBs and object storage. Whether a sleeping (normal shutdown) DevBox still holds its CPU/RAM against the package is undocumented; it does keep its NodePort. [basis verified 2026-09-28] Confirmed flat allocation package (pool mode, basis fields ignored): \"Your plan price covers the resources listed on the plan card ... allocating more resources requires a manual plan upgrade\" (sealos.io/pricing). No usage metering."
+      "note": "Plan capacity is what you can allocate at once (sum of DevBox/app CPU and memory), shared with managed DBs and object storage. Whether a sleeping (normal shutdown) DevBox still holds its CPU/RAM against the package is undocumented; it does keep its NodePort. [basis verified 2026-09-28] Confirmed flat allocation package (pool mode, basis fields ignored): \"Your plan price covers the resources listed on the plan card ... allocating more resources requires a manual plan upgrade\" (sealos.io/pricing). No usage metering. The DevBox product page (sealos.io/products/devbox/, checked 2026-11-08) markets 'Pay only when coding' and 'Pay per use'; on the published packages this means a stopped DevBox can leave room in the package for other DevBoxes and apps, but the package price stays the same."
     },
     {
       "key": "pool-new-user",
@@ -216,8 +216,8 @@
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": false,
-    "desktop": false,
+    "browser": "diy",
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
@@ -270,7 +270,8 @@
     "max_session_unlimited": true,
     "volume_attach": false,
     "secret_proxy": false,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "whole"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -291,7 +292,9 @@
     "DevBox itself is a managed service and not self-hostable (sealos.io/docs/guides/devbox/intro: \"DevBox is not self-hosted\"). Only the underlying Sealos Kubernetes platform can be self-run; it is source-available (Sealos Sustainable Use License), not OSI open source.",
     "No benchmark data.",
     "Plans are aggregate resource pools, not one sandbox of the displayed size: 50 concurrent 4 vCPU / 8 GiB workers need 200 vCPU / 400 GiB allocated at once, so the smallest fitting published pool is Enterprise ($12,451/mo); low CPU utilisation does not shrink the allocation. Taxes/optional services billed separately in Cost Center. (patch v10-regional, 2026-09-28)",
-    "Some Sealos docs (llms.txt and sealos.io/docs/guides/devbox/intro 'How Much Does It Cost?', rechecked 2026-10-14) still list Starter $7 / Hobby $25 as the plain monthly prices; the live pricing page shows these only as first-purchase new-user prices (regular $34 / $70). Use the pricing page."
+    "Some Sealos docs (llms.txt and sealos.io/docs/guides/devbox/intro 'How Much Does It Cost?', rechecked 2026-10-14) still list Starter $7 / Hobby $25 as the plain monthly prices; the live pricing page shows these only as first-purchase new-user prices (regular $34 / $70). Use the pricing page.",
+    "Agent access: a DevBox MCP server lets AI tools 'spin up development environments and run code' (availability varies by region), and Sealos Skills give 8 skills for 9 coding agents (Codex, Claude Code, Gemini CLI and others) to deploy a repo to Sealos Cloud and return a live URL. No sandbox REST API or SDK is documented. (checked 2026-11-08)",
+    "Browser and desktop: DevBox has no built-in desktop. The Sealos App Store has a one-click Chrome template (LinuxServer.io Chrome with a Selkies web desktop on a Sealos HTTPS domain) that runs as a separate app in the same package, not inside the DevBox. (checked 2026-11-08)"
   ],
   "sources": [
     "https://sealos.io/pricing/",
@@ -300,7 +303,10 @@
     "https://sealos.io/docs/guides/devbox/release/",
     "https://sealos.io/docs/guides/devbox/intro",
     "https://sealos.io/blog/ssh-gateway-kubernetes-nodeport-solution/",
-    "https://github.com/labring/sealos"
+    "https://github.com/labring/sealos",
+    "https://sealos.io/docs/AI/mcp",
+    "https://sealos.io/sealos-skills",
+    "https://sealos.io/products/app-store/chrome/"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -326,8 +332,22 @@
       "value": true,
       "source": "https://sealos.io/docs/advanced/architecture",
       "quote": "System auto-saves user environment changes under specific conditions",
-      "note": "Filesystem only (no memory/processes): changes are \"packaged as image layers\" and committed to an internal registry; \"On subsequent startups, system boots from the most recent image\". The trigger ('specific conditions', presumably shutdown) is not specified. Two shutdown modes exist: normal (keeps its NodePort) and cold (releases it) (SSH gateway blog). This is how DevBox persistence works, not a separately controllable feature.",
-      "checked": "2026-09-29"
+      "note": "Filesystem only (no memory/processes): changes are \"packaged as image layers\" and committed to an internal registry; \"On subsequent startups, system boots from the most recent image\". The trigger ('specific conditions') is not specified. The DevBox docs (llms.txt) say: \"Stop and resume anytime without losing state.\" This is how DevBox persistence works, not a separately controllable feature. NodePort shutdown modes (normal keeps the port, cold releases it) are on the SSH gateway blog, not this page.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://sealos.io/docs/advanced/architecture",
+      "quote": "On subsequent startups, system boots from the most recent image",
+      "note": "The whole DevBox filesystem is committed as image layers and comes back on the next start; llms.txt: \"Your workspace persists between sessions. Stop and resume anytime without losing state.\" Filesystem only, no memory or processes.",
+      "checked": "2026-11-08"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://sealos.io/docs/AI/mcp",
+      "quote": "Spin up development environments and run code",
+      "note": "DevBox MCP server for AI tools; Sealos also lists Database, Cost Center and Observability MCP servers. Availability varies by region. Sealos Skills (sealos.io/sealos-skills) add 8 agent skills for 9 coding agents to deploy apps to Sealos Cloud.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -372,11 +392,13 @@
       "checked": "2026-09-30"
     },
     "browser": {
-      "value": false,
-      "source": "https://sealos.io/docs/guides/devbox/intro",
-      "quote": "DevBox is a fully-managed cloud development environment built on Kubernetes. It provides consistent, production-ready workspaces accessible from any device, through your favorite IDE.",
-      "note": "not offered: outside the product's scope — DevBox is a coding/dev-environment product (SSH/IDE/terminal access), not a browser-automation product.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://sealos.io/products/app-store/chrome/",
+      "quote": "Chrome runs as a single browser desktop service that you access through a web-based interface.",
+      "how": "deploy the Sealos App Store Chrome template next to the DevBox in the same package; it runs as a separate app, and no CDP endpoint is documented",
+      "effort": "medium",
+      "note": "DevBox itself ships no browser. The template runs LinuxServer.io Chrome with a Selkies web desktop on port 3000 behind a Sealos-managed HTTPS domain, with a 1 GiB volume for the profile.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -512,18 +534,20 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
-      "source": "https://sealos.io/llms.txt",
-      "quote": "In the [Sealos Desktop](https://os.sealos.io), click on the \"DevBox\" icon to enter the DevBox application.",
-      "note": "\"Sealos Desktop\" is the name of the web management console (os.sealos.io), not a VNC/RDP graphical desktop for the DevBox itself. DevBox is a headless container reached via SSH/Cursor/VS Code Remote; no streamed GUI/VNC/RDP is documented anywhere in the docs or llms.txt.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://sealos.io/products/app-store/chrome/",
+      "quote": "Chrome StatefulSet: Runs the LinuxServer.io Chrome container with a web-accessible Selkies desktop.",
+      "how": "deploy the Sealos App Store Chrome template (Selkies web desktop) as a separate app in the same package; DevBox itself has no built-in desktop",
+      "effort": "medium",
+      "note": "\"Sealos Desktop\" (os.sealos.io) is the web management console, not a desktop for the DevBox. DevBox is reached through SSH, Cursor, VS Code Remote or a browser terminal; no desktop stream inside a DevBox is documented.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://sealos.io/docs/guides/devbox",
       "quote": "Zero infrastructure overhead – No Kubernetes expertise required. DevBox handles orchestration, scaling, and networking.",
-      "note": "DevBox is a remote coding runtime (SSH + IDE remote dev), not a GUI environment. No screenshot/click computer-use API is documented; not offered: outside the product's scope.",
-      "checked": "2026-09-30"
+      "note": "DevBox is a remote coding runtime (SSH and IDE access). No screenshot or click API is documented. A web desktop is available as a separate App Store app (see desktop), but no computer-use control API for it is documented.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -536,8 +560,8 @@
       "value": false,
       "source": "https://sealos.io/llms.txt",
       "quote": "Public templates: Community-shared templates accessible to all users for creating common DevBox runtimes.",
-      "note": "The DevBox Template Market templates are language/framework runtime presets (e.g. Python, Java, Go, Next.js) for setting up a coding environment, not preinstalled coding-agent harnesses (Claude Code/Codex/OpenCode). The only agent-adjacent artifact found is labring's own codex-gateway (self-deployed OSS repo, already captured under harness_api), not a first-party managed template/offering.",
-      "checked": "2026-09-30"
+      "note": "The DevBox Template Market templates are language/framework runtime presets (e.g. Python, Java, Go, Next.js) for setting up a coding environment, not preinstalled coding-agent harnesses (Claude Code/Codex/OpenCode). Agent-adjacent offerings: labring's own codex-gateway (self-deployed, see harness_api), a DevBox MCP server (see mcp_server), and Sealos Skills (sealos.io/sealos-skills: 8 skills for 9 coding agents that run outside Sealos and deploy to it). None preinstalls a coding-agent harness in the DevBox.",
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,

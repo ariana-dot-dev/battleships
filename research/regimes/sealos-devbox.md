@@ -29,7 +29,9 @@ Hourly equivalents (price / 730 h): Starter $0.0466, Hobby $0.0959, Standard $0.
 1. **RAM is thin on the cheap plans** (1 GiB per vCPU on Starter/Hobby). Any 2 GiB-per-vCPU workload jumps to Standard or higher.
 2. **Resources are pooled across everything** in the plan (DBs, apps, object storage), not per DevBox.
 3. **Idle time is not rewarded.** The package costs the same at 1% or 100% usage. Sealos's own calculator puts break-even vs Railway at about 16% average utilisation.
-4. **NodePorts are a hidden cap** (4/8/16 on the small plans). Sleeping DevBoxes still hold theirs unless cold-shut-down.
+4. **NodePorts are a cap** (4/8/16/32 on Starter/Hobby/Standard/Pro). Since the SSH gateway (2026-01-22), SSH uses no NodePort. Only exposed services use them, and a normally shut-down DevBox keeps its port unless cold-shut-down.
+7. A stopped DevBox can leave room in the package for other workloads ("Pay only when coding", sealos.io/products/devbox/), but the package price stays the same.
+8. No built-in desktop. The App Store Chrome template (Selkies web desktop) runs as a separate app in the same package (https://sealos.io/products/app-store/chrome/, checked 2026-11-08).
 5. Traffic caps are hard package limits, and no per-GB overage price is published.
 6. Package stacking (e.g. 4 × Team instead of Enterprise) is not documented.
 ## Worked example

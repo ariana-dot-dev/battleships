@@ -28,4 +28,4 @@ Public Price Information Model JSON retrieved on 2026-09-28. Decode attributes.v
 ## Sources
 - https://pim.api.stackit.cloud/v1/skus
 - https://stackit.com/en/prices
-- https://stackit.com/en/asset/download/37788/file/STACKIT_price_list.pdf?version=18
+- https://stackit.com/en/asset/download/37788/file/STACKIT_price_list..pdf?version=32 (re-checked 2026-11-08: same server prices; "invoiced ... per billing unit or part thereof", server billing unit "per hour")

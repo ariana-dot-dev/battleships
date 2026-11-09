@@ -1,13 +1,13 @@
-# Sprites (Fly.io): pricing regimes (as of 2026-09-28)
-Sprites are persistent Firecracker microVMs for agents. Each Sprite always has **8 vCPUs** and a **100 GB** filesystem ceiling; memory is platform-managed (8 GB in practice, 16 GB advertised "not available yet"). Billing is **usage-based on what the VM actually consumes while awake**:
-- CPU on cumulative CPU time (`cpu.stat`), $0.07/CPU-hour,
-- memory on actual usage, $0.04375/GB-hour,
+# Sprites (Fly.io): pricing regimes (as of 2026-11-08)
+Sprites are persistent Firecracker microVMs for agents. Each Sprite always has **8 vCPUs** and a **100 GB** filesystem ceiling; memory autoscales from 2 GB up to 16 GB on demand (release note 2026-03-25). Billing is **usage-based on what the VM actually consumes while awake**:
+- CPU on cumulative CPU time (`cpu.stat`), $0.0385/CPU-hour (since 2026-10-01; was $0.07),
+- memory on actual usage, $0.021875/GB-hour (since 2026-10-01; was $0.04375),
 - storage on bytes written: **hot** $0.000683/GB-h while awake, **cold** $0.000027/GB-h for as long as data is kept.
-The pricing section says "No plans and no tiers, and nothing charged per Sprite", but the FAQ on the same page and Fly's 2026-09-09 comparison article still describe **optional plans** (Hero $100/mo etc.). The Hero plan still exists (optional). What changes the bill is the lifecycle state, the RAM actually resident, and whether an optional plan bundle is bought.
+The pricing page says "No plans to pick up front on Machines or Sprites", but the FAQ on the same page and Fly's 2026-09-09 comparison article still describe **optional plans** (Hero $100/mo etc.). The Hero plan still exists (optional). What changes the bill is the lifecycle state, the RAM actually resident, and whether an optional plan bundle is bought.
 ## Regime table
 | # | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|---|
-| 1 | Pay-as-you-go, running (active) | Command running, session producing output, open TCP connection to URL, service handling traffic, Tasks API hold | CPU on **actual CPU time** (30% of 4 vCPU for 1 h = 1.2 CPU-h); RAM on **actual resident memory**; hot storage on bytes written | $0.07/CPU-h; $0.04375/GB-h; hot $0.000683/GB-h (~$0.50/GB-mo at 730 h) | https://fly.io/pricing, https://fly.io/sprites |
+| 1 | Pay-as-you-go, running (active) | Command running, session producing output, open TCP connection to URL, service handling traffic, Tasks API hold | CPU on **actual CPU time** (30% of 4 vCPU for 1 h = 1.2 CPU-h); RAM on **actual resident memory**; hot storage on bytes written | $0.0385/CPU-h; $0.021875/GB-h; hot $0.000683/GB-h (~$0.50/GB-mo at 730 h) | https://fly.io/pricing, https://fly.io/sprites |
 | 2 | Warm (suspended) | ~30 s after last activity; VM suspended with memory frozen, resumes in 100-500 ms | **Not billed** for CPU/RAM/hot storage (FAQ: "warm (not billed)"). Cold storage continues | cold $0.000027/GB-h | https://fly.io/sprites, https://docs.fly.io/sprites/concepts/lifecycle/ |
 | 3 | Cold (stopped) | Later, memory dropped; 1-2 s wake, processes restart | Cold storage only | $0.000027/GB-h (~$0.02/GB-mo) | same |
 | 4 | Cold storage while awake | All written data, all the time | Pricing example bills cold on the full dataset **and** hot on the awake working set during a session (e.g. "Hot 5 GB × 4 h" + "Cold 10 GB × 4 h") | $0.000027/GB-h always + $0.000683/GB-h while awake | https://fly.io/sprites (examples) |
@@ -21,11 +21,11 @@ The pricing section says "No plans and no tiers, and nothing charged per Sprite"
 | 12 | Historical: Dec 2025 rates | 2025-12-30 release note | CPU $0.07/vCPU-h, RAM **$0.011/GB-h**, storage $0.10/GB-mo. RAM was later raised ~4x to $0.04375 (date not found) and storage split into hot/cold (2026-01-22) | superseded | https://fly.io/sprites/release-notes |
 | 13 | Historical: Jan 2026 plan set | 2026-01-22 release note | Recruit (free), Adventurer $20, Legend $200, Mythic $2,000. Conflicts with the 2026-01-16 community table (Legend $500) — the 7-tier table matches the current FAQ names | superseded / conflicting | https://fly.io/sprites/release-notes |
 ## Gotchas
-1. **Memory is the big line item** (FAQ says so). $0.04375/GB-h is ~6x Fly Machines' extra-RAM rate; 8 GB resident for 1 h costs $0.35, more than 4 fully busy CPUs ($0.28). Keeping per-Sprite memory low saves more than any plan.
+1. **Memory is the big line item** (FAQ says so). At $0.021875/GB-h, 8 GB resident for 1 h costs $0.175, more than 4 fully busy CPUs ($0.154). Keeping per-Sprite memory low saves more than any plan.
 2. **CPU is truly usage-based**: idle-but-awake Sprites pay near-zero CPU, but RAM still bills while awake. Anything that keeps a Sprite awake (open TCP connection to its URL, a chatty session, stdout output, Tasks API hold) keeps RAM billing.
 3. **Plan fee is not a credit.** It buys unit allowances (CPU-h / RAM GB-h / storage). A bigger plan is not automatically cheaper; the FAQ cites a customer near Mythic's 28,000 GB-h for whom $2,000 cost more than the overage it saved. Account credits cannot pay the plan fee.
-4. **The pricing page contradicts itself** ("no plans and no tiers" vs a FAQ full of plans). Plans are optional; Hero is still quoted in Sep 2026.
-5. Fixed shape: 8 vCPU, ~8 GB RAM cap in practice, 100 GB disk, no custom image, **no region choice**, no public IPv4, no native SSH. Open TCP connections drop on every warm/cold transition.
+4. **The pricing page reads as contradictory** ("No plans to pick up front" vs a FAQ full of optional plans). Plans are optional; Hero is still quoted in Sep 2026.
+5. Fixed shape: 8 vCPU, memory 2-16 GB autoscaled, 100 GB disk, one managed base image (customize on top), **no region option on create** (https://docs.fly.io/sprites/cli/commands), no public IPv4; SSH by installing sshd and tunnelling through `sprite proxy` (documented steps). Open TCP connections drop on every warm/cold transition.
 6. Storage is on bytes written (TRIM-aware), but cold storage bills on everything you keep, forever, until deleted — including while the Sprite is awake.
 7. Billing granularity is described as "metered per hour of active use" / "billed hourly, based on actual usage"; the exact rounding is not published.
 ## Worked example
@@ -42,5 +42,6 @@ Usage: CPU = 8,800 × 4 × 0.30 = **10,560 CPU-h** ($739.20). RAM assumed fully 
 | Epic $1,000 | $1,000 | $403.20 | $2,259.69 | $70.95 | **$3,733.84** | $2,193.84 |
 | Mythic $2,000 | $2,000 | $235.20 | $1,855.00 | $70.95 | **$4,161.15** | $2,621.15 |
 | (Historical Dec-2025 RAM rate $0.011, PAYG) | $0 | $739.20 | $774.40 | — | ~$1,514 + storage | — |
+The table above uses the pre-2026-10-01 rates. At the current rates, pay-as-you-go is CPU 10,560 × $0.0385 = $406.56, RAM 70,400 × $0.021875 = $1,540.00, storage $70.95: **$2,017.51** (8 GB resident). Plan rows are not recomputed.
 Notes: the idle tail is ~30 s before warm (negligible). The $30 trial credit reduces month 1 only. PAYG running-concurrency cap is unpublished (Hero caps at 100 running), so PAYG with 50 concurrent is assumed allowed.
 Sources: https://fly.io/pricing · https://fly.io/sprites · https://docs.fly.io/sprites/concepts/lifecycle/ · https://docs.fly.io/sprites/concepts/checkpoints · https://fly.io/sprites/release-notes · https://community.fly.io/t/more-sprites-plans/26857 · https://community.fly.io/t/more-ram-in-sprites/26921 · https://fly.io/learn/ai-sandbox-pricing/

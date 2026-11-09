@@ -95,7 +95,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Official price table: $0.18/$0.36/$0.72/$1.44/$2.88 per hour for 2/4/8/16/32-core = $0.09 per core-hour, same price in every region. Compute billed for the whole time the codespace is 'active' (created/started until stopped, deleted or idle-timed-out), regardless of CPU use; usage reported to billing hourly, billed monthly; exact rounding unpublished. RAM is 4 GB/core (official for 2-core 8 GB and 32-core 128 GB; intermediate RAM follows the same ratio). Disk: 2-core 32 GB and 32-core 128 GB official; 4-core 32 GB and 8-core 64 GB from a GitHub community thread (a 4-core/64 GB variant also exists); 16-core disk not published. No 4-core/8 GB shape: a 4 vCPU / 8 GiB workload lands on the 4-core/16 GB machine. Availability of larger machines may be limited by org policy or repo minimum spec."
+      "note": "Official price table: $0.18/$0.36/$0.72/$1.44/$2.88 per hour for 2/4/8/16/32-core = $0.09 per core-hour, same price in every region. Compute billed for the whole time the codespace is 'active' (created/started until stopped, deleted or idle-timed-out), regardless of CPU use; usage reported to billing hourly, billed monthly; exact rounding unpublished. RAM is 4 GB/core for every type (GitHub pricing calculator: 2 cores 8GB, 4 core 16GB, 8 core 32GB, 16 core 64GB, 32 core 128GB; the billing page lists cores and prices only). Disk: 2-core 32 GB and 32-core 128 GB official; 4-core 32 GB and 8-core 64 GB from a GitHub community thread (a 4-core/64 GB variant also exists); 16-core disk not published. No 4-core/8 GB shape: a 4 vCPU / 8 GiB workload lands on the 4-core/16 GB machine. Availability of larger machines may be limited by org policy or repo minimum spec."
     }
   ],
   "storage": {
@@ -192,11 +192,11 @@
     "max_session_h": 12,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": false,
+    "nested_virt": null,
     "root": true,
     "systemd": null,
     "browser": false,
-    "desktop": false,
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
@@ -309,7 +309,7 @@
     "Team $4 and Enterprise $21 per user/month are shown as 'for the first 12 months *' on github.com/pricing; the footnoted later price was not captured. Seat fees are for GitHub itself, not Codespaces-specific.",
     "Egress set to 0: the billing doc says a codespace incurs two charges (compute and storage); no network charge is documented anywhere.",
     "Regions from the REST API geo enum (UsEast, UsWest, EuropeWest, SoutheastAsia); older research also listed Australia, not found in current docs. No regional price difference.",
-    "RAM per machine = 4 GB/core (official at 2- and 32-core). 4-core/8-core disk sizes from a GitHub community thread (third-party-grade); 16-core disk unpublished. No GPU machine types in current docs.",
+    "RAM per machine = 4 GB/core for all five types (GitHub pricing calculator, checked 2026-11-08; the billing page does not list memory). 4-core/8-core disk sizes from a GitHub community thread (third-party-grade); 16-core disk unpublished. No GPU machine types in current docs.",
     "Personal free quota is carried as plan included_usd (compute only), not free.monthly_credit, to avoid double counting; it is per personal account, so a team of N developers each billing their own account gets N quotas (engine sees one).",
     "No benchmark data in this research set (perf all null). Cold create without prebuild takes tens of seconds to minutes (unmeasured).",
     "Per-user caps exist but are unpublished: docs (Creating a codespace for a repository, 2026-09-28) say \"There are limits to the number of codespaces you can create, and the number of codespaces you can run at the same time. These limits vary based on a number of factors.\" A fleet of dozens of concurrent codespaces on one personal account is unlikely to be allowed; org-owned codespaces spread over many users are the realistic route. Numbers unknown, so plan.concurrency stays null.",
@@ -317,7 +317,10 @@
     "GPU machine type was deprecated by 2025-08-29 (NCv3 retirement); features.gpu=false is correct and should cite this.",
     "Org policy 'Maximum codespaces per user' can cap org-billed codespaces per user (active + stopped); separately 'The number of organization-billed codespaces someone can create is governed by a limit to the total number of codespaces that they can create across all repositories they can access. This limit is set by GitHub.' (value unpublished).",
     "Prebuild storage is a separate billing SKU (codespaces_prebuild_storage) from codespaces_storage; both at the $0.07/GB-month storage rate and both count toward the Codespaces budget.",
-    "Hard 12-hour maximum lifetime (docs, Understanding the codespace lifecycle, checked 2026-10-14): \"A codespace has a maximum lifetime of 12 hours, regardless of your idle timeout policy or settings. This limit applies even while you are actively using the codespace.\" Data is saved and the codespace stops; it can be restarted (disk kept, processes lost). Encoded as max_session_h = 12 on every plan, which the engine treats as a hard block for always-on or >12 h sessions; in reality 24/7 is reachable with a restart script every 12 h (each restart = a new VM, tens of seconds to minutes)."
+    "Hard 12-hour maximum lifetime (docs, Understanding the codespace lifecycle, checked 2026-10-14): \"A codespace has a maximum lifetime of 12 hours, regardless of your idle timeout policy or settings. This limit applies even while you are actively using the codespace.\" Data is saved and the codespace stops; it can be restarted (disk kept, processes lost). Encoded as max_session_h = 12 on every plan, which the engine treats as a hard block for always-on or >12 h sessions; in reality 24/7 is reachable with a restart script every 12 h (each restart = a new VM, tens of seconds to minutes).",
+    "Desktop (re-checked 2026-11-08): the official desktop-lite dev container feature adds a Fluxbox desktop reached through noVNC on a forwarded port, so desktop = diy (low effort). GitHub documents no computer-use API and no preinstalled browser, so computer_use and browser stay false.",
+    "/dev/kvm and nested virtualization are not documented by GitHub (re-checked 2026-11-08); nested_virt is null (not confirmed), not false.",
+    "Prices re-checked 2026-11-08 on the billing page: unchanged ($0.18 to $2.88 per hour for 2 to 32 cores, $0.07 per GB-month, Free 120 core-hours / 15 GB-month, Pro 180 / 20)."
   ],
   "sources": [
     "https://docs.github.com/en/billing/concepts/product-billing/github-codespaces",
@@ -338,7 +341,10 @@
     "https://docs.github.com/en/billing/how-tos/set-up-budgets",
     "https://docs.github.com/en/rest/codespaces/codespaces",
     "https://github.com/orgs/community/discussions/145944",
-    "https://docs.github.com/en/codespaces/about-codespaces/understanding-the-codespace-lifecycle"
+    "https://docs.github.com/en/codespaces/about-codespaces/understanding-the-codespace-lifecycle",
+    "https://github.com/pricing/calculator",
+    "https://github.com/devcontainers/features/tree/main/src/desktop-lite",
+    "https://github.com/devcontainers/features/tree/main/src/docker-in-docker"
   ],
   "audit_2026_09_29": {
     "applied": 4,
@@ -417,18 +423,18 @@
       "checked": "2026-09-29"
     },
     "nested_virt": {
-      "value": false,
+      "value": null,
       "source": "https://docs.github.com/en/codespaces/about-codespaces/what-are-codespaces",
-      "quote": "Each codespace you create is hosted by GitHub in a container that is powered by Azure",
-      "note": "GitHub does not document /dev/kvm or nested-virtualization support inside a codespace; codespaces are container/VM-hosted dev environments on Azure with no published guest hypervisor passthrough. Derived, not an explicit GitHub statement.",
-      "checked": "2026-09-30"
+      "quote": "Each codespace you create is hosted by GitHub in a Docker container, running on a virtual machine.",
+      "note": "GitHub docs do not mention /dev/kvm or nested virtualization. Not documented and not tested on a real codespace, so null (not confirmed) rather than false.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
       "source": "https://docs.github.com/en/codespaces/about-codespaces/what-are-codespaces",
       "quote": "A codespace is a development environment that's hosted in the cloud... you can open your codespace in a browser, or in Visual Studio Code, or by using GitHub CLI",
-      "note": "not offered: outside the product's scope. 'Browser' here refers to accessing the VS Code editor UI via a web browser, not a managed/real browser instance running inside the sandbox for automation or testing. Codespaces is a cloud dev environment, not a browser-automation product.",
-      "checked": "2026-09-30"
+      "note": "Browser access here means the VS Code web client. GitHub documents no managed browser instance inside a codespace for automation; you install one yourself in the image.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -536,18 +542,20 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
-      "source": "https://docs.github.com/en/codespaces/about-codespaces/codespaces-features",
-      "quote": "Choose your editor: Work in the browser, using the VS Code web client or JupyterLab, or in the desktop-based VS Code application.",
-      "note": "Access is via a code editor (browser VS Code / JupyterLab / local VS Code desktop app connecting remotely) or terminal/CLI, not a full graphical desktop (VNC/RDP/streamed GUI) of the remote machine. 'desktop-based VS Code application' refers to the local VS Code app, not a remote desktop environment.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://github.com/devcontainers/features/tree/main/src/desktop-lite",
+      "quote": "Adds a lightweight Fluxbox based desktop to the container that can be accessed using a VNC viewer or the web.",
+      "how": "add the official desktop-lite dev container feature to devcontainer.json and open the forwarded noVNC port (6080) in the browser",
+      "effort": "low",
+      "checked": "2026-11-08",
+      "note": "Official devcontainers/features add-on, maintained with the VS Code and Codespaces teams. Basic Fluxbox desktop over VNC/noVNC; no preinstalled browser and no computer-use API."
     },
     "computer_use": {
       "value": false,
-      "source": "https://docs.github.com/en/codespaces/about-codespaces/what-are-codespaces",
-      "quote": "You can connect to your codespaces from your browser, from Visual Studio Code, or by using GitHub CLI.",
-      "note": "Codespaces exposes editor/terminal/CLI/REST access to a dev container, not a GUI desktop, so there is nothing for a screenshot+click computer-use API to drive; plainly outside product scope (no desktop feature at all, per 'desktop' claim above).",
-      "checked": "2026-09-30"
+      "source": "https://github.com/devcontainers/features/tree/main/src/desktop-lite",
+      "quote": "Adds a lightweight Fluxbox based desktop to the container that can be accessed using a VNC viewer or the web.",
+      "note": "A codespace can show a desktop through the desktop-lite add-on (see desktop), but GitHub documents no screenshot/click API to drive it. You build the control layer yourself.",
+      "checked": "2026-11-08"
     },
     "volumes": {
       "value": false,
@@ -619,6 +627,13 @@
       "note": "granularity: account-only; cost: yes; GitHub provides usage reports at the enterprise level via REST API (POST /enterprises/{enterprise}/settings/billing/reports), but these are account aggregates, not per-sandbox. The Codespaces REST API (GET /repos/{owner}/{repo}/codespaces, etc.) manages codespace lifecycle only. No endpoint returns billable usage (compute hours, cost) for an individual codespace or by codespace label/tag.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://github.com/devcontainers/features/tree/main/src/docker-in-docker",
+      "quote": "Create child containers inside a container, independent from the host's docker instance.",
+      "note": "Docker inside the dev container comes from the official docker-in-docker (or docker-outside-of-docker) dev container feature.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -657,5 +672,9 @@
   ],
   "locations_source": "https://docs.github.com/en/rest/codespaces/codespaces",
   "locations_quote": "Can be one of: EuropeWest, SoutheastAsia, UsEast, UsWest",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 4,
+    "source": "compare audit 2026-11-08: findings/github-codespaces.json, re-checked against the billing page, the pricing calculator and devcontainers/features"
+  }
 }

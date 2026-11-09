@@ -15,7 +15,7 @@ Verified live 2026-09-28: replit.com/pricing (HTML), docs.replit.com billing pag
 | Pay-as-you-go overage | Credits exhausted | Same unit rates; stops at budget (hard cap suspends usage-based services) | — | https://replit.com/pricing (FAQ), https://docs.replit.com/billing/managing-spend.md |
 | Credit packs | Prepay | $100-$1,000 packs, up to $50 off; expire 6 months; optional auto-reload | — | https://docs.replit.com/billing/managing-spend.md |
 | Reserved VM | Always-on app (bots, APIs, workers) | Hourly while deployed (~720 h = listed month) | shared 0.5/2 GiB $0.0208/h ($15/mo); dedicated 1/4 $0.0486 ($35); 2/8 $0.0694 ($50); 4/16 $0.1806 ($130); 8/32 $0.3611; 16/64 $0.7222 | https://docs.replit.com/billing/aug-cloud-billing-updates.md, https://docs.replit.com/billing/deployment-pricing |
-| Autoscale | Variable-traffic web apps | Base fee/deployment + CU while serving requests + per request; scale to zero, idle after 15 min | $0.60/1M CU; 1 CPU-s = 18 CU ($0.03888/vCPU-h), 1 GB-s = 2 CU ($0.00432/GiB-h); $0.40/1M requests; base **$2/mo** (pricing page) vs **$1/mo** (Aug table) — conflict | same |
+| Autoscale | Variable-traffic web apps | Base fee/deployment + CU while serving requests + per request; scale to zero, idle after 15 min | $0.60/1M CU; 1 CPU-s = 18 CU ($0.03888/vCPU-h), 1 GB-s = 2 CU ($0.00432/GiB-h); $0.40/1M requests; base **$2/mo** per deployment (deployment-pricing page, re-checked 2026-11-08; the older Aug table said $1/mo) | same |
 | Scheduled | Cron/background jobs | Base fee + CU during runs; scheduler free | $2/mo + $0.60/1M CU | https://docs.replit.com/billing/deployment-pricing |
 | Static | Static sites | Hosting free; transfer only | $0.05/GB | same |
 | Outbound transfer | Beyond included allowance | Per GiB egress; ingress free | $0.05/GiB (was $0.10 before Aug 2026) | https://docs.replit.com/billing/aug-cloud-billing-updates.md |
@@ -34,7 +34,7 @@ no regional price difference published).
 3. **Reserved VMs are always-on**: listed per month; stopping between shifts to save money is not documented.
 4. **Autoscale is cheap per vCPU-hour but request-bound**: billed only while serving HTTP requests; no background work
    between requests, and the machine size menu is unpublished.
-5. **Autoscale base fee inconsistency** ($2 vs $1) and "legacy" shared 1 vCPU/4 GiB Reserved VM *rose* in Aug 2026.
+5. **Autoscale base fee** is $2/mo per deployment on the live page (the Aug table said $1), and "legacy" shared 1 vCPU/4 GiB Reserved VM *rose* in Aug 2026.
 6. **Budgets are hard stops**: hitting the budget suspends all usage-based services (your deployments go down).
 7. **Geography is permanent** per published project; Starter is North America only.
 8. Workspace vCPU/RAM per plan only appear on third-party sites now.

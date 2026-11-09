@@ -83,8 +83,10 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "$5 (5 credits) per month; 5 sessions/min; up to 500 browser sessions; US only; no geolocation proxy/CAPTCHA/auth.",
-      "start_rate_limit": "5 sessions/minute"
+      "note": "$5 (5 credits) per month; no overage (docs pricing.md overage row shows '-' for Free), so usage above $5 a month needs Starter ($50). 5 sessions/min; up to 500 browser sessions; US only; no geolocation proxy/CAPTCHA/auth. trial_only: hard cap, so the engine never prices a workload as $0 + usage - $5 here; workloads under $5/month are really free but the estimate prices them on Starter.",
+      "start_rate_limit": "5 sessions/minute",
+      "max_starts_per_min": 5,
+      "trial_only": true
     },
     {
       "name": "Starter",
@@ -99,7 +101,8 @@
       "max_ram_gib": null,
       "sizes_allowed": null,
       "note": "$50/month = 50 credits ($50) usage; overage $1/credit. 25 sessions/min. US only.",
-      "start_rate_limit": "25 sessions/minute"
+      "start_rate_limit": "25 sessions/minute",
+      "max_starts_per_min": 25
     },
     {
       "name": "Team",
@@ -113,7 +116,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Listed on anchorbrowser.io/pricing (2026-09-28) but absent from docs pricing table: $500/month = 500 credits, 50 concurrent, 30-day retention, custom proxy, Cloudflare verified agents."
+      "note": "Listed on anchorbrowser.io/pricing (re-checked 2026-11-08) but absent from docs pricing table: $500/month = 500 credits, +$1/credit overage, 50 concurrent, 30-day data retention, custom proxy, Cloudflare Verified Browser Agents. Sessions/min not published for Team."
     },
     {
       "name": "Growth",
@@ -128,7 +131,8 @@
       "max_ram_gib": null,
       "sizes_allowed": null,
       "note": "$2,000/month = 2,000 credits; 100 sessions/min; code execution, full stealth, BYO proxy, EU/Asia/Australia regions, SOC2/ISO27001/GDPR.",
-      "start_rate_limit": "100 sessions/minute"
+      "start_rate_limit": "100 sessions/minute",
+      "max_starts_per_min": 100
     },
     {
       "name": "Enterprise",
@@ -163,6 +167,8 @@
     "pause_resume": false,
     "fork": false,
     "persistent_disk": true,
+    "persist_scope": "folder",
+    "persist_path": "mounted Volume (browser downloads and uploaded files); browser profiles keep cookies, local storage and cache",
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -255,7 +261,10 @@
     "Regions are plan-gated: Free/Starter/Team run only in AWS us-east-2 (Ohio); EU (AWS eu-central-1, Frankfurt), Asia and Australia need Growth ($2,000/mo) per docs (the marketing page lists them under Enterprise); any region needs Enterprise. The EU location is modelled as self-serve, but the engine does not tie it to the Growth plan.",
     "Billing rounds to the nearest full minute (not clear if up); idle time before idle_timeout (default 5 min) likely billed; default max_duration 20 min (API) vs 180 min (guide) - long sessions must raise it.",
     "self_host/byoc = Enterprise-only BYOC / on-premise (sales).",
-    "AI-task pricing changed on 2026-08-21 (per-step tiers).",
+    "AI-task pricing changed on 2026-08-21 (per-step tiers): AI steps cost $0.01 (Light), $0.05 (Standard) or $0.10 (High Performance), or a flat $0.01 with your own model key (docs pricing.md, checked 2026-11-08).",
+    "Free plan is a hard cap ($5 of credits a month, no overage), so it is trial_only: any workload above $5 a month is priced on Starter ($50 minimum).",
+    "Price-source mismatch (2026-11-08): the cost calculator on anchorbrowser.io/pricing labels browser time '$0.09/hour', but its own total (10574 sessions x 38 min = $334.84) works out to $0.05/hour, the rate docs pricing.md lists. The card uses $0.05.",
+    "Anchor strengths not modelled as features: Cloudflare Web Bot Auth integration (Cloudflare-verified browser agents; the marketing page lists them under Team and up), session video recording with pause/resume API, custom browser extensions, a 1Password integration, injection of MFA codes, and domain-scoped secret values that are never shown to the AI model. 30-day data retention on Team; Zero Data Retention mode on Enterprise.",
     "Volumes: up to 10 per team; files over 10 MB go through a pre-signed upload URL (up to 5 GB) (docs llms.txt, Create Volume / Create Upload URL).",
     "Code Execution (a TypeScript snippet run against the session's page/browser) is Growth tier and above; it is not a general code interpreter, so code_interpreter stays false. Anchor documents pairing its browser with third-party sandboxes (CreateOS, Daytona, Tenki) to run agent code."
   ],
@@ -269,7 +278,12 @@
     "https://docs.anchorbrowser.io/security.md",
     "https://docs.anchorbrowser.io/tools/execute-code-snippet.md",
     "https://docs.anchorbrowser.io/integrations/sandboxes.md",
-    "https://docs.anchorbrowser.io/llms.txt"
+    "https://docs.anchorbrowser.io/llms.txt",
+    "https://docs.anchorbrowser.io/agentic-browser-control/secret-values.md",
+    "https://docs.anchorbrowser.io/integrations/1password.md",
+    "https://docs.anchorbrowser.io/advanced/cloudflare-web-bot-auth.md",
+    "https://docs.anchorbrowser.io/essentials/recording.md",
+    "https://docs.anchorbrowser.io/advanced/extensions.md"
   ],
   "fleet": {
     "default_max_instances": 5,
@@ -278,17 +292,21 @@
     "raise": "self-serve",
     "raise_time_days": null,
     "verification": null,
-    "tiers": "Free 5; Starter 25; Team 50 (pricing page); Growth 200; Enterprise 500+ by sales. Creation-rate limits separate: free 5/min, Starter 25/min, Growth 100/min.",
+    "tiers": "Free 5; Starter 25; Team 50 (pricing page); Growth 200; Enterprise 500+ by sales (concurrency: anchorbrowser.io/pricing and docs pricing.md). Creation-rate limits separate, docs pricing.md only: Free 5/min, Starter 25/min, Growth 100/min, Enterprise 200+/min; Team not listed.",
     "notes": "Browser-session slots, not general-purpose VMs. Docs omit the Team tier listed by pricing; published self-serve tiers do not alone establish 300/1,000 capacity. Enterprise needs contact; turnaround and identity screening unknown.",
     "sources": [
       "https://docs.anchorbrowser.io/pricing.md",
       "https://anchorbrowser.io/pricing"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 5,
     "source": "checked against the provider's live pricing and docs pages"
+  },
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "fairness audit: Free hard cap (trial_only), per-plan starts/min, persist_scope folder, AI step tiers, $0.09 label mismatch, hosted agents and secret features re-checked against anchorbrowser.io/pricing and docs.anchorbrowser.io"
   },
   "feature_evidence": {
     "snapshot_auto": {
@@ -309,8 +327,8 @@
       "value": true,
       "source": "https://docs.anchorbrowser.io/api-reference/ai-tools/perform-web-task.md",
       "quote": "The AI agent to use for task completion. Defaults to browser-use.",
-      "note": "perform-web-task / agentTask SDK starts a built-in browser agent in the session from a prompt (agents: browser-use, openai-cua, gemini-computer-use, anthropic-cua, yutori); async variant with status polling; pause/resume agent (POST /v1/sessions/{id}/agent/pause|resume), human-in-the-loop requests/responses, webhooks. Browser agents only; no Claude Code/Codex/OpenCode.",
-      "checked": "2026-09-29"
+      "note": "perform-web-task / agentTask SDK starts a built-in browser agent in the session from a prompt (agents: browser-use, openai-cua, gemini-computer-use, anthropic-cua, yutori, jev; providers: openai, gemini, groq, azure, xai); async variant with status polling; pause/resume agent (POST /v1/sessions/{id}/agent/pause|resume), human-in-the-loop requests/responses, webhooks. Browser agents only; no Claude Code/Codex/OpenCode.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -338,8 +356,8 @@
       "value": false,
       "source": "https://docs.anchorbrowser.io/api-reference/ai-tools/perform-web-task.md",
       "quote": "Secret values to pass to the agent for secure credential handling. Keys and values are passed as environment variables to the agent.",
-      "note": "Secret values (optionally scoped to domains) are hidden from the LLM and typed into the page at type-time ('Real values are never visible to the AI model'), but the real value is typed into the browser in the sandbox; this is not a network proxy injecting headers. Same for 1Password integration and managed identities (credentials used by Anchor to log in). Browser-only; no DB/SSH/git.",
-      "checked": "2026-09-29"
+      "note": "Secret values are scoped by domain ('Secrets will only be available when the browser is on a matching domain' - secret-values.md) and typed into the page at type-time, 'never logged, and never exposed to the AI model'. The real value still reaches the browser, so this is not a network proxy that injects headers. A 1Password integration (integrations/1password.md), custom MFA code injection (advanced/mfa.md) and managed identities work the same way. Browser-only; no DB/SSH/git.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": true,
@@ -453,6 +471,13 @@
       "quote": "A volume is a folder your team owns that outlives any single browser session. Mount it into a session and everything the browser downloads is written to it; upload files to it beforehand and the browser can use them; read the results back through the API afterwards.",
       "note": "Contradiction resolved: the per-session VM itself is wiped ('This VM is permanently terminated and erased upon session completion' - security.md), so default behaviour on stop is delete. But Volumes are a first-party persistent store attachable to sessions (mounted via browser.volume.id) whose files survive across many session stop/starts, which meets the persistent_disk definition. Card's own volumes/volume_attach/volume_shared fields are already true, so persistent_disk:false was the contradiction, not them.",
       "checked": "2026-09-30"
+    },
+    "persist_scope": {
+      "value": "folder",
+      "source": "https://docs.anchorbrowser.io/advanced/volumes.md",
+      "quote": "A volume is a folder your team owns that outlives any single browser session.",
+      "note": "Only the mounted Volume survives (plus opt-in browser profiles: cookies, local storage, cache). The session VM is erased at the end (security.md), so it is not a whole disk. Set explicitly so the engine does not infer 'whole' from the dedicated-VM isolation.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",

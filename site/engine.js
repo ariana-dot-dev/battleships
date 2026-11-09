@@ -75,6 +75,7 @@
   }
 
   // ---- features -------------------------------------------------------------
+  const DIY = 'diy';
   const FEATURE_TESTS = {
     // a custom starting image is either a Docker/OCI image or a saved machine you start new ones from (snapshot):
     // a provider without Docker images but with snapshots (boat.dev, Hetzner) still gives you your own image
@@ -87,15 +88,18 @@
       return img || snap ? true : (ci === false || ci === 'none') && (f.snapshot === 'none' || f.snapshot_scope === 'folder') ? false : null; },
     image_snapshot: f => f.snapshot == null ? null : f.snapshot !== 'none' && f.snapshot_scope !== 'folder',
     // files survive a stop: the whole disk or one folder/volume. A saved browser profile (cookies, logins) is not a disk.
-    persistent_disk: f => { const s = f.persist_scope; if (s === 'whole' || s === 'folder') return true; if (s === 'profile' || s === 'none') return false;
-      return f.persistent_disk == null ? null : !!f.persistent_disk; },
+    // persist_scope "snapshot": you snapshot before the stop and restore on the next start (documented API): 'diy'
+    persistent_disk: f => { const s = f.persist_scope; if (s === 'whole' || s === 'folder') return true; if (s === 'snapshot') return DIY; if (s === 'profile' || s === 'none') return false;
+      return f.persistent_disk == null ? null : f.persistent_disk === DIY ? DIY : !!f.persistent_disk; },
     // everything on the disk survives, installed packages included, not just one folder: published as persist_scope,
-    // or implied by a whole-machine snapshot taken automatically on stop
-    whole_disk: f => { const s = f.persist_scope; if (s) return s === 'whole';
+    // or implied by a whole-machine snapshot taken automatically on stop. A snapshot you take yourself of the whole
+    // filesystem (no persist_path) brings it all back: 'diy'; one that covers a folder only does not.
+    whole_disk: f => { const s = f.persist_scope; if (s === 'snapshot') return f.persist_path ? false : DIY; if (s) return s === 'whole';
       if (f.snapshot_auto === true && (f.snapshot === 'fs' || f.snapshot === 'mem') && f.snapshot_scope !== 'folder') return true;
       return f.persistent_disk === false && f.snapshot === 'none' ? false : null; },
     // agents can drive both a browser and a whole desktop (not just one of them)
-    browser_and_desktop: f => { const b = f.browser_control ?? f.browser, d = f.desktop_control ?? f.computer_use; return b === true && d === true ? true : (b === false || d === false) ? false : null; },
+    browser_and_desktop: f => { const b = f.browser_control ?? f.browser, d = f.desktop_control ?? f.computer_use;
+      return b === true && d === true ? true : (b === false || d === false) ? false : (b === true || b === DIY) && (d === true || d === DIY) ? DIY : null; },
     residential_ip: f => f.egress_ip_type == null ? null : /residential|mobile/.test(String(f.egress_ip_type)),
     snapshot_any: f => f.snapshot == null ? null : f.snapshot !== 'none',
     // "mem" = memory snapshots; an explicit snapshot_mem wins; a bare `true` says snapshots exist but not which kind
@@ -118,8 +122,11 @@
     fuse: f => f.fuse != null ? !!f.fuse : FEATURE_TESTS.vm_isolation(f) === true && f.root !== false ? true : /gvisor|isolate|wasm/.test(String(f.isolation || '')) ? false : null,
     kernel_features: f => f.kernel_features != null ? !!f.kernel_features : FEATURE_TESTS.vm_isolation(f) === true ? true : /gvisor|isolate|wasm/.test(String(f.isolation || '')) ? false : null,
   };
+  // true / false / null (not published) / 'diy': the provider documents a way to get it yourself (install, official
+  // example, add-on, other runtime). A required 'diy' feature is a match "with your own setup", never a missing one.
   function testFeature(features, key) {
     const f = features || {};
+    if (f[key] === DIY) return DIY;
     if (FEATURE_TESTS[key]) return FEATURE_TESTS[key](f);
     const v = f[key];
     if (v === undefined || v === null) return null;
@@ -472,11 +479,12 @@
       }
       const f = modeFeatures(card, m);
       if (W.arch === 'arm64' && !f.arm64) { skipped.push('no arm64'); continue; }
-      const fails = [], unk = [];
+      const fails = [], unk = [], diy = [];
       for (const key of opts.required || []) {
         const r = testFeature(f, key);
         if (r === false) fails.push(`no ${FEATURE_LABELS[key] || key}`);
         else if (r === null) (opts.strictUnknown ? fails : unk).push(`${FEATURE_LABELS[key] || key} unverified`);
+        else if (r === DIY) diy.push(key);
       }
       if (fails.length) { skipped.push(...fails); continue; }
       // knobs + idle auto-suspend adjust this mode's billed hours / rate
@@ -504,6 +512,7 @@
         for (const k in r.always.b) r.always.b[k] *= alwaysF;
       }
       r.unknowns = unk;
+      r.diy = diy;
       r.perfFactor = pf;
       r.idleOk = idleOk && !(r.always && !r.burst &&modeFeatures(card, m).wake_on_request !== true);
       if (r.idleOk) r.notes.push(`idle auto-suspend saves ~${Math.round(W.idleShare * num(opts.idleCapture, 0.5) * 100)}% of billed time`);
@@ -518,7 +527,7 @@
     // Candidate combinations: a pool covers everything; otherwise best sessions-mode + best always-on-mode.
     const needB = W.sessions > 0, needA = W.alwaysOn > 0;
     const cands = [];
-    for (const r of priced.filter(r => r.pool)) cands.push({ b: Object.assign({}, r.b), hours: r.hours, modes: [r], shape: r.shape, diskIncluded: r.diskIncluded, notes: r.notes, unknowns: r.unknowns });
+    for (const r of priced.filter(r => r.pool)) cands.push({ b: Object.assign({}, r.b), hours: r.hours, modes: [r], shape: r.shape, diskIncluded: r.diskIncluded, notes: r.notes, unknowns: r.unknowns, diy: r.diy });
     const rs = priced.filter(r => !r.pool);
     // among modes: a real fit beats a size capped below your request; among capped ones the closest to your size wins
     // (a 16-vCPU job can't be split over 2-vCPU boxes); then the cheapest
@@ -532,9 +541,9 @@
       if (bA) { addInto(b, bA.always.b); hours += bA.always.hours; }
       const ms = [bB, bA].filter(Boolean);
       cands.push({ b, hours, modes: ms, shape: (bB || bA).shape, diskIncluded: (bB || bA).diskIncluded,
-        notes: ms.flatMap(r => r.notes), unknowns: [...new Set(ms.flatMap(r => r.unknowns))] });
+        notes: ms.flatMap(r => r.notes), unknowns: [...new Set(ms.flatMap(r => r.unknowns))], diy: [...new Set(ms.flatMap(r => r.diy))] });
     }
-    if (!needB && !needA) cands.push({ b: {}, hours: 0, modes: [rs[0] || priced[0]], shape: null, diskIncluded: 0, notes: [], unknowns: [] });
+    if (!needB && !needA) { const r0 = rs[0] || priced[0]; cands.push({ b: {}, hours: 0, modes: [r0], shape: null, diskIncluded: 0, notes: [], unknowns: [], diy: r0.diy }); }
     if (!cands.length) return fail(skipped.concat(priced.flatMap(r => [r.burstError, r.alwaysError]).filter(Boolean)));
 
     // cheapest wins, except among sizes capped below what you asked for: then the one closest to your size wins (a 16-vCPU
@@ -694,8 +703,12 @@
     if (bestPlan.burstNote) caveats.push(bestPlan.burstNote);
     // the plan was picked for its internet access: say what the cheaper ones lack
     if (netSkipped.length && !opts.ignoreNet) caveats.push(`plan "${bestPlan.plan.name}" needed for ${netNeed(W) === 2 ? 'open internet' : 'package and AI API access'}: ${netSkipped.join(', ')} ${NET_SAYS[planNet(card, plans.find(p => p.name === netSkipped[0]))] || 'restrict the network'}`);
+    // start caps of the plan picked (boat.dev: starts per minute / hour / day), shown on the row even when this workload fits them
+    const bp = bestPlan.plan, startLimits = ['min', 'hour', 'day'].some(k => known(bp[`max_starts_per_${k}`]))
+      ? { plan: bp.name, per_min: known(bp.max_starts_per_min) ? bp.max_starts_per_min : null, per_hour: known(bp.max_starts_per_hour) ? bp.max_starts_per_hour : null,
+        per_day: known(bp.max_starts_per_day) ? bp.max_starts_per_day : null } : null;
     return {
-      card, eligible: true, reasons: [], unknowns: best.unknowns, caveats, planLimits: bestPlan.lim,
+      card, eligible: true, reasons: [], unknowns: best.unknowns, diy: best.diy || [], startLimits, caveats, planLimits: bestPlan.lim,
       total, breakdown, hours: best.hours, modeLabel: [...new Set(best.modes.map(r => r.mode.label || r.mode.key))].join(' + '),
       // $ per hour of work actually done (not per billed hour, which rounding and reuse inflate)
       shape: best.shape, plan: bestPlan.plan.name, planObj: bestPlan.plan, perHour: (W.sessions * W.sessionMin / 60 + W.alwaysOn * HOURS_MONTH) > 0 ? total / (W.sessions * W.sessionMin / 60 + W.alwaysOn * HOURS_MONTH) : null,
@@ -876,6 +889,8 @@
       // are gone after a stop. A dev box or always-on agent rebuilds its setup every time.
       else if (W.persistentDisk && pd === true && mf.persist_scope === 'folder' && !(opts.required || []).includes('whole_disk'))
         c.push({ t: `files survive a stop only in ${mf.persist_path ? mf.persist_path : 'one folder'}: packages installed elsewhere reset`, s: num(W.alwaysOn) > 0 ? 2 : 1 });
+      // files come back after a stop through a documented snapshot / mount you run yourself: a match with your own setup
+      else if (W.persistentDisk && pd === DIY && !(r.diy || []).includes('persistent_disk')) r.diy = (r.diy || []).concat('persistent_disk');
       // a concurrency cap that exists but isn't published (Codespaces)
       if ((r.planObj || {}).concurrency_unpublished && W.concurrency + num(W.alwaysOn) > 5) c.push({ t: 'has a concurrency cap, value not published', s: 1 });
       // no published limit on machines at once is unknown, not unlimited. Above the typical published limit (concRef: the
@@ -1000,6 +1015,8 @@
     if (has('ipv4')) add('no dedicated IPv4', SEVERITY.ipv4);
     if (has('net')) add(netCompromise(card, W), SEVERITY.net);
     if (has('feat')) { const miss = (opts.required || []).filter(k => testFeature(f, k) === false).map(k => FEATURE_LABELS[k] || k);
+      // the features this row does get with your own setup are listed as such, not as missing
+      r.diy = [...new Set([...(r.diy || []), ...(opts.required || []).filter(k => testFeature(f, k) === DIY)])];
       add(miss.length ? `missing ${miss.join(', ')}` : 'required features unverified', miss.length ? SEVERITY.feat : SEVERITY.unverified); }
     for (const x of softOnly(r)) comp.push(x);
     r.caveats = (r.caveats || []).filter(x => !comp.some(c => c.t === x));
@@ -1024,7 +1041,7 @@
     for (const [k, list] of byProv) {
       // at an equal price, the row missing fewer things first ("missing desktop GUI, browser" counts two)
       const misses = r => (r.compromises || []).reduce((n, c) => n + String(c.t || c).split(', ').length, 0);
-      list.sort((a, b) => (a.soft ? 1 : 0) - (b.soft ? 1 : 0) || (a.severity || 0) - (b.severity || 0) || a.total - b.total
+      list.sort((a, b) => (a.soft ? 1 : 0) - (b.soft ? 1 : 0) || (a.severity || 0) - (b.severity || 0) || ((a.diy || []).length ? 1 : 0) - ((b.diy || []).length ? 1 : 0) || a.total - b.total
         || misses(a) - misses(b) || (a.card.id === k ? 0 : 1) - (b.card.id === k ? 0 : 1));
       const fits = list.some(r => r.shape && r.shape.vcpu && r.shape.vcpu <= 2 * W.vcpu);
       // a bigger machine than needed is noise when the same provider sells a smaller one that fits for about the same price
@@ -1043,12 +1060,39 @@
       // unpriced siblings of a provider that does have a price aren't "no public price"
     }
     const pricedIds = new Set(priced.map(r => r.card.id));
-    const meets = kept.filter(r => !r.soft).sort((a, b) => a.total - b.total);
+    // a feature that comes with the product ranks before one you set up yourself (FAIRNESS.md): both are matches
+    const own = r => (r.diy || []).length ? 1 : 0;
+    const meets = kept.filter(r => !r.soft).sort((a, b) => own(a) - own(b) || a.total - b.total);
     const soft = kept.filter(r => r.soft).sort((a, b) => (a.severity || 1) - (b.severity || 1) || a.total - b.total);
     const dedupe = list => [...new Map(list.filter(r => !pricedIds.has(r.card.id)).map(r => [r.card.id, r])).values()];
     return { meets, soft, noPrice: dedupe(noPrice), offTopic: dedupe(offTopic) };
   }
 
-  root.PM = { priceCard, priceSoft, rankRows, testFeature, flagsOf, productClass, altIgnored, modeFeatures, CLASS_LABEL, FEATURE_LABELS, HOURS_MONTH, sumB,
+  // ---- fairness metadata (FAIRNESS.md) ----------------------------------------------------------------------------
+  // The latest date the card was checked against the provider's own pages: feature evidence, fleet, locations, audits.
+  const ISO_DAY = /^\d{4}-\d{2}-\d{2}/;
+  function cardChecked(card) {
+    const d = [card.checked, card.locations_checked, (card.fleet || {}).checked, (card.fleet || {}).researched, (card.network && card.network.internet || {}).checked];
+    for (const e of Object.values(card.feature_evidence || {})) if (e && typeof e === 'object') d.push(e.checked);
+    for (const [k, v] of Object.entries(card)) {
+      const m = k.match(/^audit_(\d{4})_(\d{2})_(\d{2})$/); if (m) d.push(`${m[1]}-${m[2]}-${m[3]}`);
+      if (/^audit/.test(k) && v && typeof v === 'object') d.push(v.checked, v.date);
+    }
+    const ok = d.filter(x => typeof x === 'string' && ISO_DAY.test(x)).map(x => x.slice(0, 10)).sort();
+    return ok.length ? ok[ok.length - 1] : null;
+  }
+  const STALE_DAYS = 30;
+  const isStale = (checked, today) => !!checked && (Date.parse(today) - Date.parse(checked)) / 864e5 > STALE_DAYS;
+  // feature -> how you get it yourself, for every feature the card marks 'diy' (and persistence through a snapshot)
+  function diyHow(card) {
+    const out = {}, fe = card.feature_evidence || {};
+    const pick = e => ({ how: e.how || null, effort: e.effort || null, source: e.source || null, ttl_days: known(e.ttl_days) ? e.ttl_days : undefined, beta: e.beta || undefined });
+    for (const [k, e] of Object.entries(fe)) if (e && e.value === DIY) out[k] = pick(e);
+    const ps = fe.persist_scope;
+    if (ps && ps.value === 'snapshot') { const p = pick(ps); if (!out.persistent_disk) out.persistent_disk = p; if (!out.whole_disk && !(card.features || {}).persist_path) out.whole_disk = p; }
+    return Object.keys(out).length ? out : null;
+  }
+
+  root.PM = { DIY, cardChecked, isStale, STALE_DAYS, diyHow, priceCard, priceSoft, rankRows, testFeature, flagsOf, productClass, altIgnored, modeFeatures, CLASS_LABEL, FEATURE_LABELS, HOURS_MONTH, sumB,
     regionCodes, regionMatch, REGION_LABELS };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -341,8 +341,12 @@
     "Session resume (auto_close=false) keeps the browser running and billing after disconnect; there is no free paused state.",
     "Pay-as-you-go overflow is automatic on Pro+, but 'Some accounts require a balance to consume Pay As You Go usage' and are rejected with HTTP 429 when the prepaid balance does not cover it. Discovery/Pro/Startup are suspended immediately on failed payment (Enterprise 7-day, Custom 30-day grace).",
     "Unused plan credits do not roll over.",
-    "Cloud Browser /unblock endpoint (anti-bot pre-bypassed session, residential only): the prose says \"The Unblock API is billed the same as regular Cloud Browser sessions\" (30 s blocks, bandwidth separate, residential always; https://scrapfly.io/docs/cloud-browser-api/unblock) and names no surcharge, but the official cost calculator on https://scrapfly.io/docs/cloud-browser-api/billing sets \"var UNBLOCK_SURCHARGE = 1.2;\" and uses \"bwRate = Math.ceil(bwRes * UNBLOCK_SURCHARGE)\" (e.g. Pro 78 -> 94 credits/MB). Unresolved conflict; not modelled. Sessions 'are billed until explicitly closed or they reach the browser_timeout limit' (max 1800 s). Checked 2026-10-14.",
-    "Compliance page also lists ISO 27001 (certificate) and SOC 3 alongside SOC 2 Type II and HIPAA: \"SOC 2 Type II, ISO 27001, SOC 3, HIPAA, CCPA / CPRA, and GDPR are live.\" (https://scrapfly.io/compliance, 2026-10-14). The card schema has no ISO 27001/SOC 3 field."
+    "Cloud Browser /unblock endpoint (anti-bot pre-bypassed session) always exits through a residential proxy. The prose says \"The Unblock API is billed the same as regular Cloud Browser sessions\" (30 s blocks, bandwidth separate; https://scrapfly.io/docs/cloud-browser-api/unblock). An earlier billing-page calculator applied a 1.2x residential bandwidth surcharge; the billing page text names no surcharge (checked 2026-11-08). Not modelled. Sessions are billed until closed or until the browser timeout (max 1800 s).",
+    "Compliance page also lists ISO 27001 (certificate) and SOC 3 alongside SOC 2 Type II and HIPAA: \"SOC 2 Type II, ISO 27001, SOC 3, HIPAA, CCPA / CPRA, and GDPR are live.\" (https://scrapfly.io/compliance, 2026-10-14). The card schema has no ISO 27001/SOC 3 field.",
+    "CAPTCHA solver bills per solved captcha: 5 credits (Turnstile checkbox, DataDome slider, PerimeterX hold, CargoSmart slider), 20 credits (Turnstile token, reCAPTCHA v2/v3, GeeTest, Puzzle Click), 10 credits for other types. Failed solves are free (https://scrapfly.io/docs/cloud-browser-api/captcha-solver, checked 2026-11-08).",
+    "Live VNC and live WebRTC each add 5 credits per session, charged once at the end (https://scrapfly.io/docs/cloud-browser-api/billing, checked 2026-11-08).",
+    "Downloaded files are available during the session only and are deleted when the session ends (https://scrapfly.io/docs/cloud-browser-api/file-downloads, checked 2026-11-08).",
+    "Extra credits: $3.50 (Pro), $2.00 (Startup), $1.20 (Enterprise) per 10k. Discovery lists $5.00 per 10k but its overflow policy is quota cap (https://scrapfly.io/pricing, checked 2026-11-08)."
   ],
   "sources": [
     "https://scrapfly.io/pricing",
@@ -354,7 +358,8 @@
     "https://scrapfly.io/docs/billing",
     "https://scrapfly.io/compliance",
     "https://scrapfly.io/docs/cloud-browser-api/unblock",
-    "https://scrapfly.io/pricing.md"
+    "https://scrapfly.io/pricing.md",
+    "https://scrapfly.io/docs/cloud-browser-api/file-downloads"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -370,7 +375,7 @@
       "https://scrapfly.io/kyc-and-safety",
       "https://scrapfly.io/pricing.md"
     ],
-    "researched": "2026-10-14"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 14,
@@ -382,8 +387,8 @@
       "value": false,
       "source": "https://scrapfly.io/docs/cloud-browser-api/session-resume.md",
       "quote": "After a Cloud Browser run stops, its full profile (cookies, storage, tokens, fingerprint, proxy identity) is saved to storage.",
-      "note": "Browser product. On a clean stop of a named session the browser profile (cookies, local/sessionStorage, trust tokens, fingerprint, proxy identity; no tabs or live JS state) is saved automatically, but it is documented only as a one-way handoff into the Web Scraping API (session=cb:<id>), not restored into a new Cloud Browser session. Session resume (auto_close=false) just keeps the live browser running and billing until timeout (max 30 min); after termination reconnect fails ('Session expired or was terminated'). So no automatic save/restore of the browser machine on the next start.",
-      "checked": "2026-09-29"
+      "note": "Browser product. On a clean stop of a named session the browser profile (cookies, local/sessionStorage, trust tokens, fingerprint, proxy identity; no tabs or live JS state) is saved automatically. The docs describe it as a hand-off into the Web Scraping API (session=cb:<id>). They do not describe a restore of the machine or its files into a new Cloud Browser session. Session resume (auto_close=false) keeps the live browser running and billed until timeout (max 30 min).",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -439,7 +444,7 @@
       "source": "https://scrapfly.io/docs/cloud-browser-api/vnc",
       "quote": "Take live control of a Cloud Browser session with your mouse and keyboard using any VNC client.",
       "note": "Live VNC control of the browser session (human-in-the-loop) is offered, scoped to the browser window rather than a full OS desktop.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": false,
@@ -453,7 +458,7 @@
       "source": "https://scrapfly.io/docs/cloud-browser-api/session-resume",
       "quote": "auto_close=false ... Prevents the browser from being terminated when you disconnect.",
       "note": "There is no filesystem or memory snapshot/restore of the browser machine; 'session resume' just keeps the same live browser process running (still billed) so you can reconnect. Once a session is actually terminated it cannot be restored ('Session expired or was terminated').",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
@@ -488,7 +493,7 @@
       "source": "https://scrapfly.io/docs/cloud-browser-api/session-resume",
       "quote": "Session resume (auto_close=false) keeps the browser running and billing after disconnect; there is no free paused state.",
       "note": "Disconnecting with auto_close=false keeps the browser fully live (and billed) rather than pausing it; there is no mechanism to pause a session so billing stops/reduces and later resume it.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -499,10 +504,10 @@
     },
     "persistent_disk": {
       "value": false,
-      "source": "https://scrapfly.io/docs/cloud-browser-api/getting-started",
-      "quote": "Cloud Browser provides remote browser sessions accessible via WebSocket using the Chrome DevTools Protocol (CDP).",
-      "note": "not offered: outside the product's scope - there is no general-purpose filesystem exposed to customers; only browser profile data (cookies/local storage/fingerprint) carries over via session resume or the Web Scraping API handoff, not an arbitrary persistent disk.",
-      "checked": "2026-09-30"
+      "source": "https://scrapfly.io/docs/cloud-browser-api/file-downloads",
+      "quote": "All downloads are deleted when the browser session ends",
+      "note": "Files that the browser downloads are available over CDP (getDownloads) during the session only. No customer filesystem survives a session. Only the browser profile carries over (see persist_scope).",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": false,
@@ -523,7 +528,7 @@
       "source": "https://scrapfly.io/docs/cloud-browser-api/getting-started",
       "quote": "timeout | No | 900 | Maximum session duration in seconds (15 minutes default, 30 minutes max).",
       "note": "Every session has a hard timeout (default 15 min, max 30 min) after which it is automatically stopped; auto_close also terminates the browser as soon as the client disconnects unless overridden.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
@@ -668,10 +673,10 @@
     },
     "persist_scope": {
       "value": "profile",
-      "source": "https://scrapfly.io/docs/cloud-browser-api/getting-started",
-      "quote": "Cloud Browser provides remote browser sessions accessible via WebSocket using the Chrome DevTools Protocol (CDP).",
-      "note": "Only a saved browser profile (cookies, local storage, logins) carries over; no files survive.",
-      "checked": "2026-10-01"
+      "source": "https://scrapfly.io/docs/cloud-browser-api/session-resume",
+      "quote": "The profile is saved whenever a named session run shuts down cleanly.",
+      "note": "A named session saves its browser profile (cookies, storage, tokens, fingerprint, proxy identity) at a clean stop. The docs describe the hand-off of that profile to the Web Scraping API (session=cb:<id>). Open tabs, live page state and downloaded files do not carry over. A long browser task can open a new session every 30 minutes.",
+      "checked": "2026-11-08"
     },
     "soc2": {
       "value": true,

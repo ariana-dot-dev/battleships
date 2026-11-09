@@ -1,34 +1,28 @@
 # Price per unit of work
-A faster machine finishes sooner, so the cheapest hour isn't always the cheapest job. Each row is priced at the provider's current list price for the machine that was actually measured.
-## Node.js build & test loop, 4 vCPU / 8 GB
-| Provider | Runs per second | $ / hour | $ per million runs |
+A faster machine finishes sooner, so the lowest hourly price does not always give the lowest cost per job. Each row is the provider's current list price for a 4 vCPU / 8 GB machine, divided by the work that machine did in one public benchmark run.
+## V8 Web Tooling Benchmark (Node.js), 4 vCPU / 8 GB
+| Provider (runtime) | Runs per second | $ / hour | $ per million runs |
 |---|---:|---:|---:|
-| boat.dev | 26.7 | 0.036 | **0.37** |
-| tama | 16.8 | 0.091 | **1.50** |
-| Novita | 19.5 | 0.233 | **3.32** |
-| Daytona (VM sandbox) | 21.5 | 0.331 | **4.27** |
-| microsandbox | 21.1 | 0.330 | **4.34** |
-| Namespace | 21.8 | 0.360 | **4.59** |
-| Blaxel | 19.5 | 0.331 | **4.72** |
-| E2B | 12.6 | 0.331 | **7.29** |
-| Modal (VM runtime, beta) | 15.5 | 0.760 | **13.59** |
-| Vercel Sandbox | 13.0 | 0.682 | **14.62** |
-| Modal (default runtime) | 12.8 | 0.760 | **16.51** |
-| Runloop | 8.3 | 0.634 | **21.24** |
-Source: [StarSling hpc-sandbox-benchmarks](https://starsling.dev/hpc-sandbox-benchmarks), run of 2026-09-29, every provider on the same 4 vCPU / 8 GB target (Node.js V8 Web Tooling). Hourly prices are each provider's current list rate for that machine, compute and memory only (plan fees excluded). tama had provisioning failures in that run; run.cloud was measured too but its sandboxes are closed to new organizations. When boat.dev runs out of standard capacity, new sandboxes briefly land on an older machine at the same price, which costs about $1.13 per million runs.
-## Clone, install and typecheck a repo (one run)
-| Provider | Seconds | $ per run |
-|---|---:|---:|
-| Mosaic | 61 | 0.0034 |
-| Isorun | 33 | 0.0040 |
-| Miosa | 39 | 0.0067 |
-| CreateOS | 50 | 0.0067 |
-| Blaxel | 45 | 0.0085 |
-| Sandbox0 | 128 | 0.0086 |
-| Daytona | 69 | 0.0129 |
-| E2B | 77 | 0.0144 |
-| Runloop | 69 | 0.0243 |
-| Beam | 65 | 0.0261 |
-| Vercel Sandbox | 75 | up to 0.0288 |
-| Modal | 111 | 0.0296 |
-Source: [ComputeSDK benchmarks](https://github.com/computesdk/computesdk), weekly runs, 2026-09-25. Each is a single run, so read these as ±30%. Providers that bill only busy CPU (Vercel, Tensorlake, Upstash, Sail) cost less when the job waits on the network.
+| boat.dev | 28.06 | 0.036 | **0.36** |
+| tama | 18.69 | 0.091 | **1.35** |
+| Novita | 20.16 | 0.233 | **3.21** |
+| Namespace | 24.90 | 0.360 | **4.02** |
+| Daytona (VM class) | 21.52 | 0.331 | **4.28** |
+| microsandbox | 21.34 | 0.330 | **4.29** |
+| Blaxel | 18.03 | 0.331 | **5.10** |
+| Freestyle | 10.22 | 0.265 | **7.19** |
+| E2B | 11.08 | 0.331 | **8.30** |
+| Modal (VM runtime) | 15.48 | 0.476 | **8.54** |
+| Modal (gVisor, default runtime) | 12.60 | 0.476 | **10.49** |
+| Vercel Sandbox | 12.66 | 0.682 | **14.96** |
+| Runloop | 8.93 | 0.634 | **19.71** |
+
+Speed: [StarSling hpc-sandbox-benchmarks, run 37073680030](https://github.com/starslingdev/hpc-sandbox-benchmarks/blob/297198a96ee827df5edcd918bd37b949526cfe20/LEADERBOARD.md) of 2026-10-03, the latest run on StarSling's leaderboard. Every provider asked for 4 vCPU / 8 GB. The test is the V8 Web Tooling Benchmark: JavaScript tools such as Babel, TypeScript and Prettier running in Node.js. Brezel had the highest score in this run (30.06 runs/s) and has no row here because we do not have its list price. In the same run, boat.dev, Namespace, Daytona, microsandbox and Novita share rank 2: the benchmark cannot tell them apart.
+
+Prices: each provider's pricing page on 2026-11-08, compute and memory only, plan fees excluded ([boat.dev](https://docs.boat.dev/pricing), [tama](https://tama.computer/docs), [Novita](https://docs.novita.ai/guides/sandbox-pricing), [Namespace](https://namespace.so/pricing), [Daytona](https://www.daytona.io/pricing), [microsandbox](https://microsandbox.dev/pricing), [Blaxel](https://blaxel.ai/pricing), [Freestyle](https://www.freestyle.sh/pricing), [E2B](https://e2b.dev/pricing), [Modal](https://modal.com/pricing), [Vercel](https://vercel.com/docs/sandbox/pricing), [Runloop](https://www.runloop.ai/pricing)).
+
+Read these limits next to the table:
+- **Modal.** Modal lists its CPU price per physical core and counts 1 core as 2 vCPU, so the table prices 4 vCPU as 2 cores ($0.070956 per vCPU-hour). StarSling ran Modal with cpu=4 and the sandbox saw 4 CPUs ([PR #121](https://github.com/starslingdev/hpc-sandbox-benchmarks/pull/121)). Sized that way, Modal bills 4 cores: $0.76 per hour, $16.75 per million runs on gVisor and $13.63 on the VM runtime.
+- **Busy-time billing.** Vercel bills CPU only while it is busy, and Blaxel bills only while a sandbox is active. A job that waits on the network costs less there than this table shows.
+- **boat.dev.** Every boat.dev sandbox in this run ran on an AMD Ryzen 9 9950X host. boat.dev also places some sandboxes on other hosts at the same price. In the boat team's own run of 2026-08-24, a sandbox on a Hetzner cloud host did 8.88 runs/s, which is $1.13 per million runs ([results](https://github.com/AnicetNgrt/hpc-sandbox-benchmarks/blob/provider/ascii-box/docs/results/2026-08-24-cpu/leaderboard.md)). boat.dev also limits how many sandboxes a plan can start per minute and per day, and charges for starts above the included number ([limits](https://docs.boat.dev/limits)).
+- **Not compared.** tama did not get the requested size in this run, so its speed is not like-for-like. run.cloud was measured too, but its sandboxes are closed to new organizations.

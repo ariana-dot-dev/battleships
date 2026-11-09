@@ -107,10 +107,10 @@
     "fork": false,
     "persistent_disk": true,
     "volumes": null,
-    "auto_stop_idle": false,
+    "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": null,
-    "docker_inside": false,
+    "docker_inside": null,
     "nested_virt": false,
     "root": null,
     "systemd": null,
@@ -167,7 +167,10 @@
     "ingress_rules": false,
     "secret_proxy": false,
     "max_session_unlimited": true,
-    "usage_api": false
+    "usage_api": false,
+    "whole_disk": false,
+    "persist_scope": "folder",
+    "persist_path": "/workspace"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -177,7 +180,7 @@
   },
   "caveats": [
     "Rendered pricing links through /docs/pricing to Services billing: Sandbox managed compute $0.414/hour while running. CPU/RAM allocation not specified, so not normalized to 4/8.",
-    "Public API permits one primary Linux sandbox per user; repeated create returns the same resource. Pause stops active compute charges while retaining workspace; visual desktop is not a separate public API resource.",
+    "2026-11-08: the sandbox API now says 'a project can hold many' sandboxes and '`large` is the only size for now' (4 vCPU, 8 GiB RAM), charged per second 'at its size's rate'. The models page lists one rate, $0.414 per hour while running, but does not tie it to a size, so the card keeps the rate unnormalized. Pause (manual, or automatic when idle) stops the charge and keeps the workspace.",
     "Free $5 one-time; Pro displayed $25 is top-up credit, not a monthly fee. Credits also fund tokens/media/connections; dedicated GPU/model services available on request.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
@@ -192,14 +195,14 @@
     "https://www.dexto.ai/llms.txt"
   ],
   "fleet": {
-    "default_max_instances": 1,
+    "default_max_instances": null,
     "default_max_vcpu": null,
     "default_max_gpus": null,
     "raise": "none",
     "raise_time_days": null,
     "verification": null,
     "tiers": null,
-    "notes": "Public CPU sandbox API gives each user one primary sandbox; repeat POST returns that same sandbox rather than provisioning another. No multi-sandbox creation/raise path documented; none denotes current API single-primary restriction, not a promise that private enterprise arrangements can never exist. Sandbox lifecycle API rate limits: create/start/pause/delete/processes 60 requests per 60 s (sandbox_write), reads 300 per 60 s; each command runs at most 120 s (timeout_ms max 120000).",
+    "notes": "2026-11-08: 'a project can hold many' sandboxes, each with a unique name; no numeric cap is published (was one primary sandbox per user on 2026-09-28). Sandbox lifecycle API rate limits: create/start/pause/delete/processes 60 requests per 60 s (sandbox_write), reads 300 per 60 s; each command runs at most 120 s (timeout_ms max 120000).",
     "sources": [
       "https://www.dexto.ai/docs/platform/api/sandboxes/"
     ],
@@ -226,11 +229,25 @@
       "checked": "2026-09-30"
     },
     "docker_inside": {
-      "value": false,
+      "value": null,
       "source": "https://www.dexto.ai/docs/platform/api/sandboxes/",
       "quote": "POST /v1/sandboxes/{sandbox_id}/processes ... The response contains exit_code, stdout, and stderr.",
-      "note": "not offered: outside the product's scope; the documented API only exposes plain command execution and file I/O under /workspace, with no mention of Docker/containers inside.",
-      "checked": "2026-09-30"
+      "note": "Not published: the sandbox docs do not mention Docker either way, and do not name the isolation runtime.",
+      "checked": "2026-11-08"
+    },
+    "auto_stop_idle": {
+      "value": true,
+      "source": "https://www.dexto.ai/docs/platform/api/sandboxes/",
+      "quote": "an idle sandbox is also paused for you.",
+      "note": "Pause stops the charge and keeps the workspace. The idle time before the pause is not published.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "folder",
+      "source": "https://www.dexto.ai/docs/platform/api/sandboxes/",
+      "quote": "Use POST /v1/sandboxes/{sandbox_id}/pause to stop charging while keeping its workspace.",
+      "note": "The docs name only the workspace (/workspace) as kept. They do not say if files outside it survive. 'A terminated sandbox has lost its workspace; starting it again begins with an empty one.'",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,

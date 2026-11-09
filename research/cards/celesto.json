@@ -79,7 +79,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Max 10 concurrent; rates for newly created sandboxes (halved by 2026-10-14); existing sandboxes keep their original rates. Dedicated pricing page preferred over conflicting old docs sizes/plans.",
+      "note": "Max 10 running sandboxes, subject to host capacity. Rates apply to newly created sandboxes; existing sandboxes keep their original rates. Dedicated pricing page preferred over conflicting old docs sizes/plans.",
       "cpu_class": "shared"
     }
   ],
@@ -163,9 +163,9 @@
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": null,
+    "docker_inside": "diy",
     "nested_virt": false,
-    "root": null,
+    "root": true,
     "systemd": null,
     "browser": true,
     "desktop": true,
@@ -236,11 +236,13 @@
   "knobs": [],
   "caveats": [
     "Live pricing page and docs conflict: pricing sells Micro/Small/Standard/Memory/Large/XL with root disks 20-100 GB, while the docs computers/resources pages still list Nano 512 MB, Small 1 GB, Standard 4 GB, Large 4 vCPU 12 GB, Builder/Growth plans and \"disk_size_mb ... Range: 512-20480 MB\" (SDK docstring says 512-51200). Card follows the pricing page; old Builder/Growth subscriptions are not assumed purchasable.",
-    "Rates on the card apply to newly created sandboxes only: \"These rates apply to newly created sandboxes. Existing sandboxes retain their original rates, including after stop and restart.\" Sandboxes created before the cut keep the older, roughly 2x rates.",
+    "Rates on the card apply to newly created sandboxes only: \"These rates apply to newly created sandboxes.\" Existing sandboxes keep their original rates, including after stop and restart.",
     "Published paid offer caps running computers at 10; 50 concurrency unsupported without separately confirmed terms.",
     "All CPU sizes marked shared, not dedicated.",
-    "Cloud stop/start preserves files; local SmolVM full-memory snapshot and fork capability does not prove identical hosted semantics. Homepage forking claim is not backed by the hosted SDK or docs.",
-    "Desktop/computer-use rests on the hosted SDK's display (RFB/VNC) and browser (CDP) connection calls; hosted docs pages do not describe them yet.",
+    "Root: \"You get administrator access (root or sudo) inside each computer\" (https://celesto.ai/docs/cloud/overview.md). Docker is not preinstalled in hosted computers: the official guide installs it with sudo on a Standard or larger computer (https://celesto.ai/docs/celesto/features/docker.md). Docker runs under Celesto's service management, not systemctl.",
+    "Celesto also sells Celesto CI, which runs GitHub workflow files on its own runners with Docker preinstalled (https://celesto.ai/docs/ci/docker.md). The pricing page publishes no CI price, so this card does not price it.",
+    "Cloud stop/start preserves files; local SmolVM full-memory snapshot and fork capability does not prove identical hosted semantics. The hosted docs and SDK show no fork call.",
+    "Browser, desktop and computer use need the browser-agent template: \"A computer created from the browser-agent template runs a Chromium browser and a graphical desktop\"; other templates have no browser or display. Celesto gives a VNC-over-WebSocket screen (read-only or read-write) and a CDP URL; it has no built-in computer-use agent (https://celesto.ai/docs/cloud/features/browser-and-display.md).",
     "Root disk retained free for 30 days stopped; charge/availability after 30 days and egress price unknown.",
     "Billing increment and per start minimum not published on pricing page.",
     "Trial: 5 USD for 30 days, one retained Micro sandbox, no card; topping up unlocks other sizes and unused trial credit lasts until its original deadline. Taxes/card-issuer conversion extra. Trial credit is not applied to paid-mode estimates."
@@ -256,7 +258,12 @@
     "https://celesto.ai/docs/cloud/features/network-control",
     "https://celesto.ai/docs/cloud/features/lifecycle",
     "https://celesto.ai/docs/cloud/features/resources",
-    "https://github.com/CelestoAI/sdk/blob/main/src/celesto/sdk/client.py"
+    "https://github.com/CelestoAI/sdk/blob/main/src/celesto/sdk/client.py",
+    "https://celesto.ai/docs/cloud/overview.md",
+    "https://celesto.ai/docs/celesto/features/docker.md",
+    "https://celesto.ai/docs/ci/docker.md",
+    "https://celesto.ai/docs/cloud/features/browser-and-display.md",
+    "https://celesto.ai/legal/subprocessors"
   ],
   "fleet": {
     "default_max_instances": 1,
@@ -281,14 +288,14 @@
       "value": false,
       "source": "https://github.com/CelestoAI/sdk/blob/main/src/celesto/sdk/client.py",
       "quote": null,
-      "note": "Hosted Computers API/SDK/CLI exposes create, list, get, terminals, browser/display, publish/unpublish port, exec, exec_stream, command history, stop, start, delete; no snapshot or fork call. Homepage claims \"Pause, resume, and snapshots preserve state\" and \"Forking: Branch a running sandbox into parallel copies\" — these match the open-source local SmolVM runtime (docs.celesto.ai/smolvm/features/snapshots: \"A full snapshot captures the VM's CPU state, memory, and disk\"), not documented for the hosted cloud. OpenAI Agents integration can persist_workspace() as a tarball (files only, client-side).",
+      "note": "Hosted Computers API/SDK/CLI exposes create, list, get, terminals, browser/display, publish/unpublish port, exec, exec_stream, command history, stop, start, delete; no snapshot or fork call. Earlier homepage claims of snapshots and forking match the open-source local SmolVM runtime (docs.celesto.ai/smolvm/features/snapshots: \"A full snapshot captures the VM's CPU state, memory, and disk\"), not documented for the hosted cloud. OpenAI Agents integration can persist_workspace() as a tarball (files only, client-side).",
       "checked": "2026-09-29"
     },
     "harness_api": {
       "value": false,
       "source": "https://celesto.ai/",
       "quote": "The harness runs outside the sandbox and continuously learns from every run",
-      "note": "Managed Agents API (ManagedAgentsClient: agents, runs.create/runs.stream SSE, sessions, per-end-user budgets) drives Celesto's own hosted agent harness, which runs outside the sandbox, so it does not drive a harness inside a Computer. `celesto claude|codex|opencode|openclaw|hermes|pi start` are SmolVM CLI launchers that create a (local) sandbox with the agent preinstalled and attach a terminal (agent_harnesses, not an API).",
+      "note": "The managed-agents docs page is gone (checked 2026-11-08); when it existed it drove Celesto's own hosted agent harness outside the sandbox, not a harness inside a Computer. `celesto claude|codex|opencode|openclaw|hermes|pi start` are SmolVM CLI launchers that create a (local) sandbox with the agent preinstalled and attach a terminal (agent_harnesses, not an API).",
       "checked": "2026-09-29"
     },
     "egress_allowlist": {
@@ -316,8 +323,8 @@
       "value": true,
       "source": null,
       "quote": null,
-      "note": "Hardware-isolated Firecracker microVMs with own kernel (\"Hardware-isolated microVMs\"); root inside not explicitly documented for hosted computers (user is `ohm`).",
-      "checked": "2026-09-29",
+      "note": "Hardware-isolated Firecracker microVMs with own kernel (\"Hardware-isolated microVMs\"); the hosted docs give root or sudo inside each computer (see root evidence), so the guest can run its own firewall.",
+      "checked": "2026-11-08",
       "derived": true
     },
     "secret_proxy": {
@@ -343,17 +350,40 @@
     },
     "desktop": {
       "value": true,
-      "source": "https://github.com/CelestoAI/sdk/blob/main/src/celesto/sdk/client.py",
-      "quote": "Create a short-lived RFB connection to a graphical display.",
-      "note": "Hosted Computers SDK now has create_display_connection(computer_id, mode=\"read_only\"|\"read_write\") -> POST /computers/{id}/display, returning a gateway websocket URL to a VNC (RFB) graphical display of a hosted computer. Homepage advertises terminal/browser/desktop and \"CDP · VNC\". Hosted docs pages do not describe the display endpoint yet (previously false: Celesto.desktop() was documented only for local SmolVM).",
-      "checked": "2026-10-14"
+      "source": "https://celesto.ai/docs/cloud/features/browser-and-display.md",
+      "quote": "A computer created from the `browser-agent` template runs a Chromium browser and a graphical desktop",
+      "note": "Ships in the browser-agent template only (\"Computers created from other templates have no browser or display.\"). The screen is a VNC-over-WebSocket URL, viewable in the console. SDK: create_display_connection(computer_id, mode=\"read_only\"|\"read_write\").",
+      "checked": "2026-11-08"
+    },
+    "browser": {
+      "value": true,
+      "source": "https://celesto.ai/docs/cloud/features/browser-and-display.md",
+      "quote": "A computer created from the `browser-agent` template runs a Chromium browser and a graphical desktop",
+      "note": "Chromium in the browser-agent template, drivable through \"a Chrome DevTools Protocol (CDP) WebSocket URL.\"",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": true,
-      "source": "https://github.com/CelestoAI/sdk/blob/main/src/celesto/sdk/client.py",
-      "quote": "Create a short-lived RFB connection to a graphical display.",
-      "note": "mode=\"read_write\" on POST /computers/{id}/display gives input control of the hosted display (VNC), i.e. a computer-use driver; create_browser_connection (POST /computers/{id}/browser) adds \"a short-lived CDP connection for browser automation.\" Homepage: \"Run agent harnesses, computer-use agents, and CI at AI scale.\" Not yet in hosted docs.",
-      "checked": "2026-10-14"
+      "source": "https://celesto.ai/docs/cloud/features/browser-and-display.md",
+      "quote": "The live view opens read-only. Switch to read-write to use the mouse and keyboard.",
+      "note": "Read-write VNC display plus a CDP URL let your own agent drive the desktop and browser. Celesto ships no built-in computer-use agent.",
+      "checked": "2026-11-08"
+    },
+    "root": {
+      "value": true,
+      "source": "https://celesto.ai/docs/cloud/overview.md",
+      "quote": "You get administrator access (`root` or `sudo`) inside each computer",
+      "note": "The Docker guide opens a root shell with `sudo -i` and says the terminal runs as root.",
+      "checked": "2026-11-08"
+    },
+    "docker_inside": {
+      "value": "diy",
+      "source": "https://celesto.ai/docs/celesto/features/docker.md",
+      "quote": "You install Docker inside the sandbox, then use its commands there.",
+      "how": "on a Standard or larger computer, run sudo -i and install Docker with the official guide's commands",
+      "effort": "medium",
+      "note": "Guide: \"Create a Standard computer, which includes a 30 GB disk with space for Docker images.\" Docker runs under Celesto's service management, not systemctl. Celesto CI runners ship Docker preinstalled (https://celesto.ai/docs/ci/docker.md), but that is a separate product.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -441,10 +471,10 @@
     },
     "own_agent_api": {
       "value": false,
-      "source": "https://docs.celesto.ai/cloud/managed-agents/overview",
-      "quote": "Managed agents let you run AI agents for your end users, with per-user budgets and an audit trail. You define an agent once, then call it on behalf of one of your users each time they interact with your product.",
-      "note": "The Managed Agents API drives an agent that YOU define (via the Agentor framework), not a first-party Celesto-built browser/computer-use/research agent.",
-      "checked": "2026-09-30"
+      "source": "https://celesto.ai/docs/llms.txt",
+      "quote": null,
+      "note": "The managed-agents docs page is gone and the docs index no longer lists managed agents. Current agent features (Pi extension, OpenAI Agents integration, MCP server, Gatekeeper end-user OAuth) run agents you build; no first-party Celesto browser/computer-use/research agent API is documented.",
+      "checked": "2026-11-08"
     },
     "mcp_server": {
       "value": false,
@@ -486,7 +516,7 @@
       "source": "https://celesto.ai/pricing",
       "quote": "Micro (default) 1 shared 2 GB 20 GB $0.015 /hour; Small 1 shared 4 GB 25 GB $0.020; Standard 2 shared 4 GB 30 GB $0.030; Memory 2 shared 8 GB 40 GB $0.040; Large 4 shared 16 GB 60 GB $0.080; XL 8 shared 32 GB 100 GB $0.160 /hour",
       "note": "not offered: outside the product's scope. Only shared-vCPU/RAM/disk sizes are sold; no GPU size, GPU pricing, or GPU mention appears anywhere on the site or docs.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
@@ -558,13 +588,13 @@
       "source": "https://celesto.ai/pricing",
       "quote": "Micro (default) 1 shared 2 GB 20 GB $0.015 /hour; Small 1 shared 4 GB 25 GB $0.020; Standard 2 shared 4 GB 30 GB $0.030; Memory 2 shared 8 GB 40 GB $0.040; Large 4 shared 16 GB 60 GB $0.080; XL 8 shared 32 GB 100 GB $0.160 /hour",
       "note": "Every size in the only pricing mode ('on-demand') is explicitly labeled 'shared vCPU' on the pricing page; no dedicated/reserved-core tier is offered.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,
       "source": "https://docs.celesto.ai/cloud/computers",
       "quote": "The Computers API exposes create/list/get/stop/start/delete/exec/publish-port/terminal operations. No usage or metering endpoint is documented.",
-      "note": "granularity: none; cost: no; The Computers SDK/CLI supports lifecycle management and terminal access but does not expose usage metrics, running time, vCPU-seconds, or cost data per sandbox. The separate Managed Agents API tracks spend per end-user (for billing your users), not per-sandbox usage for the platform operator. No REST API, SDK call, or CLI command is documented to query billable usage of a sandbox, a group of sandboxes, or resources tagged/labeled by the user.",
+      "note": "granularity: none; cost: no; The Computers SDK/CLI supports lifecycle management and terminal access but does not expose usage metrics, running time, vCPU-seconds, or cost data per sandbox. No REST API, SDK call, or CLI command is documented to query billable usage of a sandbox, a group of sandboxes, or resources tagged/labeled by the user.",
       "confidence": "high",
       "checked": "2026-10-01"
     },
@@ -572,8 +602,8 @@
       "value": false,
       "source": "https://celesto.ai/docs/cloud/features/lifecycle",
       "quote": "Create a computer when you need a clean workspace. Stop it to pause work and keep the files inside it. Start it when you want to continue. Delete it when you no longer need the workspace.",
-      "note": "Homepage still claims \"Forking: Branch a running sandbox into parallel copies\" (https://celesto.ai/), but the hosted lifecycle docs list only create/stop/start/delete and the hosted SDK client.py has no fork or snapshot method (create, list_templates, list, get, terminals, browser, display, publish/unpublish port, exec, exec_stream, command history, stop, start, delete). Forking is a local SmolVM feature, not the hosted Cloud product.",
-      "checked": "2026-10-14"
+      "note": "The homepage no longer mentions branching a sandbox. The hosted lifecycle docs list only create/stop/start/delete and the hosted SDK client.py has no fork or snapshot method (create, list_templates, list, get, terminals, browser, display, publish/unpublish port, exec, exec_stream, command history, stop, start, delete). Forking is a local SmolVM feature, not the hosted Cloud product.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,

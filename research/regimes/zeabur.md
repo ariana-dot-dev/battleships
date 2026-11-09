@@ -9,7 +9,7 @@ Current pricing is management subscriptions plus separately purchased server/clu
 | Regime | When it applies | How billed | Native / USD numbers | Source |
 |---|---|---|---|---|
 | managed-server | Bring or buy server; compute separately billed | allocated wall time; None second increment | USD None/vCPU-h + None/GiB-h → USD None + None; null means unknown | https://zeabur.com/pricing |
-| subscription | Platform management | See rule | USD 0/5/19/79 per month Free/Dev/Pro/Team; these do not buy a 4/8 runtime. | https://zeabur.com/pricing |
+| subscription | Platform management | See rule | USD 0/5/19/79 per month Free/Dev/Pro/Team; these do not buy a 4/8 runtime. A purchased server needs no paid plan ("No, you do not need a subscription plan to use a server."); backups need Dev or higher. | https://zeabur.com/pricing, https://zeabur.com/docs/en-US/server |
 | sales | Enterprise | See rule | Custom contracts and usage limits; no public quote. | https://zeabur.com/pricing |
 ## Gotchas
 - Runtime server prices vary by selected marketplace provider and location.

@@ -5,7 +5,8 @@ As of 2026-09-28. USD unless explicitly stated; public list prices unless a row 
 |---|---|---|---|---|
 | Cloud Browser base | Web Socket connection time + traffic | Credits | max(5, ceil(seconds/30)+ceil(MB)×plan proxy rate + cachedMB); add solves/viewers | https://scrapfly.io/docs/cloud-browser-api/billing |
 | Wire bandwidth | All page/assets traffic, no free threshold | Credits/MB; 1024 MB per GB | Discovery DC 7/res 52; Pro 10/78; Startup 8/65; Enterprise 8/65 | https://scrapfly.io/docs/cloud-browser-api/billing |
-| CAPTCHA | Successful solve | 5/10/20 credits | 5 interactive; 20 token; 10 default; unsolvable Data Dome token unbilled | https://scrapfly.io/docs/cloud-browser-api/captcha-solver |
+| CAPTCHA | Successful solve | 5/10/20 credits | 5 Turnstile checkbox, DataDome slider; 20 Turnstile token, reCAPTCHA, GeeTest; 10 other types; failed solves free (checked 2026-11-08) | https://scrapfly.io/docs/cloud-browser-api/captcha-solver |
+| Live VNC / WebRTC | Per session with the add-on on | Credits | 5 credits each, once per session (checked 2026-11-08) | https://scrapfly.io/docs/cloud-browser-api/billing |
 | Prepaid effective time rate | Using included credits | Amortized not overage | Discovery $.018/h; Pro/Startup $.012/h; Enterprise $.010909/h | https://scrapfly.io/docs/cloud-browser-api/billing |
 | Overflow | Pro+ after shared quota | 10 k-credit batches | $3.50/$2/$1.20 per 10 k Pro/Startup/Enterprise | https://scrapfly.io/pricing |
 | Discovery | Account plan | Monthly fee / commitment | $30; concurrency 5; 200,000 shared credits/month; no overage Browser traffic 7 datacenter/52 residential credits/MB. | https://scrapfly.io/pricing |
@@ -17,6 +18,7 @@ As of 2026-09-28. USD unless explicitly stated; public list prices unless a row 
 - Very low prepaid effective hourly rate excludes bandwidth. Do not use fee/credits as overflow rate: published overage is higher.
 - Cloud Browser docs explicitly define GB=1024 MB, unlike default estimator GB≈GiB simplification. MB rounds up; VNC/RTC add-ons and CAPTCHA consume the same quota.
 - 5-credit allocation minimum applies to combined time + traffic, not five extra credits on every session. It cannot be exactly represented by card start_fee. Card uses null rather than inventing a time-only minimum.
+- Sessions end after 30 min max. A named session saves its browser profile at a clean stop; tabs, page state and downloaded files do not carry over. Downloads are deleted at session end (https://scrapfly.io/docs/cloud-browser-api/file-downloads, checked 2026-11-08).
 - Discovery stops at quota. Free grant 1,000 credits once, not $1,000.
 - Storage, snapshot GiB-month and public IPv4 prices are not published in the reviewed sources; null is not free.
 - No guaranteed vCPU allocation published; browser-hour is not a verified 4-vCPU/8-GiB VM equivalent. The sizes card keeps unknown hardware null; do not coerce it to zero or auto-rank against resource-guaranteed VMs.

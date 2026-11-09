@@ -15,7 +15,7 @@ Blacksmith sells drop-in GitHub Actions runners (Linux x64/arm64, Windows Server
 | 7 | Static IPs | Windows/Ubuntu | Per IP per month | $100/IP/month | pricing |
 | 8 | Enterprise | Contact | SLA, support | Custom | pricing |
 ## Gotchas
-1. GitHub Actions jobs only (`runs-on:` label), not a general sandbox.
+1. A GitHub workflow starts each runner and Testbox (`runs-on:` label). Blacksmith Sandboxes adds an API start (`Sandbox.create()`), environment snapshots, ports and pause/resume, but it is a sign-up beta with a preview SDK and no published price (https://www.blacksmith.sh/sandboxes, https://github.com/useblacksmith/sandbox-sdk, checked 2026-11-08). Prices re-checked 2026-11-08: unchanged.
 2. Free minutes are x64-equivalent: 3,000 free minutes = only 150 macOS 6-vCPU minutes.
 3. Windows is beta. macOS capacity and regions are not published.
 4. Per-minute rounding is assumed (GitHub job minutes).

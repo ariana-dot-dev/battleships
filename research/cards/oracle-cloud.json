@@ -1129,7 +1129,7 @@
     "root": true,
     "systemd": true,
     "browser": false,
-    "desktop": false,
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
@@ -1163,7 +1163,7 @@
     "egress_http_rules": true,
     "wake_on_request": false,
     "live_resize": false,
-    "fork_running": false,
+    "fork_running": "diy",
     "memory_snapshot_fork": false,
     "webhooks": null,
     "scheduled_wakeups": null,
@@ -1209,7 +1209,9 @@
     "Grouped E5/E6 mode uses the conservative E5 memory ceiling1024GiB; E6 can reach1454GiB per shape docs. Bootvolume minimum47–50GB is not automatically enforced by the current engine.",
     "Snapshot retention priced at $0.0255/GB-month: block volume backups are \"regionally stored in Object Storage\" (docs blockvolumebackups.htm) and Object Storage Standard is $0.0255/GB-month above 10 GB (price API part B91628). No separate backup SKU exists; backups are incremental so this is an upper-bound per GB of retained state.",
     "Boot time before a VM is usable is not published, so boot_overhead_s is left unset (a plain VM; the hyperscaler category already carries the \"no sandbox API\" compromise).",
-    "Nested KVM: Oracle Linux blog (Apr 2025) documents it on VM.Standard.E5.Flex and VM.Standard3.Flex; \"Ampere VMs (ARM/aarch64) did not support nested virtualization\" (A1/A2 set false; A4 postdates the blog, left null; E4/E6 not stated, null). The blog returned 403 to automated fetches on 2026-10-14, so this rests on the 2026-09-30 check."
+    "Nested KVM: Oracle Linux blog (Apr 2025) documents it on VM.Standard.E5.Flex and VM.Standard3.Flex; \"Ampere VMs (ARM/aarch64) did not support nested virtualization\" (A1/A2 set false; A4 postdates the blog, left null; E4/E6 not stated, null). The blog returned 403 to automated fetches on 2026-10-14, so this rests on the 2026-09-30 check.",
+    "macOS: Managed Services for Mac needs a 36-month minimum term, bills whole months regardless of usage and runs only in selected regions (docs managed-mac/overview.htm, checked 2026-11-08). It is not per-second macOS capacity.",
+    "Fork of a running VM: a boot volume clone copies the disk with no stop (crash-consistent, no memory); you then launch a new VM from it. Only the custom-image path shuts the source VM down (docs create-clone-bv-boot-volume.htm, checked 2026-11-08)."
   ],
   "sources": [
     "https://www.oracle.com/cloud/compute/pricing/",
@@ -1233,7 +1235,10 @@
     "https://hn.algolia.com/api/v1/items/49183750",
     "https://www.cnelecar.com/blog/oracle-always-free-arm-limits-cut-2026/",
     "https://apexapps.oracle.com/pls/apex/cetools/api/v1/products/?currencyCode=USD&serviceCategory=Storage",
-    "https://blogs.oracle.com/linux/post/kvm-nested-virtualization-in-oci"
+    "https://blogs.oracle.com/linux/post/kvm-nested-virtualization-in-oci",
+    "https://docs.oracle.com/en-us/iaas/Content/Block/Tasks/create-clone-bv-boot-volume.htm",
+    "https://docs.oracle.com/en/learn/install-vnc-oracle-linux/index.html",
+    "https://docs.oracle.com/en-us/iaas/Content/managed-mac/overview.htm"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -1267,8 +1272,8 @@
       "value": true,
       "source": "https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/managingcustomimages.htm",
       "quote": "You can create a custom image of an instance's boot disk and use it to launch other instances.",
-      "note": "Disk only (no memory). Manual boot-volume and block-volume backups (incremental/full, stored in Object Storage) can be restored to new volumes / new instances; boot volume clones also exist. Custom images boot new instances (template/fork of disk state).",
-      "checked": "2026-09-29"
+      "note": "Disk only (no memory). Manual boot-volume and block-volume backups (incremental/full, stored in Object Storage) can be restored to new volumes / new instances; boot volume clones of a running instance (crash-consistent, no stop) also exist. Custom images boot new instances (template/fork of disk state).",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -1371,11 +1376,13 @@
       "checked": "2026-09-30"
     },
     "fork_running": {
-      "value": false,
-      "source": "https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/managingcustomimages.htm",
-      "quote": "When you create an image of a running instance, the instance shuts down and remains unavailable for several minutes. The instance restarts when the process completes.",
-      "note": "Creating a custom image (the closest thing to a clone) from a running instance forces it to shut down during the process, so the source machine is not cloned while it keeps running.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://docs.oracle.com/en-us/iaas/Content/Block/Tasks/create-clone-bv-boot-volume.htm",
+      "quote": "Making a boot volume clone while an instance is running creates a crash-consistent clone, meaning the data is in the identical state it was in at the time the clone was made.",
+      "how": "clone the boot volume of the running VM (no stop, crash-consistent, disk only), then launch a new VM from the clone; a custom image instead shuts the VM down for several minutes",
+      "effort": "low",
+      "note": "Disk state only, no memory. Oracle says a custom image is the surer way to get a bootable image: \"In most cases you can use the cloned boot volume to create an instance, however to ensure a bootable image, you should create a custom image from your instance.\"",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -1484,11 +1491,13 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
-      "source": "https://www.oracle.com/cloud/compute/secure-desktops/",
-      "quote": "OCI Secure Desktops is a managed service in OCI that lets you implement desktop as a service. It provides a centrally controlled deployment of virtual desktops running Oracle Linux or Microsoft Windows for the operating system. ... The desktop screens are delivered via a high-speed, secure, proprietary protocol.",
-      "note": "reviewed: proposed correction rejected (First-party managed remote/streamed desktop product (OCI Secure Desktops), separate from the plain-VM compute regime priced on the card, but it is a real Oracle-offered feature of the platform.)",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://docs.oracle.com/en/learn/install-vnc-oracle-linux/index.html",
+      "quote": "Install a GNOME desktop environment and all of its dependencies.",
+      "how": "no desktop preinstalled: install GNOME (Server with GUI) and TigerVNC on the VM and open the VNC port with an ingress rule (official Oracle tutorial); or use OCI Secure Desktops, a separate desktop-as-a-service product",
+      "effort": "medium",
+      "note": "The tutorial says: \"If running within OCI, you must allow the same port access via an Ingress rule.\" The previous value false meant only that no desktop is preinstalled.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
@@ -1522,9 +1531,9 @@
       "value": true,
       "corrected_from": false,
       "source": "https://docs.oracle.com/en-us/iaas/Content/managed-mac/overview.htm",
-      "quote": "Oracle Cloud Infrastructure Managed Services for Mac lets you run macOS workloads in the Oracle Cloud, extending the flexibility, scalability, and cost benefits of Oracle Cloud Infrastructure to all Apple developers. By using Oracle Cloud Infrastructure-hosted Mac servers, you can create apps for the iPhone, iPad, Mac, Apple Watch, Apple TV devices...",
-      "note": "OCI 'Managed Services for Mac' offers dedicated Apple Mac servers (billed per server per hour) as a first-party OCI service, separate from the x86/Arm compute regimes priced on the card.",
-      "checked": "2026-09-30"
+      "quote": "You must make a minimum term commitment of 36 months.",
+      "note": "OCI Managed Services for Mac: dedicated Mac servers, billed per server per hour for the full term, whole months billed regardless of usage, 36-month minimum term, selected regions only (\"This service is available only in selected regions.\"). Separate from the x86/Arm compute regimes priced on the card.",
+      "checked": "2026-11-08"
     },
     "self_host": {
       "value": false,
@@ -1546,6 +1555,19 @@
       "quote": "Oracle Cloud Infrastructure (OCI) Compute provides fast provisioning and flexible virtual machine (VM) and bare metal (BM) compute capacity to meet the demands of any workload.",
       "note": "OCI is Oracle's proprietary commercial cloud platform; no OSI-licensed core product exists (the underlying compute/network/storage control plane is closed-source, unlike e.g. OpenStack).",
       "checked": "2026-09-30"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/accessinginstance.htm",
+      "quote": "You can connect to a running Linux instance by using a Secure Shell (SSH) connection.",
+      "checked": "2026-11-08"
+    },
+    "docker_inside": {
+      "value": true,
+      "source": "https://docs.oracle.com/en/solutions/oci-free-wordpress-docker/install-and-configure1.html",
+      "quote": "SSH into the VM and run the following commands to install Docker:",
+      "note": "Official Oracle solution guide installs docker-ce on an OCI VM. Oracle Linux 8 images default to Podman with a docker-compatible alias.",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": true,

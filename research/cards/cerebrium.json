@@ -1103,14 +1103,14 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": false,
+    "docker_inside": null,
     "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
-    "code_interpreter": null,
+    "code_interpreter": "diy",
     "agent_harnesses": false,
     "ssh": false,
     "public_ipv4": false,
@@ -1146,7 +1146,7 @@
       "other"
     ],
     "lang_python": true,
-    "lang_node": false,
+    "lang_node": "diy",
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -1206,7 +1206,9 @@
     "Platform cold-start time is not billed; user initialization code outside the request function (e.g. loading a model into GPU memory) is billed.",
     "Persistent storage: one volume per region per project (mounted /persistent-storage), resizable 50 GB-1 TB self-serve; global apps also get a fixed 1 TB /global-persistent-storage volume. Pricing page: first 100 GB free then $0.05/GB-mo; whether billing is on provisioned size or used bytes is not stated.",
     "No container lifetime cap, but each request times out at response_grace_period (default 15 min, raise in cerebrium.toml) and async runs max out at 12 h. Interruptible and protected instances alike can be drained (SIGTERM, then SIGKILL after the grace period) and moved to a new node for maintenance; protected only avoids preemption and consolidation.",
-    "Cerebrium does not say which isolation layer (runc, gVisor or microVM) runs customer containers; 'container' is inferred from the Dockerfile deployment model."
+    "Cerebrium does not say which isolation layer (runc, gVisor or microVM) runs customer containers; 'container' is inferred from the Dockerfile deployment model. Its resource page on sandboxing agent code discusses gVisor and Firecracker but does not name its own layer.",
+    "Cerebrium Run (API): upload a tar of code and run a Python file or function on CPU (default) or a chosen GPU without writing an endpoint; logs stream back asynchronously.",
+    "No managed browser or desktop. A headless browser is an install in your own Dockerfile; there is no display stream or computer-use API."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/cerebrium",
@@ -1222,7 +1224,9 @@
     "https://cerebrium.ai/docs/endpoints/async",
     "https://cerebrium.ai/docs/scaling/scaling-apps",
     "https://cerebrium.ai/docs/toml-reference/toml-reference",
-    "https://cerebrium.ai/resources/sandboxed-agent-code-execution-serverless-gpu"
+    "https://cerebrium.ai/resources/sandboxed-agent-code-execution-serverless-gpu",
+    "https://cerebrium.ai/docs/api-reference/cerebrium-run/run-app.md",
+    "https://cerebrium.ai/docs/container-images/custom-dockerfiles"
   ],
   "fleet": {
     "default_max_instances": 500,
@@ -1308,11 +1312,11 @@
       "checked": "2026-09-30"
     },
     "docker_inside": {
-      "value": false,
+      "value": null,
       "source": "https://cerebrium.ai/docs/container-images/custom-dockerfiles",
       "quote": "Cerebrium uses a single cerebrium.toml file. The system handles container lifecycle, networking, and scaling automatically.",
-      "note": "not offered: outside the product's scope — apps run as a single managed container (built from your Dockerfile); no documented ability to run Docker-in-Docker or start further containers inside the running app.",
-      "checked": "2026-09-30"
+      "note": "Not documented either way. Apps run as one managed container built from your Dockerfile. The docs do not describe Docker inside an app, and they do not say that it is blocked.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -1325,22 +1329,33 @@
       "value": false,
       "source": "https://cerebrium.ai/pricing",
       "quote": "Deploy AI infrastructure that scales automatically ... serverless GPU compute for inference and training.",
-      "note": "not offered: outside the product's scope — a serverless inference/API platform, not a desktop/GUI product.",
-      "checked": "2026-09-30"
+      "note": "No desktop product, no display stream and no official desktop example in the docs (checked llms.txt index 2026-11-08). A serverless inference/API platform.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://cerebrium.ai/pricing",
-      "quote": "Deploy AI infrastructure that scales automatically ... serverless GPU compute for inference and training.",
-      "note": "not offered: outside the product's scope — no managed/real browser product; docs only cover an example blog post on sandboxing agent code, not a browser feature.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://cerebrium.ai/docs/container-images/custom-dockerfiles",
+      "quote": "all dependencies and necessary commands should be installed and executed within the Dockerfile.",
+      "how": "install headless Chromium or Playwright in your own custom Dockerfile (no official browser example)",
+      "effort": "medium",
+      "note": "No managed browser product. Apps build from your own Dockerfile (example Dockerfiles run apt-get install), so a headless browser is an install. No display stream or computer-use API.",
+      "checked": "2026-11-08"
+    },
+    "code_interpreter": {
+      "value": "diy",
+      "source": "https://cerebrium.ai/docs/api-reference/cerebrium-run/run-app.md",
+      "quote": "Execute code on a deployed app.",
+      "how": "upload a tar of code with the Cerebrium Run API and run a Python file or function on CPU or a chosen GPU; logs stream back asynchronously",
+      "effort": "low",
+      "note": "Run App takes a tar archive, a .py file path and an optional function name; compute defaults to CPU. One-shot runs, not a stateful interpreter session.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://cerebrium.ai/pricing",
       "quote": "Deploy AI infrastructure that scales automatically ... serverless GPU compute for inference and training.",
-      "note": "not offered: outside the product's scope — no screenshot/click desktop-driving API; platform exposes REST/WebSocket endpoints for user-authored inference functions only.",
-      "checked": "2026-09-30"
+      "note": "No screenshot/click desktop-driving API and no official example; the platform exposes REST/WebSocket endpoints for user-authored functions.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -1455,11 +1470,13 @@
       "checked": "2026-09-30"
     },
     "lang_node": {
-      "value": false,
+      "value": "diy",
       "source": "https://cerebrium.ai/docs/container-images/custom-dockerfiles",
       "quote": "Cerebrium supports deploying existing containerized apps — from standard Python apps to compiled Rust binaries — using a custom Dockerfile.",
-      "note": "No first-party Node.js runtime/SDK; Node (or any other language) apps are only reachable indirectly via a custom Dockerfile/custom runtime, same as Rust — not offered out of the box.",
-      "checked": "2026-09-30"
+      "how": "deploy a Node.js app from a custom Dockerfile with a custom runtime port",
+      "effort": "medium",
+      "note": "No first-party Node.js runtime or SDK. Any language runs through a custom Dockerfile, as the docs show for Rust.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,

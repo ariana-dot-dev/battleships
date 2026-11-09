@@ -113,7 +113,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Official USD list (pricing page currency selector / price-system currency=USD); EUR list = USD / 0.87. Prices exclude VAT.",
+      "note": "Official USD list (price-system API, currency=USD, zone par, re-checked 2026-11-08); EUR list = USD / 0.87. Prices exclude VAT.",
       "product_class": "paas"
     }
   ],
@@ -173,8 +173,8 @@
     "snapshot": "none",
     "pause_resume": true,
     "fork": false,
-    "persistent_disk": false,
-    "volumes": null,
+    "persistent_disk": "diy",
+    "volumes": "diy",
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
@@ -232,8 +232,8 @@
     "snapshot_on_demand": false,
     "harness_api": false,
     "ingress_rules": true,
-    "volume_attach": true,
-    "volume_shared": true,
+    "volume_attach": "diy",
+    "volume_shared": "diy",
     "anti_bot": false,
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
@@ -251,9 +251,9 @@
   },
   "knobs": [],
   "caveats": [
-    "50 concurrent replicas exceed v2 Docker maxInstances=40 per application; split apps or request limit increase.",
+    "An application can have up to 40 instances (20 when set with Clever Tools); 50 concurrent sandboxes need several applications. Applications per organisation are unlimited (FAQ); no organisation-wide cap on instances is published.",
     "Tax treatment not established from captured API.",
-    "Container image runs on managed VM; not full root/nested virtualization sandbox.",
+    "A Docker app runs one container on a managed VM. SSH opens as the non-root user bas. The disk is writable, but changes are lost when a deploy or scaling replaces the instance.",
     "Storage and egress not normalized.",
     "Exact isolation mechanism not verified in cited pricing/API pages; no container/VM guarantee inferred.",
     "Unknowns remain null, not free; Docker-app regime is an ordinary self-serve PaaS instance (not alt).",
@@ -264,7 +264,10 @@
     "Clever Tasks: a Docker app can run as a run-to-completion job ('Clever Cloud just starts a VM, run the given command and then stop the VM'), billed per second at the same flavor price; no inbound HTTP/TCP.",
     "Monthly prepaid provisioning: each month's invoice includes a top-up of prepaid credits equal to estimated next-month consumption (not a minimum fee).",
     "nano (and pico) instances run with reduced CPU priority on the host and may slow down when the hypervisor is loaded; no baseline is published.",
-    "Dubai (Oracle Cloud, Middle East) is listed on clever.cloud/security/ (\"Oracle Cloud Dubai (Émirats arabes unis) (ISO 27001, SOC 2)\") but is absent from the public zones API (2026-10-14), so it is sales-only (\"Contact us to discuss the right options\"); a SecNumCloud zone at partner Cloud Temple is likewise on request."
+    "Dubai (Oracle Cloud, Middle East) is listed on clever.cloud/security/ (\"Oracle Cloud Dubai (Émirats arabes unis) (ISO 27001, SOC 2)\") but is absent from the public zones API (2026-10-14), so it is sales-only (\"Contact us to discuss the right options\"); a SecNumCloud zone at partner Cloud Temple is likewise on request.",
+    "Clever Kubernetes Engine (CKE, public beta since 2026-04-27): every worker runs on a dedicated VM, multi-container workloads, opt-in Ceph persistent volumes, default quota 40 vCPU / 40 GB RAM per organisation, storage not billed during the beta. It is a separate product: each sandbox becomes a Kubernetes workload, not an SSH-able app instance. Not priced on this card.",
+    "TCP: one TCP redirection per namespace (default, cleverapps, private); Clever Cloud chooses the public port, which stays fixed while the redirection exists.",
+    "Prices re-checked 2026-11-08 against the USD price-system API (par): unchanged."
   ],
   "sources": [
     "https://www.clever.cloud/pricing/",
@@ -273,7 +276,14 @@
     "https://api.clever-cloud.com/v4/billing/price-system?zone_id=par&currency=EUR",
     "https://api.clever-cloud.com/v4/products/zones",
     "https://www.clever.cloud/security/",
-    "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html"
+    "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html",
+    "https://www.clever.cloud/developers/doc/manage/ssh-access/",
+    "https://www.clever.cloud/developers/doc/deploy/kubernetes/",
+    "https://www.clever.cloud/developers/doc/deploy/applications/docker/index.html.md",
+    "https://www.clever.cloud/developers/doc/manage/scaling/",
+    "https://www.clever.cloud/developers/doc/manage/tcp-redirections/",
+    "https://api.clever-cloud.com/v4/billing/price-system?zone_id=par&currency=USD",
+    "https://www.clever.cloud/blog/company/2026/04/27/cke-in-public-beta-managed-sovereign-and-properly-integrated-kubernetes/"
   ],
   "audit_2026_09_29": {
     "applied": 11,
@@ -283,17 +293,17 @@
   "feature_evidence": {
     "snapshot_auto": {
       "value": false,
-      "source": "https://www.clever.cloud/developers/doc/develop/ssh-access/index.html.md",
-      "quote": "Clever Cloud instances are to be seen as *read-only* resources. Any change made on an instance **will not be persisted**.",
-      "note": "Immutable-infrastructure PaaS: every deploy/restart creates a new VM from the build (a build cache archive is reused, not machine state). Persistence is via add-ons (FS Bucket, Cellar S3, databases). FS Buckets get automated backups every 24 h (72 h retention), databases 7 days.",
-      "checked": "2026-09-29"
+      "source": "https://www.clever.cloud/developers/doc/manage/ssh-access/",
+      "quote": "Instances are immutable: what you change on the disk of an instance disappears when a deployment or a scaling operation replaces it.",
+      "note": "Immutable-infrastructure PaaS: each deploy or scaling operation creates a new instance from the build. The instance disk is writable, but changes are lost when the instance is replaced. Persistence is through add-ons (FS Bucket, Cellar S3, databases) or CKE persistent volumes.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
       "source": "https://www.clever.cloud/developers/doc/deploy/storage/fs-bucket/index.html.md",
       "quote": "Immutable infrastructure doesn’t allow you to keep generated data files between deployments.",
-      "note": "No instance snapshot/checkpoint API in docs, CLI reference or API v4 overview; add-on backups only.",
-      "checked": "2026-09-29"
+      "note": "No instance snapshot or checkpoint API in the docs or the CLI reference; add-on backups only.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -304,52 +314,56 @@
     },
     "ingress_rules": {
       "value": true,
-      "source": "https://www.clever.cloud/developers/doc/develop/request-flow/oauth2-proxy/index.html.md",
+      "source": "https://www.clever.cloud/developers/doc/develop/request-flow/oauth2-proxy/",
       "quote": "OAuth2 Proxy redirects unauthenticated visitors to the identity provider you configure, and only authenticated requests reach your application.",
-      "note": "Controls: only HTTP port 8080 is exposed by default; raw TCP only via opt-in TCP redirections (port 4040 -> random public port); Network Groups (WireGuard private network between apps/add-ons/external peers, beta) for private access; platform-managed OAuth2 Proxy / Otoroshi challenge in the request flow; dedicated load balancers with fixed inbound IPs (quote-based). No documented IP allowlist or security-group style inbound rules; the HTTP endpoint itself is always public.",
-      "checked": "2026-09-29"
+      "note": "HTTP on port 8080 by default; one TCP redirection per namespace (default, cleverapps, private) on a public port that Clever Cloud chooses; Network Groups (WireGuard private network, beta); platform OAuth2 Proxy in the request flow; dedicated load balancers with fixed inbound IPs (quote-based). No documented IP allowlist or security-group style inbound rules.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
-      "value": true,
-      "source": "https://www.clever.cloud/developers/doc/deploy/storage/fs-bucket/index.html.md",
-      "quote": "This is why we created File System Buckets, a network-based storage solution to retrieve data from a deployment to another.",
-      "note": "FS Bucket add-on, mounted via CC_FS_BUCKET env var (several buckets per app, optional :async). Network FS, not block volumes. NOT available for Docker applications ('FS Buckets access ... not supported' on the Docker page), not in the HDS zone, not cross-region.",
-      "checked": "2026-09-29"
+      "value": "diy",
+      "source": "https://www.clever.cloud/developers/doc/deploy/applications/docker/index.html.md",
+      "quote": "For several containers working together or persistent volumes, use Clever Kubernetes Engine",
+      "note": "FS Bucket is a network FS add-on, not a block volume; not in the HDS zone, not cross-region. Docker page: \"Docker applications don’t support FS Buckets and Docker Compose\".",
+      "checked": "2026-11-08",
+      "how": "Docker apps cannot mount FS Buckets; mount an FS Bucket on a non-Docker runtime (CC_FS_BUCKET), or use a Ceph persistent volume on Clever Kubernetes Engine (public beta)",
+      "effort": "medium"
     },
     "volume_shared": {
-      "value": true,
+      "value": "diy",
       "source": "https://www.clever.cloud/developers/doc/deploy/storage/index.html.md",
       "quote": "Since the folder is mounted over the network, multiple instances/applications can read it like any file on the system. At the same time.",
-      "note": "Read-write, shared across instances and applications in the same region; docs warn concurrent writers can corrupt files. Not for Docker apps.",
-      "checked": "2026-09-29"
+      "note": "Read-write, shared across instances and applications in the same region; docs warn concurrent writers can corrupt files.",
+      "checked": "2026-11-08",
+      "how": "mount the same FS Bucket on several non-Docker apps; Docker apps cannot mount FS Buckets",
+      "effort": "medium"
     },
     "nested_virt": {
       "value": false,
-      "source": "https://www.clever.cloud/developers/doc/develop/ssh-access/index.html.md",
-      "quote": "Clever Cloud instances are to be seen as *read-only* resources... bas@67fbf787-3518-47bb-abd9-2c2575844edd ~ $",
-      "note": "SSH access is to a non-root user ('bas') on an immutable instance; no docs mention /dev/kvm, privileged mode, or nested virtualization for Docker/runtime apps.",
-      "checked": "2026-09-30"
+      "source": "https://www.clever.cloud/developers/doc/manage/ssh-access/",
+      "quote": "The session opens as the `bas` user, in `/home/bas`, with your environment variables loaded.",
+      "note": "SSH opens as the non-root user bas. No doc mentions /dev/kvm, privileged mode or nested virtualization for applications.",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
-      "source": "https://www.clever.cloud/pricing/",
-      "quote": "Clever Cloud is a Platform-as-a-Service (PaaS) cloud provider, an automated hosting platform for developers.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "source": "https://www.clever.cloud/developers/doc/deploy/applications/docker/index.html.md",
+      "quote": "Docker applications don’t support FS Buckets and Docker Compose: each instance runs one application container.",
+      "note": "Not built in, and no official example. You can package a browser or a virtual display in your own Docker image, but Clever Cloud documents no path for it, so the value stays false.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
-      "source": "https://www.clever.cloud/pricing/",
-      "quote": "Clever Cloud is a Platform-as-a-Service (PaaS) cloud provider, an automated hosting platform for developers.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "source": "https://www.clever.cloud/developers/doc/deploy/applications/docker/index.html.md",
+      "quote": "Docker applications don’t support FS Buckets and Docker Compose: each instance runs one application container.",
+      "note": "Not built in, and no official example. You can package a browser or a virtual display in your own Docker image, but Clever Cloud documents no path for it, so the value stays false.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
-      "source": "https://www.clever.cloud/pricing/",
-      "quote": "Clever Cloud is a Platform-as-a-Service (PaaS) cloud provider, an automated hosting platform for developers.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "source": "https://www.clever.cloud/developers/doc/deploy/applications/docker/index.html.md",
+      "quote": "Docker applications don’t support FS Buckets and Docker Compose: each instance runs one application container.",
+      "note": "Not built in, and no official example. You can package a browser or a virtual display in your own Docker image, but Clever Cloud documents no path for it, so the value stays false.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -374,38 +388,38 @@
     },
     "snapshot": {
       "value": "none",
-      "source": "https://www.clever.cloud/developers/doc/develop/ssh-access/index.html.md",
-      "quote": "Clever Cloud instances are to be seen as *read-only* resources. Any change made on an instance **will not be persisted**.",
-      "note": "Immutable infrastructure: no instance filesystem or memory snapshot/checkpoint API; only add-ons (databases, FS Buckets) have their own backup systems.",
-      "checked": "2026-09-30"
+      "source": "https://www.clever.cloud/developers/doc/manage/ssh-access/",
+      "quote": "Instances are immutable: what you change on the disk of an instance disappears when a deployment or a scaling operation replaces it.",
+      "note": "No instance filesystem or memory snapshot API for applications. Add-ons (databases, FS Buckets) have their own backups.",
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
       "source": "https://www.clever.cloud/developers/doc/deploy/applications/index.html.md",
       "quote": "Deploy applications on Clever Cloud with support for popular languages, frameworks, and deployment configurations across modern runtimes",
-      "note": "No documented API/CLI to clone a running or stopped instance into a new machine; new instances are always created fresh from a deploy/build.",
-      "checked": "2026-09-30"
+      "note": "No documented API or CLI to clone an instance into a new machine; new instances start from a deploy or build.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
-      "source": "https://www.clever.cloud/developers/doc/develop/ssh-access/index.html.md",
-      "quote": "Clever Cloud instances are to be seen as *read-only* resources. Any change made on an instance **will not be persisted**.",
-      "note": "not offered: no fork feature exists at all (see fork).",
-      "checked": "2026-09-30"
+      "source": "https://www.clever.cloud/developers/doc/manage/ssh-access/",
+      "quote": "Instances are immutable: what you change on the disk of an instance disappears when a deployment or a scaling operation replaces it.",
+      "note": "No fork feature for application instances (see fork).",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
-      "source": "https://www.clever.cloud/developers/doc/develop/ssh-access/index.html.md",
-      "quote": "Clever Cloud instances are to be seen as *read-only* resources. Any change made on an instance **will not be persisted**.",
-      "note": "not offered: no fork/snapshot feature exists at all.",
-      "checked": "2026-09-30"
+      "source": "https://www.clever.cloud/developers/doc/manage/ssh-access/",
+      "quote": "Instances are immutable: what you change on the disk of an instance disappears when a deployment or a scaling operation replaces it.",
+      "note": "No fork or snapshot feature for application instances.",
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": true,
       "source": "https://www.clever.cloud/developers/doc/account-billing/consumption/index.html.md",
       "quote": "The calculation of consumption is based on the second of running.",
       "note": "Apps/scalers can be stopped and restarted via Console/CLI; billing is by the second of running, so a stopped app is not billed while stopped.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -423,10 +437,10 @@
     },
     "live_resize": {
       "value": false,
-      "source": "https://www.clever.cloud/developers/doc/develop/ssh-access/index.html.md",
-      "quote": "Clever Cloud instances are to be seen as *read-only* resources. Any change made on an instance **will not be persisted**.",
-      "note": "Immutable-infrastructure model: changing a scaler flavor (vCPU/RAM) redeploys/recreates instances rather than resizing a running one in place; no documented in-place live resize API.",
-      "checked": "2026-09-30"
+      "source": "https://www.clever.cloud/developers/doc/manage/scaling/",
+      "quote": "A change of the size or of the number of instances starts a deployment right away.",
+      "note": "A size change is a new deployment: new instances start, then old ones stop. No in-place resize of a running instance.",
+      "checked": "2026-11-08"
     },
     "agent_harnesses": {
       "value": false,
@@ -486,10 +500,10 @@
     },
     "guest_firewall": {
       "value": false,
-      "source": "https://www.clever.cloud/developers/doc/develop/ssh-access/index.html.md",
-      "quote": "bas@67fbf787-3518-47bb-abd9-2c2575844edd ~ $",
-      "note": "SSH sessions run as a non-root user ('bas') on read-only, immutable instances; no documented root/sudo access, so guest-side nftables/iptables configuration is not expected to work.",
-      "checked": "2026-09-30"
+      "source": "https://www.clever.cloud/developers/doc/manage/ssh-access/",
+      "quote": "The session opens as the `bas` user, in `/home/bas`, with your environment variables loaded.",
+      "note": "SSH opens as the non-root user bas. No documented root or sudo, so guest nftables/iptables rules are not expected to work.",
+      "checked": "2026-11-08"
     },
     "secret_proxy": {
       "value": false,
@@ -573,14 +587,16 @@
       "source": "https://www.clever.cloud/developers/doc/account-billing/consumption/index.html.md",
       "quote": "The calculation of consumption is based on the second of running.",
       "note": "Applications/scalers are long-running services billed per second with no documented maximum session/runtime limit; they run until stopped or redeployed (Clever Tasks run-to-completion jobs are a separate, different mode).",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
-      "value": false,
-      "source": "https://www.clever.cloud/developers/doc/develop/ssh-access/index.html.md",
-      "quote": "Clever Cloud instances are to be seen as *read-only* resources. Any change made on an instance **will not be persisted**. ... Changes made on instances are not kept across deployments.",
-      "note": "Immutable-infrastructure PaaS: no root-disk persistence, no pause/resume of app instances, and no instance snapshot/checkpoint API (confirmed separately for snapshot_auto/snapshot_on_demand: 'Immutable infrastructure doesn't allow you to keep generated data files between deployments'). Auto/vertical/horizontal scaling docs describe replacing instances, not pausing them with retained disk. The only first-party persistence mechanisms are network-attached add-ons (FS Bucket, databases, Cellar S3) which are separate resources, not the instance's own disk -- already captured via volume_attach/volume_shared=true. No contradiction found: card has pause_resume=null, snapshot_auto=false, volumes=null, all consistent with 'no persistent disk'.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://www.clever.cloud/developers/doc/deploy/kubernetes/",
+      "quote": "Persistent storage is available as an opt-in through a CSI driver backed by Ceph",
+      "how": "a Docker app loses disk changes when a deploy or scaling replaces it; keep files in an FS Bucket on a non-Docker runtime, or run the workload on Clever Kubernetes Engine (public beta) with a Ceph persistent volume",
+      "effort": "medium",
+      "checked": "2026-11-08",
+      "note": "Docker doc: \"For several containers working together or persistent volumes, use Clever Kubernetes Engine\" and \"Docker applications don’t support FS Buckets and Docker Compose\". SSH doc: \"Instances are immutable: what you change on the disk of an instance disappears when a deployment or a scaling operation replaces it.\" CKE: every worker runs on a dedicated VM; default quota 40 vCPU / 40 GB RAM per organisation; storage not billed during the beta."
     },
     "static_egress_ip": {
       "value": true,
@@ -714,5 +730,10 @@
   ],
   "locations_source": "https://api.clever-cloud.com/v4/products/zones",
   "locations_quote": "Applications and add-ons are deployed in multiple regions across Europe, North America and Asia-Pacific, including Paris, Roubaix, Gravelines, London, Warsaw, Montreal, Singapore and Sydney, plus HDS-certified zones in France for healthcare data.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 7,
+    "source": "findings/clever-cloud.json (fairness audit), re-checked against official docs and the price API",
+    "reviewed": 9
+  }
 }

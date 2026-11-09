@@ -318,6 +318,7 @@
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
+    "persist_scope": "whole",
     "volumes": null,
     "auto_stop_idle": false,
     "custom_image": true,
@@ -326,7 +327,7 @@
     "root": false,
     "systemd": null,
     "browser": true,
-    "desktop": false,
+    "desktop": null,
     "computer_use": true,
     "code_interpreter": true,
     "agent_harnesses": true,
@@ -410,6 +411,10 @@
     "Sandboxes (all types) are billed for their whole lifetime ('Sandboxes are billed while they exist') until deleted or TTL expiry; TTL max 14 d (Code Execution) / 7 d (custom containers); Computer Use default TTL 2 h; execute_code resets the TTL. This replaces the earlier caveat 'price page does not explicitly exempt idle sandboxes'.",
     "Paused sandboxes 'cost significantly less than running ones'. The paused/disk rate and the snapshot storage rate are unpublished (possibly Agent Storage $0.30/GiB-month; unverified).",
     "Each create() without a named template creates a new sandbox template (with pre-warmed pools) that is NOT deleted with the sandbox. Delete or reuse templates; it's unclear whether warm pools are billed.",
+    "Sandbox snapshots, custom containers and sandbox templates are Preview since 2026-05-26 (no GA entry in the release notes as of 2026-11-08). Shell and Computer Use sandboxes and pause/resume are GA since 2026-09-09. The Computer Use tool for agents is GA since 2026-10-30.",
+    "A sandbox is deleted at TTL end, but a snapshot (files + memory) restores into a new sandbox. Restore needs the same architecture, sandbox runtime version and container image URI. Snapshot ttl is per snapshot; no maximum is published.",
+    "Other Google runtime, not priced here: GKE Agent Sandbox (open source, Kubernetes SIG Apps) runs in your own GKE cluster with gVisor or microVM isolation, or self-managed Kata Containers, and GKE Pod snapshots (gVisor only, may be Preview). You run and pay for the cluster yourself. Source: https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox",
+    "Free resources (50 vCPU-h, 100 GiB-h, 1 GiB-month storage per month) are listed on the pricing page; the page does not say explicitly that they cover sandboxes. Estimates stay gross.",
     "Sessions, Memory Bank and Skill Registry have been billed since 2026-09-01: storage $0.30/GiB-month (Agent Storage), reads 1 vCPU-h ($0.085) per 3M, writes 1 vCPU-h per 1M. Agent Gateway has been billed since 2026-07-13 at 1 vCPU-h per 15,000 calls. Semantic Governance Policy billing starts 'later in 2026'."
   ],
   "sources": [
@@ -427,7 +432,8 @@
     "https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/agent-locations",
     "https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/agent-quotas",
     "https://docs.cloud.google.com/gemini-enterprise-agent-platform/release-notes",
-    "https://docs.cloud.google.com/run/docs/configuring/services/memory-limits"
+    "https://docs.cloud.google.com/run/docs/configuring/services/memory-limits",
+    "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -460,8 +466,9 @@
       "value": true,
       "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-snapshots",
       "quote": "Save the exact state of the sandbox, including installed libraries, file system changes, and memory state.",
-      "note": "SDK snapshots.create() on a sandbox, with TTL retention; restore by creating a NEW sandbox from the snapshot ('Create multiple sandboxes from the same snapshot' = branching/fork). Memory included. Restore requires same arch, runtime version and image URI. Not supported for Code Execution sandboxes. Snapshots stored automatically in a Cloud Storage bucket (VPC-SC page). Preview.",
-      "checked": "2026-09-29"
+      "note": "SDK snapshots.create() on a sandbox, with a per-snapshot ttl (no default or maximum published); restore by creating a NEW sandbox with sandbox_environment_snapshot ('Create multiple sandboxes from the same snapshot' = branching/fork). Memory included. Restore requires the same architecture, sandbox runtime version and container image URI. Not supported for Code Execution sandboxes. Snapshots stored automatically in a Cloud Storage bucket (VPC-SC page). Preview since 2026-05-26 per release notes; no later GA entry.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": true,
@@ -509,9 +516,9 @@
     "isolation": {
       "value": "gvisor",
       "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox",
-      "quote": "All sandbox environments use secure container sandboxing, providing a strong security boundary.",
-      "note": "Not named explicitly as gVisor in the docs, but 'secure container sandboxing' plus root being disallowed (custom images 'Must not require root privileges', shell runs as unprivileged appuser with no sudo) matches Google's gVisor-style sandboxed-container model used elsewhere (e.g. Cloud Run/App Engine). The open-source projects the platform is built on (AX, Substrate) don't themselves name the low-level isolation primitive.",
-      "checked": "2026-09-30"
+      "quote": "Code executed inside a sandbox runs in a Google-managed tenant project inside a gVisor-isolated container",
+      "note": "Google names gVisor: 'Sandboxes enforce runtime containment using gVisor kernel isolation in Google-managed tenant projects.' Applies to all managed sandbox types. Google also documents GKE Agent Sandbox (self-managed, in your own GKE cluster) with gVisor or microVMs, or self-managed Kata Containers; that is a separate product, not priced on this card.",
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": true,
@@ -528,11 +535,11 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
+      "value": null,
       "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/computer-use",
       "quote": "When you create a Computer Use sandbox, Gemini Enterprise Agent Platform provisions a containerized environment that runs a web browser agent.",
-      "note": "not offered: the Computer Use sandbox is a browser in a container; its VNC/noVNC live view ('Computer Use sandboxes support a live streaming view (VNC)') shows that browser only, not a full OS desktop. browser and computer_use stay true.",
-      "checked": "2026-10-14"
+      "note": "Not published. The Computer Use sandbox runs a browser, and its VNC live view shows that browser. The docs show no full OS desktop and no official desktop example. A custom container (own image, no root) could carry a desktop stack, but Google documents no such path, so the value stays unconfirmed. browser and computer_use stay true.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": true,
@@ -580,15 +587,17 @@
       "value": "mem",
       "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-snapshots",
       "quote": "Save the exact state of the sandbox, including installed libraries, file system changes, and memory state.",
-      "note": "Applies to Agent Sandbox (custom container/computer use/shell); Code Execution sandboxes explicitly do not support snapshots ('Not supported for Code Execution sandboxes').",
-      "checked": "2026-09-30"
+      "note": "Applies to Agent Sandbox (custom container/computer use/shell); Code Execution sandboxes explicitly do not support snapshots ('Not supported for Code Execution sandboxes'). Preview since 2026-05-26 (release notes). Restore needs the same architecture, runtime version and image URI.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": true,
       "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-snapshots",
       "quote": "Branching: Create multiple sandboxes from the same snapshot to explore different paths or test variations.",
-      "note": null,
-      "checked": "2026-09-30"
+      "note": "Through sandbox snapshots (Preview since 2026-05-26). Each branch is a new sandbox from the same image and architecture.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": true,
@@ -601,8 +610,9 @@
       "value": true,
       "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-snapshots",
       "quote": "Save the exact state of the sandbox, including installed libraries, file system changes, and memory state.",
-      "note": "Restoring/branching from a snapshot recreates a sandbox including its saved memory state.",
-      "checked": "2026-09-30"
+      "note": "Restoring/branching from a snapshot recreates a sandbox including its saved memory state. Snapshots are Preview since 2026-05-26.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -615,8 +625,18 @@
       "value": true,
       "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-sandboxes",
       "quote": "Pause and resume let you deschedule compute resources for idle sandboxes and bring them back online later without losing file system state or connection identity. ... Retain all in-container file system state at the moment of pause.",
-      "note": "Persists across pause/resume; a deleted sandbox or one whose TTL expires is gone entirely (no separate durable-disk concept outside the sandbox lifecycle).",
-      "checked": "2026-09-30"
+      "note": "Persists across pause/resume (pause and resume GA 2026-09-09). The sandbox is deleted when its TTL ends (7 days at most for a custom container). To continue past the TTL, take a snapshot (Preview) of files and memory and restore it into a new sandbox from the same image.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-sandboxes",
+      "quote": "Retain all in-container file system state at the moment of pause.",
+      "how": "pause the sandbox to keep its whole file system; before the TTL ends, snapshot it and restore the snapshot into a new sandbox",
+      "effort": "low",
+      "ttl_days": 7,
+      "note": "Pause keeps the whole container file system at a lower, unpublished rate until the sandbox TTL ends (7 days max for custom containers). Snapshots (Preview, https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/manage-snapshots) save 'installed libraries, file system changes, and memory state' and restore into a new sandbox, so the state carries past the TTL.",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": false,

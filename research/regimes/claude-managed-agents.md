@@ -1,4 +1,4 @@
-# Claude Managed Agents — pricing regimes (as of 2026-09-28)
+# Claude Managed Agents — pricing regimes (as of 2026-09-28, re-checked 2026-11-08: prices unchanged)
 Anthropic's hosted agent harness (public beta since 2026-04-08) bills on **two dimensions: tokens + session runtime**.
 The sandbox part is a single flat SKU: **$0.08 per session-hour**, metered to the millisecond, **only while the
 session status is `running`**. There is no size choice: each session gets an Ubuntu 24.04 container with up to 8 GB RAM
@@ -14,7 +14,7 @@ and 10 GB disk (vCPU count unpublished). Tokens are billed at normal API list ra
 | Tokens | Every model request in the session | Model list rates; prompt-caching multipliers apply; **no Batch discount**; fast-mode premium if `model.speed=fast` | e.g. Opus 5 $5/$25, Sonnet 5.5 $2/$10, Haiku 4.5 $1/$5 per MTok | pricing page |
 | US-only inference | `model.inference_geo = "us"` | 1.1× on tokens only | ×1.1 tokens | pricing page |
 | Web search in session | Each search | Per search | $10 / 1,000; web fetch free | pricing page |
-| Self-hosted sandbox environment | `type: self_hosted`, worker on your Linux host | You pay your compute; whether the $0.08/h runtime applies is **not documented** | null | /managed-agents/self-hosted-sandboxes |
+| Self-hosted sandbox environment | `type: self_hosted`, worker on your Linux or macOS host (`/bin/bash`, outbound HTTPS); official guides for 11 platforms (AWS Lambda MicroVMs, Blaxel, Cloudflare, Daytona, E2B, Fly.io, GKE Agent Sandbox, Modal, Namespace, Superserve, Vercel) | You pay your compute; whether the $0.08/h runtime applies is **not documented** | null | /managed-agents/self-hosted-sandboxes |
 | Claude Platform on AWS | Using MA via AWS Marketplace | Same token + runtime charges converted to CCUs at $0.01; autonomous sessions need re-auth after 6 h | same rates | pricing page, /build-with-claude/claude-platform-on-aws |
 | Session budget | Optional per-session hard cap | Enforced at **list** cost (tokens + searches + running time); session pauses idle at the cap, overshoot ≤ one model request per thread | user-set | /managed-agents/budgets |
 | Enterprise / volume | Negotiated | Custom rate limits, volume discounts | unpublished | pricing page |
@@ -24,11 +24,11 @@ No dated runtime price change since launch (the $0.08 figure was quoted at the 2
 Token prices did change: Sonnet 5's $2/$10 intro price became permanent (the planned rise to $3/$15 on 2026-09-01 was cancelled).
 ## Gotchas
 1. **"Running" ≠ CPU busy.** Time the agent waits on model inference counts as running. Only time waiting on *you* is free.
-2. **No size choice.** vCPU is unpublished and RAM tops out at 8 GB. The same $0.08/h is charged whether the agent uses 1 core or 4.
-3. **Idle sessions are a free pause:** the sandbox is kept, with no runtime charge and no published retention limit.
+2. **No size choice in the cloud sandbox.** vCPU is unpublished and RAM tops out at 8 GB. The same $0.08/h is charged whether the agent uses 1 core or 4. A self-hosted worker has the size of the host you give it.
+3. **Idle sessions are a free pause:** the sandbox is checkpointed with no runtime charge. Sandbox state is kept 30 days after the sandbox is created; activity does not extend this. History, memory stores and downloaded outputs stay until you delete them.
 4. **Tokens are the bill.** In Anthropic's own worked example (1 h, Opus 5), tokens are $0.625 and runtime is $0.08, so runtime is only 11% of the total.
 5. **Budgets use list prices**, so negotiated discounts don't stretch a budget.
-6. Not eligible for HIPAA BAA or ZDR. No inbound ports, SSH or IPv4. Egress is allowlist-capable (`limited` networking).
+6. Not eligible for HIPAA BAA or ZDR. No documented inbound ports, SSH or IPv4 for cloud sandboxes; you reach the sandbox through the sessions and events API. Egress is allowlist-capable (`limited` networking).
 7. Third-party posts quoting "$0.25/session-hour" are wrong per the official pricing page.
 ## Worked example
 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days = 8,800 session-hours, 30% CPU, 50 GiB snapshots, 100 GiB egress.

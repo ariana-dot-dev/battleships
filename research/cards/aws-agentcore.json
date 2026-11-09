@@ -22,7 +22,8 @@
         "custom_image": false,
         "code_interpreter": true,
         "isolation": "container",
-        "image_oci": false
+        "image_oci": false,
+        "inbound_https": false
       },
       "pricing": "resource",
       "vcpu_h": 0.0895,
@@ -218,7 +219,8 @@
         "computer_use": true,
         "custom_image": false,
         "isolation": "container",
-        "image_oci": false
+        "image_oci": false,
+        "inbound_https": false
       },
       "pricing": "resource",
       "vcpu_h": 0.0895,
@@ -276,7 +278,9 @@
           "L40S",
           "RTX-PRO-6000"
         ],
-        "max_session_h": 336
+        "max_session_h": 336,
+        "inbound_https": false,
+        "persist_path": "capacity provider EBS volumes under /mnt"
       },
       "pricing": "sizes",
       "vcpu_h": null,
@@ -409,7 +413,8 @@
       "max_vcpu": 2,
       "max_ram_gib": 8,
       "sizes_allowed": null,
-      "note": "Code Interpreter/Browser: 1,000 concurrent sessions (adjustable via support ticket). Runtime: 5,000 active sessions in us-east-1/us-west-2, 2,500 elsewhere (Service Quotas); 8 h max lifetime; 15 min idle timeout. Session creation rate limits (adjustable): Runtime 25 TPS; StartCodeInterpreterSession 30 TPS; StartBrowserSession 30 TPS. Code Interpreter session timeout default 900 s, up to 8 h. Applies to microVM Runtime (v1/v2), Code Interpreter and Browser; Instances sessions use the \"Pay-as-you-go (Instances)\" plan."
+      "max_starts_per_min": 1500,
+      "note": "Start cap: 'New Runtime session creation rate | 25 TPS | Yes' (adjustable) = 1,500 a minute; StartCodeInterpreterSession and StartBrowserSession 30 TPS (bedrock-agentcore-limits.html, checked 2026-11-08). Code Interpreter/Browser: 1,000 concurrent sessions (adjustable via support ticket). Runtime: 5,000 active sessions in us-east-1/us-west-2, 2,500 elsewhere (Service Quotas); 8 h max lifetime; 15 min idle timeout. Session creation rate limits (adjustable): Runtime 25 TPS; StartCodeInterpreterSession 30 TPS; StartBrowserSession 30 TPS. Code Interpreter session timeout default 900 s, up to 8 h. Applies to microVM Runtime (v1/v2), Code Interpreter and Browser; Instances sessions use the \"Pay-as-you-go (Instances)\" plan."
     },
     {
       "name": "Pay-as-you-go (Instances)",
@@ -456,11 +461,11 @@
     "agent_harnesses": false,
     "ssh": false,
     "public_ipv4": false,
-    "inbound_https": false,
+    "inbound_https": true,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
-    "static_egress_ip": true,
+    "static_egress_ip": "diy",
     "private_network": true,
     "self_host": false,
     "byoc": true,
@@ -492,7 +497,7 @@
     "eu_data_residency": true,
     "zero_data_retention": null,
     "scoped_api_keys": null,
-    "spend_limits": true,
+    "spend_limits": "diy",
     "mcp_server": true,
     "browser_control": true,
     "desktop_control": true,
@@ -508,14 +513,14 @@
     "harness_api": false,
     "egress_allowlist_level": "ip",
     "ingress_rules": true,
-    "guest_firewall": true,
+    "guest_firewall": null,
     "volume_attach": true,
     "volume_shared": true,
     "secret_proxy": false,
     "open_internet": true,
     "usage_api": false,
     "persist_scope": "folder",
-    "persist_path": "the session storage mount"
+    "persist_path": "mounts under /mnt: 1 GB session storage (preview), your own EFS or S3 Files (VPC), or EBS volumes on Instances"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -532,7 +537,9 @@
     "A single session maxes at 2 vCPU/8 GB (Browser 1 vCPU/4 GB), so a 4 vCPU workload does not fit consumption modes.",
     "The pricing page Instances example cites \"c7g.2xlarge $0.867 x 0.12\"; c7g.2xlarge on-demand is $0.29 in us-east-1 and the API fee is $0.0348 (= 12% of $0.29). The page example looks wrong.",
     "Other AgentCore meters (not modelled): Gateway $0.005/1k invocations, search $0.025/1k, $0.0002 per tool-index-month; Memory short-term $0.25/1k events, long-term $0.75/1k records-month (built-in) or $0.25 (custom), retrieval $0.50/1k; Web Search tool $7/1k queries; Knowledge Base $1/1k retrievals; Evaluations per token.",
-    "Storage: direct-code deployments at S3 Standard rates; container images in ECR. No snapshots/pause for consumption sessions.",
+    "Storage: direct-code deployments at S3 Standard rates; container images in ECR. No session snapshot, pause or fork API. What survives a stop: mounts under /mnt only (1 GB session storage in preview; your own EFS or S3 Files access points in VPC mode, shared across sessions, billed by EFS/S3; EBS volumes on Instances, which can be seeded from your own EBS snapshotId). Checked 2026-11-08 (https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-filesystem-configurations.html).",
+    "Inbound (checked 2026-11-08): Runtime microVM sessions get an authenticated HTTPS session endpoint for 1-5 allowedPorts entries in the 8000-12000 range (web preview, HTTP, SSE, gRPC, WebSocket). Every request needs IAM SigV4 or an OAuth bearer token, so a plain shareable link does not work. Not on Instances, Code Interpreter or Browser. No SSH or raw TCP; InvokeAgentRuntimeCommandShell gives an interactive shell (https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-session-endpoints.html).",
+    "Regions (checked 2026-11-08): Runtime microVMs and built-in tools run in 21 commercial regions plus GovCloud (US-West); Runtime Instances in 9 (https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-regions.html).",
     "Network: \"standard EC2 data transfer rates\"; Internet egress (AWS Price List API, AWSDataTransfer us-east-1, 2026-09): first 100 GB/month free aggregated across all services and regions, then $0.09/GB first 10 TB, $0.085 next 40 TB, $0.07 next 100 TB, $0.05 over 150 TB. eu-west-1 is also $0.09; ap-south-1 $0.1093; ap-northeast-1 $0.114; ap-southeast-1 $0.12 (first-10-TB tier). The engine uses the flat us-east-1 first tier.",
     "AWS Free Tier $200 credit for new accounts is generic; no AgentCore-specific free quota.",
     "Runtime v1 (microVM, custom container image) and Code Interpreter (containerized, AWS-managed images) share the same v1 meter but are separate modes (runtime-v1 / code-interpreter). Runtime v2 reclaims idle memory at higher unit rates.",
@@ -551,7 +558,10 @@
     "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-sessions.html",
     "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/code-interpreter-tool.html",
     "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/browser-tool.html",
-    "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-environment.html"
+    "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-environment.html",
+    "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-session-endpoints.html",
+    "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-filesystem-configurations.html",
+    "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-regions.html"
   ],
   "fleet": {
     "default_max_instances": 1000,
@@ -585,8 +595,8 @@
       "value": false,
       "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-how-it-works.html",
       "quote": "On V2, AgentCore Runtime manages a snapshot for each runtime version that an endpoint points to. You do not create or delete snapshots directly.",
-      "note": "No API to snapshot/fork a running session (Runtime, Code Interpreter or Browser). Browser profiles (cookies/storage to S3) are the only user-saved state. On Instances, EBS volumes can be defined with a snapshotId (EC2 EBS snapshots, outside AgentCore).",
-      "checked": "2026-09-29"
+      "note": "No API to snapshot or fork a session (Runtime, Code Interpreter or Browser). On Instances, capacity provider EBS volumes accept an optional snapshotId, so you can seed new session volumes from your own EBS snapshot (runtime-filesystem-configurations.html: \"each with a logical name, sizeGiB, and optional volumeType, iops, throughput, encryption, and snapshotId\"). That seeds a volume; it does not snapshot a session. Persistent files live in /mnt mounts (see persist_scope).",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": true,
@@ -618,19 +628,34 @@
       "checked": "2026-09-29"
     },
     "guest_firewall": {
+      "value": null,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-environment.html",
+      "quote": "Commands run as root (uid 0) within the microVM.",
+      "note": "Was true (derived, no quote). Root in the microVM is documented, but no AgentCore page says iptables or nftables work inside a session. Network control is documented only outside the session (VPC security groups, see egress_allowlist). Not confirmed.",
+      "checked": "2026-11-08"
+    },
+    "spend_limits": {
+      "value": "diy",
+      "source": "https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-controls.html",
+      "quote": "You can use AWS Budgets to run an action on your behalf when a budget exceeds a certain cost or usage threshold. ... Your available actions include applying an IAM policy or a service control policy (SCP).",
+      "how": "create an AWS Budget with a budget action that applies a Deny IAM policy or SCP to the AgentCore role at your threshold; running sessions are not stopped",
+      "effort": "medium",
+      "note": "Was true with no evidence. AgentCore has no spend cap of its own; AWS Budgets actions are the documented AWS path.",
+      "checked": "2026-11-08"
+    },
+    "desktop_control": {
       "value": true,
-      "source": null,
-      "quote": null,
-      "note": "Runtime/harness sessions are Firecracker microVMs and harness-environment.html says 'Commands run as root (uid 0) within the microVM.' Whether netfilter works inside the container is not documented. Code Interpreter is AWS-managed and not verified.",
-      "checked": "2026-09-29",
-      "derived": true
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/browser-invoke.html",
+      "quote": "The InvokeBrowser API provides direct operating system-level control over Amazon Bedrock AgentCore Browser sessions.",
+      "note": "Browser sessions only: mouseClick/mouseMove/mouseDrag/mouseScroll, keyType/keyPress/keyShortcut, and screenshot ('Capture the full OS desktop (not just the browser viewport)'). Coordinates must stay inside the browser viewport. No general desktop for Runtime or Code Interpreter (desktop stays false).",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": true,
       "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-filesystem-configurations.html",
       "quote": "Bring-your-own file system – Attach your own Amazon S3 Files or Amazon EFS access points directly to your agent runtime. Shared across sessions and agents. VPC required. Available on microVM runtimes.",
-      "note": "Also Instances runtimes: capacity-provider EBS volumes mounted by logical name, persist across stop/resume. Up to 5 filesystem configurations per microVM runtime. Code Interpreter/Browser have their own filesystem configurations (code-interpreter-filesystem-configurations.html).",
-      "checked": "2026-09-29"
+      "note": "Also Instances runtimes: capacity-provider EBS volumes mounted by logical name, persist across stop/resume (up to 5 per capacity provider). Up to 5 filesystem configurations per microVM runtime (max 2 S3 Files, 2 EFS, 1 session storage). Code Interpreter/Browser have their own filesystem configurations (code-interpreter-filesystem-configurations.html).",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -682,11 +707,13 @@
       "checked": "2026-09-30"
     },
     "static_egress_ip": {
-      "value": true,
+      "value": "diy",
       "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-vpc.html",
       "quote": "To provide internet access from Amazon Bedrock AgentCore Runtime or built-in tools inside a VPC, configure a NAT gateway in a public subnet. Update the route table for private subnets to send outbound traffic (0.0.0.0/0) to the NAT gateway.",
-      "note": "derived: in VPC mode, outbound traffic is routed through a customer-provisioned NAT Gateway, which egresses from a single Elastic IP — a fixed outbound IP achievable via standard AWS networking, not an AgentCore-native always-on static IP. Default (non-VPC) mode uses rotating AWS IPs per the card's ip_note.",
-      "checked": "2026-09-30"
+      "how": "connect the runtime or tool to your VPC and route outbound traffic through a NAT gateway with an Elastic IP (NAT gateway and IPv4 billed by EC2)",
+      "effort": "medium",
+      "note": "Was true. AgentCore does not ship a static IP: you build the VPC + NAT gateway path the docs describe. Default (non-VPC) mode uses rotating AWS IPs per the card's ip_note.",
+      "checked": "2026-11-08"
     },
     "hipaa": {
       "value": true,
@@ -700,8 +727,8 @@
       "corrected_from": false,
       "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-filesystem-configurations.html",
       "quote": "Session storage (Preview) – Per-session storage on microVM runtimes that persists across stop/resume cycles. ... Capacity provider volumes – Amazon EBS volumes on Instances runtimes ... Persist across session stop/resume. ... Resume with same session – A new compute is provisioned and the file system state is restored from durable storage. The agent can continue from where it left off.",
-      "note": "Contradiction confirmed: default compute is ephemeral (microVM torn down on stop/timeout), but files survive first-party via (1) managed 'Session storage' (Preview, microVM Runtime, up to 1GB, persists across stop/resume, 14-day idle expiry) and (2) capacity-provider EBS volumes on Instances runtimes, plus bring-your-own S3 Files/EFS mounts (always persistent, independent of sessions). Default-on behaviour is still ephemeral unless one of these is configured (opt-in).",
-      "checked": "2026-09-30"
+      "note": "Default compute is ephemeral (microVM torn down on stop/timeout), but files under /mnt survive via (1) managed 'Session storage' (Preview, microVM Runtime, up to 1 GB, persists across stop/resume, 14-day idle expiry, reset on version update), (2) capacity-provider EBS volumes on Instances runtimes, and (3) bring-your-own S3 Files/EFS access points (VPC mode, shared, permanent). Opt-in: one of these must be configured.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
@@ -757,8 +784,8 @@
       "value": false,
       "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-security.html",
       "quote": "JWT configured Harness resources require callers to present a valid JWT issued by a configured identity provider before they can invoke the harness.",
-      "note": "Sessions are reached only through AgentCore APIs (InvokeAgentRuntime / InvokeHarness / command-shell over the control API), authenticated by IAM SigV4 or JWT; no SSH endpoint is offered or documented for any mode.",
-      "checked": "2026-09-30"
+      "note": "No SSH endpoint is offered or documented for any mode. For a shell, AgentCore offers the InvokeAgentRuntimeCommandShell API (interactive shell into a Runtime session, listed in https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-session-endpoints.html) and authenticated HTTPS session endpoints for app ports (see inbound_https).",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
@@ -768,11 +795,12 @@
       "checked": "2026-09-30"
     },
     "inbound_https": {
-      "value": false,
-      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-security.html",
-      "quote": "JWT configured Harness resources require callers to present a valid JWT issued by a configured identity provider before they can invoke the harness.",
-      "note": "Sessions have no exposed HTTP/HTTPS listener reachable by arbitrary inbound requests; all interaction goes through the AgentCore control-plane APIs (SigV4/JWT), optionally over PrivateLink in VPC mode.",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-session-endpoints.html",
+      "quote": "A session endpoint is an authenticated HTTPS URL that addresses one runtime session. Use it to: View a web preview. Call custom HTTP routes. Stream responses. Call a gRPC service. Open a WebSocket connection.",
+      "note": "Runtime microVM sessions only (set false on the Code Interpreter, Browser and Instances modes: \"They don't support Instances with capacity providers.\"). allowedPorts: 1-5 entries, ports 8000-12000. Every HTTP request, HTTP/2 stream and WebSocket handshake needs IAM SigV4 or an OAuth bearer token: \"Possession of a session endpoint URL does not grant access.\" No public links, no custom domain, no raw TCP.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -844,8 +872,8 @@
       "value": "folder",
       "source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-filesystem-configurations.html",
       "quote": "Session storage (Preview) – Per-session storage on microVM runtimes that persists across stop/resume cycles. ... Capacity provider volumes – Amazon EBS volumes on Instances runtimes ... Persist across session stop/resume. ... Resume with same session – A new compute is provisioned and the file system state is restored from durable storage. The agent can continue from where it left off.",
-      "note": "Only the session storage mount survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
-      "checked": "2026-10-01"
+      "note": "Only mounts under /mnt survive a stop: managed session storage (preview, per session, 1 GB, reset after 14 idle days or a runtime version update; installed packages in the mount survive), up to 2 EFS and 2 S3 Files access points (VPC mode, shared across sessions, no size cap, up to 5 configurations per runtime), or capacity provider EBS volumes on Instances. The rest of the microVM filesystem resets. Quote for limits: \"Must be under /mnt/ with exactly one subdirectory level\".",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -986,6 +1014,38 @@
       "choosable": true
     },
     {
+      "country": "IT",
+      "state": null,
+      "city": "Milan",
+      "provider_region": "eu-south-1",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "ES",
+      "state": null,
+      "city": "Spain",
+      "provider_region": "eu-south-2",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "MY",
+      "state": null,
+      "city": "Malaysia",
+      "provider_region": "ap-southeast-5",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "TH",
+      "state": null,
+      "city": "Thailand",
+      "provider_region": "ap-southeast-7",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
       "country": "US",
       "state": null,
       "city": "GovCloud",
@@ -994,12 +1054,17 @@
       "choosable": true
     }
   ],
-  "locations_source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockAgentCore/current/region_index.json",
-  "locations_quote": "AWS Price List API publication 2026-09-15 lists 18 regions: us-east-1, us-east-2, us-west-1, us-west-2, eu-west-1, eu-west-2, eu-central-1, eu-north-1, eu-west-3, ap-southeast-1, ap-southeast-2, ap-south-1, ap-south-2, ap-northeast-1, ap-northeast-2, ca-central-1, sa-east-1, us-gov-west-1 (GovCloud)",
-  "locations_checked": "2026-10-01",
+  "locations_source": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-regions.html",
+  "locations_quote": "Supported AWS Regions table, row \"AgentCore Runtime microVMs\" and row \"AgentCore Built-in Tools\": Yes in all 21 commercial regions (US East N. Virginia, US East Ohio, US West N. California, US West Oregon, Europe Frankfurt, Ireland, London, Milan, Paris, Spain, Stockholm, Asia Pacific Malaysia, Mumbai, Hyderabad, Singapore, Sydney, Thailand, Tokyo, Seoul, Canada Central, South America Sao Paulo) plus AWS GovCloud (US-West). Row \"AgentCore Runtime Instances\": Yes in 9 (us-east-1, us-east-2, us-west-2, Frankfurt, Ireland, Mumbai, Singapore, Sydney, Tokyo). The Price List API (2026-09-15) lists rates for 18 of these; Milan, Spain, Malaysia and Thailand rates were not re-checked.",
+  "locations_checked": "2026-11-08",
   "audit_2026_10_14": {
     "applied": 4,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
+  },
+  "audit_2026_11_08": {
+    "applied": 5,
+    "source": "fairness audit findings (findings/aws-agentcore.json) re-checked against AgentCore docs: session endpoints, file system configurations, regions",
+    "reviewed": 15
   }
 }

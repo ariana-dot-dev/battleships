@@ -172,7 +172,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": false,
+    "nested_virt": "diy",
     "root": null,
     "systemd": true,
     "browser": true,
@@ -235,12 +235,12 @@
     "usage_api": true
   },
   "perf": {
-    "cpu_runs_s": 21.14,
+    "cpu_runs_s": 21.34,
     "cold_start_ms": null,
-    "burst_tti_ms": 2541.29,
-    "dax_s": null
+    "burst_tti_ms": 5911.57,
+    "dax_s": 55.09
   },
-  "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
+  "perf_source": "Measured on Microsandbox Cloud (private beta). CPU 21.34 runs/s: V8 Web Tooling Benchmark (Phoronix node-web-tooling), StarSling hpc-sandbox-benchmarks run 37073680030 (2026-10-03), row \"Microsandbox Cloud\", median of 5 sandboxes at a 4 vCPU / 8 GB target, rank 2 of 15 (shared: the run cannot separate it from the providers at the same rank). https://github.com/starslingdev/hpc-sandbox-benchmarks/blob/297198a96ee827df5edcd918bd37b949526cfe20/LEADERBOARD.md ComputeSDK (each provider at its SDK default size and runtime): burst 5.91 s median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 55.09 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [],
   "caveats": [
     "The whole cloud is private beta with access by request. Its pricing is labelled 'private beta pricing', and docs snippets say the rates 'need owner confirmation before promotion'. All modes and plans are flagged beta.",
@@ -256,6 +256,8 @@
     "Billing basis confirmed as allocation: the usage API meters vCPU-seconds as runtime x configured vCPUs and memory as runtime x configured MiB (docs API reference, 2026-09-29). Idle-timeout stop is a user policy; its default is unpublished.",
     "The local runtime (macOS Apple Silicon / Linux KVM / Windows WHP hosts) is free and open source (Apache-2.0); BYOC is by evaluation.",
     "Browser: headless Playwright and Browser Use agents run inside the microVM (documented examples, github.com/superradcompany/microsandbox, checked 2026-09-28); no desktop/VNC/computer-use API is documented for the cloud (only a community Omarchy desktop for the local Apple Silicon runtime).",
+    "Nested virtualization (guest KVM) is opt-in per sandbox with --nested-virt (docs.microsandbox.dev/sandboxes/snapshots, checked 2026-11-08). The host needs nesting support; ARM64 hosts do not support it. The cloud overview does not list it as local-only.",
+    "Prices and plan pools re-checked 2026-11-08 on microsandbox.dev/pricing: unchanged (Free $0 / 5 computer-hours / 3 running / 2 persistent, no overage; Builder $49; Teams $299; $0.05 per vCPU-h, $0.0162 per memory GiB-h).",
     "Egress re-checked 2026-09-28: pricing page lists \"public egress with task-level policy\" with no price; still unpublished (null).",
     "Plan schema has per-plan max_vcpus_per_sandbox, max_memory_mib_per_sandbox, max_uptime_minutes_per_sandbox and trial_duration_days fields; values for paid plans are not published (the public plans API needs an API key). Schema text also says durable storage 'is billed at a flat per-GB-month rate (no free allotment)', which conflicts with the pricing page's '50 gib durable storage' included on Builder."
   ],
@@ -267,7 +269,8 @@
     "https://microsandbox.dev/llms-full.txt",
     "https://www.computesdk.com/benchmarks/sandboxes/burst-tti/",
     "https://docs.microsandbox.dev/examples/browser-automation/playwright",
-    "https://docs.microsandbox.dev/examples/docker/docker-in-sandbox"
+    "https://docs.microsandbox.dev/examples/docker/docker-in-sandbox",
+    "https://docs.microsandbox.dev/sandboxes/snapshots"
   ],
   "fleet": {
     "default_max_instances": 3,
@@ -363,11 +366,13 @@
       "checked": "2026-10-14"
     },
     "nested_virt": {
-      "value": false,
-      "source": "https://docs.microsandbox.dev/troubleshooting/linux.md",
-      "quote": "Diagnose KVM, permissions, and host runtime setup on Linux ... /dev/kvm setup and permission checks",
-      "note": "derived: all /dev/kvm discussion in the docs is about the HOST needing KVM to boot the microsandbox microVM itself (and about passing /dev/kvm into a Docker container that runs the msb CLI). No page documents exposing /dev/kvm or nested virtualization capability to code running inside a microsandbox sandbox; one CI example explicitly warns 'many managed runners do not allow nested virtualization.' Treated as not offered.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://docs.microsandbox.dev/sandboxes/snapshots",
+      "quote": "Nesting is off by default. Enable it per sandbox with `--nested-virt` or the SDK's nesting option",
+      "how": "turn on nesting per sandbox with --nested-virt or the SDK nesting option (guest KVM); off by default",
+      "effort": "low",
+      "note": "Host needs nesting support; Linux ARM64 / Windows ARM64 hosts do not support it. The cloud overview does not list nested virtualization as local-only, but it does not state cloud support either. Nested VM state in Full snapshots is local-only, because Full snapshots are local-only.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,

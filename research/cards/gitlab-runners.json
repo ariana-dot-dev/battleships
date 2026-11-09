@@ -174,7 +174,7 @@
       "windows_vcpu_h": null,
       "gpu": null,
       "features": {},
-      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://docs.gitlab.com/ci/runners/hosted_runners/linux/: small 2 vCPU/8 GB/30 GB (cost factor 1), medium 4/16/50 (factor 2) — https://docs.gitlab.com/ci/pipelines/compute_minutes/; compute minutes = job seconds/60 x factor; extra minutes $10 per 1,000 (https://about.gitlab.com/pricing/) => $0.60/h per factor. Default region us-east1.",
+      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://docs.gitlab.com/ci/runners/hosted_runners/linux/: small 2 vCPU/8 GB/30 GB (cost factor 1), medium 4/16/50 (factor 2) — https://docs.gitlab.com/ci/pipelines/compute_minutes/; compute minutes = job seconds/60 x factor; extra minutes $10 per 1,000 (https://about.gitlab.com/pricing/) => $0.60/h per factor. Linux x86-64 VMs run in us-east1 and us-east5; Arm64 in us-central1 (docs, checked 2026-11-08).",
       "regions": [
         "us"
       ],
@@ -583,7 +583,7 @@
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
       "quote": "Ephemeral runner VMs serve a single job and are deleted right after the job execution.",
       "note": "Single-job ephemeral GCE VMs, 3 h job timeout; state is only carried between jobs via CI cache/artifacts.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
@@ -611,14 +611,14 @@
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
       "quote": "Inbound communication from the public internet to the ephemeral VM is not allowed.",
       "note": "No port exposure at all (fixed deny-inbound, VMs cannot talk to each other; only the runner manager connects in); nothing to configure.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/linux/",
       "quote": "Runners with any of the saas-linux-<size>-<architecture> tags are configured to run in privileged mode",
-      "note": "Dedicated GCE VM per job with passwordless sudo ('The virtual machine where your job runs has sudo access with no password'); Linux jobs run in privileged Docker containers (docker+machine), so iptables/nftables in the job's netns should work. Not explicitly documented.",
-      "checked": "2026-09-29",
+      "note": "Dedicated GCE VM per job with passwordless sudo ('The virtual machine where your job runs has sudo access with no password'); Linux jobs run in privileged Docker containers (docker+machine), so iptables/nftables in the job's netns should work. Firewall tooling inside the job is not explicitly documented; passwordless sudo is (hosted_runners page, 2026-11-08).",
+      "checked": "2026-11-08",
       "derived": true
     },
     "secret_proxy": {
@@ -654,7 +654,7 @@
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/linux/",
       "quote": "As runners on Linux are using the docker+machine executor, you can choose any container image by defining the image in your .gitlab-ci.yml file.",
       "note": "Applies to Linux (x86/arm64/GPU) hosted runners. macOS and Windows hosted runners only offer GitLab-provided VM images: 'It is not possible to bring your own OS image.'",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -738,7 +738,7 @@
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
       "quote": "Ephemeral runner VMs serve a single job and are deleted right after the job execution.",
       "note": "Each job gets a fresh, dedicated ephemeral VM that is deleted immediately after the job; nothing on the VM's local disk survives to the next job. State only carries over via CI/CD cache or artifacts (not disk persistence). Default (and only) behaviour is delete-on-completion.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
@@ -752,7 +752,7 @@
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
       "quote": "Ephemeral runner VMs serve a single job and are deleted right after the job execution.",
       "note": "There is no pause/resume: each job's VM is provisioned fresh and destroyed at job end; nothing to pause and no reduced-billing suspended state exists.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
@@ -780,21 +780,21 @@
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
       "quote": "Inbound communication from the public internet to the ephemeral VM is not allowed.",
       "note": "All inbound network access to the ephemeral runner VM is blocked by firewall; the only inbound connection permitted is from the internal runner manager, not the user. No SSH-into-runner facility is documented.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
-      "quote": "Use GitLab-hosted runners to run your CI/CD jobs on GitLab.com and GitLab Dedicated.",
-      "note": "The product is a headless CI/CD job runner (ephemeral single-job VM/container), not a desktop/VNC/RDP-streaming product; no graphical desktop access is offered or documented.",
-      "checked": "2026-09-30"
+      "quote": "Inbound communication from the public internet to the ephemeral VM is not allowed.",
+      "note": "GitLab provides no desktop. A Linux job has passwordless sudo in a privileged container, so it can install Xvfb and a browser itself (the usual Playwright/Cypress setup), but GitLab documents no desktop setup, and inbound traffic is blocked, so nobody can view or drive that display live from outside. The job ends within 3 hours. macOS runners do not support jobs that need UI interaction (\"Any workloads that require UI interactions such as testmanagerd are not supported\").",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
       "quote": "Use GitLab-hosted runners to run your CI/CD jobs on GitLab.com and GitLab Dedicated.",
-      "note": "No desktop exists to drive (see desktop), so there is no screenshot/click computer-use API for hosted runners.",
-      "checked": "2026-09-30"
+      "note": "GitLab offers no screenshot/click computer-use API for hosted runners. A Linux job can install a virtual display and drive it from inside the same job, but it cannot be watched or driven from outside (inbound blocked) and ends within 3 hours.",
+      "checked": "2026-11-08"
     },
     "volumes": {
       "value": false,
@@ -808,14 +808,14 @@
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
       "quote": "Inbound communication from the public internet to the ephemeral VM is not allowed.",
       "note": "Firewall denies all inbound traffic, including HTTP/HTTPS, to the ephemeral job VM; there is no way to expose a port/URL from a hosted runner job.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/",
       "quote": "Firewall rules only allow outbound communication from the ephemeral VM to the public internet. Inbound communication from the public internet to the ephemeral VM is not allowed.",
       "note": "Even if the underlying GCE VM has some IP, hosted-runner firewalling makes it unreachable inbound and no public/reachable IPv4 is exposed or documented to users.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "static_egress_ip": {
       "value": false,
@@ -842,9 +842,9 @@
     "eu_data_residency": {
       "value": false,
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/linux/",
-      "quote": "Hosted runners on Linux for GitLab.com run on Google Cloud Compute Engine. Each job gets a fully isolated, ephemeral virtual machine (VM). The default region is us-east1.",
-      "note": "GitLab.com hosted runners (this card's product) run in fixed US Google Cloud regions (us-east1 Linux, us-central1 GPU) with no documented per-job EU region selection; EU residency is only available via the separate GitLab Dedicated product with its own region choice, not via GitLab.com hosted runners.",
-      "checked": "2026-09-30"
+      "quote": "Linux x86-64 VMs run in the us-east1 and us-east5 regions, and Linux Arm64 VMs run in us-central1.",
+      "note": "GitLab.com hosted runners (this card's product) run in fixed US Google Cloud regions (us-east1 and us-east5 for Linux x86-64, us-central1 for Arm64 and GPU) with no documented per-job EU region selection. EU residency is available through the separate GitLab Dedicated product, which has its own region choice.",
+      "checked": "2026-11-08"
     },
     "private_network": {
       "value": false,
@@ -858,7 +858,7 @@
       "source": "https://docs.gitlab.com/ci/runners/hosted_runners/linux/",
       "quote": "Runners with any of the saas-linux-<size>-<architecture> tags are configured to run in privileged mode to support Docker-in-Docker. With these runners, you can build Docker images natively or run multiple containers in your isolated job.",
       "note": "GitLab documents 'privileged mode' only for Docker-in-Docker (container nesting), never mentions /dev/kvm or nested virtualization for any hosted runner (Linux, Windows, macOS, or GPU). Hosted runners run as ephemeral Google Compute Engine VMs / AWS bare-metal Mac instances; GCE nested virtualization is an explicit, non-default instance option that GitLab's docs never say is enabled for the shared hosted-runner fleet, so nested_virt is treated as not offered rather than left null.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,
@@ -880,6 +880,14 @@
     },
     {
       "country": "US",
+      "state": "OH",
+      "city": "Columbus",
+      "provider_region": "us-east5",
+      "self_serve": true,
+      "choosable": false
+    },
+    {
+      "country": "US",
       "state": "IA",
       "city": "Des Moines",
       "provider_region": "us-central1",
@@ -888,6 +896,6 @@
     }
   ],
   "locations_source": "https://docs.gitlab.com/ci/runners/hosted_runners/linux/",
-  "locations_quote": "Hosted runners on Linux for GitLab.com run on Google Cloud Compute Engine. Each job gets a fully isolated, ephemeral virtual machine (VM). The default region is us-east1.",
-  "locations_checked": "2026-10-01"
+  "locations_quote": "Linux x86-64 VMs run in the us-east1 and us-east5 regions, and Linux Arm64 VMs run in us-central1.",
+  "locations_checked": "2026-11-08"
 }

@@ -14,7 +14,10 @@ Compute-optimized c2a.xlarge is 4 vCPU/8 GiB. Root and data volumes are addition
 | network | Outbound traffic | See rule | 30 GiB free then KRW 90/GiB to 10 TiB, 80 to 20 TiB, 70 above. IPv4 KRW 5.5/held-hour. | https://www.kakaocloud.com/services/virtual-machine/pricing |
 ## Gotchas
 - VM stop/shelve state billing needs state-table verification.
-- t1i CPU baseline/credit policy not established; no burstable baseline assumed.
+- t1i baseline usage per vCPU is published per size: nano 5%, micro 10%, small/medium 20%, large 30%, xlarge/2xlarge 40% ([source](https://docs.kakaocloud.com/en/service/bcs/bcs-specifications/general-purpose/instance-type)).
+- m1ix and c1ix families launched 2026-10-12. At 4 vCPU they cost KRW 250/h and KRW 196/h, more than m2a and c2a.
+- Nested virtualization is not supported; WSL 2 does not run on Windows instances ([source](https://docs.kakaocloud.com/en/service/bcs/vm/vm-release-note)).
+- Volume snapshots: full or incremental, on demand or on schedules with retention; a snapshot restores to a new volume.
 - Unknowns remain null, not free; generic infrastructure modes are opt-in alt.
 - Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.
 - VAT basis: Published prices exclude VAT (VAT 별도).

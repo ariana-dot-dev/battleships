@@ -13,7 +13,8 @@ As of 2026-09-28. USD unless explicitly stated; public list prices unless a row 
 | Business | Account plan | Monthly fee / commitment | $399; concurrency 400; Monthly prepaid usage per FAQ; unused monthly commitment does not roll over. Residential $1.44/GB; DC $0.64/GB; IPv 6 $0.32/GB; ISP $2.0/IP. | https://www.scrapeless.com/en/pricing |
 | Custom | Account plan | Monthly fee / commitment | Quote / unknown; concurrency unpublished/custom; Negotiated rates/concurrency; KYC for higher threads/custom plans. | https://www.scrapeless.com/en/pricing |
 ## Gotchas
-- Pricing header says $49 then consumption but FAQ explicitly says monthly amount is pre-deposited into balance; card models usage minimum, not noncredit fee, and flags ambiguity.
+- Re-checked 2026-11-08: the pricing page source confirms "Base rate: $0.09/hour – discounted by subscription tier", $1.80/GB residential, prepaid usage, and a free tier of 1 concurrent session and 1 hour a month. The tier table loads dynamically and was not re-confirmed; the tier rows above come from the rendered page on 2026-09-28.
+- Plan fees are prepaid usage: the monthly amount goes into the balance (FAQ). Do not add the fee on top of usage. One session on workdays (~176 h at $0.09/h, about $16) fits the lowest plan.
 - The Scale rate .076 is displayed rounded while 15% off .09 is .0765. Preserve published .076 and do not silently replace.
 - Browser proxy routing may use separate service-specific tariff; listed proxy prices are standalone product prices and not proof every browser mode uses exactly that rate.
 - Baked-in CAPTCHA/stealth/fingerprints and profile extensions documented; per-solve rate and replay retention/storage cost not verified.

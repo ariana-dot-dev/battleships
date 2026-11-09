@@ -898,6 +898,7 @@
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
+    "persist_scope": "whole",
     "volumes": true,
     "auto_stop_idle": false,
     "max_session_h": 24,
@@ -906,7 +907,7 @@
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
@@ -971,12 +972,12 @@
     "usage_api": false
   },
   "perf": {
-    "cpu_runs_s": 12.96,
+    "cpu_runs_s": 12.66,
     "cold_start_ms": 420.54,
-    "burst_tti_ms": 452.89,
-    "dax_s": 75.41
+    "burst_tti_ms": 533.3,
+    "dax_s": 87.46
   },
-  "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
+  "perf_source": "CPU 12.66 runs/s: V8 Web Tooling Benchmark (Phoronix node-web-tooling), StarSling hpc-sandbox-benchmarks run 37073680030 (2026-10-03), row \"Vercel Sandbox\", median of 5 sandboxes at a 4 vCPU / 8 GB target, rank 7 of 15 (shared: the run cannot separate it from the providers at the same rank). https://github.com/starslingdev/hpc-sandbox-benchmarks/blob/297198a96ee827df5edcd918bd37b949526cfe20/LEADERBOARD.md ComputeSDK (each provider at its SDK default size and runtime): burst 533 ms median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 87.46 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86); one-at-a-time start 421 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [
     {
       "id": "timeout_tail",
@@ -1000,13 +1001,16 @@
     "Hobby included_usd (12.55) is a dollar-equivalent of unit quotas at iad1 rates; Hobby cannot incur overage (hard stop), and the 15 GB snapshot quota is lifetime, not monthly.",
     "Pro egress: free 1,000 GiB is the Flat Rate CDN included tier, shared with the team's CDN/Fast Data/Blob transfer; beyond it Vercel moves you to a higher tier ($20/mo for 50 TB) the next cycle rather than per-GB. egress_gib 0.15 is the on-demand/Enterprise iad1 rate. Enterprise has no free bundle.",
     "Exposed-port traffic is billable in both directions; downloads from the internet are free since 2026-07-17.",
-    "Persistence is on by default: every stop creates a new filesystem snapshot ($0.08/GB-month, daily-average metering since 2026-08-31) that expires 30 days after last use by default and survives sandbox deletion. Without keepLastSnapshots {count:1} retained GiB can be many times the live filesystem size. Whether snapshot size is full, incremental or compressed is undocumented.",
+    "Persistence is on by default: every stop creates a new filesystem snapshot ($0.08/GB-month, daily-average metering since 2026-08-31) that expires 30 days after last use by default (snapshotExpiration 0 / 'none' keeps it indefinitely) and survives sandbox deletion. Without keepLastSnapshots {count:1} retained GiB can be many times the live filesystem size. Whether snapshot size is full, incremental or compressed is undocumented.",
     "Active CPU metering granularity is unpublished (granularity_s null). min_billed_seconds 60 applies to provisioned memory only (1-minute minimum increments per session).",
     "Max session 24 h (Pro/Ent; 5 h before 2026-06-16), 45 min Hobby; sessions resume automatically from snapshot, but processes/memory are lost on every restart.",
     "Pro $20 credit is shared with other Vercel usage (Functions, CDN, etc.), so it may not be available to Sandbox.",
     "Spend management is soft; its only automatic action pauses production deployments, and docs do not state that it stops running sandboxes. Checks run every few minutes.",
     "Enterprise platform fee, discounts and commitment minimums are unpublished.",
-    "Drives (beta): $0.05/GB-month logical used size + $0.0015/GB reads + $0.004/GB writes in iad1 (regional); not modelled in the card.",
+    "Drives (generally available since 2026-10-15): mounted storage that persists until deleted, forkable, read-only snapshots shareable across sandboxes, 1 TiB default / 16 TiB default max quota. $0.05/GB-month logical used size + $0.0015/GB reads + $0.004/GB writes in iad1 (regional); not modelled in the card.",
+    "Browser: none preinstalled, but Vercel documents running Chromium inside the sandbox (install at runtime or bake into a custom image; eve browser extension), so browser = diy. No documented desktop/VNC path, so desktop stays false.",
+    "Sandbox lifetime is unbounded: the 24 h cap applies per session, and a persistent sandbox resumes by name from its last snapshot as often as you like. Vercel's concepts page still says sandboxes 'are not designed to run continuously' and suggests a VM for 24/7 hosting.",
+    "Failover regions (Pro and Enterprise): sandbox creation can fall back to another region with capacity; snapshots load cross-region (https://vercel.com/docs/sandbox/concepts/regions).",
     "No dedicated public IPv4; static egress IPs only via Enterprise Secure Compute. ssh=false: the only shell is the CLI 'sandbox connect' (aliases ssh, shell), authenticated with a Vercel token, not a real sshd; no raw TCP inbound to run one yourself.",
     "open_source=false refers to the platform; the SDK, CLI and managed image Dockerfiles are open source.",
     "computesdk dax env reported 8 logical CPUs / 16.25 GiB.",
@@ -1039,7 +1043,12 @@
     "https://vercel.com/changelog/vercel-sandbox-is-now-globally-available",
     "https://www.computesdk.com/benchmarks/sandboxes/",
     "https://vercel.com/changelog/vercel-sandbox-persistent-sandboxes-beta",
-    "https://github.com/firecracker-microvm/firecracker/blob/main/tests/integration_tests/security/test_nv.py"
+    "https://github.com/firecracker-microvm/firecracker/blob/main/tests/integration_tests/security/test_nv.py",
+    "https://vercel.com/docs/sandbox/concepts/drives",
+    "https://vercel.com/changelog/vercel-drives-is-now-generally-available",
+    "https://vercel.com/kb/guide/run-research-workspace-vercel",
+    "https://vercel.com/changelog/give-your-eve-agent-a-browser",
+    "https://vercel.com/kb/guide/build-a-browser-agent"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -1071,8 +1080,8 @@
       "value": true,
       "source": "https://vercel.com/docs/sandbox/concepts/snapshots",
       "quote": "When you call `stop()` or the timeout expires, the session stops. For a [persistent sandbox](/docs/sandbox/concepts/persistent-sandboxes) (the default), Vercel captures its filesystem and creates a snapshot automatically before the sandbox shuts down.",
-      "note": "Triggered by stop() or session timeout; default on (persistent:true, SDK v2+), opt out with persistent:false. Filesystem only, no memory/processes: next session boots from the snapshot and an onResume hook is provided 'to restart background services'. Auto-snapshots billed as Snapshot Storage ($0.08/GB-month), expire 30 days after last use by default.",
-      "checked": "2026-09-29"
+      "note": "Triggered by stop() or session timeout; default on (persistent:true, SDK v2+), opt out with persistent:false. Filesystem only, no memory/processes: next session boots from the snapshot and an onResume hook is provided 'to restart background services'. Auto-snapshots billed as Snapshot Storage ($0.08/GB-month), expire 30 days after last use by default; snapshotExpiration 0 (CLI 'none') keeps them indefinitely (https://vercel.com/docs/sandbox/concepts/persistent-sandboxes).",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -1129,28 +1138,28 @@
       "value": true,
       "source": "https://vercel.com/docs/sandbox/concepts/drives",
       "quote": "Files written to a drive persist after the sandbox stops. Mount the same drive in a later run to pick up where you left off, even when starting from a different sandbox environment. You can mount up to four drives in a sandbox, each at its own path alongside the sandbox's own filesystem.",
-      "note": "Drives, public beta since 2026-09-23 (Hobby/Pro/Enterprise): network-backed, default max 1 TiB (1 GiB Hobby), up to 16 TiB, single region, $0.05/GB-month + read/write per-GB. Also user-run FUSE mounts (e.g. Mountpoint for S3).",
-      "checked": "2026-09-29"
+      "note": "Drives, generally available since 2026-10-15 on Hobby/Pro/Enterprise ('Vercel Drives is now generally available for Vercel Sandbox on Hobby, Pro, and Enterprise', https://vercel.com/changelog/vercel-drives-is-now-generally-available): up to 4 per sandbox, 1 TiB default (1 GiB Hobby), 16 TiB default max quota, single region, persist until deleted, forkable, $0.05/GB-month + read/write per-GB. Also user-run FUSE mounts (e.g. Mountpoint for S3).",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
       "source": "https://vercel.com/docs/sandbox/concepts/drives",
       "quote": "Drives are mounted as read-write by default. Only one sandbox at a time can mount a given drive as read-write: use [snapshots](#snapshots) for shared access.",
-      "note": "Read-only sharing only: many sandboxes can concurrently mount point-in-time read-only drive snapshots ('Snapshots allow multiple sandboxes to mount the same drive concurrently'), which don't see later writes. Concurrent read-write sharing is not supported (except via user-run FUSE to an external store like S3).",
-      "checked": "2026-09-29"
+      "note": "Many sandboxes can mount point-in-time read-only drive snapshots at once ('Snapshots allow multiple sandboxes to mount the same drive concurrently'); they do not see later writes. One read-write mount at a time; a drive can be forked into an independent read-write copy per agent. Concurrent read-write sharing needs a user-run FUSE mount to an external store such as S3.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
       "source": "https://vercel.com/docs/sandbox",
       "quote": "Use the Vercel Sandbox JavaScript SDK to create isolated Linux microVMs on demand. Run untrusted code, test full Linux workflows, and manage files, ports, snapshots, drives, sessions, and network policy from Node.js applications.",
-      "note": "not offered: outside the product's scope. Vercel Sandbox is a general-purpose Firecracker microVM code-execution environment (no browser/desktop feature), not a browser-automation/scraping product; no stealth/fingerprinting-evasion feature is documented.",
+      "note": "not offered: outside the product's scope. Vercel Sandbox is a general-purpose Firecracker microVM code-execution environment (no built-in browser or desktop; you can install Chromium yourself), not a browser-automation/scraping product; no stealth/fingerprinting-evasion feature is documented.",
       "checked": "2026-09-30"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://vercel.com/docs/sandbox",
       "quote": "Use the Vercel Sandbox JavaScript SDK to create isolated Linux microVMs on demand. Run untrusted code, test full Linux workflows, and manage files, ports, snapshots, drives, sessions, and network policy from Node.js applications.",
-      "note": "not offered: outside the product's scope. Sandbox has no browser/CAPTCHA-solving feature; it is a Linux compute sandbox for running commands/code.",
+      "note": "not offered: outside the product's scope. Sandbox has no CAPTCHA-solving feature and no built-in browser; it is a Linux compute sandbox for running commands/code.",
       "checked": "2026-09-30"
     },
     "egress_ip_type": {
@@ -1211,24 +1220,33 @@
     },
     "desktop": {
       "value": false,
-      "source": "https://vercel.com/docs/sandbox",
-      "quote": "Run untrusted or agent-generated code in isolated Linux microVMs. Use Vercel Sandbox for agent workflows, debugging, and one-off commands.",
-      "note": "Vercel Sandbox is a headless Linux microVM code-execution product (CLI/SDK exec + filesystem + ports); the Features list on the docs/pricing pages has no VNC/RDP/streamed-desktop capability of any kind.",
-      "checked": "2026-09-30"
+      "source": "https://vercel.com/docs/sandbox/concepts",
+      "quote": "Provides full root access to install any package or binary",
+      "note": "No built-in desktop, and Vercel documents no desktop, VNC or screen-stream setup for Sandbox (re-checked concepts, working-with-sandbox and the research-workspace guide 2026-11-08). With root you can install Xvfb/VNC yourself, but no official path exists, so the value stays false (FAIRNESS rule 4). Browser sessions with live view come from Marketplace services (Browserbase, Kernel), outside the sandbox.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://vercel.com/docs/sandbox",
-      "quote": "Run untrusted or agent-generated code in isolated Linux microVMs. Use Vercel Sandbox for agent workflows, debugging, and one-off commands.",
-      "note": "No first-party managed/pre-installed browser is documented as a sandbox feature; the product surface (Features list, SDK reference) covers exec/files/ports/snapshots/drives/network policy only, not a browser.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://vercel.com/kb/guide/run-research-workspace-vercel",
+      "quote": "Run Chromium in the sandbox itself, driven by agent-browser from Vercel Labs or a similar CDP client.",
+      "how": "install Chromium and agent-browser at runtime, or build them into a custom image in Vercel Container Registry (official guide); or use the @agent-browser/eve extension",
+      "effort": "medium",
+      "note": "No browser is preinstalled and the Sandbox SDK has no browser API. Vercel's guide documents Chromium inside the sandbox; the eve browser extension (https://vercel.com/changelog/give-your-eve-agent-a-browser, 2026-08-04) runs Chromium + agent-browser in the agent's sandbox with screenshot, click and fill tools. Alternative: an external cloud browser (Kernel, Browserbase) via the Marketplace (https://vercel.com/kb/guide/build-a-browser-agent).",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://vercel.com/docs/sandbox/sdk-reference",
       "quote": "Run untrusted code, test full Linux workflows, and manage files, ports, snapshots, drives, sessions, and network policy from Node.js applications.",
-      "note": "The full SDK reference exposes command exec, filesystem, ports, snapshots, drives, sessions and network policy only — no screenshot/click computer-use API, consistent with a headless code-execution product.",
-      "checked": "2026-09-30"
+      "note": "The Sandbox SDK has no screenshot/click desktop API, and no desktop setup is documented. Browser-level screenshot and click tools exist through the eve browser extension (see browser: diy); they drive web pages, not a desktop.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://vercel.com/docs/sandbox/concepts/persistent-sandboxes",
+      "quote": "When you stop a persistent sandbox, Vercel automatically snapshots the filesystem. When you resume it, a new session boots from that snapshot with a fresh session timeout.",
+      "note": "On by default (persistent:true); the whole filesystem comes back on resume by name, with no user snapshot call. Processes and memory do not survive; onResume hooks restart services. Snapshots expire 30 days after last use by default; 'Use 0 (or \"none\" in the CLI) to keep snapshots indefinitely.' Billed as Snapshot Storage $0.08/GB-month. Separate option: Drives (GA 2026-10-15), mounted storage that 'Persists until manually deleted'.",
+      "checked": "2026-11-08"
     },
     "auto_stop_idle": {
       "value": false,

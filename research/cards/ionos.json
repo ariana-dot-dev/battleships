@@ -121,7 +121,7 @@
       "multiplier": 1,
       "windows_vcpu_h": 0.00785082,
       "gpu": null,
-      "note": "Native EUR public list/reference quote; rates converted using fx.json. Net of applicable taxes/duties. Invoiced by the minute (cloud.ionos.com/prices: \"All components are invoiced using a pay-as-you-go model – in other words, by the minute.\"). Suspended Cubes continue to incur costs (docs.ionos.com cubes overview); only snapshot + delete + recreate stops billing, so active-hours pricing here assumes that pattern. No live vertical scaling of CPU/RAM on Cubes."
+      "note": "Native EUR public list/reference quote; rates converted using fx.json. Net of applicable taxes/duties. Invoiced by the minute (cloud.ionos.com/prices: \"All components are invoiced using a pay-as-you-go model – in other words, by the minute.\"). A suspended Cube releases its CPU, RAM and IPs, and its connected storage keeps billing (suspend-cube how-to; Cubes overview: \"Suspended Cubes continue to incur costs\"). The suspended-Cube storage rate is not published, so active-hours pricing here assumes snapshot + delete between windows, which brings the bill to the snapshot charge only. No live vertical scaling of CPU/RAM on Cubes."
     },
     {
       "key": "vcpu-server",
@@ -164,7 +164,7 @@
       "multiplier": 1,
       "windows_vcpu_h": 0.01695322,
       "gpu": null,
-      "note": "Native EUR public list/reference quote; rates converted using fx.json. Net of applicable taxes/duties. Billing interval for vCPU servers is not published (only Cubes and Windows licences are stated \"by the minute\"); 60 s is assumed. Stop halts compute billing; volumes keep billing."
+      "note": "Native EUR public list/reference quote; rates converted using fx.json. Net of applicable taxes/duties. Billing interval for vCPU servers is not published (only Cubes and Windows licences are stated \"by the minute\"); 60 s is assumed. Stop and deallocate in DCD/API halts CPU and RAM billing (set-up-vcpu how-to: \"The vCPU Server stops and billing is suspended.\"); volumes keep billing. A shutdown from inside the OS does not stop charges."
     },
     {
       "key": "cloud-gpu-h200",
@@ -222,7 +222,7 @@
   "storage": {
     "included_disk_gib": null,
     "disk_gib_month": 0.046144111111,
-    "disk_billed_when_stopped": null,
+    "disk_billed_when_stopped": true,
     "snapshot_gib_month": 0.046144111111,
     "paused_ram_billed": null
   },
@@ -283,7 +283,7 @@
     "agent_harnesses": false,
     "ssh": true,
     "public_ipv4": true,
-    "inbound_https": true,
+    "inbound_https": null,
     "custom_domain": null,
     "raw_tcp_inbound": null,
     "egress_allowlist": true,
@@ -300,8 +300,8 @@
     "soc2": null,
     "hipaa": false,
     "sso": true,
-    "lang_python": true,
-    "lang_node": true,
+    "lang_python": null,
+    "lang_node": null,
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -320,7 +320,7 @@
     "scoped_api_keys": null,
     "spend_limits": null,
     "mcp_server": true,
-    "snapshot_auto": false,
+    "snapshot_auto": "diy",
     "snapshot_on_demand": true,
     "harness_api": false,
     "egress_allowlist_level": "ip",
@@ -349,10 +349,11 @@
   "caveats": [
     "Snapshot EUR .04/GB/30 days normalized to 730 hours; disk storage differs by mode.",
     "Dedicated-core savings prices not directly comparable to vCPU engine workload.",
-    "Suspended Cubes keep billing (\"Suspended Cubes continue to incur costs\", Cubes overview, checked 2026-10-14). Only snapshot + delete + recreate stops a Cube's charges; stopping a vCPU server halts compute billing while its volumes keep billing.",
+    "A suspended Cube releases CPU, RAM and IPs; its connected storage keeps billing (\"Suspended Cubes continue to incur costs\", Cubes overview, checked 2026-11-08). A stopped vCPU server stops CPU and RAM billing; its volumes keep billing. A $0 bill needs a snapshot and a delete.",
     "Unknowns remain null, not free. Cubes and vCPU servers are ordinary self-serve VMs (no longer flagged alt, fix 2026-09-28).",
-    "Cubes pricing counts active hours only, which is reachable only by snapshotting the NVMe volume, deleting the Cube and recreating it each window (snapshot storage EUR 0.04/GB/30 days). A Cube kept suspended between windows bills close to the always-on figure; the vCPU server mode (stop = compute billing stops) is the honest choice for a kept machine.",
-    "VAT basis: Net of applicable taxes/duties.",
+    "Cubes pricing counts active hours only. It assumes you snapshot the NVMe volume, delete the Cube and recreate it each window (snapshot storage EUR 0.04/GB/30 days). A Cube suspended between windows also bills its storage, at a rate the price list does not state. For a kept machine, the vCPU server mode stops CPU and RAM billing on stop and bills only its volumes.",
+    "Scheduled backups: the paid IONOS Backup Service (Acronis agent, preinstalled on public images) runs on a schedule you set and can store copies on Object Storage or Network File Storage. It is a file/image backup, not a block-volume snapshot.",
+    "Nested virtualization: IONOS says it runs on KVM and \"generally do[es] not recommend\" your own virtualization in virtual hosts; Windows VBS/WSL 2 run nested with a software-emulation slowdown. No guide for KVM in a Linux guest.",    "VAT basis: Net of applicable taxes/duties.",
     "Residency: Cubes and vCPU servers in Berlin, Frankfurt, Paris, Logroño, London, Worcester, Newark and Lenexa (service catalog, checked 2026-10-14); choose a specific datacenter. Account contracting entity controls currency.",
     "Egress is tiered per contract across all IONOS services: first 2 TiB free, then EUR 0.03/GiB to 10 TiB, 0.025 to 50 TiB, 0.02 to 150 TiB, 0.015 beyond. The card uses the first paid tier only, so very high egress is slightly overstated.",
     "Billing interval: cloud.ionos.com/prices states per-minute invoicing for Cubes and Windows licences only; for vCPU servers and GPU VMs no interval is published, so per-minute is assumed (RHEL licences are per started hour)."
@@ -365,7 +366,11 @@
     "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html",
     "https://docs.ionos.com/cloud/compute-services/compute-engine/vcpu-server",
     "https://docs.ionos.com/cloud/support/general-information/service-catalog",
-    "https://docs.ionos.com/cloud/tools-cli/subcommands/compute-engine/server/stop"
+    "https://docs.ionos.com/cloud/tools-cli/subcommands/compute-engine/server/stop",
+    "https://docs.ionos.com/cloud/compute-services/compute-engine/how-tos/set-up-vcpu.md",
+    "https://docs.ionos.com/cloud/backup-and-storage/backup-service/overview",
+    "https://docs.ionos.com/cloud/backup-and-storage/block-storage/block-storage-faqs",
+    "https://docs.ionos.com/cloud/compute-services/cubes/dcd-how-tos/connect-remote-console"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -387,13 +392,19 @@
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 2
   },
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "fairness audit findings/ionos.json; prices re-checked against the EUR price list (unchanged)"
+  },
   "feature_evidence": {
     "snapshot_auto": {
-      "value": false,
-      "source": "https://docs.ionos.com/cloud/compute-services/cubes/dcd-how-tos/suspend-cube.md",
-      "quote": "The Cube releases the associated CPU, RAM, and IP addresses.",
-      "note": "Suspend (Cubes) / stop (vCPU servers) only keep the block storage (persistent_disk); RAM is released and the doc even suggests shutting the OS down first 'to prevent data loss'. No stop-triggered snapshot documented. Scheduled backups exist via the separate IONOS Backup Service.",
-      "checked": "2026-09-29"
+      "value": "diy",
+      "source": "https://docs.ionos.com/cloud/backup-and-storage/backup-service/overview",
+      "quote": "You can configure the backup schedule through the Backup Service Console according to your needs.",
+      "how": "subscribe to the paid IONOS Backup Service and set a backup schedule; its Acronis agent is preinstalled on public images and installed by hand on private images",
+      "effort": "medium",
+      "note": "Scheduled backups are agent-based file/image backups, not block-volume snapshots. Block-volume snapshots are manual (DCD/API). No stop-triggered snapshot is documented.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -455,10 +466,10 @@
     },
     "isolation": {
       "value": "qemu-kvm",
-      "source": "https://docs.ionos.com/cloud/compute-services/cubes/overview",
-      "quote": "Cubes are virtual private service instances with shared resources.",
+      "source": "https://docs.ionos.com/cloud/backup-and-storage/block-storage/block-storage-faqs",
+      "quote": "are built on Kernel-based Virtual Machine (KVM) hypervisor and libvirt virtualization management.",
       "note": "IONOS Compute Engine (Cubes, vCPU Servers, Dedicated Core Servers) are KVM-based virtual machines with full root/own kernel; a separate 'Confidential VM' product adds AMD SEV memory encryption on top of the same VM model.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": false,
@@ -476,10 +487,10 @@
     },
     "desktop": {
       "value": false,
-      "source": "https://docs.ionos.com/cloud/support/general-information/price-list/ionos-cloud-eur-en",
-      "quote": "vCPU servers provide cost-effective performance and scalability at an affordable price, ideal for databases, development and test environments, essential software services, etc.",
-      "note": "not offered: outside the product's scope (plain IaaS VMs; a Remote Console for text/graphical BIOS-level access exists for troubleshooting, not a managed desktop-as-a-service)",
-      "checked": "2026-09-30"
+      "source": "https://docs.ionos.com/cloud/compute-services/cubes/dcd-how-tos/connect-remote-console",
+      "quote": "The Remote Console is used to connect to a server when, for example, SSH is not available.",
+      "note": "No managed or streamed desktop is documented. The Remote Console is a troubleshooting console. No IONOS guide shows a desktop setup inside a Linux VM.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
@@ -525,10 +536,10 @@
     },
     "fork_running": {
       "value": true,
-      "source": "https://docs.ionos.com/cloud/backup-and-storage/images-snapshots/snapshots.md",
-      "quote": "Creating a snapshot while the server is running takes longer",
-      "note": "Snapshots can be taken from a running server (the original keeps running) and then used as a template to create new VMs, so the source machine is not stopped to fork it.",
-      "checked": "2026-09-30"
+      "source": "https://docs.ionos.com/cloud/backup-and-storage/images-snapshots/snapshots/how-tos/create-snapshot.md",
+      "quote": "Shut down the required server in the workspace. Creating a snapshot while the server is running takes longer.",
+      "note": "The shutdown step is marked optional; a snapshot of a running server is allowed and can then be a template for new VMs. The old source URL (snapshots.md) no longer carries this sentence (re-checked 2026-11-08).",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
@@ -541,8 +552,8 @@
       "value": true,
       "source": "https://docs.ionos.com/cloud/tools-cli/subcommands/compute-engine/server/stop",
       "quote": "its compute resources (cores + RAM) are DEALLOCATED, so per-server compute billing ceases. Attached storage Volumes are kept and continue to be billed; the data on them is preserved.",
-      "note": "Stopping a vCPU / Dedicated Core / GPU server deallocates cores + RAM and halts compute billing; volumes keep billing. Cubes differ: suspend keeps the Cube but the Cubes overview says \"Suspended Cubes continue to incur costs\" and recommends snapshotting the NVMe volume and deleting the instance to save costs (recreate from the snapshot, possibly with a different IP). The Cube hourly size price bundles its NVMe volume, so a suspended Cube is not cheap to keep.",
-      "checked": "2026-10-14"
+      "note": "Stopping a vCPU / Dedicated Core / GPU server in DCD/API deallocates cores + RAM and suspends compute billing (set-up-vcpu how-to: \"The vCPU Server stops and billing is suspended.\"); volumes keep billing. A suspended Cube releases CPU, RAM and IPs, and \"The connected storage devices will be billed\" (suspend-cube how-to); the Cubes overview says \"Suspended Cubes continue to incur costs\" and suggests a snapshot and a delete to cut costs.",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -587,25 +598,25 @@
       "checked": "2026-09-30"
     },
     "lang_python": {
-      "value": true,
+      "value": null,
       "source": "https://docs.ionos.com/cloud/compute-services/compute-engine/vcpu-server",
       "quote": "vCPU servers provide cost-effective performance and scalability at an affordable price, ideal for databases, development and test environments, essential software services, etc.",
-      "note": "General-purpose Linux VMs with root access; any runtime including Python can be installed/run. IONOS also ships an official Python SDK for the Cloud API.",
-      "checked": "2026-09-30"
+      "note": "2026-11-08 adversarial check: was true. The quote does not mention Python; 'any runtime can be installed' is not a provider statement and the SDK is a client library, not a runtime in the VM. Not published -> null.",
+      "checked": "2026-11-08"
     },
     "lang_node": {
-      "value": true,
+      "value": null,
       "source": "https://docs.ionos.com/cloud/compute-services/compute-engine/vcpu-server",
       "quote": "vCPU servers provide cost-effective performance and scalability at an affordable price, ideal for databases, development and test environments, essential software services, etc.",
-      "note": "General-purpose Linux VMs with root access; any runtime including Node.js can be installed/run. IONOS also ships an official Node.js SDK for the Cloud API.",
-      "checked": "2026-09-30"
+      "note": "2026-11-08 adversarial check: was true. The quote does not mention Node.js; 'any runtime can be installed' is not a provider statement and the SDK is a client library, not a runtime in the VM. Not published -> null.",
+      "checked": "2026-11-08"
     },
     "inbound_https": {
-      "value": true,
+      "value": null,
       "source": "https://docs.ionos.com/cloud/support/general-information/price-list/ionos-cloud-eur-en",
       "quote": "IPv4 available",
-      "note": "Each VM gets a public IPv4/IPv6 address with Network Security Group ingress rules; any HTTPS server bound to that port is reachable directly (no managed URL layer needed since it's a full VM).",
-      "checked": "2026-09-30"
+      "note": "2026-11-08 adversarial check: was true. The quote shows only a public IPv4; IONOS documents no HTTPS URL or TLS to a VM port. A raw IP is public_ipv4, not inbound_https (UpCloud and OVHcloud are false for the same reason). Not published -> null.",
+      "checked": "2026-11-08"
     },
     "egress_http_rules": {
       "value": false,
@@ -681,8 +692,8 @@
       "value": null,
       "source": "https://docs.ionos.com/cloud/backup-and-storage/images-snapshots/public-images/deactivate-vbs-hvci-microsoft-windows-server-2025",
       "quote": "The Windows features Virtualization-Based Security (VBS) and Hypervisor-Enforced Code Integrity (HVCI) rely on nested virtualization. When activated, this leads to measurable performance issues, particularly for CPU-intensive workloads.",
-      "note": "The only IONOS mention is Windows VBS/HVCI causing nested-virtualization overhead on KVM, with steps to turn it off. Nothing documents /dev/kvm or running a guest hypervisor (KVM, Firecracker) inside a Linux VM, so it stays unknown rather than yes or no.",
-      "checked": "2026-10-14"
+      "note": "IONOS says Windows VBS, HVCI and WSL 2 run nested in its VMs with a software-emulation slowdown, and gives steps to turn VBS/HVCI off. The Block Storage FAQ says: \"We generally do not recommend using your virtualization technology in virtual hosts.\" No guide shows /dev/kvm or a guest hypervisor (KVM, Firecracker) inside a Linux VM, so the value stays unknown.",
+      "checked": "2026-11-08"
     },
     "soc2": {
       "value": null,

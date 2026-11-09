@@ -115,7 +115,7 @@
         "custom_image": true,
         "arm64": false
       },
-      "note": "Heroku publishes relative 'compute' (1x-4x, 12x, 50x, 100x) and the Platform API returns compute units (Std-1X=1, Perf-M=11, Perf-L=46, Perf-XL=92, Perf-2XL=138), NOT vCPUs: vcpu left null. hour = monthly price / 720 (Heroku's own '~$/hour' column and Elements '$1.389/hour = $1000/month' use a 720 h basis); billed per second of wall-clock while scaled >0, capped at the monthly price. Container runs as non-root, ephemeral filesystem, restarted at least every 24 h (+0-216 min).",
+      "note": "Heroku publishes relative 'compute' (1x-4x, 12x, 50x, 100x) and the Platform API returns compute units (Std-1X=1, Perf-M=11, Perf-L=46, Perf-XL=92, Perf-2XL=138), NOT vCPUs: vcpu left null. hour = monthly price / 720 (Heroku's own '~$/hour' column and Elements '$1.389/hour = $1000/month' use a 720 h basis); billed per second of wall-clock while scaled >0, capped at the monthly price. Container runs as non-root, ephemeral filesystem, restarted at least every 24 h (+0-216 min) on Cedar, one-off dynos too. Heroku Exec SSH sessions last up to 1 hour and do not work on one-off dynos.",
       "cpu_class": "shared"
     },
     {
@@ -526,9 +526,10 @@
         "custom_image": false,
         "arm64": true,
         "static_egress_ip": true,
-        "private_network": true
+        "private_network": true,
+        "max_session_h": null
       },
-      "note": "All Fir dynos dedicated, only in Fir Private Spaces (space ~$1.389/h, max $1000/month). vCPU counts are published for Fir. Per-second billing capped at monthly. Fir spaces created after 2026-08-21 default to x86_64; ARM (Graviton) on request; same price. Cloud Native Buildpacks only (no Docker/heroku.yml builds), no Heroku Exec (use heroku run:inside). Limits: 255 dynos per app, 500 dynos per space (default), one-off Fir dynos 255 per app but 10 concurrent per space. Daily restart can be bypassed via Labs flag. Fir autoscaling, Shield and Common Runtime 'To Be Added'. GPU dynos listed as 'Coming'.",
+      "note": "All Fir dynos dedicated, only in Fir Private Spaces (space ~$1.389/h, max $1000/month). vCPU counts are published for Fir. Per-second billing capped at monthly. Fir spaces created after 2026-08-21 default to x86_64; ARM (Graviton) on request; same price. Cloud Native Buildpacks only (no Docker/heroku.yml builds), no Heroku Exec; heroku run:inside opens a shell in a running Fir dyno. Limits: 255 dynos per app, 500 dynos per space (default; support can raise it), one-off Fir dynos 255 per app but 10 concurrent per space. Daily restart can be turned off with the Labs flag fir-bypass-daily-dyno-restarts; dynos still restart on each release, config change or hardware fault, and files are lost on every restart. Fir autoscaling, Shield and Common Runtime 'To Be Added'. GPU dynos listed as 'Coming'.",
       "cpu_class": "dedicated"
     }
   ],
@@ -584,11 +585,11 @@
       "included_usd": 0,
       "per_seat": 0,
       "concurrency": 500,
-      "max_session_h": 24,
+      "max_session_h": null,
       "max_vcpu": 32,
       "max_ram_gib": 128,
       "sizes_allowed": null,
-      "note": "Per space: ~$1.389/hour, max $1000/month (prorated to the second while the space exists, on top of dyno charges). Needed for Fir, Private-* dynos, regions outside us/eu, stable outbound IPs. Heroku Teams need 'at least six paid invoices, three successful charges, and a minimum spend of $30' to create one; 5 spaces per team by default. Fir space: 500 dynos, 200 apps, 10 concurrent one-off Fir dynos; Cedar space: 100 dynos, 25 apps, 10 dynos per process type."
+      "note": "Per space: ~$1.389/hour, max $1000/month (prorated to the second while the space exists, on top of dyno charges). Needed for Fir, Private-* dynos, regions outside us/eu, stable outbound IPs. Heroku Teams need 'at least six paid invoices, three successful charges, and a minimum spend of $30' to create one; 5 spaces per team by default. Fir space: 500 dynos, 200 apps, 10 concurrent one-off Fir dynos; Cedar space: 100 dynos, 25 apps, 10 dynos per process type. Session cap: Cedar Private dynos restart every 24 h (+0-216 min); Fir apps can turn that off with the Labs flag fir-bypass-daily-dyno-restarts, so this plan has no fixed cap. Price source: Heroku Elements Private Spaces listing (Standard ~$1.389/hour, max $1000/month; Shield ~$4.167/hour, max $3000/month). One space fee covers every dyno in the space. Dyno limits are defaults; support raises them on request."
     },
     {
       "name": "Shield Private Space",
@@ -644,10 +645,10 @@
     "nested_virt": false,
     "root": false,
     "systemd": null,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
-    "code_interpreter": null,
+    "code_interpreter": true,
     "agent_harnesses": false,
     "ssh": true,
     "public_ipv4": false,
@@ -717,14 +718,20 @@
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "Product status: since 2026-02-06 Heroku is in a 'sustaining engineering model ... rather than introducing new features' (Salesforce). No pricing change for card-paying customers; Enterprise contracts closed to new customers. Fir roadmap items (GPU dynos, Fir autoscaling/Shield/Common Runtime) may not ship.",
-    "Start rate: Platform API token bucket of 4,500 calls, refilled ~75/minute per account; each dyno scale / one-off run is an API call, so bursty 'one dyno per task' use tops out around 75 starts/min per account (plus 50 concurrent Standard one-offs / 5 Performance one-offs per app)."
+    "Start rate: Platform API token bucket of 4,500 calls, refilled ~75/minute per account; each dyno scale / one-off run is an API call, so bursty 'one dyno per task' use tops out around 75 starts/min per account (plus 50 concurrent Standard one-offs / 5 Performance one-offs per app).",
+    "Daily restart: Cedar dynos (one-off dynos too) run at most 24 h + 216 min. Fir apps can turn this off with a Labs flag. Dyno files are lost on every stop, deploy and restart on both generations.",
+    "Heroku Managed Inference and Agents hosts LLMs and runs code_exec_python/node/ruby/go tools for agents; tools that need compute start one-off dynos in the target app."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/heroku",
     "https://www.heroku.com/",
     "https://www.heroku.com/pricing/",
     "https://devcenter.heroku.com",
-    "https://heroku.com/llms.txt"
+    "https://heroku.com/llms.txt",
+    "https://elements.heroku.com/addons/heroku-private-spaces",
+    "https://devcenter.heroku.com/articles/dyno-restarts",
+    "https://devcenter.heroku.com/articles/heroku-inference-tools",
+    "https://devcenter.heroku.com/articles/private-space-limits"
   ],
   "audit_2026_09_29": {
     "applied": 45,
@@ -827,22 +834,23 @@
       "value": false,
       "source": "https://www.heroku.com/pricing/",
       "quote": "Heroku is a cloud platform that lets companies build, deliver, monitor and scale apps.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "note": "No documented desktop/VNC path for dynos (non-root container; no display-server buildpack in Heroku docs).",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://www.heroku.com/pricing/",
-      "quote": "Heroku is a cloud platform that lets companies build, deliver, monitor and scale apps.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://elements.heroku.com/buildpacks/heroku/heroku-buildpack-chrome-for-testing",
+      "quote": "This buildpack installs Google Chrome browser chrome & chromedriver, the Selenium driver for Chrome, in a Heroku app.",
+      "how": "add the Heroku Chrome for Testing buildpack to the app (Cedar buildpack builds)",
+      "effort": "low",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://www.heroku.com/pricing/",
       "quote": "Heroku is a cloud platform that lets companies build, deliver, monitor and scale apps.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "note": "No first-party computer-use API; Managed Inference tools cover code execution and Postgres, not GUI control.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -933,14 +941,14 @@
       "source": "https://devcenter.heroku.com/articles/dynos",
       "quote": "Each dyno gets its own ephemeral filesystem, with a fresh copy of the most recently deployed code. ... Any files written get discarded the moment the dyno stops or restarts, including automatic restarts.",
       "note": "Filesystem is ephemeral for every dyno type (Common Runtime, Eco, Private, Shield, Fir); no first-party persistent disk. Persistence only via add-ons (Postgres, S3-style add-ons).",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
       "source": "https://devcenter.heroku.com/articles/dynos",
       "quote": "Any files written get discarded the moment the dyno stops or restarts, including automatic restarts.",
       "note": "No dyno/machine filesystem or memory snapshot capability documented anywhere in the Platform API; only code releases (slugs, with rollback) and separate database (Postgres) backups/forks, which are not machine snapshots.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": false,
@@ -984,7 +992,7 @@
       "source": "https://devcenter.heroku.com/articles/active-storage-on-heroku",
       "quote": "Instead of storing uploaded files to disk, the best practice is to leverage a cloud file storage service such as Amazon's S3.",
       "note": "No first-party attachable persistent volume for dynos; only ephemeral per-dyno filesystem plus data add-ons.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -1049,6 +1057,27 @@
       "note": "granularity: per-app; cost: no; Heroku reports billable usage (dynos=dyno-hours, addons=add-on credits, data=first-party add-on credits, space=private space credits, partner=partner add-on credits) per application within a team or enterprise account. The granularity is per-app (applications are Heroku's unit of deployment and billing). Values are in credits/units, not cost in dollars; includes_cost is false. No per-dyno/per-individual-machine usage API exists; only per-app aggregation.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "code_interpreter": {
+      "value": true,
+      "source": "https://devcenter.heroku.com/articles/heroku-inference-tools",
+      "quote": "The `code_exec_*` tools allow the agent to run code authored by the agent. It also supports the installation of packages and dependencies before running code.",
+      "note": "Managed Inference and Agents add-on: code_exec_python, code_exec_node, code_exec_ruby, code_exec_go. Heroku blog (2026-02-17) markets it as a code execution sandbox for agents: https://www.heroku.com/blog/code-execution-sandbox-for-agents-on-heroku/",
+      "checked": "2026-11-08"
+    },
+    "max_session_h": {
+      "value": 24,
+      "source": "https://devcenter.heroku.com/articles/dyno-restarts",
+      "quote": "Cycling happens for all dynos, including one-off dynos, so dynos run for a maximum of 24 hours + 216 minutes.",
+      "note": "24 h applies to Cedar (Common Runtime, Private, Shield). Same page: 'Fir-generation apps have the option to disable the daily automatic dyno restarts behavior.' The fir mode sets max_session_h null (heroku labs:enable fir-bypass-daily-dyno-restarts); dynos still restart on releases, config changes and hardware faults.",
+      "checked": "2026-11-08"
+    },
+    "ssh": {
+      "value": true,
+      "source": "https://devcenter.heroku.com/articles/exec",
+      "quote": null,
+      "note": "Heroku Exec SSH tunnels on Cedar (1-hour sessions, not on one-off dynos, not in Shield spaces). Fir: heroku run:inside opens a shell in a running dyno (https://devcenter.heroku.com/articles/run-tasks-in-an-existing-dyno). No SSH server you connect to directly.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -1135,5 +1164,10 @@
   ],
   "locations_source": "https://devcenter.heroku.com/articles/regions",
   "locations_quote": "heroku regions list: dublin (Dublin, Ireland), frankfurt (Frankfurt, Germany), london (London, United Kingdom), montreal (Montreal, Canada), mumbai (Mumbai, India), oregon (Oregon, United States), singapore (Singapore), sydney (Sydney, Australia), tokyo (Tokyo, Japan), virginia (Virginia, United Sta",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "findings/heroku.json re-verified against dyno-restarts, Elements Private Spaces, heroku-inference-tools, Chrome for Testing buildpack",
+    "reviewed": 7
+  }
 }

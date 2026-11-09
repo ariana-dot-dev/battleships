@@ -15,7 +15,8 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 - **cli**: True
 - **ipv 6**: True
 - **ingress_usd**: 0
-- **cpu**: Development shared; dedicated physical cores in compute/memory optimized families; general-purpose family varies.
+- **cpu**: Shared vCPU on Development, Play and Basic (BASIC2-A, BASIC3) types; dedicated vCPU on the others (Instances datasheet).
+- **prices re-checked**: 2026-11-08 in the Scaleway public product catalog API (fr-par-1). Every EUR list price is unchanged. USD keeps 1.1378 USD/EUR as on all EUR cards; ECB 2026-11-06 is 1.1165 (USD figures about 1.9% high).
 - **backup**: Snapshot EUR 0.000049/GB-hour; 5k IOPS block storage reference EUR 0.000130/GB-hour.
 - **minimum_term**: No commitment on demand; hourly. Savings plans optional.
 - **discounts**: Up to 25% Savings Plans; contract-specific rates not normalized.
@@ -23,6 +24,10 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 ## Gotchas
 - DIY infrastructure rather than an agent-managed sandbox: guest installation, HTTPS/domain setup, abuse controls and operations are customer responsibilities. Linux guest administrative capabilities are not preinstalled agent features. 30% guest CPU utilization does not reduce allocated-compute charges. Unknowns remain null; a partial subtotal is not a complete invoice.
 - IPv 6 and egress included, IPv 4 EUR 0.005/hour separately billed. Power-off stops compute but not disks/IP.
+- HTTPS: no provider URL per port. Use your own reverse proxy, or a paid Scaleway Load Balancer with a Let's Encrypt certificate and your own domain (https://www.scaleway.com/en/docs/load-balancer/how-to/add-certificate/).
+- Snapshots: on demand only. An official tutorial schedules them with a Serverless Job and the CLI (https://www.scaleway.com/en/docs/tutorials/snapshot-instances-jobs/).
+- Desktop: Windows Server Instances (POP2-WIN) connect over RDP (https://www.scaleway.com/en/docs/instances/how-to/connect-to-instance/). Linux images have no desktop.
+- Short jobs: CPU Instances bill per started hour. Serverless Jobs bill vCPU-seconds and GB-seconds with a monthly free tier, but they run a container, not a full VM (https://www.scaleway.com/en/docs/serverless-jobs/faq/).
 - Apple Silicon provider already exists and is not duplicated. API monthly_price is an estimate, not an automatic cap.
 - Storage profile selection changes price; card block-storage rate is a reference profile, not local SSD or every IOPS tier.
 ## Worked example

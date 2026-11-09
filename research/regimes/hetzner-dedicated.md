@@ -15,17 +15,21 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 - **ingress_usd**: 0
 - **minimum_term**: Hourly capped monthly, no minimum contract term on inspected AX42/EX44; cancel to end billing.
 - **cpu**: Dedicated physical host. AX hardware threads withSMT; EX hybridP/E cores are not equal performance per thread.
-- **backup**: No managed VM snapshots on bare metal; DIY images to local disks or Storage Box. BX11 1 TB $4/month extra.
+- **backup**: No server snapshot product on bare metal. Order a Storage Box and back up files or disk images yourself (rsync or BorgBackup). BX11 1 TB $4/month extra.
+- **ordering API**: The Robot webservice orders standard and Server Market servers and starts Linux installs or the Rescue System (https://robot.hetzner.com/doc/webservice/en.html).
+- **first orders**: Hetzner checks if a first order seems plausible. It may hold the order for a manual check, ask for ID or an advance payment, or reject it.
 - **provisioning**: Availability-dependent delivery, not agent-microVM startup; Robot administration/order automation differs from cloud API.
 - **discounts**: LTD/auction offers vary by inventory and configuration; not assumed baseline.
 ## Gotchas
 - DIY infrastructure rather than an agent-managed sandbox: guest installation, HTTPS/domain setup, abuse controls and operations are customer responsibilities. Linux guest administrative capabilities are not preinstalled agent features. 30% guest CPU utilization does not reduce allocated-compute charges. Unknowns remain null; a partial subtotal is not a complete invoice.
-- Headline EX44 $74/month inclIPv 4, no setup; AX42 $119 inclIPv 4 +$59 setup; AX102 $304 +$149 setup; AX162 $724 +$359 setup. Native USD API, no FX needed.
+- Headline (live USD catalogue 2026-11-08, incl. IPv4): AX42 $119/month + $59 setup; AX102 $304 + $149; AX162 $724 + $359; EX63 $174 + $84; EX131 $669 + $334. EX44 is not orderable.
+- AX41: EUR 59/month, EUR 0.0945/h, no setup (https://www.hetzner.com/dedicated-rootserver/ax41/). Not in the USD feed; priced at 1 EUR = 1.1378 USD (ECB 2026-09-28) = $0.1075/h, cap $67.13.
+- Server Auction (live_data_sb.json 2026-11-08): 66 servers from $84/month (EUR 75), no setup fee, excl. IPv4.
 - Base server withoutIP is headline minus$1.90/month. PrimaryIPv 4 hourly$0.003/monthcap$1.90. Monthly caps reach around 624 billed server hours for these products, not assumed 672/730.
 - 1 Gbps uplink unmetered under product policy. 10 Gbps add-on instead has 20 TB outgoing allowance and overage; not priced here.
 - You rent the whole server; using 4 vCPU/8 GB does not turn the physical-server tariff into a proportional slice. Use self-host card for a customer-operated multi-guest fleet.
 - Setup fees are per physical order and are not amortized automatically in this provider card. Daily destroy/reorder creates repeated setup costs and capacity risk.
-- No managed snapshot feature; requested 50 GB snapshots require your own virtualization/storage stack. Provider card is deliberately not a turnkey snapshot sandbox.
+- No server snapshot product. 50 GB of snapshots means your own backup to a Storage Box or your own virtualization stack. The whole local disk stays while the server is rented, also when powered off.
 ## Worked example
 4 vCPU / 8 GiB; 50 concurrent × 8 h/day × 22 days = **8,800 guest-hours**; 30% CPU busy; **50 GiB-month total snapshots**, **100 GiB total egress**. 50 GiB retained state is total, not 50 GiB per VM. Compute-only subtotals below exclude unknown components and tax.
 | Mode | Delete/recreate / active-window compute | 50 retained hosts, 730-hour month |

@@ -12,10 +12,16 @@ Public list pricing. Demo is free; Pro pays allocated live resources per second.
 - A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.
 ## Worked workload
 4 vCPU / 8 GiB; 50 simultaneous instances × 8 h/day × 22 days = **8,800 instance-hours**, **35,200 vCPU-hours**, **70,400 GiB-hours**. At 30% observed CPU:10,560 active-vCPU-hours only where the meter actually uses utilization. Assume one start/instance/day:1,100starts. Retain50GiB snapshots for a month;100GiB outbound. Active disk capacity was not specified.
-Compute = 8,800 × (4×0.04 + 8×0.012) = $2,252.80. 50 GiB suspended storage adds $5.00. Subtotal $2,257.80 plus unknown egress. Pro permits 50 concurrent 8h sessions. 30% CPU does not reduce allocated-resource billing.
+Compute = 8,800 × (4×0.04 + 8×0.012) = $2,252.80. 50 GiB suspended storage adds $5.00. Subtotal $2,257.80 plus unknown egress and unpublished running-disk charges. Pro permits 50 concurrent 8h sessions. 30% CPU does not reduce allocated-resource billing.
+## Re-checked 2026-11-08
+- The docs meter Disk-GB-hours while a sandbox runs. The rate is not published, so the estimate counts vCPU and RAM only.
+- The docs pricing page calls Pro "a monthly base plus metered usage". collimate.ai/pricing says "no platform fee". The amount of any base is not published.
+- Pro concurrency: collimate.ai/pricing says "Up to 100". The docs pricing and limits pages say Pro has no cap. The card keeps 100.
+- Self-hosting is through Enterprise sales. The Helm self-hosting docs return 404.
 ## Sources
 - https://collimate.ai/pricing
 - https://docs.collimate.ai/llms.txt
 - https://docs.collimate.ai/core/lifecycle/
 - https://docs.collimate.ai/core/egress/
-- https://docs.collimate.ai/self-hosting/helm/
+- https://docs.collimate.ai/pricing/
+- https://docs.collimate.ai/reference/limits/

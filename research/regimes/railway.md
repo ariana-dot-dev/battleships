@@ -30,6 +30,7 @@ No region multipliers: all regions (us-west2, us-east4, europe-west4, asia-south
 - **Checkpoint storage has no published price.** The only published limit is on count (10/50/100 per environment).
 - Sandbox concurrency is **per environment**, so more environments means more concurrency.
 - **Committed spend is not a discount.** It is a minimum that unlocks compliance and dedicated hardware (HIPAA needs $1k/mo plus a 1-yr term).
+- **Pro max sandbox size differs between Railway's pages** (re-checked 2026-11-08): the docs say 32 vCPU/32 GB, the pricing page says 24 vCPU/24 GB.
 - Hobby max sandbox is 8 vCPU/8 GB with 50 concurrent. That exactly fits the worked example, so there is no need to pay for Pro.
 - The usage "hard limit" takes **all workloads offline**. Agent Usage limits cover only the Railway Agent's LLM spend, not sandboxes.
 ## Worked example

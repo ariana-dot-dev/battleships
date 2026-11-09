@@ -1,14 +1,15 @@
 # shellbox — billing regimes
-As of 2026-09-28. Prices are USD unless explicitly labelled otherwise. Source type: official published list/promo or unknown, never a fabricated quote.
+As of 2026-11-08 (prices and slot caps re-checked; unchanged since 2026-09-28). Prices are USD unless explicitly labelled otherwise. Source type: official published list/promo or unknown, never a fabricated quote.
 Public list price per x1 slot. Running and parked are mutually exclusive time states. SSH key identifies account; prepaid $10 minimum top-up. Sizes scale linearly x1 to x8.
 | Regime | When it applies | How billed / numbers | Source |
 |---|---|---|---|
 | Running | x1 slot = 2 vCPU / 4 GB / 50 GB | $0.02/slot-hour, by the minute; x1–x8. | https://shellbox.dev/ |
-| Parked | Stopped box retains disk | $0.50/slot-month. | https://shellbox.dev/ |
+| Parked | Stopped box keeps disk and memory snapshot | $0.50/slot-month ("$0.50/mo per x1 slot when stopped"). | https://shellbox.dev/ |
 | Always-on | keepalive enabled | Running metering continues; no published monthly compute cap. | https://shellbox.dev/ |
 ## Gotchas
 - Public list price per x1 slot. Running and parked are mutually exclusive time states. SSH key identifies account; prepaid $10 minimum top-up. Sizes scale linearly x1 to x8.
-- 16 running slots and64 total slots per account. 4/8 box=x2, so at most8 concurrently under default quota.
+- 16 running slots and 64 total slots per account. A 4 vCPU / 8 GB box is x2, so at most 8 run at once under the default quota.
+- One 4 vCPU / 8 GB box on workdays (176 h): about $7 running plus $1 parked, so about $8 a month. Running all month (730 h): about $29.
 - Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.
 - A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.
 ## Worked workload

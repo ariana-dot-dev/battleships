@@ -46,7 +46,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": " Native CNY public list/reference quote; rates converted using fx.json. Unknown: reviewed pricing source does not explicitly establish VAT/tax inclusion."
+      "note": "Native CNY public list rates (billing page updated 2026-10-27, re-checked 2026-11-08): CPU 0.000081 CNY/core/s, memory 0.000025 CNY/GiB/s, 15 GiB system disk free while running; converted using fx.json. Same rates apply to custom sandboxes in persistent mode. Unknown: the pricing source does not state VAT/tax inclusion."
     },
     {
       "key": "elastic-deployment",
@@ -64,7 +64,7 @@
       "pricing": "resource",
       "vcpu_h": null,
       "ram_gib_h": null,
-      "note": "Shanghai and Hong Kong only; stable HTTPS endpoint, autoscaling, min/max instances, per-instance request concurrency, STOP/PAUSE idle policy and session affinity. No separate deployment tariff was found."
+      "note": "Stable HTTPS endpoint, autoscaling, min/max instances, per-instance request concurrency, STOP/PAUSE idle policy and session affinity (doc 1814/137830; its example region is ap-shanghai, and the page names no region list). No separate deployment tariff was found."
     }
   ],
   "storage": {
@@ -115,7 +115,7 @@
     "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
-    "max_session_h": 24,
+    "max_session_h": null,
     "custom_image": true,
     "docker_inside": false,
     "nested_virt": false,
@@ -178,7 +178,7 @@
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
     "own_agent_api": false,
-    "secret_proxy": false,
+    "secret_proxy": null,
     "usage_api": false
   },
   "perf": {
@@ -189,16 +189,19 @@
   },
   "knobs": [],
   "caveats": [
-    "Pause/snapshot storage: \"Agent 沙箱支持暂停运行中的实例，暂停期间 CPU、内存停止计费，保留状态所需存储继续计费\" (CPU/RAM stop billing while paused; the storage that keeps the state keeps billing; doc 1814/133249, updated 2026-10-10). 休眠态存储 is 0.0021 CNY/GiB-h (~$0.228/GiB-month, same as the system disk), and the 15 GiB free allowance applies only while running: \"对于暂停后处于休眠状态的沙箱实例，系统盘无免费额度\". Billed capacity for a pause with memory is \"系统盘实际使用量 + 实例声明内存规格\" (disk used + declared RAM), without memory just disk used; the engine prices only the snapshot GiB, so add the declared RAM to it for memory pauses. Max 20 paused instances per account/region.",
+    "Pause/snapshot storage: \"Agent 沙箱支持暂停运行中的实例，暂停期间 CPU、内存停止计费，保留状态所需存储继续计费\" (CPU/RAM stop billing while paused; the storage that keeps the state keeps billing; doc 1814/133249, updated 2026-10-10). 休眠态存储 is 0.0021 CNY/GiB-h (~$0.228/GiB-month, same as the system disk), and the 15 GiB free allowance applies only while running: \"对于暂停后处于休眠状态的沙箱实例，系统盘无免费额度\". Billed capacity for a pause with memory is \"系统盘实际使用量 + 实例声明内存规格\" (disk used + declared RAM), without memory just disk used; the engine prices only the snapshot GiB, so add the declared RAM to it for memory pauses. Default quota: 20 paused instances per account/region; Tencent raises quotas on request (doc 1814/123815).",
     "Default aggregate CPU 50 and RAM quota apply in addition to instance count; card cannot encode resource-pool quota.",
     "Default regional memory pool is 100 GiB as well as 50 vCPU; fifty 4/8 instances exceed both.",
     "Unknowns remain null, not free; generic infrastructure modes are opt-in alt.",
     "Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.",
     "VAT basis: Unknown: reviewed pricing source does not explicitly establish VAT/tax inclusion.",
-    "Residency: Chinese Tencent catalog only. Beijing is a region per the changelog: \"北京地域支持自定义沙箱\" (2026-02-10) and \"Android World 沙箱在北京地域可创建和使用\" (2026-06-01, doc 1814/123809); Shanghai likewise. Hong Kong comes from the Elastic Deployment doc, ap-guangzhou appears in the MCP endpoint. No EU region.",
+    "Residency: Chinese Tencent catalog only. The changelog names Shanghai (\"上海地域支持自定义沙箱\", 2026-01-29) and Beijing (\"北京地域支持自定义沙箱\", 2026-02-10) (doc 1814/123809). ap-guangzhou appears in the hosted MCP endpoint and port-access docs (1814/132251, 1814/132313). No official page found lists Hong Kong (re-checked 2026-11-08), so it is not listed. No EU region.",
+    "Credentials: the documented sandbox API passes secrets as Env variables (doc 1814/129691). The product page also markets \"零凭证访问\" (zero-credential access), identity credentials and a tool gateway (cloud.tencent.com/product/ags), but no public doc shows how sandbox code uses them. secret_proxy is null (not confirmed), not false.",
+    "Fork: doc 1814/129691 lists \"从已保存的快照创建新实例\" (create a new instance from a saved snapshot) as a restore case, but no API or console flow for it is documented; console clone copies settings only. fork stays false until a documented path exists.",
+    "Open source: the base runtime CubeSandbox is open source and has its own card (tencent-cubesandbox). This managed service itself is not.",
     "Egress / public traffic: the billing page lists only CPU, memory, system disk, pause and startup acceleration; no network or egress fee is published (re-checked 2026-09-28). egress_gib stays null (unknown, not free).",
     "SSH: not offered in the docs. Access is via the E2B-compatible API (port 49999), filesystem/command API (49983) and a browser WebShell (ttyd), VNC browser and VS Code on port 9000 (All-In-One sandbox, doc 1814/130978). ssh set false.",
-    "Session timeout: standard sandbox tools default 5 min, max 24 h; mobile sandboxes up to 15 days. Custom sandboxes with Persistent=true skip timeout reclamation: \"Persistent=true 的实例不受 timeout 回收限制\" (doc 1814/132338), so 24/7 runs work there; the billing page prices a 7×24 常驻运行 month (2 vCPU / 4 GiB / 50 GiB = 732.02 CNY)."
+    "Session timeout: prebuilt sandbox tools default 5 min, max 24 h (doc 1814/123820); mobile sandboxes up to 15 days (doc 1814/123809). Custom sandboxes have a persistent run mode since 2026-03-17 (doc 1814/123809): \"Persistent=true 的实例不受 timeout 回收限制\" (doc 1814/132338), so 24/7 runs work there; the billing page prices a 7×24 常驻运行 month (2 vCPU / 4 GiB / 50 GiB = 732.02 CNY). The card sets max_session_h null for that reason; prebuilt types still stop at 24 h."
   ],
   "sources": [
     "https://cloud.tencent.com/document/product/1814/133249",
@@ -207,7 +210,10 @@
     "https://cloud.tencent.com/document/product/1814/130978",
     "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html",
     "https://cloud.tencent.com/document/product/1814/123809",
-    "https://cloud.tencent.com/document/product/1814/132338"
+    "https://cloud.tencent.com/document/product/1814/132338",
+    "https://cloud.tencent.com/document/product/1814/123820",
+    "https://cloud.tencent.com/document/product/1814/129691",
+    "https://cloud.tencent.com/product/ags"
   ],
   "fleet": {
     "default_max_instances": 50,
@@ -229,12 +235,17 @@
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
   },
+  "audit_2026_11_08": {
+    "applied": 8,
+    "source": "fairness audit findings/tencent-agent-runtime.json, re-checked against docs 1814/123809, 132338, 129691, 137830 and product/ags",
+    "reviewed": 10
+  },
   "feature_evidence": {
     "snapshot_auto": {
       "value": true,
       "source": "https://cloud.tencent.com/document/product/1814/137830",
       "quote": "PAUSE：保留沙箱实例状态，并在后续请求到来时恢复，适合需要保留 Workspace 或进程状态的场景。",
-      "note": "Translation: 'PAUSE: keeps the sandbox instance state and resumes it when a later request arrives; for cases that need to keep Workspace or process state.' Trigger: Elastic Deployment (beta; Shanghai/Hong Kong only) IdleTimeoutSeconds + IdleAction=PAUSE (alternative STOP releases). Memory included: pause = snapshot of 'frozen process memory and filesystem state' (doc 129691: '系统将之前冻结的进程内存和文件系统状态原样还原'). Changelog 2026-04-09 also says plain sandbox instances got idle auto-pause + auto-resume on data request as public beta ('沙箱实例以公测形式支持空闲自动暂停、数据请求触发自动恢复'), but the instance lifecycle doc still says expiry -> stop ('到期 → 停止'). Standalone instances that time out are stopped, not saved.",
+      "note": "Translation: 'PAUSE: keeps the sandbox instance state and resumes it when a later request arrives; for cases that need to keep Workspace or process state.' Trigger: Elastic Deployment (beta) IdleTimeoutSeconds + IdleAction=PAUSE (alternative STOP releases). Memory included: pause = snapshot of 'frozen process memory and filesystem state' (doc 129691: '系统将之前冻结的进程内存和文件系统状态原样还原'). Changelog 2026-04-09 also says plain sandbox instances got idle auto-pause + auto-resume on data request as public beta ('沙箱实例以公测形式支持空闲自动暂停、数据请求触发自动恢复'), but the instance lifecycle doc still says expiry -> stop ('到期 → 停止'). Standalone instances that time out are stopped, not saved.",
       "checked": "2026-09-29"
     },
     "snapshot_on_demand": {
@@ -341,8 +352,8 @@
       "value": false,
       "source": "https://cloud.tencent.com/document/product/1814/123809",
       "quote": "自定义沙箱克隆：控制台支持克隆已有自定义沙箱，并在创建页自动带入镜像、环境变量、命令、端口、资源、健康检查、存储和标签配置。",
-      "note": "Console 'clone' only copies the Tool configuration (image, env, ports, etc.) to prefill a new Tool definition; it does not clone a machine's live/paused state into a new running instance. No API exposes creating a new instance from another instance's state/snapshot, so machine forking is not offered.",
-      "checked": "2026-09-30"
+      "note": "Console 'clone' copies the Tool configuration (image, env, ports, etc.) to prefill a new Tool definition. Doc 1814/129691 lists '从已保存的快照创建新实例' (create a new instance from a saved snapshot, memory and files restored) as a restore case, but no API or console flow for it is documented (the only create API, CreateSandboxInstance, starts from a Tool). Tencent press (2026-11) mentions clone for parallel exploration; no official doc backs it. false until a documented path exists.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
@@ -387,11 +398,11 @@
       "checked": "2026-09-30"
     },
     "secret_proxy": {
-      "value": false,
-      "source": "https://cloud.tencent.com/document/product/1814/129691",
-      "quote": "所有自定义环境变量必须通过 API 的 Env 参数显式传入。",
-      "note": "Secrets/credentials are passed as env vars via the API's Env parameter (or CAM role-based access for the management API itself); no first-party proxy that injects credentials into arbitrary outbound HTTP calls is documented.",
-      "checked": "2026-09-30"
+      "value": null,
+      "source": "https://cloud.tencent.com/product/ags",
+      "quote": "内置身份鉴权、零凭证访问与最小权限控制，让 Agent 默认运行在安全前提下。",
+      "note": "The product page markets zero-credential access, identity credentials and a tool gateway ('工具网关、身份凭证、策略管控和运行观测'). No public doc shows how sandbox code uses them. The documented sandbox API passes secrets as Env variables (doc 1814/129691: '所有自定义环境变量必须通过 API 的 Env 参数显式传入'). Not confirmed either way, so null.",
+      "checked": "2026-11-08"
     },
     "static_egress_ip": {
       "value": false,
@@ -436,11 +447,11 @@
       "checked": "2026-09-30"
     },
     "max_session_h": {
-      "value": 24,
-      "source": "https://cloud.tencent.com/document/product/1814/123820",
-      "quote": "生命周期：单个沙箱实例在创建后可存续的最长时间，超时将自动销毁...默认值：5m。最长24小时。",
-      "note": "Standard sandbox tool instance lifecycle caps at 24h (default 5m). Exception: custom sandboxes can run with Persistent=true, which doc 1814/132338 says is exempt from timeout reclamation (\"Persistent=true 的实例不受 timeout 回收限制\"), and the billing page (doc 133249) has a 7×24 常驻运行 30-day example. The card keeps 24 because the engine cannot scope the exemption to persistent custom sandboxes (logged in engine-needs). Mobile sandboxes run up to 15 days.",
-      "checked": "2026-10-14"
+      "value": null,
+      "source": "https://cloud.tencent.com/document/product/1814/132338",
+      "quote": "Persistent=true 的实例不受 timeout 回收限制，不能通过该命令修改超时。",
+      "note": "No session cap for custom sandboxes in persistent mode. Changelog 2026-03-17 (doc 1814/123809): '自定义沙箱实例支持持久化运行模式，可在指定场景下不受普通超时和生命周期上限回收' (custom sandboxes support a persistent run mode, exempt from the normal timeout and lifetime cap). The billing page (doc 133249) prices a 7×24 常驻运行 30-day month, and the product page markets '常驻式运行' for long jobs. Prebuilt sandbox types keep the 24 h cap (doc 1814/123820: '默认值：5m。最长24小时'); mobile sandboxes run up to 15 days. The docs do not show the create parameter that turns persistent mode on.",
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": false,
@@ -518,15 +529,15 @@
       "choosable": true
     },
     {
-      "country": "HK",
+      "country": "CN",
       "state": null,
-      "city": "Hong Kong",
-      "provider_region": "ap-hongkong",
+      "city": "Guangzhou",
+      "provider_region": "ap-guangzhou",
       "self_serve": true,
       "choosable": true
     }
   ],
-  "locations_source": "https://cloud.tencent.com/document/product/1814/123815",
-  "locations_quote": "Shanghai and Hong Kong only; stable HTTPS endpoint, autoscaling, min/max instances, per-instance request concurrency, STOP/PAUSE idle policy and session affinity",
-  "locations_checked": "2026-10-14"
+  "locations_source": "https://cloud.tencent.com/document/product/1814/123809",
+  "locations_quote": "上海地域支持自定义沙箱 ... 北京地域支持自定义沙箱",
+  "locations_checked": "2026-11-08"
 }

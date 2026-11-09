@@ -26,8 +26,12 @@ Regions:
 3. **Spot on D/F-series is ~80% below PAYG** in these regions. B-series Spot is only ~10% below PAYG.
 4. **Reservations bill for the whole term.** They are only cheaper when the VM would run more than ~62% (1y) or ~39% (3y) of the hours.
 5. The API returns **no reservation rows for Fsv2 or B v1**. Dlsv5 is the 4 vCPU / 8 GiB size that can be reserved.
-6. Microsoft's 2024 docs express the B-series baseline as a percentage of the whole VM (0-100% scale), not per vCPU.
+6. Microsoft's 2024 docs express the B-series baseline as a percentage of the whole VM (0-100% scale), not per vCPU. Basv2 baselines are 20% to 40% by size: B2ats_v2 20%, "als" sizes 30%, "as" sizes 40% (checked 2026-11-08).
 7. Disks keep billing at the provisioned tier while the VM is deallocated. Delete the VM and snapshot the disk to stop paying for it.
+8. **Image capture stops the VM only briefly.** Azure Compute Gallery accepts specialized captures. Legacy managed images need a generalized, deallocated VM. Microsoft asks for a clean shutdown before a disk snapshot that boots a new VM (checked 2026-11-08).
+9. **Nested virtualization** works on many Intel and AMD sizes (Dsv5, Dasv5, Dlsv5, Dsv6, Esv5, Fsv2). It does not work on Arm or B-series sizes (checked 2026-11-08).
+10. **Desktop:** no managed desktop ships with the VM. Microsoft Learn documents an xfce + xrdp install on Ubuntu.
+11. VM prices re-checked on 2026-11-08 in eastus and swedencentral: unchanged.
 ## Worked example
 Workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days (8,800 VM-hours), 30% CPU, 50 GiB snapshots, 100 GiB egress. Region: eastus.
 Assumptions: VMs are deallocated between sessions. Each VM keeps an E10 OS disk and a Standard static IPv4 all month. Boot overhead is ignored.

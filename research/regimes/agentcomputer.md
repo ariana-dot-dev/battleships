@@ -1,6 +1,6 @@
 # AgentComputer — billing regimes
-As of 2026-09-28. Prices are USD unless explicitly labelled otherwise. Source type: official published list/promo or unknown, never a fabricated quote.
-Public PAYG pricing says actual resource usage and CPU Time: $0.07/CPU-hour, RAM $0.04375/GB-hour; hot running storage $0.000683/GB-hour, cold stopped storage $0.000027/GB-hour. Exact observed-versus-reserved RAM and CPU minimums unverified.
+As of 2026-11-08 (prices re-checked on agentcomputer.ai/pricing, unchanged since 2026-09-28). Prices are USD unless explicitly labelled otherwise. Source type: official published list/promo or unknown, never a fabricated quote.
+Public PAYG pricing says "Pay-as-you-go pricing based on actual resource usage": CPU Time $0.07/CPU-hour, Memory $0.04375/GB-hour; hot running storage $0.000683/GB-hour, cold stopped storage $0.000027/GB-hour. No plan fee. No free tier is listed. The docs say "runtime CPU/RAM ... billed separately", so memory is most likely billed while the computer runs. The pricing page does not say whether memory is billed on the set size or on use. The engine bills the set size, the worst case.
 | Regime | When it applies | How billed / numbers | Source |
 |---|---|---|---|
 | Running compute | Actual resource usage | CPU$0.07/CPU-h + RAM$0.04375/GB-h. | https://agentcomputer.ai/pricing |
@@ -8,7 +8,8 @@ Public PAYG pricing says actual resource usage and CPU Time: $0.07/CPU-hour, RAM
 | Cold storage | Stopped | $0.000027/GB-h, equivalent$0.01971/GB/730h. | https://agentcomputer.ai/pricing |
 | Enterprise | Custom capacity/private infrastructure | Quote. | https://agentcomputer.ai/pricing |
 ## Gotchas
-- Public PAYG pricing says actual resource usage and CPU Time: $0.07/CPU-hour, RAM $0.04375/GB-hour; hot running storage $0.000683/GB-hour, cold stopped storage $0.000027/GB-hour. Exact observed-versus-reserved RAM and CPU minimums unverified.
+- CPU is billed on CPU time used, not on cores set. Memory basis (set vs used) is not published; the worked numbers use the set size, the worst case. Exact RAM and CPU minimums are not published.
+- No start caps and no start fees are published.
 - Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.
 - A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.
 ## Worked workload

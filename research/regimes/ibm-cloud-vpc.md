@@ -4,8 +4,8 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 | Regime | When / billing | Captured prices | Source |
 |---|---|---|---|
 | Gen 3/Flex US-South list | On demand; OfficialUSD Global Catalog Instance-Hour metric, effective 2026-09-01 through 2026-09-30; boot volume extra. No monthly cap inferred. | cxf-4x 8: $0.171/h; cap None | https://www.ibm.com/products/virtual-servers/pricing |
-| Flex 50% baseline | On demand; OfficialUSD Global Catalog Instance-Hour metric, effective 2026-09-01 through 2026-09-30; boot volume extra. 50%CPU baseline: not same sustained performance as ordinary VSI. | cxf-4x 8: $0.1014/h; cap None | https://www.ibm.com/products/virtual-servers/pricing |
-| Catalog spot rate reference | On demand; OfficialUSD Global Catalog Instance-Hour metric, effective 2026-09-01 through 2026-09-30; boot volume extra. Spot may be interrupted and selected price changes. | cxf-4x 8: $0.042602/h; cap None | https://www.ibm.com/products/virtual-servers/pricing |
+| Flex 50% baseline | On demand; OfficialUSD Global Catalog Instance-Hour metric, effective 2026-09-01 through 2026-09-30; boot volume extra. 50%CPU baseline: not same sustained performance as ordinary VSI. IBM's product page labels burstable Flex as Beta (checked 2026-11-08). | cxf-4x 8: $0.1014/h; cap None | https://www.ibm.com/products/virtual-servers/pricing |
+| Catalog spot rate reference | On demand; OfficialUSD Global Catalog Instance-Hour metric, effective 2026-09-01 through 2026-09-30; boot volume extra. Spot may be interrupted (30-second notice) and selected price changes. Access needs allowlisting since 2026-01-20; GA planned for the first half of 2026. | cxf-4x 8: $0.042602/h; cap None | https://www.ibm.com/products/virtual-servers/pricing |
 | Reserved VPC capacity | 1 or 3 years; No verified selected reservation tariff. | Rate unavailable; null (not free) | https://www.ibm.com/products/virtual-servers/pricing |
 ## Billing details
 - **granularity_seconds**: 1

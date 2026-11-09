@@ -47,7 +47,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Fee page (astraflow.ucloud.cn/docs/agent-sandbox/product/fee.md, 2026-09-28): vCPU CNY 0.00003/s per core (1 core) to CNY 0.00024/s (8 cores), linear; memory CNY 0.000015/GiB/s for 1-8 GiB in 1 GiB steps; billed per second, stops when the sandbox stops. Converted at fx.json 0.14902 USD/CNY: CNY 0.108/vCPU-h = $0.016094, CNY 0.054/GiB-h = $0.008047. Same price assumed for us-ca (Los Angeles); the fee page does not list per-region rates."
+      "note": "Fee page (astraflow.ucloud.cn/docs/agent-sandbox/product/fee.md, 2026-09-28): vCPU CNY 0.00003/s per core (1 core) to CNY 0.00024/s (8 cores), linear; memory CNY 0.000015/GiB/s for 1-8 GiB in 1 GiB steps; billed per second, stops when the sandbox stops. Converted at fx.json 0.14902 USD/CNY: CNY 0.108/vCPU-h = $0.016094, CNY 0.054/GiB-h = $0.008047. Rates re-checked 2026-11-08, unchanged. Same price assumed for vn-sng, us-ca and us-den; the fee page does not list per-region rates."
     }
   ],
   "storage": {
@@ -116,7 +116,7 @@
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": false,
+    "browser": "diy",
     "desktop": true,
     "computer_use": true,
     "code_interpreter": true,
@@ -176,7 +176,8 @@
     "egress_ip_type": "datacenter",
     "own_agent_api": false,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "whole"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -188,11 +189,11 @@
   "caveats": [
     "Official SDK directs signup to UCloud Astraflow and states it is based on E2B open source; do not import E2B pricing or all E2B features.",
     "Rates are CNY list prices from the fee page (astraflow.ucloud.cn/docs/agent-sandbox/product/fee.md), converted at the fx.json ECB reference rate (0.14902 USD/CNY, 2026-09-28). Tax/VAT inclusion not stated. Account needs Chinese real-name verification (free quota text says real-name-verified accounts).",
-    "Regions: cn-wlcb (Ulanqab, default), cn-sh (Shanghai), us-ca (Los Angeles); templates do not carry across regions. Per-region price differences not published (same rate assumed).",
-    "Local disk: 10 GB per sandbox, free and ephemeral; no larger local disk offered (disk_gib_month null). Persistent storage (templates, snapshots, paused sandboxes) CNY 0.0005/GB-h beyond a 60 GB free allowance (~$0.0544/GB-month); the quotas page separately says 10 GB storage per user, conflicting with the 60 GB allowance.",
+    "Regions: cn-wlcb (Ulanqab, default), cn-sh (Shanghai), vn-sng (Ho Chi Minh City), us-ca (Los Angeles), us-den (Denver); no EU region. Templates do not carry across regions. Per-region price differences not published (same rate assumed).",
+    "Local disk: 10 GB per sandbox, free; lost when the sandbox is destroyed, kept while it is paused (paused sandboxes stay until deleted). No larger local disk offered (disk_gib_month null). Volumes (closed beta) and US3 object storage keep data independent of a sandbox. Persistent storage (templates, snapshots, paused sandboxes) CNY 0.0005/GB-h beyond a 60 GB free allowance (~$0.0544/GB-month); the quotas page separately says 10 GB storage per user, conflicting with the 60 GB allowance.",
     "Egress price not published; public bandwidth capped at 5 MB/s per the quotas page.",
     "Free quota: 480 core-hours + 960 GiB-hours for real-name-verified accounts, valid 30 days (encoded as one_time_credit ~$15.45 at the list rates).",
-    "Isolation technology not documented (null). Features set to null were not verified. No sandbox was purchased or tested."
+    "Isolation is not named in the docs: each sandbox has its own LTS 6.1 kernel; firecracker is derived from the E2B base. Features set to null were not verified. No sandbox was purchased or tested."
   ],
   "sources": [
     "https://astraflow.ucloud.cn/docs/agent-sandbox",
@@ -247,9 +248,9 @@
     "egress_allowlist": {
       "value": true,
       "source": "https://astraflow.ucloud.cn/en-us/docs/agent-sandbox/network/internet-access.md",
-      "quote": "You can specify the IP addresses, CIDR blocks, or domain names allowed by the sandbox",
-      "note": "allow_internet_access=false (= deny_out 0.0.0.0/0), allow_out / deny_out with IPs, CIDRs, domains and *.wildcards (domains allow-only, via Host/SNI on ports 80/443 only; no UDP/QUIC domain filtering). update_network changes rules on a running sandbox. Enforced by an external firewall/outbound proxy.",
-      "checked": "2026-09-29",
+      "quote": "拒绝列表中不支持域名",
+      "note": "Allow lists (allow_out) take IPs, CIDR blocks and domains, with *.wildcards (domains via Host/SNI on ports 80/443 only). Deny lists (deny_out) take IPs and CIDR blocks only: domains are not accepted. allow_internet_access=false blocks all outbound. update_network replaces the rules on a running sandbox without a restart.",
+      "checked": "2026-11-08",
       "level": "both"
     },
     "ingress_rules": {
@@ -292,8 +293,9 @@
       "value": "firecracker",
       "source": "https://astraflow.ucloud.cn/docs/agent-sandbox/template/how-it-works.md",
       "quote": "UCloud Sandbox 沙箱运行在 LTS 6.1 Linux 内核上... 我们序列化并保存整个沙箱的文件系统以及所有正在运行的进程，以便稍后可以加载。这使我们能够在约 80 毫秒内加载沙箱",
-      "note": "Not explicitly named in docs. Derived: each sandbox runs its own pinned Linux 6.1 kernel, boots/restores from a full memory+fs snapshot in ~80ms, and the product is explicitly stated to be 'based on E2B open source' (E2B's documented isolation is Firecracker microVMs). No sandbox purchased/tested to confirm directly.",
-      "checked": "2026-09-30"
+      "note": "Not named in the docs. The cited page confirms only that each sandbox runs its own LTS 6.1 Linux kernel and loads from a filesystem + process snapshot in about 80 ms. Firecracker is derived from the product being based on E2B open source (E2B documents Firecracker microVMs). No sandbox was purchased or tested.",
+      "checked": "2026-11-08",
+      "derived": true
     },
     "nested_virt": {
       "value": false,
@@ -303,11 +305,13 @@
       "checked": "2026-09-30"
     },
     "browser": {
-      "value": false,
+      "value": "diy",
       "source": "https://astraflow.ucloud.cn/docs/agent-sandbox/template/examples/desktop.md",
-      "quote": "预装应用程序：LibreOffice、文本编辑器、文件管理器和常用工具",
-      "note": "not offered: the official Desktop Sandbox template's package list (XFCE, LibreOffice, gedit, xpaint, etc.) contains no browser; no Firefox/Chromium is preinstalled or managed by the product. Users would need to apt-install their own.",
-      "checked": "2026-09-30"
+      "quote": "xdotool scrot ffmpeg x11vnc net-tools netcat x11-apps libreoffice xpdf gedit xpaint tint2 galculator pcmanfm",
+      "how": "add a browser package (for example chromium or firefox-esr) to the apt-get run_cmd step of the official Desktop Sandbox template and build your own template",
+      "effort": "medium",
+      "note": "The official desktop template installs its apps with run_cmd apt-get; its list has no browser, and no doc says a browser is blocked. Template package install is documented in template/defining-template.md (apt_install / run_cmd).",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -327,7 +331,7 @@
       "value": "datacenter",
       "source": "https://astraflow.ucloud.cn/docs/agent-sandbox/network/internet-access.md",
       "quote": "By default, every sandbox has outbound internet access... an outbound proxy",
-      "note": "Outbound traffic is routed through UCloud's own network/outbound proxy from its cloud datacenters (cn-wlcb, cn-sh, us-ca); no residential/mobile IP option is documented anywhere.",
+      "note": "Outbound traffic goes through the UCloud network and outbound proxy from its datacenters (cn-wlcb, cn-sh, vn-sng, us-ca, us-den); no residential or mobile IP option is documented.",
       "checked": "2026-09-30"
     },
     "live_resize": {
@@ -418,7 +422,7 @@
       "value": false,
       "source": "https://astraflow.ucloud.cn/docs/agent-sandbox.md",
       "quote": "UCloud Sandbox 为您提供安全可靠的弹性沙箱计算服务。",
-      "note": "not offered: outside the product's scope. No option to deploy the managed service into a customer's own cloud account is documented; it runs only in UCloud's own regions (cn-wlcb, cn-sh, us-ca).",
+      "note": "not offered: outside the product scope. No option to deploy the managed service into a customer cloud account is documented; it runs only in UCloud regions (cn-wlcb, cn-sh, vn-sng, us-ca, us-den).",
       "checked": "2026-09-30"
     },
     "open_source": {
@@ -431,9 +435,9 @@
     "eu_data_residency": {
       "value": false,
       "source": "https://astraflow.ucloud.cn/docs/agent-sandbox/product/region.md",
-      "quote": "cn-wlcb | 华北（乌兰察布） ... cn-sh | 华东（上海） ... us-ca | 美国（洛杉矶）",
-      "note": "not offered: the only three supported regions are two in China (cn-wlcb, cn-sh) and one in the US (us-ca); no EU region exists, so data cannot be kept in the EU.",
-      "checked": "2026-09-30"
+      "quote": "cn-wlcb | 华北（乌兰察布） ... cn-sh | 华东（上海） ... vn-sng | 越南（胡志明） ... us-ca | 美国（洛杉矶） ... us-den | 美国（丹佛）",
+      "note": "not offered: the five regions are Ulanqab and Shanghai in mainland China, Ho Chi Minh City in Vietnam, and Los Angeles and Denver in the US; no EU region exists.",
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
       "value": true,
@@ -441,7 +445,7 @@
       "source": "https://astraflow.ucloud.cn/en-us/docs/agent-sandbox/sandbox/persistence.md",
       "quote": "After calling `pause()`, the file system and memory state of the sandbox will be saved. ... When you resume the sandbox, it returns to the state it was in when it was paused. The file system is restored, and running processes, loaded variables, and memory data are restored.",
       "note": "Contradiction confirmed: pause/resume (and snapshots) persist the full filesystem + memory indefinitely ('Paused sandboxes will remain until you actively delete them'). Default behaviour on plain timeout is still delete: lifecycle.md says 'When automatic suspension is not enabled, the timed-out sandbox will be automatically recycled and cleaned by the system' — persistence is opt-in via lifecycle.on_timeout='pause' or an explicit pause()/create_snapshot() call, not the default. Card's persistent_disk should be corrected from false to true.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": true,
@@ -472,6 +476,15 @@
       "note": "granularity: none; cost: no; The SDK and CLI provide per-sandbox resource monitoring (live metrics), but not programmatic access to billable usage data or cost reports. Usage is billed per vCPU-second and GB-second per pricing docs, but no API endpoint exists to query historical usage or costs.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://astraflow.ucloud.cn/en-us/docs/agent-sandbox/sandbox/persistence.md",
+      "quote": "Paused sandboxes will remain until you actively delete them.",
+      "how": "call pause() or set lifecycle on_timeout to pause (the default deletes the sandbox at timeout); the whole filesystem and memory come back on resume",
+      "effort": "low",
+      "note": "Pause is the stop of this product: \"the file system and memory state of the sandbox will be saved.\" Paused sandboxes and snapshots bill as persistent storage (CNY 0.0005/GB-h above a 60 GB free allowance). The 10 GB local disk of a sandbox that is not paused is lost when it is destroyed. Volumes (closed beta) also keep data independent of any sandbox.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -492,15 +505,36 @@
       "choosable": true
     },
     {
+      "country": "VN",
+      "state": null,
+      "city": "Ho Chi Minh City",
+      "provider_region": "vn-sng",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
       "country": "US",
       "state": "CA",
       "city": "Los Angeles",
       "provider_region": "us-ca",
       "self_serve": true,
       "choosable": true
+    },
+    {
+      "country": "US",
+      "state": "CO",
+      "city": "Denver",
+      "provider_region": "us-den",
+      "self_serve": true,
+      "choosable": true
     }
   ],
   "locations_source": "https://astraflow.ucloud.cn/docs/agent-sandbox/product/region.md",
-  "locations_quote": "cn-wlcb (Ulanqab), cn-sh (Shanghai), us-ca (Los Angeles)",
-  "locations_checked": "2026-10-01"
+  "locations_quote": "cn-wlcb 华北（乌兰察布）, cn-sh 华东（上海）, vn-sng 越南（胡志明）, us-ca 美国（洛杉矶）, us-den 美国（丹佛）",
+  "locations_checked": "2026-11-08",
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "findings/ucloud.json checked against the official region, fee, persistence, internet-access, desktop and template pages",
+    "reviewed": 7
+  }
 }

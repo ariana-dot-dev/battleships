@@ -1,5 +1,5 @@
 # Freestyle (freestyle.sh) - pricing regimes
-As of 2026-09-28. Product: Freestyle VMs (full KVM VMs on bare metal, memory snapshots, pause/resume).
+As of 2026-09-28; rates and allowances re-checked unchanged 2026-11-08. Product: Freestyle VMs (full KVM VMs on bare metal, memory snapshots, pause/resume).
 Primary sources: https://www.freestyle.sh/pricing, https://www.freestyle.sh/docs/vms/pricing-and-limits,
 https://www.freestyle.sh/docs/vms/lifecycle, https://www.freestyle.sh/products/vms,
 https://apis.io/plans/freestyle-sh/freestyle-sh-plans-pricing/ (mirror of an older pricing page).

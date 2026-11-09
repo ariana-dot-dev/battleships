@@ -561,7 +561,7 @@
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -570,9 +570,9 @@
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": false,
-    "desktop": false,
-    "computer_use": false,
+    "browser": "diy",
+    "desktop": "diy",
+    "computer_use": "diy",
     "code_interpreter": null,
     "agent_harnesses": false,
     "ssh": true,
@@ -647,12 +647,14 @@
   },
   "knobs": [],
   "caveats": [
-    "Public Jobs rates, not Spaces free hardware. The huggingface_hub Sandbox API (experimental; formerly hf-sandbox) runs each dedicated sandbox as one HF Job, billed at the Job flavor rate. Jobs bill Starting and Running, per minute; builds free. Exposed ports add $0.01/job-hour.",
+    "Public Jobs rates, not Spaces free hardware. The huggingface_hub Sandbox API (experimental; in huggingface_hub >= 1.22.0; the hf-sandbox repo is archived) runs each dedicated sandbox as one HF Job, billed at the Job flavor rate. Jobs bill Starting and Running, per minute; builds free. Exposed ports add $0.01/job-hour (flat per Job, not per port).",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
     "Re-checked 2026-09-28: jobs-pricing and jobs-overview publish no concurrent-job cap, so plan.concurrency stays null (unknown, not unlimited).",
     "Sandbox API sandboxes have a fixed 24h maximum lifetime (\"The job also has a fixed 24h maximum lifetime as a hard backstop (not configurable).\"). max_session_h stays \"none\" because raw Jobs take any --timeout; sessions over 24h need `hf jobs run`, not the Sandbox API. Source: https://huggingface.co/docs/huggingface_hub/main/en/guides/sandbox",
-    "SandboxPool (Sandbox API) packs many sandboxes into a few shared host Jobs, so per-sandbox cost is the host flavor rate divided by packing density; HF reports 1000 sandboxes created, exec'd and killed in ~16s on 20 cpu-basic hosts (~$0.0009). Pooled sandboxes are uid + Landlock inside one VM, \"intended for workloads within the same trust boundary\". The engine prices one Job per sandbox, so pooled fan-out costs are overstated. Source: https://huggingface.co/docs/huggingface_hub/main/en/concepts/sandbox"
+    "SandboxPool (Sandbox API) packs many sandboxes into a few shared host Jobs, so per-sandbox cost is the host flavor rate divided by packing density; HF reports 1000 sandboxes created, exec'd and killed in ~16s on 20 cpu-basic hosts (~$0.0009). Pooled sandboxes are uid + Landlock inside one VM, \"intended for workloads within the same trust boundary\". The engine prices one Job per sandbox, so pooled fan-out costs are overstated. Source: https://huggingface.co/docs/huggingface_hub/main/en/concepts/sandbox",
+    "Re-checked 2026-11-08 against jobs-pricing and jobs-configuration: all CPU/GPU flavor prices unchanged. Desktop, browser and computer use are not built in; a Job runs any Docker image, so you can add them yourself and reach them through --expose / --expose-public or SSH port forwarding. Docker inside a Job does not work (no CAP_SYS_ADMIN).",
+    "Network groups (--network-group) let Jobs in one namespace reach each other on every port, with aliases for multi-node rendezvous. Source: https://huggingface.co/docs/hub/en/jobs-configuration"
   ],
   "sources": [
     "https://huggingface.co/docs/hub/en/jobs-pricing",
@@ -685,7 +687,7 @@
       "value": false,
       "source": "https://huggingface.co/docs/hub/jobs-large-datasets",
       "quote": "Ephemeral disk doesn't survive the Job, so write anything you want to keep to a [Storage Bucket](./storage-buckets) mounted read-write, or push it to the Hub as a dataset.",
-      "note": "Jobs are run-to-completion containers; state is lost when the job ends. Persistence only via bucket volume mounts.",
+      "note": "Jobs are run-to-completion containers; the local disk is lost when the job ends. Files persist only in mounted bucket volumes.",
       "checked": "2026-09-29"
     },
     "harness_api": {
@@ -700,21 +702,21 @@
       "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
       "quote": "Use hf jobs expose to change which ports are exposed, without restarting the Job",
       "note": "Ports are only exposed when chosen with --expose; by default the https://<job_id>--<port>.hf.jobs URL requires an HF token with read access, and --expose-public <port> makes a port reachable without a token. The exposed set can be changed on a running Job. SSH opt-in (--ssh), restricted to users with Write access via registered SSH keys. Network groups give private job-to-job connectivity.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "secret_proxy": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/jobs-configuration",
       "quote": "# Pass secrets - they will be encrypted server side",
-      "note": "Secrets are encrypted server-side but delivered to the job as environment variables (script reads os.environ[\"MY_SECRET\"]). Bucket volume mounts are authorized with the user's HF identity at job creation so the script needs no token for them (jobs-manage), but that is not a general credential-injecting proxy.",
-      "checked": "2026-09-29"
+      "note": "Secrets are encrypted server-side but delivered to the job as environment variables (script reads os.environ[\"MY_SECRET\"]). Bucket volume mounts are authorized with the user's HF identity at job creation so the script needs no token for them (jobs-manage), but that is not a general credential-injecting proxy. The Sandbox concepts page says to treat credentials reachable from a sandbox as exposed (https://huggingface.co/docs/huggingface_hub/main/en/concepts/sandbox).",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": true,
       "source": "https://huggingface.co/docs/hub/jobs-configuration",
       "quote": "Mount Hugging Face repositories (models, datasets), [Storage Buckets](./storage-buckets), or local directories as volumes in your job container using `-v` or `--volume`.",
-      "note": "Network (object-storage-backed, lazily fetched) mounts, not block volumes. Buckets read-write by default (:ro optional); model/dataset repos always read-only. Bucket storage billed per TB.",
-      "checked": "2026-09-29"
+      "note": "Network (object-storage-backed, lazily fetched) mounts, not block volumes. Buckets read-write by default (:ro optional); model/dataset repos always read-only; local directories sync to a private jobs-artifacts bucket and mount read-only by default (:rw to write). Bucket storage billed per TB.",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -741,42 +743,48 @@
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-pricing",
       "quote": "Jobs run in isolated compute environments billed per minute while Starting or Running.",
-      "note": "not offered: Jobs run unprivileged (user namespace, seccomp, no CAP_SYS_ADMIN) inside the Job VM; no /dev/kvm or nested virtualization documented.",
+      "note": "Not documented: Jobs run unprivileged (user namespace, seccomp, no CAP_SYS_ADMIN) inside the Job VM; no /dev/kvm or nested virtualization documented.",
       "checked": "2026-10-14"
     },
     "desktop": {
-      "value": false,
-      "source": "https://huggingface.co/docs/hub/en/jobs-overview",
-      "quote": "Run any workload ... Use hf jobs uv run to run a Python script remotely.",
-      "note": "not offered: outside the product's scope — Jobs is a batch/CLI container-execution product, no GUI desktop offered.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
+      "quote": "Jobs can expose container ports through the public jobs proxy using `--expose <port>` (CLI) or `expose=[<port>]` (Python API).",
+      "how": "run your own Docker image with Xvfb, a VNC server and noVNC, then reach it with --expose, --expose-public or SSH -L port forwarding (no official desktop example)",
+      "effort": "medium",
+      "checked": "2026-11-08",
+      "note": "Not built in. Jobs run any Docker image (hf jobs run <image>). No CAP_SYS_ADMIN, so desktop software that needs privileged mounts or nested namespaces does not work."
     },
     "browser": {
-      "value": false,
-      "source": "https://huggingface.co/docs/hub/en/jobs-overview",
-      "quote": "Run any workload ... Use hf jobs uv run to run a Python script remotely.",
-      "note": "not offered: outside the product's scope — no managed/embedded browser product for Jobs.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
+      "quote": "Specify the Docker image and the command to run as you would with docker",
+      "how": "put Chromium in your Docker image and run it with --no-sandbox (Jobs block nested namespaces); drive it over CDP through an exposed port or SSH -L",
+      "effort": "medium",
+      "checked": "2026-11-08",
+      "note": "No managed browser product. The Chromium sandbox needs nested user namespaces, which Jobs block (concepts/sandbox)."
     },
     "computer_use": {
-      "value": false,
-      "source": "https://huggingface.co/docs/hub/en/jobs-overview",
-      "quote": "Run any workload ... Use hf jobs uv run to run a Python script remotely.",
-      "note": "not offered: outside the product's scope — no screenshot/click desktop-driving API.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
+      "quote": "Jobs can expose container ports through the public jobs proxy using `--expose <port>` (CLI) or `expose=[<port>]` (Python API).",
+      "how": "build a desktop image and run your own screenshot/click service (for example xdotool behind an HTTP server) on an exposed port",
+      "effort": "high",
+      "checked": "2026-11-08",
+      "note": "No first-party screenshot/click API."
     },
     "anti_bot": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-pricing",
       "quote": "Pricing and Billing ... Jobs bill Starting and Running, per minute",
-      "note": "not offered: outside the product's scope — Jobs is a generic compute-container product, not a browser/scraping product.",
+      "note": "Outside the product scope: Jobs is a generic compute-container product, not a browser/scraping product.",
       "checked": "2026-09-30"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-pricing",
       "quote": "Pricing and Billing ... Jobs bill Starting and Running, per minute",
-      "note": "not offered: outside the product's scope — no CAPTCHA-solving feature for a generic compute job product.",
+      "note": "Outside the product scope: no CAPTCHA-solving feature for a generic compute job product.",
       "checked": "2026-09-30"
     },
     "egress_ip_type": {
@@ -790,14 +798,14 @@
       "value": true,
       "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
       "quote": "You can open an interactive SSH session into a running Job to debug, inspect, or work directly inside the container.",
-      "note": null,
-      "checked": "2026-09-30"
+      "note": "Opt-in with --ssh; supports SSH -L/-R port forwarding. Not available on scheduled jobs.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
       "source": "https://huggingface.co/docs/hub/jobs-large-datasets",
       "quote": "Ephemeral disk doesn't survive the Job, so write anything you want to keep to a Storage Bucket mounted read-write, or push it to the Hub as a dataset.",
-      "note": "Jobs are run-to-completion containers with no filesystem or memory snapshot/checkpoint capability; persistence only via mounted bucket/dataset volumes.",
+      "note": "No filesystem or memory snapshot/checkpoint API for a Job is documented. Files persist only in mounted bucket/dataset volumes.",
       "checked": "2026-09-30"
     },
     "snapshot_on_demand": {
@@ -811,21 +819,21 @@
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-overview",
       "quote": "Run any workload ... Use hf jobs uv run to run a Python script remotely.",
-      "note": "not offered: outside the product's scope — Jobs starts a fresh container from an image/script; no clone-a-running-machine feature documented.",
+      "note": "Outside the product scope: Jobs starts a fresh container from an image/script; no clone-a-running-machine feature documented.",
       "checked": "2026-09-30"
     },
     "fork_running": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-overview",
       "quote": "Run any workload ... Use hf jobs uv run to run a Python script remotely.",
-      "note": "not offered: outside the product's scope — no forking feature at all is documented.",
+      "note": "Outside the product scope: no forking feature at all is documented.",
       "checked": "2026-09-30"
     },
     "memory_snapshot_fork": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-overview",
       "quote": "Run any workload ... Use hf jobs uv run to run a Python script remotely.",
-      "note": "not offered: outside the product's scope — no fork/snapshot capability of any kind is documented.",
+      "note": "Outside the product scope: no fork/snapshot capability of any kind is documented.",
       "checked": "2026-09-30"
     },
     "pause_resume": {
@@ -839,7 +847,7 @@
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-overview",
       "quote": "Run any workload ... Use hf jobs uv run to run a Python script remotely.",
-      "note": "not offered: outside the product's scope — Jobs are explicitly started (or scheduled), not woken by an inbound request to a sleeping instance.",
+      "note": "Outside the product scope: Jobs are explicitly started (or scheduled), not woken by an inbound request to a sleeping instance.",
       "checked": "2026-09-30"
     },
     "auto_stop_idle": {
@@ -860,14 +868,14 @@
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-overview",
       "quote": "Run any workload ... Python scripts ... Docker images",
-      "note": "not offered: outside the product's scope — Jobs offers generic Python/Docker execution; no preinstalled coding-agent (Claude Code/Codex/OpenCode) templates documented for Jobs.",
+      "note": "Outside the product scope: Jobs offers generic Python/Docker execution; no preinstalled coding-agent (Claude Code/Codex/OpenCode) templates documented for Jobs.",
       "checked": "2026-09-30"
     },
     "own_agent_api": {
       "value": false,
       "source": "https://huggingface.co/mcp",
       "quote": "The Hugging Face MCP Server provides seamless access to Hugging Face's vast ecosystem of Models, Datasets, Research Papers and state-of-the-art AI tools.",
-      "note": "not offered: outside the product's scope — this is a discovery/search MCP server for the Hub, not a first-party browser/computer-use/research task-agent API for Jobs.",
+      "note": "Outside the product scope: this is a discovery/search MCP server for the Hub, not a first-party browser/computer-use/research task-agent API for Jobs.",
       "checked": "2026-09-30"
     },
     "mcp_server": {
@@ -909,7 +917,7 @@
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/enterprise-network-security",
       "quote": "Network Security ... Define your organization IP Ranges ... to enforce authenticated access to Hugging Face from your corporate network.",
-      "note": "not offered: no HTTP method/path-level egress rules for Jobs are documented.",
+      "note": "Not documented: no HTTP method/path-level egress rules for Jobs are documented.",
       "checked": "2026-09-30"
     },
     "guest_firewall": {
@@ -923,42 +931,42 @@
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-pricing",
       "quote": "Pricing and Billing ... Jobs bill Starting and Running, per minute",
-      "note": "not offered: no fixed/dedicated outbound IP for Jobs is documented.",
+      "note": "Not documented: no fixed/dedicated outbound IP for Jobs is documented.",
       "checked": "2026-09-30"
     },
     "windows": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-pricing",
       "quote": "CPU Jobs ... 2/16 $0.01/h; 8/32 $0.03/h; 16/124 $1/h; 32/256 $1.90/h.",
-      "note": "not offered: outside the product's scope — all published Jobs flavors are Linux containers; no Windows machine option.",
+      "note": "Outside the product scope: all published Jobs flavors are Linux containers; no Windows machine option.",
       "checked": "2026-09-30"
     },
     "macos": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-pricing",
       "quote": "CPU Jobs ... 2/16 $0.01/h; 8/32 $0.03/h; 16/124 $1/h; 32/256 $1.90/h.",
-      "note": "not offered: outside the product's scope — Jobs runs Linux Docker containers only, no macOS hardware option.",
+      "note": "Outside the product scope: Jobs runs Linux Docker containers only, no macOS hardware option.",
       "checked": "2026-09-30"
     },
     "arm64": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-pricing",
       "quote": "CPU Jobs ... 2/16 $0.01/h; 8/32 $0.03/h; 16/124 $1/h; 32/256 $1.90/h.",
-      "note": "not offered: no ARM CPU flavor is listed among the published CPU/GPU flavors.",
+      "note": "Not documented: no ARM CPU flavor is listed among the published CPU/GPU flavors.",
       "checked": "2026-09-30"
     },
     "self_host": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-pricing",
       "quote": "Pricing and Billing ... Jobs bill Starting and Running, per minute",
-      "note": "not offered: outside the product's scope — Jobs is a hosted PAYG service on huggingface.co; no self-hosted Jobs runtime is offered.",
+      "note": "Outside the product scope: Jobs is a hosted PAYG service on huggingface.co; no self-hosted Jobs runtime is offered.",
       "checked": "2026-09-30"
     },
     "byoc": {
       "value": false,
       "source": "https://huggingface.co/docs/hub/en/jobs-pricing",
       "quote": "Pricing and Billing ... Jobs bill Starting and Running, per minute",
-      "note": "not offered: no deploy-into-your-own-cloud-account option for Jobs is documented.",
+      "note": "Not documented: no deploy-into-your-own-cloud-account option for Jobs is documented.",
       "checked": "2026-09-30"
     },
     "open_source": {
@@ -997,18 +1005,18 @@
       "checked": "2026-09-30"
     },
     "persistent_disk": {
-      "value": false,
-      "source": "https://huggingface.co/docs/hub/en/jobs-large-datasets",
-      "quote": "Ephemeral disk doesn’t survive the Job, so write anything you want to keep to a Storage Bucket mounted read-write, or push it to the Hub as a dataset.",
-      "note": "Not a real contradiction: HF Jobs are run-to-completion containers with no pause/resume or automatic-snapshot feature at all (jobs-overview, jobs-pricing, and jobs-configuration contain zero mentions of pause, resume, or snapshot). The 'volumes' present are network-mounted external Storage Buckets / HF repos attached at job creation (volume_attach/volume_shared), not a persistent disk for the job's own filesystem — the job's local/ephemeral disk is explicitly documented as not surviving the job. So there is no first-party mechanism that keeps the job's own filesystem across a stop/pause; persistent_disk=false is confirmed, and volumes/snapshot_auto/pause_resume being null/false in the card is consistent, not contradictory.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
+      "quote": "Storage buckets are **read-write** by default, which is useful for saving outputs, checkpoints, or intermediate results.",
+      "note": "Folder-level only (persist_scope folder): the Job disk is ephemeral; files written to a mounted Storage Bucket (or a local directory mounted :rw, synced to a private jobs-artifacts bucket) survive. Installed packages and the rest of the filesystem do not. The engine derives the same value from persist_scope.",
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": "none",
       "source": "https://huggingface.co/docs/hub/en/jobs-configuration",
       "quote": "Jobs have a default timeout (30 minutes), after which they will automatically stop. ... You can specify a custom timeout value using the --timeout parameter when running a job. ... -- timeout 1d # 1 day",
       "note": "Only a default (30 min) is published; the timeout is fully user-configurable to arbitrary values (docs show examples up to '1d' and note larger values like 7200s/2h are fine) with no documented maximum cap found on jobs-configuration, jobs-pricing, or jobs-overview, so treated as effectively unbounded (\"none\") rather than a hard provider-imposed ceiling.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,
@@ -1022,8 +1030,8 @@
       "value": "folder",
       "source": "https://huggingface.co/docs/hub/en/jobs-large-datasets",
       "quote": "Ephemeral disk doesn’t survive the Job, so write anything you want to keep to a Storage Bucket mounted read-write, or push it to the Hub as a dataset.",
-      "note": "Only mounted buckets survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
-      "checked": "2026-10-01"
+      "note": "Only files in a mounted Storage Bucket survive the Job (also local directories mounted :rw, which sync to a private jobs-artifacts bucket). The rest of the filesystem, installed packages included, resets. --attempts retries can resume from checkpoints in that bucket.",
+      "checked": "2026-11-08"
     },
     "root": {
       "value": true,
@@ -1036,5 +1044,9 @@
   "locations": [],
   "locations_source": "https://huggingface.co/docs/hub/en/jobs-pricing",
   "locations_quote": "Jobs bill Starting and Running, per minute while jobs execute. No region parameter is documented; Hugging Face does not publish a regions list or region-selection API for Jobs execution.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "findings/huggingface-jobs.json re-checked against jobs-pricing and jobs-configuration"
+  }
 }

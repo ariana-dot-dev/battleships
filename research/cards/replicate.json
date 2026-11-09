@@ -298,7 +298,7 @@
         "H200": 5.49,
         "L40S": 3.51
       },
-      "note": "Listed per node: A100 4x $20.16/h, 8x $40.32/h; H100 2x $10.98, 4x $21.96, 8x $43.92; H200 1x $5.49, 2x $10.98, 4x $21.96, 8x $43.92; L40S 4x $14.04, 8x $28.08. Per-GPU rate equals the 1x rate. Capacity needs a committed-spend contract (commitment size not published).",
+      "note": "Listed per node: A100 4x $20.16/h, 8x $40.32/h; H100 2x $10.98, 4x $21.96, 8x $43.92; H200 1x $5.49, 2x $10.98, 4x $21.96, 8x $43.92; L40S 4x $14.04, 8x $28.08. Per-GPU rate equals the 1x rate. A committed-spend contract is needed for all H200, for 2x/4x/8x H100 and for 4x/8x A100 and L40S (commitment size not published). 1x GPUs, 2x A100 and 2x L40S are self-serve (separate modes). No B200 is listed on the pricing page (checked 2026-11-08).",
       "cpu_class": "dedicated"
     }
   ],
@@ -424,12 +424,12 @@
     "dax_s": null
   },
   "caveats": [
-    "Public inference charges only processing (some by output/token); private custom Cog models charge setup + idle + active dedicated instance time. Fast-booting fine-tunes are special active-only exceptions.",
-    "Private CPU model deployment is an alt to interactive VM. GPUs include their hosts; do not double-count host CPU/RAM. Several multi-GPU and H200 SKUs require committed-spend contracts.",
+    "Billing differs by model type (https://replicate.com/docs/topics/billing): community public models bill active compute time only; official models bill per output or input (per image, per token, per video second), are always warm, and canceled official-model runs may still be charged (https://replicate.com/docs/topics/models/official-models). Private custom Cog models bill setup + idle + active dedicated instance time. Fast-booting fine-tunes bill active time only.",
+    "Private CPU model deployment is an alt to interactive VM. GPUs include their hosts; do not double-count host CPU/RAM. All H200, 2x+ H100 and 4x/8x A100 and L40S need a committed-spend contract; 2x A100 and 2x L40S are self-serve.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "GPU modes grafted from the v4-gpu research card (per-GPU rates; exact rows in research/gpu.json).",
-    "Replicate joined Cloudflare (announced 2025-11-17) and continues as a distinct brand with an unchanged API; no pricing change observed on the live pricing page as of 2026-09-29.",
+    "Cloudflare announced on 2025-11-17 that it will acquire Replicate (https://replicate.com/blog/replicate-cloudflare). Replicate continues as its own brand with an unchanged API. The pricing page rates are unchanged as of 2026-11-08.",
     "A single prediction times out after 30 minutes (\"Predictions time out after running for 30 minutes.\", https://replicate.com/docs/topics/predictions/lifecycle); longer only via support. Instances have no session cap, so max_session_h stays unlimited, but any one job over 30 minutes needs a support request.",
     "API prediction inputs, outputs, files and logs are deleted after an hour by default (https://replicate.com/docs/topics/predictions/data-retention); web-created predictions are kept indefinitely. Not a zero-retention guarantee."
   ],
@@ -441,7 +441,11 @@
     "https://replicate.com/docs",
     "https://replicate.com/docs/topics/predictions/lifecycle",
     "https://replicate.com/docs/topics/billing/prepaid-credit",
-    "https://replicate.com/docs/topics/predictions/data-retention"
+    "https://replicate.com/docs/topics/predictions/data-retention",
+    "https://replicate.com/docs/topics/billing",
+    "https://replicate.com/docs/topics/models/official-models",
+    "https://replicate.com/blog/replicate-cloudflare",
+    "https://replicate.com/docs/topics/site-policy/subprocessors"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -462,6 +466,11 @@
     "applied": 9,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
+  },
+  "audit_2026_11_08": {
+    "applied": 5,
+    "source": "findings/replicate.json (2026-11-08 audit): billing by model type, committed-spend scope, Cloudflare acquisition wording, Fly.io subprocessor; prices re-checked unchanged ($0.36/h cpu, $0.09/h cpu-small)",
+    "reviewed": 9
   },
   "feature_evidence": {
     "secret_proxy": {
@@ -538,8 +547,8 @@
       "value": "datacenter",
       "source": "https://replicate.com/docs/topics/site-policy/subprocessors",
       "quote": "AWS Cloud Hosted Infrastructure and Data Hosting United States",
-      "note": "Runs on hyperscaler/GPU-cloud datacenter infrastructure (AWS, CoreWeave, etc.); no residential/mobile egress documented.",
-      "checked": "2026-09-30"
+      "note": "Runs on datacenter infrastructure: the subprocessors page lists AWS, CoreWeave, Fly.io and GCP as US infrastructure. No residential/mobile egress documented.",
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": false,
@@ -755,8 +764,8 @@
       "value": false,
       "source": "https://replicate.com/docs/topics/site-policy/subprocessors",
       "quote": "AWS Cloud Hosted Infrastructure and Data Hosting United States",
-      "note": "Primary infrastructure/data-hosting subprocessors are listed as United States; no EU-region residency option is documented.",
-      "checked": "2026-09-30"
+      "note": "Infrastructure subprocessors (AWS, CoreWeave, Fly.io, GCP) are listed in the United States; no EU-region option is documented.",
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": "none",
@@ -786,7 +795,7 @@
       "source": "https://replicate.com/pricing",
       "quote": "Unlike public models, most private models (with the exception of fast booting fine-tunes) run on dedicated hardware so you don't have to share a queue with anyone else. This means you pay for all the time instances of the model are online: the time they spend setting up; the time they spend idle, waiting for requests; and the time they spend active, processing your requests.",
       "note": "Custom-model (Cog) deployments and GPU serverless instances are billed as dedicated per-instance hardware (fixed vCPU/RAM/GPU counts per published hardware tier, e.g. cpu-small=1 vCPU/2GB, gpu-a100-large=10 vCPU/144GB) that is exclusively yours while online (setup+idle+active billed), not a shared/oversubscribed pool. No explicit CPU-sharing or burstable-baseline percentage is published, so this is inferred as dedicated across all listed pricing modes rather than confirmed per-mode with a distinct quote.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,

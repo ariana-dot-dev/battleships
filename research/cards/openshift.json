@@ -126,23 +126,23 @@
     "arm64": true,
     "gpu": true,
     "snapshot": "fs",
-    "pause_resume": false,
-    "fork": false,
+    "pause_resume": "diy",
+    "fork": "diy",
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": false,
+    "docker_inside": "diy",
     "nested_virt": false,
     "root": null,
     "systemd": null,
     "browser": false,
-    "desktop": false,
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": null,
     "agent_harnesses": false,
-    "ssh": false,
+    "ssh": "diy",
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
@@ -217,7 +217,8 @@
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
     "OpenShift Dedicated prices are annual subscriptions shown as hourly equivalents (\"Hourly pricing for illustration purposes; customers are billed annually.\") with a \"Minimum worker node configuration required\"; the modeled per-hour rate understates a small or bursty workload, and cloud infrastructure is not included.",
-    "Red Hat build of Agent Sandbox (a Technology Preview in OpenShift sandboxed containers 1.13) is Red Hat's own agent sandbox operator: \"Red Hat build of Agent Sandbox provides a Kubernetes-native platform for managing isolated, stateful workloads such as AI agent runtimes and development environments\", with SandboxTemplate, SandboxClaim and SandboxWarmPool APIs to \"manage the sandbox lifecycle, including creation, timeouts, pause, and resume\" and optional hardware-level isolation via OpenShift sandboxed containers. Not modeled: it is a preview with no separate published price; the card's features (pause_resume false, container isolation) describe the Harbor pod mode."
+    "Red Hat build of Agent Sandbox (a Technology Preview in OpenShift sandboxed containers 1.13) is Red Hat's own agent sandbox operator: \"Red Hat build of Agent Sandbox provides a Kubernetes-native platform for managing isolated, stateful workloads such as AI agent runtimes and development environments\", with SandboxTemplate, SandboxClaim and SandboxWarmPool APIs to \"manage the sandbox lifecycle, including creation, timeouts, pause, and resume\" and optional hardware-level isolation via OpenShift sandboxed containers. Not modeled: it is a preview with no separate published price; the card's features (container isolation) describe the Harbor pod mode.",
+    "OpenShift Virtualization (KubeVirt) is \"an operator included with any Red Hat OpenShift edition\". It runs full VMs next to pods, with VNC console, virtctl ssh, pause, snapshots of running VMs and clones. It needs bare-metal worker nodes (\"In order to support virtual machines, a ROSA cluster must have bare metal nodes\"); those nodes are not in the modeled OpenShift Dedicated rate. Features marked diy (desktop, ssh, docker_inside, fork, pause_resume) use this VM path. Red Hat does not support nested virtualization inside these VMs."
   ],
   "sources": [
     "https://www.redhat.com/en/technologies/cloud-computing/openshift/dedicated",
@@ -225,7 +226,13 @@
     "https://developers.redhat.com/developer-sandbox/faq",
     "https://docs.redhat.com/en/documentation/openshift_sandboxed_containers/1.13/html/deploying_red_hat_build_of_agent_sandbox",
     "https://docs.redhat.com/en/documentation/openshift_sandboxed_containers/1.13/html/release_notes",
-    "https://github.com/laude-institute/harbor/blob/main/src/harbor/environments/openshift.py"
+    "https://github.com/laude-institute/harbor/blob/main/src/harbor/environments/openshift.py",
+    "https://www.redhat.com/en/technologies/cloud-computing/openshift/virtualization",
+    "https://kubevirt.io/user-guide/user_workloads/accessing_virtual_machines/",
+    "https://kubevirt.io/user-guide/storage/snapshot_restore_api/",
+    "https://kubevirt.io/user-guide/storage/clone_api/",
+    "https://kubevirt.io/user-guide/user_workloads/lifecycle/",
+    "https://cloud.redhat.com/learning/learn:how-manage-virtual-machines-using-red-hat-openshift-virtualization-red-hat-openshift-service/resource/resources:configuring-red-hat-openshift-virtualization-run-red-hat-openshift-service-aws"
   ],
   "audit_2026_09_29": {
     "applied": 2,
@@ -301,8 +308,8 @@
       "value": "container",
       "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index",
       "quote": "The container runtime is responsible for running containers. OpenShift Container Platform deploys the CRI-O container runtime on each of the Red Hat Enterprise Linux CoreOS (RHCOS) nodes in your cluster.",
-      "note": "Card models Harbor running plain Pods on OCP: CRI-O containers sharing the node kernel (SCC-restricted). OpenShift Virtualization/OpenShift sandboxed containers (Kata) exist as optional add-ons but are not what the Harbor 'cluster' mode uses.",
-      "checked": "2026-09-30"
+      "note": "Card models Harbor running plain Pods on OCP: CRI-O containers sharing the node kernel by default (SCC-restricted). Full VMs with their own kernel are available through OpenShift Virtualization, \"an operator included with any Red Hat OpenShift edition\" (https://www.redhat.com/en/technologies/cloud-computing/openshift/virtualization), but only on bare-metal worker nodes (on ROSA, AWS metal instances), which the modeled OpenShift Dedicated rate does not cover. OpenShift sandboxed containers (Kata) are another add-on. The Harbor 'cluster' mode uses neither.",
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": true,
@@ -312,39 +319,43 @@
       "checked": "2026-09-30"
     },
     "docker_inside": {
-      "value": false,
-      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index",
-      "quote": "OpenShift Container Platform deploys the CRI-O container runtime on each of the Red Hat Enterprise Linux CoreOS (RHCOS) nodes in your cluster.",
-      "note": "Node runtime is CRI-O, not Docker; default restricted-v2 SCC (and Harbor's harbor-task-scc) drops capabilities and forbids privileged containers, so running a Docker daemon or docker-in-docker inside a pod is not available without a cluster-admin-granted privileged SCC.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://www.redhat.com/en/technologies/cloud-computing/openshift/virtualization",
+      "quote": "OpenShift Virtualization is an operator included with any Red Hat OpenShift edition.",
+      "how": "run the agent in an OpenShift Virtualization VM (needs bare-metal worker nodes) and install Docker in it, or ask a cluster admin for a privileged SCC for the pod",
+      "effort": "high",
+      "note": "Pods under the default restricted-v2 SCC and Harbor's harbor-task-scc cannot run a Docker daemon (privileged containers are off; Harbor source: allowPrivilegedContainer false). A cluster admin can grant a privileged SCC. An OpenShift Virtualization VM has its own kernel and can run Docker. VMs need bare-metal worker nodes: \"In order to support virtual machines, a ROSA cluster must have bare metal nodes\" (https://cloud.redhat.com/learning/learn:how-manage-virtual-machines-using-red-hat-openshift-virtualization-red-hat-openshift-service/resource/resources:configuring-red-hat-openshift-virtualization-run-red-hat-openshift-service-aws). Bare-metal nodes are not in the modeled OpenShift Dedicated rate.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
       "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index",
       "quote": "KubeVirt device plugins: vfio and kvm",
-      "note": "/dev/kvm is exposed to KubeVirt's own VM launcher pods via a device plugin, not to ordinary customer pods; the SCC used by Harbor pods has no NET_ADMIN/device access, so /dev/kvm is not available inside a generic pod.",
-      "checked": "2026-09-30"
+      "note": "/dev/kvm goes to KubeVirt's own VM launcher pods through a device plugin, not to ordinary pods. OpenShift Virtualization runs full VMs on bare-metal nodes, but Red Hat does not support nested virtualization inside those VMs (\"nesting\" and emulation are not supported: https://docs.redhat.com/en/learn/learning-paths/welcome-red-hat-openshift-virtualization-roadshow/bare-metal-infrastructure-management).",
+      "checked": "2026-11-08"
     },
     "desktop": {
-      "value": false,
-      "source": "https://www.redhat.com/en/technologies/cloud-computing/openshift",
-      "quote": "Build modern, cloud-native applications on a single, centralized platform with Kubernetes at its core.",
-      "note": "not offered: outside the product's scope (OpenShift is a Kubernetes application/container platform; it has no built-in VNC/RDP desktop streaming for workload pods).",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://kubevirt.io/user-guide/user_workloads/accessing_virtual_machines/",
+      "quote": "To access the graphical console of a virtual machine the VNC protocol is typically used.",
+      "how": "run a desktop OS in an OpenShift Virtualization VM (bare-metal nodes) and open its VNC console, or build a pod image with a desktop and a VNC server",
+      "effort": "high",
+      "note": "No managed desktop stream for agents. OpenShift Virtualization (KubeVirt) VMs have a VNC graphical console (virtctl vnc). VMs need bare-metal worker nodes, priced outside the modeled rate.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
       "source": "https://www.redhat.com/en/technologies/cloud-computing/openshift",
       "quote": "Build modern, cloud-native applications on a single, centralized platform with Kubernetes at its core.",
-      "note": "not offered: outside the product's scope; no managed/real browser is bundled with the platform.",
-      "checked": "2026-09-30"
+      "note": "No managed browser service is part of the platform. You can add a browser to your own pod image or desktop VM; Red Hat publishes no guide or example for this.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://www.redhat.com/en/technologies/cloud-computing/openshift",
       "quote": "Build modern, cloud-native applications on a single, centralized platform with Kubernetes at its core.",
-      "note": "not offered: outside the product's scope; there is no screenshot/click desktop-driving API.",
-      "checked": "2026-09-30"
+      "note": "The platform has no screenshot/click desktop-driving API. A VM VNC console exists (see desktop), but no computer-use tooling is documented.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -368,46 +379,52 @@
       "checked": "2026-09-30"
     },
     "ssh": {
-      "value": false,
-      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index",
-      "quote": "$ oc exec my-aws-deployment-<hash> -n my-namespace -- ls /mnt/secrets-store/",
-      "note": "Interactive/command access to a running pod is via the `oc exec` / `oc rsh` API (over the Kubernetes API server), not a direct SSH daemon in the container; SSH is only used to reach cluster nodes for infra administration, not the Harbor task pod.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://kubevirt.io/user-guide/user_workloads/accessing_virtual_machines/",
+      "quote": "The preferred way of connecting to VMs and VMIs is to use `virtctl` to wrap local OpenSSH clients.",
+      "how": "SSH into an OpenShift Virtualization VM with virtctl ssh (bare-metal nodes), or add sshd to the pod image",
+      "effort": "high",
+      "note": "Pods: oc exec and oc rsh through the Kubernetes API; no sshd unless your image adds one. VMs: virtctl ssh wraps the local OpenSSH client with port forwarding. VMs need bare-metal worker nodes, priced outside the modeled rate.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "fs",
-      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index",
-      "quote": "A snapshot represents the state of the storage volume in a cluster at a particular point in time. Volume snapshots can be used to provision a new volume.",
-      "note": "CSI VolumeSnapshot only covers PersistentVolumeClaims (disk); the ephemeral container root filesystem and running-process memory are not captured ('The lifetime of this ephemeral storage does not extend beyond the life of the individual pod').",
-      "checked": "2026-09-30"
+      "source": "https://kubevirt.io/user-guide/storage/snapshot_restore_api/",
+      "quote": "Snapshotting a virtualMachine is supported for online and offline vms.",
+      "note": "Pods: CSI VolumeSnapshot covers PersistentVolumeClaims only; the container root filesystem goes away with the pod. OpenShift Virtualization VMs: on-demand snapshots of running or stopped VMs (disks and VM config; memory is not stated). A restore needs a stopped VM. No automatic snapshot schedule is built in.",
+      "checked": "2026-11-08"
     },
     "fork": {
-      "value": false,
-      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index",
-      "quote": "A pod is the smallest logical unit in Kubernetes. A pod consists of one or more containers to run in a worker node.",
-      "note": "No API clones a running pod/machine into a new one with its state; you can only create a new pod from the same image/spec (a fresh instance, not a fork).",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://kubevirt.io/user-guide/storage/clone_api/",
+      "quote": "In order to initiate cloning, a `VirtualMachineClone` object (CRD) needs to be created on the cluster.",
+      "how": "run the agent in an OpenShift Virtualization VM (bare-metal nodes) and create a VirtualMachineClone, or restore a VM snapshot into a new VM",
+      "effort": "high",
+      "note": "Pods have no clone API; a new pod starts fresh from its image. OpenShift Virtualization VMs can be cloned into new VMs with their disks.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
-      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index",
-      "quote": "A pod is the smallest logical unit in Kubernetes.",
-      "note": "No live-clone-without-stopping capability exists for pods.",
-      "checked": "2026-09-30"
+      "source": "https://kubevirt.io/user-guide/storage/clone_api/",
+      "quote": "In order to initiate cloning, a `VirtualMachineClone` object (CRD) needs to be created on the cluster.",
+      "note": "Pods have no live clone. The KubeVirt clone page does not say whether the source VM can keep running during a clone, so this stays unconfirmed for VMs.",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
-      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index",
-      "quote": "The lifetime of this ephemeral storage does not extend beyond the life of the individual pod, and this ephemeral storage cannot be shared across pods.",
-      "note": "No mechanism captures in-memory process state for cloning; fork is not offered at all so memory-including fork is not offered.",
-      "checked": "2026-09-30"
+      "source": "https://kubevirt.io/user-guide/storage/snapshot_restore_api/",
+      "quote": "Snapshotting a virtualMachine is supported for online and offline vms.",
+      "note": "Pod storage snapshots and VM snapshots cover disks and VM config. The KubeVirt snapshot page does not say that memory state is captured, so a fork with memory is not documented.",
+      "checked": "2026-11-08"
     },
     "pause_resume": {
-      "value": false,
-      "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index",
-      "quote": "A pod is the smallest logical unit in Kubernetes. A pod consists of one or more containers to run in a worker node.",
-      "note": "Kubernetes/OpenShift pods can be scaled to 0 replicas (stop, losing in-memory state) or deleted, but there is no pause primitive that freezes and later resumes a running pod's process state.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://kubevirt.io/user-guide/user_workloads/lifecycle/",
+      "quote": "To pause a virtual machine, you need the `virtctl` command line tool.",
+      "how": "run the agent in an OpenShift Virtualization VM (bare-metal nodes) and use virtctl pause / unpause",
+      "effort": "high",
+      "note": "Pods have no pause primitive (scale to 0 or delete loses memory). A paused KubeVirt VM is frozen without CPU and I/O, \"but the memory used by the domain at the hypervisor level will stay allocated\", so the node capacity stays in use. Red Hat build of Agent Sandbox (Technology Preview) also lists pause and resume.",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -585,8 +602,8 @@
       "value": "folder",
       "source": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index",
       "quote": "Persistent volumes (PVs) provide a way for users to \"claim\" durable storage without having specific knowledge of the underlying storage infrastructure.",
-      "note": "Only mounted volumes (PVCs) survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
-      "checked": "2026-10-01"
+      "note": "Pods: only mounted volumes (PVCs) survive a stop; packages installed elsewhere reset. An OpenShift Virtualization VM on a bare-metal node keeps its whole disk on a PVC that you size and pay for while it is stopped; the card's priced mode is pods, so the pod value is kept.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [

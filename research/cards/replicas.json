@@ -51,7 +51,7 @@
         "Developer",
         "Team"
       ],
-      "note": "Included rates: small $0.004/min, large $0.008/min, ultra $0.016/min; overage 1.5x ($0.006 / $0.012 / $0.024 per min). \"Workspaces are billed per minute while awake, at their size's rate, however they were started.\" Manual, Slack, API and automation workspaces share the same meter (\"Every workspace counts\"). \"Each session, including a workspace waking again, has a one-minute minimum.\" Disk sizes are from the earlier pricing page (not on today's billing page); ultra disk unpublished. Prices checked 2026-10-14 at https://docs.replicas.dev/admin/billing."
+      "note": "Included rates: small $0.004/min, large $0.008/min, ultra $0.016/min; overage 1.5x ($0.006 / $0.012 / $0.024 per min). \"Workspaces are billed per minute while awake, at their size's rate, however they were started.\" Manual, Slack, API and automation workspaces share the same meter (\"Every workspace counts\"). \"Each session, including a workspace waking again, has a one-minute minimum.\" An \"Auto\" size \"Starts small, resizes with load\" and bills \"Each minute at the size it ran at\". New organizations default to Large. Disk sizes are from the earlier pricing page (not on today's billing page); ultra disk unpublished. Prices checked 2026-11-08 at https://docs.replicas.dev/admin/billing."
     }
   ],
   "storage": {
@@ -60,7 +60,7 @@
     "disk_billed_when_stopped": false,
     "snapshot_gib_month": 0,
     "paused_ram_billed": false,
-    "note": "Sleeping and archived workspaces are not billed (\"Workspaces use credit only while awake. Sleeping and archived workspaces use none.\", https://docs.replicas.dev/admin/billing, checked 2026-10-14). Archived after 7 days asleep, deleted after 30 days archived."
+    "note": "Sleeping and archived workspaces are not billed (\"Workspaces use credit only while awake. Sleeping and archived workspaces use none.\", https://docs.replicas.dev/admin/billing, checked 2026-11-08). A sleeping workspace with no activity for 7 days is archived and deleted about 30 minutes later; one archived by hand is deleted 3 days after archive (https://docs.replicas.dev/features/workspaces/overview). Since 2026-10-10, workspaces made through the API or MCP, and new automations, are deleted when the agent finishes (https://docs.replicas.dev/changelog)."
   },
   "network": {
     "egress_free_gib": null,
@@ -110,7 +110,7 @@
     "windows": false,
     "macos": false,
     "arm64": false,
-    "gpu": false,
+    "gpu": "diy",
     "snapshot": "mem",
     "pause_resume": true,
     "fork": false,
@@ -142,7 +142,17 @@
     "soc2": true,
     "hipaa": false,
     "sso": null,
-    "gpu_types": [],
+    "gpu_types": [
+      "T4",
+      "L4",
+      "A10G",
+      "L40S",
+      "A100",
+      "A100-80GB",
+      "H100",
+      "H200",
+      "B200"
+    ],
     "regions": null,
     "lang_python": true,
     "lang_node": true,
@@ -153,7 +163,7 @@
     "credential_injection": null,
     "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": false,
+    "live_resize": true,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
@@ -178,7 +188,7 @@
     "volume_shared": false,
     "own_agent_api": false,
     "max_session_unlimited": true,
-    "isolation": "firecracker",
+    "isolation": "vm",
     "open_internet": true,
     "usage_api": false
   },
@@ -194,9 +204,16 @@
     "Trial: $100 of usage, no card, no time limit; when it runs out new workspaces are blocked and running ones are suspended.",
     "SOC 2 is Type I; Type II is in progress (https://replicas.dev/enterprise).",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
-    "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Mobile testing devices are billed at cost and count toward included usage."
+    "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Mobile testing devices are billed at cost and count toward included usage.",
+    "Egress: traffic through a dedicated static egress IP (Team/Enterprise) is billed at $0.15/GB and counts toward included usage; no price is published for other egress (https://docs.replicas.dev/admin/billing, checked 2026-11-08).",
+    "GPU sandboxes (T4 to B200, up to 8 GPUs per sandbox) run as separate jobs that an agent starts from the workspace; they are billed at cost with no published per-hour price, so GPU workloads are not priced here (https://docs.replicas.dev/features/gpu-sandboxes, checked 2026-11-08).",
+    "Workspaces made through the API or MCP, and new automations, delete their workspace when the agent finishes; idle workspaces are archived after 7 days asleep and deleted about 30 minutes later (https://docs.replicas.dev/changelog, https://docs.replicas.dev/features/workspaces/overview)."
   ],
   "sources": [
+    "https://docs.replicas.dev/changelog",
+    "https://docs.replicas.dev/features/gpu-sandboxes",
+    "https://docs.replicas.dev/features/workspaces/workspace-identity",
+    "https://replicas.dev/dpa",
     "https://www.ycombinator.com/companies/replicas",
     "https://replicas.dev/",
     "https://replicas.dev/pricing",
@@ -227,8 +244,8 @@
       "value": true,
       "source": "https://docs.replicas.dev/features/workspaces/overview",
       "quote": "Workspaces sleep after 30 minutes without activity.",
-      "note": "Trigger: 30 min inactivity (also force-sleep, automation sleep-on-completion). Sleeping = 'Compute is paused and no workspace charges accrue.' Memory appears included: same page says the desktop and its processes 'survive sleep on the default pause mode.' Sleeping workspaces archive after 7 days (still paused) and are deleted after 30 days of archive inactivity. Underlying pause mechanism (memory snapshot vs. suspended VM) is not described in detail.",
-      "checked": "2026-10-14"
+      "note": "Trigger: 30 min inactivity (also force-sleep, automation sleep-on-completion). Sleeping = 'Compute is paused and no workspace charges accrue.' Memory appears included: same page says the desktop and its processes 'survive sleep on the default pause mode.' Sleeping workspaces with no activity for 7 days are archived and then deleted about 30 minutes later ('Archived workspaces are deleted 3 days after they're archived, or sooner if they've had no activity for 7 days'). Underlying pause mechanism (memory snapshot vs. suspended VM) is not described in detail.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
@@ -263,8 +280,8 @@
       "value": false,
       "source": "https://docs.replicas.dev/features/plugins",
       "quote": "Plugins give workspace agents access to external apps without adding an MCP server or exposing provider credentials.",
-      "note": "Partial / closest analogue: a server-side 'Replicas gateway' keeps credentials for Slack, Linear, Sentry and a curated catalog of 107 plugins (Stripe, Vercel, Modal, E2B, PlanetScale, etc., many via Composio) out of the workspace; agents call them through the @replicas/sdk (replicas.slack.call, replicas.plugins.execute), not a transparent HTTP proxy, and you cannot register arbitrary hosts. Coding-agent credentials (Claude OAuth / API keys etc.) and environment variables are delivered into the workspace (variables are decrypted and injected). Workspace identity (OIDC, 15-min JWTs minted inside the workspace) is an alternative to stored cloud keys, not a proxy. Static egress credential is held in workspace memory. So not 'any-http' and not 'ai-only'.",
-      "checked": "2026-09-29"
+      "note": "Partial / closest analogue: a server-side 'Replicas gateway' keeps credentials for Slack, Linear, Sentry and a curated catalog of 107 plugins (Stripe, Vercel, Modal, E2B, PlanetScale, etc., many via Composio) out of the workspace; agents call them through the @replicas/sdk (replicas.slack.call, replicas.plugins.execute), not a transparent HTTP proxy, and you cannot register arbitrary hosts. Coding-agent credentials (Claude OAuth / API keys etc.) and environment variables are delivered into the workspace (variables are decrypted and injected). Workspace Identity (Team/Enterprise or trial; https://docs.replicas.dev/features/workspaces/workspace-identity) mints OIDC tokens 'valid for 15 minutes', so 'no AWS keys, service-account files, or API tokens live in the workspace'; it is an alternative to stored cloud keys, not a proxy (the AWS helper caches one-hour credentials in a user-only file). Static egress credential is held in workspace memory. So not 'any-http' and not 'ai-only'.",
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": false,
@@ -365,11 +382,20 @@
       "checked": "2026-09-30"
     },
     "live_resize": {
-      "value": false,
-      "source": "https://replicas.dev/pricing",
-      "quote": "Per-minute rates by workspace size",
-      "note": "not offered: workspace sizes (small 2 vCPU/8 GB, large 4 vCPU/16 GB, ultra 8 vCPU/32 GB) are fixed tiers with no documented live vCPU/RAM resize of a running workspace.",
-      "checked": "2026-10-14"
+      "value": true,
+      "source": "https://docs.replicas.dev/admin/billing",
+      "quote": "It grows a workspace one size when memory reaches 75% or CPU stays above 90% for 5 minutes, and shrinks it after 10 quiet minutes.",
+      "note": "Automatic only, through the 'Auto' size (starts small, steps between small 2 vCPU/8 GB, large 4 vCPU/16 GB and ultra 8 vCPU/32 GB). No API to set an arbitrary vCPU/RAM on a running workspace. Docs do not say whether a resize interrupts running processes.",
+      "checked": "2026-11-08"
+    },
+    "gpu": {
+      "value": "diy",
+      "source": "https://docs.replicas.dev/features/gpu-sandboxes",
+      "quote": "T4, L4, A10G, L40S, A100, A100-80GB, H100, H200, and B200, with up to 8 GPUs per sandbox.",
+      "how": "run `replicas gpu run --gpu <type> -- <command>` from the workspace; the job runs in a separate GPU sandbox (Modal, per the DPA) and copies outputs back",
+      "effort": "low",
+      "note": "The workspace itself has no GPU. GPU sandboxes are 'billed at cost and count toward included usage'; no per-hour price is published. Limits: 3 running per workspace, 10 per organization. Not available to organizations with a signed BAA. Added 2026-10-17 (changelog).",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
@@ -420,13 +446,6 @@
       "note": "not offered: no HTTP method/path-level egress rule feature documented.",
       "checked": "2026-09-30"
     },
-    "gpu": {
-      "value": false,
-      "source": "https://replicas.dev/",
-      "quote": "Send coding agents to work.",
-      "note": "not offered: outside the product's scope; no GPU workspace type is documented anywhere in pricing or docs.",
-      "checked": "2026-09-30"
-    },
     "windows": {
       "value": false,
       "source": "https://docs.replicas.dev/features/workspaces/overview",
@@ -466,15 +485,15 @@
       "value": "none",
       "source": "https://docs.replicas.dev/admin/billing",
       "quote": "Workspaces use credit only while awake. Sleeping and archived workspaces use none.",
-      "note": "No hard maximum single-session runtime is documented; workspaces sleep after 30 min idle (billing pauses, not a stop), archive after 7 days asleep and are deleted after 30 days archived. An actively used workspace has no stated cap.",
-      "checked": "2026-10-14"
+      "note": "No hard maximum single-session runtime is documented; workspaces sleep after 30 min idle (billing pauses, not a stop), archive after 7 days asleep and are deleted about 30 minutes later. The underlying sandbox has a 24-hour limit; since the week of 2026-10-24 long agent runs 'now wake and carry on' after it (https://docs.replicas.dev/changelog).",
+      "checked": "2026-11-08"
     },
     "isolation": {
-      "value": "firecracker",
+      "value": "vm",
       "source": "https://replicas.dev/dpa",
-      "quote": "FoundryLabs, Inc. (E2B) — isolated virtual machines and memory jobs processing workspace code, files, prompts, outputs, commands and credentials.",
-      "note": "Replicas' own DPA (Appendix C, subprocessor register) names FoundryLabs/E2B as the infrastructure subprocessor that runs workspace sandboxes as isolated VMs. E2B's own site states its runtime is 'built on Firecracker with dedicated kernels' (https://e2b.dev/, quote: \"Every sandbox runs on E2B's proprietary MicroVM runtime, built on Firecracker with dedicated kernels and a custom memory and snapshot layer.\"). Replicas' own docs describe a workspace only as 'an isolated virtual machine' without naming the hypervisor, so the specific isolation technology is derived by combining the DPA's named subprocessor with that subprocessor's public documentation, not stated verbatim on a Replicas page.",
-      "checked": "2026-09-30"
+      "quote": "Tensorlake, Inc. — isolated virtual machines and snapshots",
+      "note": "Replicas' own DPA (Appendix C.2) now names two VM subprocessors: FoundryLabs/E2B ('isolated virtual machines and memory jobs') and Tensorlake ('isolated virtual machines and snapshots'), plus Modal for GPU sandbox jobs. Which one runs a given workspace is not stated, so the value is 'vm', not 'firecracker'. Earlier note: E2B's own site states its runtime is 'built on Firecracker with dedicated kernels' (https://e2b.dev/, quote: \"Every sandbox runs on E2B's proprietary MicroVM runtime, built on Firecracker with dedicated kernels and a custom memory and snapshot layer.\"). Replicas' own docs describe a workspace only as 'an isolated virtual machine' without naming the hypervisor, so the specific isolation technology is derived by combining the DPA's named subprocessor with that subprocessor's public documentation, not stated verbatim on a Replicas page.",
+      "checked": "2026-11-08"
     },
     "byoc": {
       "value": false,

@@ -15,7 +15,7 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 - **ingress_usd**: Unknown; not assumed zero.
 - **minimum_term**: Captured rates require 24-month upfront payment. Shorter-term checkout prices not captured.
 - **cpu**: KVM guest vCPU on AMD EPYC; dedicated physical CPU thread guarantee not established.
-- **backup**: Weekly backups included; snapshot retention/quantity and daily-backup add-on price not confirmed.
+- **backup**: Weekly backups are free. Daily backups are a paid add-on. One manual snapshot per VPS, kept one day, restored in place only (https://www.hostinger.com/support/1583232-how-to-back-up-or-restore-a-vps-at-hostinger/, checked 2026-11-08).
 - **provisioning**: Unknown; not assumed zero.
 ## Gotchas
 - DIY infrastructure rather than an agent-managed sandbox: guest installation, HTTPS/domain setup, abuse controls and operations are customer responsibilities. Linux guest administrative capabilities are not preinstalled agent features. 30% guest CPU utilization does not reduce allocated-compute charges. Unknowns remain null; a partial subtotal is not a complete invoice.

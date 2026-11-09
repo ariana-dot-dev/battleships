@@ -16,7 +16,8 @@ Build and deploy fully‑managed AI agents and workflows
 ## Verified billing facts and gotchas
 1. Durable TypeScript tasks, not arbitrary interactive VMs; mode is alt. Billed allocated machine seconds when executing plus $0.000025/run.
 2. Wait >5 seconds and parent waiting for subtasks are checkpointed and unbilled. No execution timeouts. Free 20 concurrency; Hobby 50; Pro 200 + $10/month per 50.
-3. Extra Pro seats $20/month beyond 25; HIPAA BAA is add-on not an included plan fee.
+3. Extra Pro seats $20/month beyond 25. HIPAA BAA is a $500/month add-on on Hobby and Pro; the SOC 2 report is shared with Enterprise only (https://trigger.dev/pricing, checked 2026-11-08).
+4. chat.agent: each conversation is one long-lived run; its in-memory state and on-disk workspace survive idle gaps, deploys and crashes (https://trigger.dev/docs/ai-chat/overview).
 ## Worked example
 Requested: 4 vCPU/8 GiB, 50 simultaneous × 8 h/day × 22 days = **8,800 instance-hours**, 30% CPU; 50 GiB snapshots and 100 GiB egress. A month is 730 hours only when explicitly used in rate conversion.
 50×22=1,100 eight-hour runs: 8,800×$1.224+$0.000025×1,100=$10,771.2275 usage. Hobby $10 includes $10: $10,771.23 recurring before unverified snapshot/network costs. 30% CPU does not discount allocated execution, but explicit checkpointed waits do.

@@ -334,8 +334,8 @@
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": false,
-    "desktop": false,
+    "browser": "diy",
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": true,
     "agent_harnesses": false,
@@ -394,10 +394,10 @@
   "perf": {
     "cpu_runs_s": null,
     "cold_start_ms": 2329.37,
-    "burst_tti_ms": 7657.92,
-    "dax_s": 81.23
+    "burst_tti_ms": 11762.35,
+    "dax_s": null
   },
-  "perf_source": "ComputeSDK (github.com/computesdk/benchmarks results/): cold 2,329.37 ms (2026-08-07, SDK default tier), burst 7,657.92 ms (2026-09-25, composite 14.4), dax 81.23 s from the 2026-08-28 run on VMTier.Small (8 vCPU / 16 GiB); later DAX runs failed. Same VMs for on-demand and enterprise-bulk.",
+  "perf_source": "ComputeSDK (each provider at its SDK default size and runtime): burst 11.76 s median at 100 at once, 100% succeeded (2026-11-06); DAX failed in the 2026-11-06 run, so no value; one-at-a-time start 2.33 s (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [
     {
       "id": "hibernation_tail",
@@ -453,6 +453,9 @@
     "Resume from an archived sandbox takes 10-60 s (resume docs) and archived forks 20-60 s (create docs); sandboxes are archived 'after period of inactivity' (no day count on current pages; the old ~7 days figure could not be re-verified: /docs/sdk/hibernate now shows the SDK intro).",
     "Pro and Scale fees are shown as 'From $12' / 'From $170' per month per workspace; the monthly-vs-annual split behind 'From' is not published on the page (annual plans exist per the Mar 2024 changelog). Card uses the 'From' price.",
     "Deprecated product (checked 2026-10-14, https://docs.together.ai/docs/together-code-sandbox-legacy): 'This page covers the deprecated code sandbox SDK. Use the together-sandbox SDK for new integrations.' / 'The together-sandbox SDK is the successor to this offering.' / 'The legacy code sandbox is available on Together's custom plans.' / 'A self-serve option is available by creating an account with CodeSandbox.' Still sold at the same $0.01486/credit, so it stays priced. Last SDK release 2.4.2 (2025-12-04, CHANGELOG). The successor (https://docs.together.ai/docs/together-code-sandbox) is a separate product and not covered by this card.",
+    "Re-checked 2026-11-08: @codesandbox/sdk latest is still 2.4.2 (2025-12-04), with no commit to the repo since that date (https://api.github.com/repos/codesandbox/codesandbox-sdk/commits?per_page=3); npm does not mark it deprecated. Together's legacy page still calls it deprecated; the together-sandbox successor is enabled per organization through Together, with no self-serve sign-up.",
+    "Prices, plan limits and the 20 GB disk were NOT re-verified on 2026-11-08: codesandbox.io/pricing, /docs/sdk/pricing and /docs/sdk/specs return HTTP 403 to automated fetches. Values stay as last verified on 2026-09-28.",
+    "Desktop and browser are 'diy' (2026-11-08): the official template library has a headless Chromium and a Selenium starter, and custom templates run any Dockerfile, so a VNC desktop can be added and opened as an HTTPS host. Neither is built in.",
     "codesandbox.io pages were behind a Cloudflare bot check on 2026-10-14 (headless Chrome and WebFetch got 'Just a moment...'); that day's checks used Together docs and the SDK GitHub repo."
   ],
   "sources": [
@@ -469,7 +472,10 @@
     "https://codesandbox.io/docs/sdk/lifecycle",
     "https://codesandbox.io/docs/sdk/specs",
     "https://docs.together.ai/docs/together-code-sandbox-legacy",
-    "https://github.com/codesandbox/codesandbox-sdk/blob/main/src/types.ts"
+    "https://github.com/codesandbox/codesandbox-sdk/blob/main/src/types.ts",
+    "https://github.com/codesandbox/codesandbox-sdk/blob/main/README.md",
+    "https://github.com/codesandbox/sandbox-templates",
+    "https://codesandbox.io/docs/sdk/hosts"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -514,10 +520,10 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": "https://github.com/codesandbox/codesandbox-sdk/blob/main/CHANGELOG.md",
-      "quote": "support env and cwd in shell api",
-      "note": "Secrets reach the sandbox only as environment variables passed to commands/terminals; no credential-injecting proxy documented.",
-      "checked": "2026-09-29"
+      "source": "https://github.com/codesandbox/codesandbox-sdk/blob/main/src/types.ts",
+      "quote": "env?: Record<string, string>;",
+      "note": "Secrets reach the sandbox as environment variables in SessionCreateOptions (src/types.ts) or passed to commands/terminals; no credential-injecting proxy documented.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -527,11 +533,13 @@
       "checked": "2026-09-30"
     },
     "browser": {
-      "value": false,
-      "source": "https://codesandbox.io/docs/sdk/faq",
-      "quote": "Does the CodeSandbox SDK use VM or Browser Sandboxes? ... the actual environments that it uses run in a VM.",
-      "note": "not offered: outside the product's scope. The SDK provisions general-purpose Linux dev/code-exec VMs (terminals, commands, file system, hosts); there is no managed/real browser instance shipped inside the sandbox or offered as a service. 'Browser' in the docs refers only to connecting to the sandbox FROM a browser client, not a browser running inside it.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://github.com/codesandbox/sandbox-templates",
+      "quote": "Headless Browser (Chromium): A starter that runs a headless Chromium browser",
+      "how": "start from the official headless-chromium (or python-selenium) template",
+      "effort": "low",
+      "note": "No managed browser service; the official template library ships a headless Chromium starter and a Selenium starter that run inside the VM. 'Browser' in the SDK client docs means connecting to the sandbox from a browser client.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -625,18 +633,20 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
-      "source": "https://codesandbox.io/docs/sdk",
-      "quote": "The CodeSandbox SDK has been designed to let you to rapidly create and run secure code environments at scale. The SDK is already supporting use cases such as: Browser based IDEs, Code interpretation, AI Agent runtime environments, A/B testing",
-      "note": "not offered: outside the product's scope. The SDK is a programmatic dev-VM/code-interpreter API (terminals, commands, file system, HTTPS host previews); no VNC/RDP graphical desktop is documented anywhere in the SDK docs or template library.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://github.com/codesandbox/codesandbox-sdk/blob/main/README.md",
+      "quote": "Running any Dockerfile",
+      "how": "install Xvfb, a VNC server and noVNC in your own Dockerfile template, then open the noVNC port as an HTTPS host (no official desktop template)",
+      "effort": "medium",
+      "note": "No built-in desktop and no desktop template in the official template library. Custom templates build from any Dockerfile in a Firecracker VM, and every port is reachable as an HTTPS host (https://codesandbox.io/docs/sdk/hosts: 'Hosts are the services exposed by your Sandbox. They all have their own hostname which includes the port.').",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://codesandbox.io/docs/sdk",
       "quote": "The SDK is already supporting use cases such as: Browser based IDEs, Code interpretation, AI Agent runtime environments, A/B testing",
-      "note": "not offered: outside the product's scope. No screenshot/click driving API; SDK exposes Terminals/Commands/FileSystem/Ports/Hosts clients only, no screenshot+click computer-use API. The GitHub sandbox-templates repo has no desktop/computer-use template (only dev-framework and 'headless-chromium' templates).",
-      "checked": "2026-09-30"
+      "note": "No built-in screenshot/click API: the SDK exposes Terminals, Commands, File System, Ports and Hosts clients. A user who adds a desktop (see desktop) drives it with their own tools; no documented computer-use path exists.",
+      "checked": "2026-11-08"
     },
     "volumes": {
       "value": false,

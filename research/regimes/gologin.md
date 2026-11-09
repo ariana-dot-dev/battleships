@@ -7,11 +7,11 @@ As of 2026-09-28. USD unless explicitly stated; public list prices unless a row 
 | Extra concurrency | Beyond included 1/2/3 | Slot-month | $2 per additional simultaneous session | https://gologin.com/cloud-browser/ |
 | Traffic overage | Beyond unquantified allowance | GB | $1/GB homepage; docs says $1.99/GB: conflict | https://gologin.com/cloud-browser/ |
 | ISP IP | Separate proxy product in docs | IP | Docs says $5/IP unlimited traffic; applicability and period must be confirmed | https://gologin.com/docs/api-reference/cloud-browser/what-is-gologin-cloud-browser |
-| Trial | Google signup | One-time | 15 minutes,3 parallel, no card | https://gologin.com/cloud-browser/ |
+| Free tier | Google signup | One-time | 3 runs of up to 15 minutes each, 1 parallel session, no card (checked 2026-11-08) | https://gologin.com/cloud-browser/ |
 | Professional | Account plan | Monthly fee / commitment | $4.5; concurrency 1; 50 included hours;1 included concurrent browsers. Additional concurrency $2/slot-month, not automatically modeled. | https://gologin.com/cloud-browser/ |
 | Business | Account plan | Monthly fee / commitment | $8; concurrency 2; 100 included hours;2 included concurrent browsers. Additional concurrency $2/slot-month, not automatically modeled. | https://gologin.com/cloud-browser/ |
 | Enterprise | Account plan | Monthly fee / commitment | $14; concurrency 3; 200 included hours;3 included concurrent browsers. Additional concurrency $2/slot-month, not automatically modeled. | https://gologin.com/cloud-browser/ |
-| Custom | Account plan | Monthly fee / commitment | Quote / unknown; concurrency unpublished/custom; Custom volume, SSO, SLA, dedicated account manager. | https://gologin.com/cloud-browser/ |
+| Custom | Account plan | Monthly fee / commitment | Quote only; from 4 parallel sessions, dedicated account manager, premium SLA, tailored onboarding. No SSO or SOC 2 is published. | https://gologin.com/cloud-browser/ |
 ## Gotchas
 - Cloud Browser has its own tariff, not the main local antidetect profile subscription. A client OS fingerprint is not a hosted OS SKU.
 - Official docs conflict with landing page: docs says.048/hour,20–200 included hours,1–4 parallel, proxy $1.99/GB versus current displayed 50/100/200 hours,1/2/3 slots and $1/GB. Favor current landing offer but obtain binding account rate.

@@ -1,5 +1,5 @@
 # Crusoe: GPU regimes
-As of 2026-09-28. GPU virtual machines and reserved capacity.
+As of 2026-11-08 (prices re-checked). GPU virtual machines and reserved capacity.
 GPU VM bundle includes matching CPU/RAM; billing per second in running state including lifecycle scripts. Stopped VM compute free, retained 128GiB OS disk $0.08/GiB-month until deletion. Reserved commitment bills in every state. Spot quote via sales. No network transfer charges currently.
 | Regime | When applicable | Billing | Numbers ($/GPU-hour unless slice) | Source |
 |---|---|---|---|---|
@@ -15,7 +15,7 @@ GPU VM bundle includes matching CPU/RAM; billing per second in running state inc
 | spot  | MI355X ; count [8]; us-east2-a | per-second; min unknowns | unknown; sales-unpublished; per_gpu_hour | [source](https://www.crusoe.ai/cloud/pricing) |
 | on-demand  | B200 SXM; count [8]; eu-iceland1-a/eu-norway1-a/us-west1-a | per-second; min unknowns | unknown; sales-unpublished; per_gpu_hour | [source](https://www.crusoe.ai/cloud/pricing) |
 | spot  | B200 SXM; count [8]; eu-iceland1-a/eu-norway1-a/us-west1-a | per-second; min unknowns | unknown; sales-unpublished; per_gpu_hour | [source](https://www.crusoe.ai/cloud/pricing) |
-| on-demand  | B300 SXM; count [8]; eu-iceland1-a | per-second; min unknowns | unknown; sales-unpublished; per_gpu_hour | [source](https://www.crusoe.ai/cloud/pricing) |
+| on-demand  | B300 SXM; count [8]; eu-iceland1-a | per-second; min unknowns | 8.96; list; per_gpu_hour | [source](https://www.crusoe.ai/cloud/pricing) |
 | spot  | B300 SXM; count [8]; eu-iceland1-a | per-second; min unknowns | unknown; sales-unpublished; per_gpu_hour | [source](https://www.crusoe.ai/cloud/pricing) |
 | on-demand  | GB200 NVL; count [4]; eu-iceland1-a | per-second; min unknowns | unknown; sales-unpublished; per_gpu_hour | [source](https://www.crusoe.ai/cloud/pricing) |
 | spot  | GB200 NVL; count [4]; eu-iceland1-a | per-second; min unknowns | unknown; sales-unpublished; per_gpu_hour | [source](https://www.crusoe.ai/cloud/pricing) |
@@ -29,6 +29,7 @@ GPU VM bundle includes matching CPU/RAM; billing per second in running state inc
 | on-demand  | L40S PCIe; count [8]; us-east1-a; L40S also us-southcentral1-a | per-second; min unknowns | 1.5; list; per_gpu_hour | [source](https://www.crusoe.ai/cloud/pricing) |
 | on-demand  | L40S PCIe; count [10]; us-east1-a; L40S also us-southcentral1-a | per-second; min unknowns | 1.5; list; per_gpu_hour | [source](https://www.crusoe.ai/cloud/pricing) |
 ## Gotchas
+- From Dec 1, 2026 the pricing page lists new on-demand rates: H100 4.50, H200 5.40, B300 9.90, B200 8.50 (was Contact sales). Others unchanged.
 - GPU VM bundle includes matching CPU/RAM; billing per second in running state including lifecycle scripts. Stopped VM compute free, retained 128GiB OS disk $0.08/GiB-month until deletion. Reserved commitment bills in every state. Spot quote via sales. No network transfer charges currently.
 - Any null count, CPU/RAM, billing increment or minimum is unverified, not unlimited/free.
 - This is GPU-product research, not a claim that every feature of the entire vendor documentation was audited. Unverified features are null.

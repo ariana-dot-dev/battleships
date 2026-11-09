@@ -7,7 +7,7 @@
   "modes": [
     {
       "key": "on-demand",
-      "label": "Sandbox (CPU), per-ms on allocated cores + RAM",
+      "label": "Sandbox (CPU, Performance tier, default for new accounts), per-ms per vCPU + GiB",
       "flags": [],
       "os": [
         "linux"
@@ -23,8 +23,8 @@
         "raw_tcp_inbound": false
       },
       "pricing": "resource",
-      "vcpu_h": 0.0675,
-      "ram_gib_h": 0.02304,
+      "vcpu_h": 0.05,
+      "ram_gib_h": 0.01,
       "cpu_basis": "alloc",
       "ram_basis": "alloc",
       "active_floor": 0,
@@ -49,14 +49,108 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "$0.0000375/s per physical core (= 2 vCPU) -> $0.135/core-h = $0.0675/vCPU-h; RAM $0.0000064/GiB-s = $0.02304/GiB-h. Page example 1 core/8 GiB = $0.319/h. Machine start and image pull not billed. Billed until terminate() or keep_warm_seconds TTL expiry (idle tail billed; -1 = never). June-2026 rate was $0.19/core-h + $0.0202/GB-h. US by default; no other region is listed (security page 2026-10-14). Basis verified 2026-09-28: \"You are only charged when your containers are running.\" (https://docs.beam.cloud/v2/resources/pricing-and-billing). Sandbox keep_warm_seconds is a TTL (sb.update_ttl(300); -1 = \"Manual termination only\") (https://docs.beam.cloud/v2/sandbox/configuration), not an idle detector: auto_stop_idle = false for sandbox modes; serverless containers still scale down after keep_warm idle. CPU/RAM kept alloc.",
+      "note": "Pricing page 2026-11-08, Sandboxes: $0.05/hr per vCPU + $0.01/hr per GiB, \"Billed by the millisecond while running\"; example 2 vCPU / 8 GiB on Performance = $0.18/hr. Priced per vCPU (the old per-core = 2 vCPU sheet, $0.0675/vCPU-h + $0.02304/GiB-h, is gone). Performance = \"No CPU sharing, not preemptible\"; \"New accounts default to Performance, and workloads opt into Shared or Spot\" (https://docs.beam.cloud/v2/resources/pricing-and-billing.md). Python Sandbox default lifetime 600 s; keep_warm_seconds is a TTL, -1 = terminate explicitly (https://docs.beam.cloud/v2/sandbox/configuration.md): the TTL tail bills, so auto_stop_idle = false. Default sandbox runtime is a container; US by default.",
       "perf": {
         "cpu_runs_s": null,
         "cold_start_ms": 105.06,
-        "burst_tti_ms": 1323.74,
-        "dax_s": 64.89
+        "burst_tti_ms": 533.75,
+        "dax_s": 99.88
       },
-      "perf_source": "ComputeSDK (github.com/computesdk/benchmarks results/): cold 105.06 ms (seq TTI 2026-08-07, runtime \"node\", SDK default size), burst 1,323.74 ms (2026-09-25), dax 64.89 s (2026-09-25, cpu:8 / 16 GiB; guest saw 96 host CPUs). No HPC CPU result."
+      "perf_source": "ComputeSDK (each provider at its SDK default size and runtime): burst 534 ms median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 99.88 s (2026-11-06, one run; sandbox saw 64 CPUs / 16 GiB x86); one-at-a-time start 105 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results"
+    },
+    {
+      "key": "sandbox-shared",
+      "label": "Sandbox (CPU, Shared tier: shared vCPUs, up to 8 vCPU / 16 GiB)",
+      "flags": [],
+      "os": [
+        "linux"
+      ],
+      "regions": [
+        "us"
+      ],
+      "gpu_only": false,
+      "features": {
+        "auto_stop_idle": false,
+        "wake_on_request": false,
+        "isolation": "gvisor",
+        "raw_tcp_inbound": false
+      },
+      "pricing": "resource",
+      "vcpu_h": 0.011,
+      "ram_gib_h": 0.0055,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": 1,
+      "max_vcpu": 8,
+      "max_ram_gib": 16,
+      "sizes": null,
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": 0,
+      "granularity_s": 0.001,
+      "start_fee": 0,
+      "boot_overhead_s": 0,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": null,
+      "note": "Pricing page 2026-11-08: Shared $0.011/vCPU-hour + $0.0055/GiB-hour, \"Shared vCPUs, not preemptible\", up to 8 vCPU / 16 GiB; tiers are chosen \"per workload for CPU functions, sandboxes and VMs\". Opt in with Sandbox(cpu_tier=\"shared\", cpu=2, memory=\"2Gi\") (beam-client >= 0.2.236) (https://docs.beam.cloud/v2/sandbox/configuration.md). Tiered VM-backed sandboxes need at least 1 vCPU / 1 GiB. CPU is shared with other tenants, so per-vCPU speed can be lower than Performance."
+    },
+    {
+      "key": "sandbox-spot",
+      "label": "Sandbox (CPU, Spot tier: interruptible with 30 s notice)",
+      "flags": [
+        "spot"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": [
+        "us"
+      ],
+      "gpu_only": false,
+      "features": {
+        "auto_stop_idle": false,
+        "wake_on_request": false,
+        "isolation": "gvisor",
+        "raw_tcp_inbound": false
+      },
+      "pricing": "resource",
+      "vcpu_h": 0.0063,
+      "ram_gib_h": 0.00135,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": 1,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes": null,
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": 0,
+      "granularity_s": 0.001,
+      "start_fee": 0,
+      "boot_overhead_s": 0,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": null,
+      "note": "Pricing page 2026-11-08: Spot $0.0063/vCPU-hour + $0.00135/GiB-hour, \"May be interrupted\". Docs: Spot \"may be interrupted with 30 seconds' notice\"; \"Spot sandboxes terminate when reclaimed. Persistent mounts survive, but process state and temporary files do not.\" (https://docs.beam.cloud/v2/sandbox/configuration.md)."
     },
     {
       "key": "sandbox-gpu",
@@ -75,7 +169,7 @@
         "isolation": "gvisor"
       },
       "pricing": "resource",
-      "vcpu_h": 0.189,
+      "vcpu_h": 0.18972,
       "ram_gib_h": 0.0198,
       "cpu_basis": "alloc",
       "ram_basis": "alloc",
@@ -106,11 +200,11 @@
         "H100": null,
         "A10": null
       },
-      "note": "GPU rates NOT published for sandboxes (pricing page 2026-09-28 lists serverless GPU and GPU machines only), so gpu prices are null and this regime is unpriced. Previously assumed = serverless GPU per-second rates (4090 $0.000192/s, 5090 $0.000303/s, H100 $0.000972/s; A10G $0.000292/s from June-2026 blog) plus GPU-attached CPU $0.000105/core-s and RAM $0.0000055/GiB-s. GPU concurrency 5 (Developer) / 50 (Team)."
+      "note": "Sandbox GPU rates are not published (pricing page 2026-11-08 lists serverless GPU and GPU machines only), so gpu prices are null and this regime is unpriced. Published serverless rates for reference: RTX 4090 $0.69/h, RTX 5090 $1.09/h, plus CPU attached to a GPU $0.18972/vCPU-h and $0.0198/GiB-h on every tier. Developer: 5 concurrent GPUs; Team: 50."
     },
     {
       "key": "vm",
-      "label": "Virtual machine (CPU microVM, persistent root, per-second while running)",
+      "label": "Virtual machine (CPU microVM, Performance tier, persistent root, per-second while running)",
       "flags": [],
       "os": [
         "linux"
@@ -132,11 +226,20 @@
         "docker_inside": true,
         "gpu": false,
         "ingress_rules": true,
-        "raw_tcp_inbound": false
+        "raw_tcp_inbound": true,
+        "browser": true,
+        "computer_use": true,
+        "secret_proxy": true,
+        "public_ipv4": false,
+        "fork": true,
+        "persist_scope": "whole",
+        "whole_disk": true,
+        "egress_allowlist": true,
+        "egress_allowlist_level": "domain"
       },
       "pricing": "resource",
-      "vcpu_h": 0.004275,
-      "ram_gib_h": 0.0021375,
+      "vcpu_h": 0.05,
+      "ram_gib_h": 0.01,
       "cpu_basis": "alloc",
       "ram_basis": "alloc",
       "active_floor": 0,
@@ -146,7 +249,7 @@
       ],
       "ram_fixed_per_vcpu": null,
       "vcpu_options": null,
-      "min_vcpu": null,
+      "min_vcpu": 1,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes": null,
@@ -161,7 +264,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Pricing page 2026-10-14 (Virtual Machines): \"Persistent Linux VMs for agents. Billed per second while running, with no compute charges while stopped.\" Default 4 vCPU = $0.0171/h, 8 GiB RAM = $0.0171/h, \"50 GiB root disk Included\", rate $0.0342/h ($0.0000095/s); page constants $0.004275/vCPU-h and $0.0021375/GiB-h. Priced per vCPU (not per physical core like sandboxes), although the CLI calls the flag `--cpu CORES` (default 4). Root disk default 50 GiB, max 100Gi (https://docs.beam.cloud/v2/vm/cli). Idle TTL (`--ttl`, idle-action stop or pause) and auto-resume on access are opt-in; unset TTL keeps running and billing. Docs: \"Each VM runs in a CPU microVM with its own kernel, systemd, a durable root filesystem, and stable service URLs.\" (https://docs.beam.cloud/v2/vm/overview). CPU only (\"GPUs | Unsupported\").",
+      "note": "Pricing page 2026-11-08 (Virtual machines): Performance $0.06/hr for 1 vCPU / 1 GiB ($0.05/vCPU-h + $0.01/GiB-h), \"Billed per second while running. No compute charges while stopped.\" 4 vCPU / 8 GiB = $0.28/h on Performance, the default tier for new accounts (https://docs.beam.cloud/v2/vm/configuration.md). Root disk default 50 GiB, max 100 GiB. Stop keeps the disk and drops RAM; pause keeps RAM and processes. Idle TTL and auto-resume are opt-in (off by default). Browser desktop (Chrome on x86-64) with SDK screenshot/click/type/record (https://docs.beam.cloud/v2/vm/desktop.md). Persistent public IPv6 with published TCP ports, token-protected URLs; no inbound IPv4 listed (https://docs.beam.cloud/v2/vm/networking.md). CPU only (\"VMs are persistent Linux machines without GPUs\").",
       "perf": {
         "cpu_runs_s": null,
         "cold_start_ms": null,
@@ -171,8 +274,138 @@
       "perf_source": "No benchmark of Beam VMs yet; ComputeSDK numbers are for the container sandbox."
     },
     {
+      "key": "vm-shared",
+      "label": "Virtual machine (Shared tier: shared vCPUs, up to 8 vCPU / 16 GiB)",
+      "flags": [],
+      "os": [
+        "linux"
+      ],
+      "regions": [
+        "us"
+      ],
+      "gpu_only": false,
+      "features": {
+        "isolation": "microvm",
+        "auto_stop_idle": true,
+        "wake_on_request": true,
+        "pause_resume": true,
+        "persistent_disk": true,
+        "systemd": true,
+        "root": true,
+        "ssh": true,
+        "desktop": true,
+        "docker_inside": true,
+        "gpu": false,
+        "ingress_rules": true,
+        "raw_tcp_inbound": true,
+        "browser": true,
+        "computer_use": true,
+        "secret_proxy": true,
+        "public_ipv4": false,
+        "fork": true,
+        "persist_scope": "whole",
+        "whole_disk": true,
+        "egress_allowlist": true,
+        "egress_allowlist_level": "domain"
+      },
+      "pricing": "resource",
+      "vcpu_h": 0.011,
+      "ram_gib_h": 0.0055,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": 1,
+      "max_vcpu": 8,
+      "max_ram_gib": 16,
+      "sizes": null,
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
+      "start_fee": 0,
+      "boot_overhead_s": 0,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": null,
+      "note": "Pricing page 2026-11-08: Shared $0.011/vCPU-hour + $0.0055/GiB-hour, \"Shared vCPUs, not preemptible\", up to 8 vCPU / 16 GiB. 4 vCPU / 8 GiB = $0.088/h. Same VM features as the Performance VM (https://docs.beam.cloud/v2/vm/configuration.md). CPU is shared with other tenants."
+    },
+    {
+      "key": "vm-spot",
+      "label": "Virtual machine (Spot tier: interruptible, restart by hand)",
+      "flags": [
+        "spot"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": [
+        "us"
+      ],
+      "gpu_only": false,
+      "features": {
+        "isolation": "microvm",
+        "auto_stop_idle": true,
+        "wake_on_request": true,
+        "pause_resume": true,
+        "persistent_disk": true,
+        "systemd": true,
+        "root": true,
+        "ssh": true,
+        "desktop": true,
+        "docker_inside": true,
+        "gpu": false,
+        "ingress_rules": true,
+        "raw_tcp_inbound": true,
+        "browser": true,
+        "computer_use": true,
+        "secret_proxy": true,
+        "public_ipv4": false,
+        "fork": true,
+        "persist_scope": "whole",
+        "whole_disk": true,
+        "egress_allowlist": true,
+        "egress_allowlist_level": "domain"
+      },
+      "pricing": "resource",
+      "vcpu_h": 0.0063,
+      "ram_gib_h": 0.00135,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": 1,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes": null,
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": null,
+      "min_billed_seconds": 0,
+      "granularity_s": 1,
+      "start_fee": 0,
+      "boot_overhead_s": 0,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": null,
+      "note": "Pricing page 2026-11-08: Spot $0.0063/vCPU-hour + $0.00135/GiB-hour, \"May be interrupted. Restart preempted VMs manually.\" 4 vCPU / 8 GiB = $0.036/h. Docs: \"A preempted Spot VM gets a 30-second graceful shutdown window.\" \"Its disk and URLs remain, but memory is lost.\" (https://docs.beam.cloud/v2/vm/configuration.md)."
+    },
+    {
       "key": "serverless-container",
-      "label": "Serverless function / pod (not a sandbox), 1/3 of sandbox CPU rate",
+      "label": "Serverless function / pod (not a sandbox), per-ms per vCPU + GiB",
       "flags": [
         "alt"
       ],
@@ -188,8 +421,8 @@
         "isolation": "container"
       },
       "pricing": "resource",
-      "vcpu_h": 0.0225,
-      "ram_gib_h": 0.00756,
+      "vcpu_h": 0.05,
+      "ram_gib_h": 0.01,
       "cpu_basis": "alloc",
       "ram_basis": "alloc",
       "active_floor": 0,
@@ -214,7 +447,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "$0.0000125/core-s ($0.045/core-h) + $0.0000021/GiB-s. Billed incl. on_start and keep_warm_seconds (defaults: endpoints 180 s, task queues 10 s, pods 600 s). No sandbox exec/fs/snapshot API.",
+      "note": "Pricing page 2026-11-08, Serverless CPU-only: $0.05/hr per vCPU + $0.01/hr per GiB, \"Billed by the millisecond while code runs\" (the old 1/3-of-sandbox rate is gone). Billed incl. on_start and keep_warm_seconds (defaults: endpoints 180 s, task queues 10 s, pods 600 s). Functions, endpoints and pods get plaintext env secrets, not brokered placeholders. No sandbox exec/fs/snapshot API.",
       "product_class": "paas"
     },
     {
@@ -261,7 +494,7 @@
       "gpu": {
         "RTX-4090": 0.44
       },
-      "note": "'From' price $0.44/h per machine incl. 8 vCPU / 64 GiB / 500 GB NVMe (https://www.beam.cloud/pricing, verified 2026-09-28). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
+      "note": "'From' price $0.44/h per machine incl. 8 vCPU / 64 GiB / 500 GB NVMe (https://www.beam.cloud/pricing, verified 2026-11-08). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
       "product_class": "gpu-instance"
     },
     {
@@ -308,7 +541,7 @@
       "gpu": {
         "RTX-A6000": 0.54
       },
-      "note": "'From' price $0.54/h per machine incl. 8 vCPU / 64 GiB / 500 GB NVMe (https://www.beam.cloud/pricing, verified 2026-09-28). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
+      "note": "'From' price $0.54/h per machine incl. 8 vCPU / 64 GiB / 500 GB NVMe (https://www.beam.cloud/pricing, verified 2026-11-08). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
       "product_class": "gpu-instance"
     },
     {
@@ -355,7 +588,7 @@
       "gpu": {
         "RTX-5090": 0.72
       },
-      "note": "'From' price $0.72/h per machine incl. 12 vCPU / 64 GiB / 500 GB NVMe (https://www.beam.cloud/pricing, verified 2026-09-28). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
+      "note": "'From' price $0.72/h per machine incl. 12 vCPU / 64 GiB / 500 GB NVMe (https://www.beam.cloud/pricing, verified 2026-11-08). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
       "product_class": "gpu-instance"
     },
     {
@@ -402,7 +635,7 @@
       "gpu": {
         "L40S": 0.76
       },
-      "note": "'From' price $0.76/h per machine incl. 12 vCPU / 96 GiB / 1000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-09-28). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
+      "note": "'From' price $0.76/h per machine incl. 12 vCPU / 96 GiB / 1000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-11-08). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
       "product_class": "gpu-instance"
     },
     {
@@ -449,7 +682,7 @@
       "gpu": {
         "RTX-PRO-6000": 1.09
       },
-      "note": "'From' price $1.09/h per machine incl. 16 vCPU / 128 GiB / 1000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-09-28). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
+      "note": "'From' price $1.09/h per machine incl. 16 vCPU / 128 GiB / 1000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-11-08). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
       "product_class": "gpu-instance"
     },
     {
@@ -496,7 +729,7 @@
       "gpu": {
         "A100-80GB": 1.36
       },
-      "note": "'From' price $1.36/h per machine incl. 16 vCPU / 128 GiB / 1000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-09-28). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
+      "note": "'From' price $1.36/h per machine incl. 16 vCPU / 128 GiB / 1000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-11-08). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
       "product_class": "gpu-instance"
     },
     {
@@ -543,7 +776,7 @@
       "gpu": {
         "H100-PCIe": 1.83
       },
-      "note": "'From' price $1.83/h per machine incl. 26 vCPU / 200 GiB / 1000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-09-28). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ. Pricing page names it H100 PCIE (2026-09-28).",
+      "note": "'From' price $1.83/h per machine incl. 26 vCPU / 200 GiB / 1000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-11-08). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ. Pricing page names it H100 PCIE (2026-09-28).",
       "product_class": "gpu-instance"
     },
     {
@@ -590,7 +823,7 @@
       "gpu": {
         "H200": 2.09
       },
-      "note": "'From' price $2.09/h per machine incl. 24 vCPU / 192 GiB / 2000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-09-28). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
+      "note": "'From' price $2.09/h per machine incl. 24 vCPU / 192 GiB / 2000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-11-08). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
       "product_class": "gpu-instance"
     },
     {
@@ -637,7 +870,7 @@
       "gpu": {
         "B200": 4.11
       },
-      "note": "'From' price $4.11/h per machine incl. 28 vCPU / 256 GiB / 2000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-09-28). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
+      "note": "'From' price $4.11/h per machine incl. 28 vCPU / 256 GiB / 2000 GB NVMe (https://www.beam.cloud/pricing, verified 2026-11-08). Single-GPU machine; price is the whole machine (CPU/RAM included, so vcpu_h=ram_gib_h=0). Docs GPU page lists different on-demand prices (A100-80 $1.49, H100 $3.63, 4090 $0.66). Not a sandbox; capacity may differ.",
       "product_class": "gpu-instance"
     },
     {
@@ -719,17 +952,19 @@
   "plans": [
     {
       "name": "Developer",
-      "fee": 0,
+      "fee": 20,
       "flags": [],
       "fee_is_credit": false,
-      "included_usd": 0,
+      "included_usd": 20,
       "per_seat": 0,
-      "concurrency": 30,
+      "concurrency": null,
       "max_session_h": null,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Pay-as-you-go (payment method required). 30 CPU / 5 GPU concurrent containers; 1 seat; 30-day logs. A $30/month free credit was advertised through 2026-08-29 but is absent from the pricing page by 2026-09-12 and on 2026-09-28 (not deducted)."
+      "note": "Pricing page 2026-11-08: \"$20/month\" with \"$20 in credits each month\". 30 concurrent vCPUs and 5 concurrent GPUs; \"Concurrent vCPUs is the total CPU running at once across VMs, sandboxes, and serverless apps, not a count of containers.\" 1 seat; 30-day logs. Purchased credits do not expire.",
+      "max_total_vcpu": 30,
+      "max_gpus": 5
     },
     {
       "name": "Team",
@@ -738,12 +973,14 @@
       "fee_is_credit": false,
       "included_usd": 0,
       "per_seat": 25,
-      "concurrency": 1000,
+      "concurrency": null,
       "max_session_h": null,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "$89/month plus usage (fee is not credit). 1,000 CPU / 50 GPU concurrent containers; 3 seats included, $25 per extra seat; live chat support."
+      "note": "$89/month plus usage (fee is not credit). 1,000 concurrent vCPUs and 50 concurrent GPUs across VMs, sandboxes and serverless apps; 3 seats included, $25 per extra seat (pricing page 2026-11-08).",
+      "max_total_vcpu": 1000,
+      "max_gpus": 50
     },
     {
       "name": "Growth",
@@ -759,7 +996,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Contact us: unlimited CPU containers, 1,000+ GPU, unlimited seats, 1-year log retention, private Slack. Volume discounts above $10K/month spend (unpublished)."
+      "note": "Contact us: custom vCPU and GPU limits, unlimited seats, 1-year log retention (pricing page 2026-11-08)."
     }
   ],
   "extras": [
@@ -768,11 +1005,11 @@
       "price": "$25/seat/month"
     },
     {
-      "item": "Storage volumes above 1 TB",
-      "price": "$0.021/GB-month"
+      "item": "Storage (volumes, snapshots, VM disks)",
+      "price": "not billed yet; planned $0.0001/GB-hour with no free allowance"
     },
     {
-      "item": "Reserved GPU clusters (8-GPU nodes, InfiniBand)",
+      "item": "Reserved GPU clusters (H100/H200/B200/B300, InfiniBand)",
       "price": "contact sales"
     }
   ],
@@ -802,7 +1039,7 @@
     "snapshot": "mem",
     "pause_resume": false,
     "fork": true,
-    "persistent_disk": true,
+    "persistent_disk": "diy",
     "volumes": true,
     "auto_stop_idle": false,
     "max_session_h": null,
@@ -858,9 +1095,9 @@
     "snapshot_auto": false,
     "snapshot_on_demand": true,
     "harness_api": false,
-    "egress_allowlist_level": "ip",
+    "egress_allowlist_level": "domain",
     "ingress_rules": false,
-    "secret_proxy": false,
+    "secret_proxy": true,
     "volume_attach": true,
     "volume_shared": true,
     "anti_bot": false,
@@ -871,7 +1108,9 @@
     "max_session_unlimited": true,
     "fast_boot": false,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "snapshot",
+    "whole_disk": "diy"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -901,23 +1140,22 @@
     }
   ],
   "caveats": [
-    "CPU is priced per physical core = 2 vCPU; vcpu_h is the per-core price / 2. The SDK documents cpu= as \"The number of CPU cores allocated to the container. Default is 1.0\" (default memory 128 MiB), so cpu=1 = 1 billed core = 2 vCPU as priced. Whether a 'core' in the SDK is a full physical core (2 hyperthreads) is not stated explicitly.",
-    "Dated price change: Beam blogs of June 2026 quote sandbox CPU $0.0000528/core-s ($0.19/core-h) and RAM $0.0000056/GB-s; current page $0.0000375 and $0.0000064 (CPU -29%, RAM +14%).",
-    "Sandbox CPU/RAM are 3x the serverless container rate (alt mode). The page's cost calculator uses the serverless rate, not the sandbox rate.",
-    "free.monthly_credit set null (2026-09-28): the $30/month Developer credit appears on the 2026-08-29 Wayback capture of beam.cloud/pricing but not on 2026-09-12 or the live page; legacy-account entitlement unknown, so no credit is deducted. https://web.archive.org/web/20260829214155/https://www.beam.cloud/pricing , https://web.archive.org/web/20260912172148/https://www.beam.cloud/pricing",
-    "Idle keep_warm TTL tail is billed at full rate until expiry (sandbox examples 30 min-2 h; -1 never expires).",
-    "Snapshots (filesystem images and memory snapshots) included free; volumes free up to 1 TB then $0.021/GB-month; egress free.",
+    "CPU is priced per vCPU on three tiers (pricing page 2026-11-08): Spot $0.0063/vCPU-h + $0.00135/GiB-h (interruptible, 30 s notice), Shared $0.011 + $0.0055 (shared vCPUs, max 8 vCPU / 16 GiB), Performance $0.05 + $0.01 (dedicated). New accounts default to Performance. The same tier rates apply to sandboxes and VMs.",
+    "Dated price change: the 2026-09-28 sheet priced sandboxes per physical core (= 2 vCPU) at $0.0675/vCPU-h + $0.02304/GiB-h, and serverless at 1/3 of that. The 2026-11-08 sheet is per vCPU, and serverless CPU equals the sandbox Performance rate.",
+    "Developer plan: $20/month with $20 of monthly credit (pricing page 2026-11-08). The 2026-09-28 sheet had a $0 Developer plan.",
+    "Plan limits count concurrent vCPUs across VMs, sandboxes and serverless apps (30 Developer, 1,000 Team), not containers. Four 8-vCPU sandboxes need Team.",
+    "Idle keep_warm TTL tail is billed at full rate until expiry (Python Sandbox default lifetime 600 s; -1 never expires).",
+    "Storage (volumes, snapshots, VM disks) is not billed yet; the planned rate is $0.0001/GB-hour with no free allowance (https://docs.beam.cloud/v2/resources/pricing-and-billing.md). Egress is free on every plan.",
     "Sandbox GPU pricing is not published; the sandbox-gpu regime is left unpriced (gpu rates null). On-demand GPU machine prices conflict between pricing page and docs GPU page (pricing page used).",
-    "Isolation: default sandboxes are containers (security page 2026-10-14: \"Workloads run in isolated containers.\"; Beam's blog says gVisor; CLI prompt shows runc). The pricing FAQ still says \"non-root containers\" but the security page now says \"a custom image is not guaranteed to run as a non-root user\"; beam shell gives a root prompt, so root=true. No systemd in sandboxes (Beam VMs have systemd).",
-    "Max sandbox size and max lifetime unpublished. Workloads run in the US unless you choose a region \"where the platform offers one\"; no non-US region is listed anywhere, so every mode is US-only and eu_data_residency is unclear. No region multiplier published.",
+    "Isolation: default sandboxes are containers (Beam's blog says gVisor; CLI prompt shows runc). VMs and VM-backed sandboxes run in a CPU microVM. beam shell gives a root prompt, so root=true. No systemd in container sandboxes (Beam VMs have systemd).",
+    "Workloads run in the US \"unless you choose a specific region\" (security page); no region list is published, so every mode stays US-only and eu_data_residency is unclear. BYOC runs in your own AWS/GCP/Azure account and region.",
     "BYOC fee is per vCPU and excludes the cloud VM bill. Self-hosted beta9 (AGPL) has no Beam fee.",
-    "perf from benchmarks.json (computesdk cold start 105 ms, burst 1,324 ms, dax 64.9 s); no hpc CPU result.",
-    "unverified: may bill active CPU/RAM. Beam's sandbox docs say \"You only pay for what you use. Start small and scale up as needed.\" but no page says whether billing uses requested or consumed cpu/memory; alloc (requested) assumed as the upper bound.",
     "BYOC regime is a management fee only: add your own cloud bill (compute, storage, egress from AWS/GCP/Azure).",
-    "Sandbox root-filesystem size and price are not published (pricing/billing/sandbox-configuration pages re-checked 2026-09-28); only storage volumes are priced (free up to 1 TB, then $0.021/GB-month). Disk left unknown.",
-    "Durable disks: node-local SSD persistent directory snapshotted to object storage, single writer, attachable to Pod, function, endpoint, task_queue and Sandbox; price not published.",
-    "Sandbox(use_vm=True) runs a sandbox in a microVM instead of a container (\"Run the sandbox in its own virtual machine instead of a container. Only CPU sandboxes are supported;\", https://raw.githubusercontent.com/beam-cloud/beta9/main/sdk/src/beta9/abstractions/sandbox.py; docs VM overview: \"Container runtime, or microVM with `use_vm=True`\"). No separate rate is published for it, so it is assumed to bill at the sandbox rate and is not a separate mode; card isolation stays gvisor (the default).",
-    "Beam VMs (vm mode, added 2026-10-14) are a separate product from sandboxes: per-vCPU $0.004275/h + $0.0021375/GiB-h with a 50 GiB root disk included (pricing page). Whether a stopped VM's root disk or its snapshots are ever billed is not stated (storage is \"Included\" up to 1 TB); card-level storage fields stay as they are. VM concurrency limits are not published separately from plan container limits."
+    "Sandbox root-filesystem size is not published. Sandbox files survive a stop through create_image_from_filesystem() (an image id for the next sandbox) or an attached Volume / DurableDisk; persist_scope = snapshot.",
+    "Secrets in sandboxes and VMs are brokered: \"the guest receives a stable beam_secret_... placeholder\" and Beam substitutes the real value \"only in HTTPS request headers sent to approved hosts\" (https://docs.beam.cloud/v2/vm/secrets.md). Functions, endpoints, pods and image builds get plaintext env values.",
+    "Desktop, browser and computer-use SDK are documented for Beam VMs only (vm modes), not for sandboxes. Desktop is on by default from the CLI for fresh images; SDK callers set desktop=True.",
+    "Beam VM inbound: token-protected URLs and published TCP ports on a persistent public IPv6 address; no inbound IPv4 is listed, so IPv4-only clients cannot reach a raw TCP port. Sandbox URLs are public HTTPS with no built-in auth.",
+    "Spot modes: Spot sandboxes terminate when reclaimed (mounts survive, process state does not); Spot VMs keep disk and URLs but lose memory and must be restarted by hand."
   ],
   "sources": [
     "https://www.beam.cloud/pricing",
@@ -931,22 +1169,28 @@
     "https://docs.beam.cloud/v2/sandbox/networking.md",
     "https://docs.beam.cloud/v2/security/security.md",
     "https://docs.beam.cloud/v2/vm/overview",
-    "https://docs.beam.cloud/v2/vm/cli"
+    "https://docs.beam.cloud/v2/vm/cli",
+    "https://docs.beam.cloud/v2/resources/pricing-and-billing.md",
+    "https://docs.beam.cloud/v2/vm/configuration.md",
+    "https://docs.beam.cloud/v2/vm/desktop.md",
+    "https://docs.beam.cloud/v2/vm/secrets.md",
+    "https://docs.beam.cloud/v2/vm/networking.md",
+    "https://docs.beam.cloud/v2/sandbox/snapshots.md"
   ],
   "fleet": {
-    "default_max_instances": 30,
-    "default_max_vcpu": null,
-    "default_max_gpus": null,
+    "default_max_instances": null,
+    "default_max_vcpu": 30,
+    "default_max_gpus": 5,
     "raise": "self-serve",
     "raise_time_days": null,
     "verification": null,
-    "tiers": "Developer: 30 CPU containers and 5 GPU containers; Team ($89/month): 1,000 CPU containers and 50 GPU containers; Growth: unlimited CPU and 1,000+ GPU containers via contact.",
-    "notes": "default_max_instances refers to CPU-container concurrency. GPU-container allowance is not a GPU-unit quota, so default_max_gpus remains null. Team publishes a route to 50/300/1,000 CPU containers, subject to funding/capacity. No quota-increase turnaround stated.",
+    "tiers": "Developer ($20/month incl. $20 credit): 30 concurrent vCPUs and 5 concurrent GPUs; Team ($89/month): 1,000 vCPUs and 50 GPUs; Growth: custom limits via contact.",
+    "notes": "\"Concurrent vCPUs is the total CPU running at once across VMs, sandboxes, and serverless apps, not a count of containers.\" (pricing page). No quota-increase turnaround stated.",
     "sources": [
       "https://www.beam.cloud/pricing",
       "https://docs.beam.cloud/v2/resources/faq"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 1,
@@ -964,9 +1208,9 @@
     "snapshot_on_demand": {
       "value": true,
       "source": "https://docs.beam.cloud/v2/sandbox/snapshots.md",
-      "quote": "You can also create a memory snapshot of a running Sandbox, which will capture the state of the sandbox's memory - including all running processes and exposed ports.",
-      "note": "Two kinds: create_image_from_filesystem() (filesystem -> image id usable as base image for any Sandbox/app) and snapshot_memory() (memory + processes + exposed ports; SDK docstring says also GPU state). New sandboxes boot from them via Image.from_id / Sandbox().create_from_memory_snapshot(), i.e. fork. Snapshots are free per pricing page.",
-      "checked": "2026-09-29"
+      "quote": "You can use Snapshots as a base image for any other abstraction or Sandbox on Beam, using `Image.from_id`",
+      "note": "create_image_from_filesystem() returns an image id; snapshot_memory() \"captures the sandbox's process state and filesystem on supported runtimes\" (runtimes not listed). The docs do not mention GPU state. Storage is not billed yet (planned $0.0001/GB-hour). Beam VMs also fork and take filesystem restore points.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -977,40 +1221,40 @@
     },
     "egress_allowlist": {
       "value": true,
+      "level": "domain",
       "source": "https://docs.beam.cloud/v2/sandbox/networking.md",
-      "quote": "For more fine-grained control, you can specify an allow list of CIDR ranges that your Sandbox is permitted to connect to. All other outbound traffic will be blocked.",
-      "note": "block_network=True (no outbound) or allow_list of max 10 CIDRs (IPv4/IPv6), no hostnames. Updatable at runtime via update_network_permissions() without restart. Same for Pods.",
-      "checked": "2026-09-29",
-      "level": "ip"
+      "quote": "Allowlists accept up to 64 entries, including bare IPv4/IPv6 addresses and CIDRs.",
+      "note": "block_network or an allow list of up to 64 hostnames, wildcard domains (*.example.com, apex excluded), IPs or CIDRs. Hostname rules match TLS SNI on 443 or HTTP Host on 80; other TCP ports need IP/CIDR rules. Changes apply to a running sandbox or VM without restart.",
+      "checked": "2026-11-08"
     },
     "egress_http_rules": {
       "value": false,
       "source": "https://docs.beam.cloud/v2/sandbox/networking.md",
       "quote": "Must use proper CIDR notation (e.g., \"8.8.8.8/32\" for a single IP, \"10.0.0.0/8\" for a range)",
-      "note": "Only CIDR-level egress controls are documented; nothing at HTTP method/path/header level.",
-      "checked": "2026-09-29"
+      "note": "Hostname rules match only SNI/Host; nothing at HTTP method/path/header level is documented.",
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": false,
       "corrected_from": true,
       "source": "https://docs.beam.cloud/v2/sandbox/networking.md",
       "quote": "Exposed sandbox URLs are public. Add authentication inside the application before exposing sensitive data or operations.",
-      "note": "Sandboxes: you only choose which ports to expose (ports=[...] or expose_port()); the docs now state the URLs are public and that outbound restrictions do not authenticate inbound requests. The SDK still has an undocumented `authorized` flag (\"Whether the sandbox should be authorized for external access. Default is False.\", https://raw.githubusercontent.com/beam-cloud/beta9/main/sdk/src/beta9/abstractions/sandbox.py) but the docs give it no auth effect, so it is not counted. No IP allowlist for inbound. Beam VMs (vm mode) do have token-protected ports (`--protected-port PORT`: \"Publish a token-protected port\", https://docs.beam.cloud/v2/vm/cli), set on that mode.",
-      "checked": "2026-10-14"
+      "note": "Sandboxes: exposed URLs are public; the docs say to add authentication inside the application. Beam VMs (vm modes) have token-protected URLs (--protected-port; terminal and desktop protected; browser links time-limited 1-3600 s) (https://docs.beam.cloud/v2/vm/networking.md). Not counted at card level because the default sandbox has no inbound auth.",
+      "checked": "2026-11-08"
     },
     "secret_proxy": {
-      "value": false,
-      "source": "https://docs.beam.cloud/v2/sandbox/configuration.md",
-      "quote": "You can attach secrets to your sandbox using Beam's secret management system - they will be exposed as environment variables inside the Sandbox",
-      "note": "Secrets are only env vars inside the container; no credential-injecting egress proxy documented.",
-      "checked": "2026-09-29"
+      "value": true,
+      "source": "https://docs.beam.cloud/v2/vm/secrets.md",
+      "quote": "the worker substitutes the real value only in HTTPS request headers sent to approved hosts",
+      "note": "Applies to sandbox and VM runtime bindings: the guest sees a beam_secret_... placeholder. Limit: substitution happens only in HTTPS headers, not in query strings or bodies. Ordinary containers, pods, functions, endpoints, task queues and image builds get plaintext env values. Sandbox config page: runtime secrets \"receive placeholders, substituted only in HTTPS headers to approved hosts\".",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": true,
       "source": "https://docs.beam.cloud/v2/sandbox/configuration.md",
       "quote": "Mount fast storage volumes to persist files between sessions",
-      "note": "Three kinds attachable to a Sandbox: distributed Volumes, CloudBucket (your S3-compatible bucket), DurableDisk (node-local SSD snapshotted to object storage, 'The `disks` parameter is accepted by ... Sandbox'). Volumes free to 1 TB then $0.021/GB-month.",
-      "checked": "2026-09-29"
+      "note": "Volumes, CloudBucket (your S3-compatible bucket) and DurableDisk attach to a Sandbox. Storage is not billed yet; planned $0.0001/GB-hour (https://docs.beam.cloud/v2/resources/pricing-and-billing.md).",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -1023,22 +1267,22 @@
       "value": false,
       "source": "https://docs.beam.cloud/v2/security/security.md",
       "quote": "Workloads run in isolated containers. The effective user depends on the image and runtime configuration; a custom image is not guaranteed to run as a non-root user.",
-      "note": "Default sandboxes are gVisor/runc containers (card isolation: gvisor). No /dev/kvm or nested-virtualization capability is documented anywhere in the SDK/docs; a container sandbox does not expose hardware virtualization to the guest. The opt-in microVM runtimes (Sandbox(use_vm=True), Beam VMs) document no nested KVM either. not offered.",
-      "checked": "2026-10-14"
+      "note": "Default sandboxes are containers. No /dev/kvm or nested-virtualization capability is documented for sandboxes, VM-backed sandboxes or Beam VMs (VM overview, configuration and CLI pages, 2026-11-08).",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
       "source": "https://docs.beam.cloud/v2/sandbox/overview.md",
       "quote": "Sandboxes are ultra-fast, Python-native environments for running any workload - with GPUs, networking, and persistent storage - in seconds.",
-      "note": "Beam is a serverless compute/sandbox platform for running code, GPUs and containers; it has no browser (browser=false) or managed-browser product, so stealth/fingerprinting-evasion against bot detection is not offered. not offered: outside the product's scope.",
-      "checked": "2026-09-30"
+      "note": "Beam VMs have a Chrome desktop, but no stealth or fingerprint-evasion feature is documented.",
+      "checked": "2026-11-08"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://docs.beam.cloud/v2/sandbox/overview.md",
       "quote": "Sandboxes are ultra-fast, Python-native environments for running any workload - with GPUs, networking, and persistent storage - in seconds.",
-      "note": "No browser/computer-use product exists on Beam (browser=false, desktop=false); built-in CAPTCHA solving is not part of a general-purpose compute/sandbox platform. not offered: outside the product's scope.",
-      "checked": "2026-09-30"
+      "note": "No CAPTCHA-solving feature is documented for sandboxes or the VM desktop.",
+      "checked": "2026-11-08"
     },
     "egress_ip_type": {
       "value": "static-datacenter",
@@ -1072,8 +1316,8 @@
       "value": false,
       "source": "https://docs.beam.cloud/v2/agents/introduction.md",
       "quote": "Beam is launching a new type of agent framework that is stateful and has concurrency built-in.",
-      "note": "Beam's 'agents' feature is a petri-net orchestration framework (Bot/BotLocation/BotContext) for building YOUR OWN agents on top of Beam compute -- it is not a first-party API that drives a Beam-owned browser/computer-use/research agent. Beam has no browser or desktop product. not offered: outside the product's scope.",
-      "checked": "2026-09-30"
+      "note": "Beam's \"agents\" page is a framework to build your own agents; the VM desktop SDK drives the desktop but is not a Beam-run agent. Beam registers its MCP server with Claude Code, Codex and Cursor on your machine.",
+      "checked": "2026-11-08"
     },
     "lang_node": {
       "value": true,
@@ -1093,8 +1337,8 @@
       "value": true,
       "source": "https://docs.beam.cloud/v2/pod/networking.md",
       "quote": "Pods are served in a static IP range, making it possible to whitelist the Beam IP range from the client.",
-      "note": "Documented for Pods only ('For the static IP range, send us a message in Slack'): a fixed/static range rather than a dedicated single IP per machine, and Sandbox docs do not repeat this claim explicitly, but it indicates Beam's egress infrastructure uses a stable, whitelistable IP range rather than fully arbitrary rotating IPs.",
-      "checked": "2026-09-30"
+      "note": "Documented for Pods only (\"For the static IP range, send us a message in Slack\"). The VM networking page says the VM's IPv6 \"inbound address is not a fixed outbound source IP\".",
+      "checked": "2026-11-08"
     },
     "eu_data_residency": {
       "value": null,
@@ -1102,7 +1346,7 @@
       "source": "https://docs.beam.cloud/v2/security/security.md",
       "quote": "Customer workloads run in the United States unless you choose a specific region or compute pool where the platform offers one.",
       "note": "doubtful \"yes\" could not be confirmed: the page allows a non-US region \"where the platform offers one\" but names no EU region, and no other docs/pricing page lists one. Self-hosting (beta9) or BYOC in your own EU cloud account would keep data in the EU, but that is not hosted EU residency. Left unclear.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "root": {
       "value": true,
@@ -1116,71 +1360,71 @@
       "value": false,
       "source": "https://docs.beam.cloud/v2/reference/py-sdk.md",
       "quote": "SandboxInstance.terminate() Terminate the container associated with this sandbox instance.",
-      "note": "The SDK exposes only create()/terminate() (plus a keep_warm_seconds TTL and update_ttl()); there is no stop/pause/suspend call that freezes a running sandbox and later resumes it at reduced/no cost. The configuration docs' phrase 'pause and resume work' is just marketing for setting keep_warm_seconds=-1 (manual termination), not a real pause API - confirms no.",
-      "checked": "2026-09-30"
+      "note": "Sandboxes: only create()/terminate() plus a TTL; no pause call. Beam VMs (vm modes, pause_resume=true there): \"Pausing keeps both [disk and RAM], and resuming restores them\" (https://docs.beam.cloud/v2/resources/pricing-and-billing.md).",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
-      "source": "https://docs.beam.cloud/v2/getting-started/introduction.md",
-      "quote": "Beam lets you run functions, REST APIs, task queues, and sandboxes on CPUs and GPUs, end to end.",
-      "note": "Not offered: outside the product's scope. Beam is a code-execution/serverless-compute sandbox (process exec, filesystem, ports, GPUs); no VNC/RDP/graphical desktop is mentioned anywhere in the docs.",
-      "checked": "2026-09-30"
+      "source": "https://docs.beam.cloud/v2/vm/desktop.md",
+      "quote": "The desktop has a browser and Terminal launcher.",
+      "note": "Sandboxes: no desktop option is documented. Beam VMs (vm, vm-shared, vm-spot modes, desktop=true there) ship a browser Linux desktop; CLI creation includes it for fresh images, SDK callers set desktop=True.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
-      "source": "https://docs.beam.cloud/v2/getting-started/introduction.md",
-      "quote": "Beam lets you run functions, REST APIs, task queues, and sandboxes on CPUs and GPUs, end to end.",
-      "note": "Not offered: outside the product's scope. No managed/real browser is bundled or offered; the docs' web-scraping example just installs whatever scraping library the user chooses inside a plain Linux container.",
-      "checked": "2026-09-30"
+      "source": "https://docs.beam.cloud/v2/vm/desktop.md",
+      "quote": "On x86-64, the browser is Chrome; on ARM64 it is Firefox.",
+      "note": "Sandboxes: no bundled browser is documented (you can install one in the image). Beam VMs (vm modes, browser=true there) ship Chrome in the desktop.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
-      "source": "https://docs.beam.cloud/v2/getting-started/introduction.md",
-      "quote": "Beam lets you run functions, REST APIs, task queues, and sandboxes on CPUs and GPUs, end to end.",
-      "note": "Not offered: outside the product's scope. No screenshot+click desktop-driving API exists; Beam's 'agents' page is a petri-net task-orchestration framework, not a computer-use API.",
-      "checked": "2026-09-30"
+      "source": "https://docs.beam.cloud/v2/vm/desktop.md",
+      "quote": "Recording uses CPU encoding, with an FPS setting from 1 to 60.",
+      "note": "Beam VMs (vm modes, computer_use=true there) have a Python/JS SDK: screenshot(), click(), press() with X11 key names, and recording at 1-60 fps. Not documented for sandboxes.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
-      "source": "https://docs.beam.cloud/v2/sandbox/networking.md",
-      "quote": "url = sb.expose_port(8000) ... The URL will be something like: https://384ced3c-f837-4429-bada-39e0b965c9f4-8000.app.beam.cloud",
-      "note": "Sandboxes are reached only via SSL-terminated *.app.beam.cloud hostnames, not an assigned public IPv4 address. (Pods separately sit behind a shared static outbound IP range on request, but that's egress, not a per-machine public IPv4 - docs.beam.cloud/v2/pod/networking.md: 'Pods are served in a static IP range'.) Confirms no.",
-      "checked": "2026-09-30"
+      "source": "https://docs.beam.cloud/v2/vm/networking.md",
+      "quote": "When allocated, the VM's public IPv6 address appears in `beam vm new` and `beam vm get NAME`.",
+      "note": "Sandboxes reach the internet only through *.app.beam.cloud HTTPS URLs. Beam VMs get a persistent public IPv6 address, not IPv4.",
+      "checked": "2026-11-08"
     },
     "agent_harnesses": {
       "value": false,
       "source": "https://docs.beam.cloud/v2/getting-started/add-to-cursor-claude.md",
       "quote": "Claude Code",
-      "note": "The only Claude/Cursor integration is adding Beam's own documentation as an MCP tool inside a local Claude Code/Cursor session on the user's machine - not a preinstalled coding-agent template running inside a Beam sandbox. No page offers Claude Code/Codex/OpenCode as a sandbox template.",
-      "checked": "2026-09-30"
+      "note": "No Claude Code/Codex template preinstalled in a sandbox or VM is documented. Beam registers its own MCP server with local Claude Code, Codex and Cursor sessions.",
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
       "source": "https://docs.beam.cloud/v2/getting-started/installation.md",
       "quote": "You can install Beam on Windows using Windows Subsystem for Linux (WSL).",
       "note": "The only 'Windows' mention is running the local Beam CLI on a developer's Windows machine via WSL; the remote sandbox/container itself is Linux only (Ubuntu 22.04, per the CLI shell transcript). Not offered: outside the product's scope.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "macos": {
       "value": false,
       "source": "https://docs.beam.cloud/v2/getting-started/introduction.md",
       "quote": "Beam lets you run functions, REST APIs, task queues, and sandboxes on CPUs and GPUs, end to end.",
       "note": "Not offered: outside the product's scope. Beam runs customer workloads on AWS/GCP Linux infrastructure (docs.beam.cloud/v2/security/security.md: 'Beam runs on infrastructure provided by Amazon Web Services and Google Cloud'); no macOS machine type exists.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": false,
       "source": "https://docs.beam.cloud/v2/environment/custom-images.md",
       "quote": "base_image=\"docker.io/pytorch/pytorch:2.2.1-cuda12.1-cudnn8-devel\"",
-      "note": "No architecture flag or ARM/aarch64/Graviton option appears anywhere in the docs (custom-images, custom-registries, resources, py-sdk); base images and GPU examples are all standard x86_64 (CUDA) images, and the CLI shell transcript shows 'x86_64'. Treated as not offered.",
-      "checked": "2026-09-30"
+      "note": "No architecture option appears in the sandbox, VM configuration or VM CLI docs (2026-11-08). The VM desktop page mentions Firefox \"on ARM64\", but no page says how to choose ARM64, so arm64 stays false.",
+      "checked": "2026-11-08"
     },
     "sso": {
       "value": false,
       "source": "https://docs.beam.cloud/v2/security/security.md",
-      "quote": "All members of a workspace currently have the same permissions, and single sign-on is not yet available; remove members and rotate tokens when someone leaves your team.",
+      "quote": "single sign-on is not yet available",
       "note": "Explicit first-party statement that SSO is not yet available. Confirms no.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": "none",
@@ -1193,8 +1437,8 @@
       "value": false,
       "source": "https://www.computesdk.com/benchmarks",
       "quote": "burst of 100: p95 2944 ms, 100% started",
-      "note": "ComputeSDK sandbox benchmark 2026-09-25",
-      "checked": "2026-09-25"
+      "checked": "2026-09-25",
+      "note": "ComputeSDK sandbox benchmark 2026-09-25"
     },
     "usage_api": {
       "value": false,
@@ -1206,28 +1450,36 @@
     },
     "raw_tcp_inbound": {
       "value": false,
-      "corrected_from": true,
-      "source": "https://docs.beam.cloud/v2/sandbox/networking.md",
-      "quote": "You can run web services and expose them to the internet behind SSL-terminated endpoints.",
-      "note": "Exposed ports are reached only as https://<id>-<port>.app.beam.cloud URLs; no raw TCP/UDP port forwarding or public IP is documented for sandboxes (the on-demand mode already had raw_tcp_inbound=false). Beam VMs offer private TCP via vm.tunnel()/portForward() over the Beam CLI/SDK, which is not public inbound TCP.",
-      "checked": "2026-10-14"
+      "source": "https://docs.beam.cloud/v2/vm/networking.md",
+      "quote": "Published TCP ports use the same guest port number.",
+      "note": "Sandboxes: exposed ports are SSL-terminated HTTPS URLs only. Beam VMs (vm modes, raw_tcp_inbound=true there) publish TCP ports on a persistent public IPv6 address that survives stop/start and pause/resume; no inbound IPv4 and no inbound UDP are documented.",
+      "checked": "2026-11-08"
     },
     "auto_stop_idle": {
       "value": false,
       "corrected_from": true,
       "source": "https://docs.beam.cloud/v2/sandbox/configuration.md",
       "quote": "`keep_warm_seconds` is the sandbox's TTL, not an idle timeout that every command automatically resets.",
-      "note": "Matches the sandbox modes' auto_stop_idle=false: a sandbox runs (and bills) until terminate() or TTL expiry whether idle or not. Beam VMs (vm mode) do have an idle sleep timeout (`--ttl SECONDS`: \"Idle sleep timeout; unset or `0` keeps running.\"), set true on that mode only.",
-      "checked": "2026-10-14"
+      "note": "Sandbox TTL is not an idle timer. Beam VMs (vm modes) have an opt-in idle sleep (`--ttl SECONDS`, off by default) and opt-in auto-resume on access.",
+      "checked": "2026-11-08"
     },
     "regions": {
       "value": [
         "us"
       ],
       "source": "https://docs.beam.cloud/v2/security/security.md",
-      "quote": "Customer workloads run in the United States unless you choose a specific region or compute pool where the platform offers one.",
-      "note": "No list of non-US regions is published on the security, pricing, sandbox or VM pages (2026-10-14), so modes previously listing us/eu/asia were cut to us to match features.regions and locations.",
-      "checked": "2026-10-14"
+      "quote": "Customer workloads run in the United States unless you choose a specific region",
+      "note": "The security page allows choosing a region but names none; the pricing, sandbox and VM pages list no region (2026-11-08). Modes stay US-only. BYOC runs in your own cloud account and region.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "snapshot",
+      "source": "https://docs.beam.cloud/v2/sandbox/snapshots.md",
+      "quote": "`create_image_from_filesystem()` returns an **image ID** for `Image.from_id`",
+      "how": "call create_image_from_filesystem() before the sandbox ends and start the next sandbox from that image id; or attach a Volume / DurableDisk for files that must survive",
+      "effort": "low",
+      "note": "Beam VMs (vm modes) keep the whole root disk (50 GiB default, max 100 GiB) across stop/start: persist_scope = whole there. No snapshot retention period is published.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -1242,5 +1494,10 @@
   ],
   "locations_source": "https://docs.beam.cloud/v2/security/security.md",
   "locations_quote": "Customer workloads run in the United States unless you choose a specific region or compute pool where the platform offers one.",
-  "locations_checked": "2026-10-14"
+  "locations_checked": "2026-10-14",
+  "audit_2026_11_08": {
+    "applied": 14,
+    "source": "findings/beam.json checked against beam.cloud/pricing and docs.beam.cloud on 2026-11-08",
+    "reviewed": 20
+  }
 }

@@ -222,12 +222,12 @@
     "nested_virt": true,
     "root": true,
     "systemd": null,
-    "browser": false,
-    "desktop": false,
+    "browser": "diy",
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
-    "ssh": false,
+    "ssh": "diy",
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": true,
@@ -302,6 +302,9 @@
     "open_source=false for the platform; CLI/kraftkit/Terraform provider are open source (and the separate unikraft.org unikernel project).",
     "Launched 2024-04-02 as KraftCloud (Launch HN, closed beta); rebranded Unikraft Cloud; domain now unikraft.com.",
     "Re-checked 2026-09-28 (unikraft.com/pricing rendered in headless Chrome, unikraft.com/llms-full.txt): still no pay-as-you-go / per-instance / per-vCPU-hour rate; self-serve is only Hobby $0 / Team $39 / Pro $199 flat plans plus Enterprise custom. No PAYG regime can be carded.",
+    "Plan caps re-checked 2026-11-08 (unikraft.com/pricing rendered in headless Chrome): Hobby free / Team $39 / Pro $199; 2 / 8 / 24 running instances; total vCPUs 2 / 8 / 24; total memory 4 / 8 / 32 GiB; 5 / 50 / 5,000 standby instances; standby storage 8 / 15 GiB / 1 TiB; image storage 10 / 50 / 100 GiB. The quotas doc says live_instances is now an alias for live vCPUs. A plain fetch of the page shows no plan cards (client-side render).",
+    "SSH, desktop and browser need your own setup: official guides add sshd to the image behind a TLS service plus a local tunnel, and build a noVNC desktop image that is snapshotted after login. No built-in SSH endpoint, prebuilt desktop or computer-use agent.",
+    "SOC 2 Type II is company-wide (audit period July 2024 – July 2025), not Enterprise-only.",
     "Release 14 (2026-10-05): live vertical scaling of memory/vCPUs, full-VM templates + scale-to-zero, GPU snapshots (GPU released while stopped/standby) and NVIDIA vGPU are all marked \"Enterprise only\"; vertical scaling is \"coming soon to the hosted platform\" (Limited Access). CLI Dockerfile builds, autokill and the CLI/JS-SDK sandbox commands are not Enterprise-labelled. Checked 2026-10-14."
   ],
   "sources": [
@@ -320,7 +323,11 @@
     "https://unikraft.com/customer-stories/browser-use-sandboxing.md",
     "https://news.ycombinator.com/item?id=39902949",
     "https://unikraft.com/docs/features/vertical-scaling.md",
-    "https://unikraft.com/docs/sdks/js/sandboxes.md"
+    "https://unikraft.com/docs/sdks/js/sandboxes.md",
+    "https://unikraft.com/docs/guides/debian-ssh.md",
+    "https://unikraft.com/docs/cli/unikraft/instances/tunnel.md",
+    "https://unikraft.com/docs/use-cases/remote-desktops.md",
+    "https://unikraft.com/docs/guides/novnc-browser.md"
   ],
   "fleet": {
     "default_max_instances": 2,
@@ -335,7 +342,8 @@
       "https://unikraft.com/pricing",
       "https://unikraft.com/docs/platform/quotas.md"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-09-28",
+    "checked": "2026-11-08"
   },
   "feature_evidence": {
     "snapshot_auto": {
@@ -459,25 +467,41 @@
       "checked": "2026-09-30"
     },
     "ssh": {
-      "value": false,
-      "source": "https://unikraft.com/blog/metis-11-release",
-      "quote": "Coming soon: SSH directly into an instance, create and delete instances, and inspect the lifetime of an instance as you checkpoint or fork it — among other things.",
-      "note": "Still listed as 'coming soon' as of Release 11 and never mentioned as shipped in the later R12/R13 release notes or current docs (no /guides/ssh page exists, 404). Access today is via the exec/filesystem sandbox plugin (R14 adds `unikraft instance exec`/`shell` and a dashboard shell over it) or the CLI/API, not SSH.",
-      "checked": "2026-10-14"
+      "value": "diy",
+      "corrected_from": false,
+      "source": "https://unikraft.com/docs/guides/debian-ssh.md",
+      "quote": "You need to set up a tunnel that handles the TLS connection to the Unikraft Cloud instance.",
+      "how": "add an SSH server to your image, expose port 2222 as a TLS service, and connect through a local tunnel (socat or 'unikraft instances tunnel'); official guide, no built-in SSH endpoint",
+      "effort": "medium",
+      "note": "Official guide generated from the public unikraft-cloud/examples repo (deploy with -p 2222:2222/tls, then socat TCP-LISTEN:2222 ... OPENSSL:<fqdn>:2222 and ssh -l root localhost -p 2222). No plan restriction stated. Also https://unikraft.com/docs/cli/unikraft/instances/tunnel.md and the OpenClaw guide. Commands and files also go through the sandbox plugin (unikraft instance exec/shell).",
+      "checked": "2026-11-08"
     },
     "desktop": {
-      "value": false,
-      "source": "https://unikraft.com/ai.md",
-      "quote": "Unikraft Cloud runs workloads on minimal, Linux-based microVMs ... It runs any Docker-based workload",
-      "note": "Unikraft Cloud is an infrastructure platform for running any Dockerfile-based workload (incl. customer-run headless browsers) as a microVM; it does not itself offer a graphical desktop (VNC/RDP/stream) product. Plainly outside the product.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "corrected_from": false,
+      "source": "https://unikraft.com/docs/guides/novnc-browser.md",
+      "quote": "Remote desktops put a full Linux GUI behind a browser tab, which powers agentic computer-use workloads",
+      "how": "build the official noVNC example image (examples/novnc-browser) and open the desktop in a browser tab; no prebuilt desktop image or computer-use agent",
+      "effort": "medium",
+      "note": "Use-case page https://unikraft.com/docs/use-cases/remote-desktops.md: \"A whole desktop session (window manager, apps, browser)\" is \"snapshotted after login and resumed on connect\"; \"Branch a running desktop to hand someone an identical, already-configured session.\" It scales to zero on disconnect. No plan restriction stated. Resume time is a vendor figure (cold start < 10 ms).",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://unikraft.com/ai.md",
-      "quote": "### Browser Workloads\nIsolated sessions cold started in < 10 ms",
-      "note": "Customers (Kernel, Tinyfish, Browser Use) run their own headless browsers inside microVMs; Unikraft Cloud itself does not manage/provide a browser as a first-party feature — only the infra to host one from a Dockerfile.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "corrected_from": false,
+      "source": "https://unikraft.com/docs/use-cases/remote-desktops.md",
+      "quote": "A whole desktop session (window manager, apps, browser)",
+      "how": "put the browser in your Dockerfile image, or use the official noVNC desktop example that ships one; not a managed browser product",
+      "effort": "low",
+      "note": "Customers (Kernel, Tinyfish, Browser Use) run their own browsers in Unikraft microVMs. No managed browser API, anti-bot or CAPTCHA features.",
+      "checked": "2026-11-08"
+    },
+    "soc2": {
+      "value": true,
+      "source": "https://unikraft.com/llms-full.txt",
+      "quote": "SOC 2 Type II certified (Trust Services Criteria: Security; audit period July 2024 – July 2025).",
+      "note": "Company-wide attestation (trust.unikraft.com), not only an Enterprise line item. The pricing page lists 'SOC2 · HIPAA · audit logs' on Enterprise; HIPAA and audit logs stay Enterprise.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,

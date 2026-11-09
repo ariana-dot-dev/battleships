@@ -161,10 +161,10 @@
     "max_session_h": 24,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": false,
+    "nested_virt": null,
     "root": null,
     "systemd": null,
-    "browser": false,
+    "browser": null,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": null,
@@ -231,7 +231,7 @@
   },
   "knobs": [],
   "caveats": [
-    "50-concurrent eligibility and 8-hour idle/session policies not established.",
+    "Auto-shutdown: 1 h by default, 24 h at most per setting, renewed by re-entering the workspace. The workspace overview says high-performance workspaces have persistent online capability (持久在线能力); their limits are not documented (https://ide.cloud.tencent.com/docs/guide/code_editing/basic_operations/auto-shutdown/, https://cloud.tencent.com/document/api/1039/94098).",
     "Pack table skips 200–1999 machine-hour range; do not interpolate. Tax and network/storage prices not stated.",
     "Unknowns remain null, not free. The IDE pay-as-you-go workspace is an ordinary self-serve instance (not flagged alt); re-verified 2026-09-28 at https://cloud.tencent.cn/document/product/1039/131894 (CNY 0.1-7/h, 1C2G-64C128G, billed on usage duration from account balance).",
     "Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.",
@@ -239,14 +239,20 @@
     "Residency: Tencent account binding required; exact runtime/data region choice not verified.",
     "Billing runs whenever an IDE-mode tab (/a/{appid}/edit or /learn) is open, even with no process running and even if the tab is minimized; after all tabs are closed the machine is released only after ~10 min (billed). Default auto-shutdown timer is 1 h, max 24 h.",
     "Overage is on by default: when a pack runs out the app is NOT stopped and usage switches to pay-as-you-go from the Tencent Cloud balance; when the account balance is insufficient the workspace is shut down early.",
-    "Using compute requires a bound Tencent Cloud account plus real-name (PRC ID) authentication; unverified accounts cannot use some compute."
+    "Using compute requires a bound Tencent Cloud account plus real-name (PRC ID) authentication; unverified accounts cannot use some compute.",
+    "API: create, modify, run, stop, delete and list workspaces, issue access tokens, list images; 20 requests/s per action. No action runs a command (https://cloud.tencent.com/document/api/1039/94107).",
+    "Storage is kept after a stop until the workspace is deleted. Old-version workspaces with no activity for 6 months may be deleted. Fork (复刻) copies an app for a backup; no point-in-time snapshots.",
+    "50-concurrent eligibility is not established."
   ],
   "sources": [
     "https://cloud.tencent.cn/document/product/1039/131894",
     "https://cloud.tencent.com/document/product/1039/131770",
     "https://ide.cloud.tencent.com/docs/guide/product_updates/version_comparison/",
     "https://cloud.tencent.com/document/api/1039/94098",
-    "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html"
+    "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html",
+    "https://ide.cloud.tencent.com/docs/guide/code_editing/FAQ/other-question/",
+    "https://cloud.tencent.com/document/api/1039/94107",
+    "https://www.codebuddy.ai/docs/cli/overview"
   ],
   "audit_2026_09_29": {
     "applied": 9,
@@ -259,14 +265,14 @@
       "source": "https://ide.cloud.tencent.com/docs/guide/code_editing/basic_operations/auto-shutdown/",
       "quote": "超过 24 小时的连续运行，须在到期前重新进入空间续设时长，否则任务将随到期关机而中断。",
       "note": "Translation: 'continuous runs over 24 h must renew the timer before expiry, otherwise the task is interrupted by the shutdown.' Auto-shutdown (default 1 h, max 24 h) and closing all IDE tabs (released after ~10 min) stop the workspace and kill running processes; only the disk persists: API intro says '工作空间休眠或关闭后仍保留存储资源，删除后才会释放' (storage kept after sleep/stop until deletion, https://cloud.tencent.com/document/api/1039/94098). That is persistent_disk, not a snapshot; no memory checkpoint documented. Old-version free high-performance (GPU/HAI) workspaces idle >30 days after last shutdown are released and data destroyed (https://cloud.tencent.cn/document/product/1039/118036); old-version workspaces with no activity for 6 months may be purged.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
       "source": "https://cloud.tencent.com/document/api/1039/94098",
       "quote": "您可以调用 API 对 Cloud Studio 的工作空间进行管理，例如创建、修改、停止或查询工作空间等。",
-      "note": "Translation: 'You can use the API to manage Cloud Studio workspaces, e.g. create, modify, stop or query them.' The API overview (94107) lists only 9 workspace-management actions; nothing starts/streams an agent. CodeBuddy (IDE plugin, Craft agent) and CodeBuddy Code CLI ('codebuddy -p', '-c', '-r <session>') are preinstalled inside the workspace (500 credits/month), usable only from the in-browser IDE/terminal; that is agent_harnesses, not a harness API. CreateWorkspace Lifecycle init/start/destroy shell hooks are generic commands.",
-      "checked": "2026-09-29"
+      "note": "Translation: the API manages workspaces (create, modify, run, stop, delete, list, tokens, images; 20 requests/s per action). No action runs a command or prompts an agent. CodeBuddy (editor plugin) is preinstalled with 500 credits/month. CodeBuddy Code CLI has a headless mode and Python/TypeScript SDKs (https://www.codebuddy.ai/docs/cli/overview) and can run inside a workspace, but only from the in-browser terminal; the workspace API cannot start it from outside.",
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": true,
@@ -297,45 +303,45 @@
       "checked": "2026-09-30"
     },
     "nested_virt": {
-      "value": false,
+      "value": null,
       "source": "https://ide.cloud.tencent.com/docs/guide/product_updates/version_comparison/",
       "quote": "内置 Docker，更适合一键启动项目",
-      "note": "not offered: outside the product's scope — a browser IDE container product; no /dev/kvm or nested-VM capability documented, only Docker-inside for containers.",
-      "checked": "2026-09-30"
+      "note": "The docs confirm built-in Docker only. They do not state whether /dev/kvm or nested virtualization is available. Not documented, so null.",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
-      "source": "https://cloud.tencent.cn/document/product/1039/131894",
-      "quote": "Cloud Studio（云端 IDE）是腾讯云提供的一款基于浏览器的集成式开发环境（IDE）",
-      "note": "not offered: outside the product's scope — a browser-based code IDE, not a graphical desktop/VNC/RDP product.",
-      "checked": "2026-09-30"
+      "source": "https://ide.cloud.tencent.com/docs/guide/code_editing/FAQ/other-question/",
+      "quote": "turtle 依赖交互式图形界面渲染，在 CloudStudio 环境中暂不支持。",
+      "note": "Translation: turtle needs interactive graphics rendering and is not supported in Cloud Studio yet. No built-in desktop. Preview links forward HTTP and WebSocket, so a user could try a virtual display (Xvfb + noVNC) through a preview link, but no Cloud Studio doc shows this path.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
+      "value": null,
       "source": "https://ide.cloud.tencent.com/docs/guide/code_editing/productivity_plugin/port-plug/",
       "quote": "Web 预览用于在工作空间内快速查看页面效果。",
-      "note": "The 'Web 预览' port plugin is an in-IDE iframe preview of an app's own HTTP port, not a general-purpose managed/automatable browser inside the sandbox. not offered: outside the product's scope.",
-      "checked": "2026-09-30"
+      "note": "Web Preview shows the app's own HTTP port inside the IDE. No managed browser is shipped. The docs do not show or rule out a browser installed in the workspace, so null.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://cloud.tencent.cn/document/product/1039/131894",
       "quote": "Cloud Studio（云端 IDE）是腾讯云提供的一款基于浏览器的集成式开发环境（IDE）",
-      "note": "not offered: outside the product's scope — a code editor/IDE product, no screenshot+click desktop-driving API.",
-      "checked": "2026-09-30"
+      "note": "No built-in desktop and no screenshot/click API. See desktop.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
       "source": "https://cloud.tencent.cn/document/product/1039/131894",
       "quote": "Cloud Studio（云端 IDE）是腾讯云提供的一款基于浏览器的集成式开发环境（IDE）",
-      "note": "not offered: outside the product's scope — a dev-environment IDE, not a scraping/browser-automation product.",
+      "note": "Not documented for this product: a dev-environment IDE, not a scraping/browser-automation product.",
       "checked": "2026-09-30"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://cloud.tencent.cn/document/product/1039/131894",
       "quote": "Cloud Studio（云端 IDE）是腾讯云提供的一款基于浏览器的集成式开发环境（IDE）",
-      "note": "not offered: outside the product's scope — a code editor/IDE product, not a scraping/automation product.",
+      "note": "Not documented for this product: a code editor/IDE product, not a scraping/automation product.",
       "checked": "2026-09-30"
     },
     "egress_ip_type": {
@@ -391,14 +397,14 @@
       "value": false,
       "source": "https://cloud.tencent.com/document/api/1039/94098",
       "quote": "工作空间：一个包含独立存储、计算资源与开发环境的虚拟单元",
-      "note": "not offered: outside the product's scope — each workspace has one bundled storage unit; no separate attachable/detachable volume resource or API is documented.",
+      "note": "Not documented for this product: each workspace has one bundled storage unit; no separate attachable/detachable volume resource or API is documented.",
       "checked": "2026-09-30"
     },
     "volume_shared": {
       "value": false,
       "source": "https://cloud.tencent.com/document/api/1039/94098",
       "quote": "工作空间：一个包含独立存储、计算资源与开发环境的虚拟单元，用于隔离不同项目或团队成员。",
-      "note": "not offered: outside the product's scope — storage is described as isolated per workspace; no shared-volume-across-machines capability documented.",
+      "note": "Not documented for this product: storage is described as isolated per workspace; no shared-volume-across-machines capability documented.",
       "checked": "2026-09-30"
     },
     "live_resize": {
@@ -412,7 +418,7 @@
       "value": false,
       "source": "https://cloud.tencent.com/document/api/1039/94098",
       "quote": "集成 GPU 算力、AI 代码助手、实时协作及云原生部署能力",
-      "note": "The bundled 'AI 代码助手' (CodeBuddy) is a coding agent/harness inside the IDE, not a first-party API driving the provider's own browser/computer-use/research task agent. not offered: outside the product's scope.",
+      "note": "The bundled 'AI 代码助手' (CodeBuddy) is a coding agent/harness inside the IDE, not a first-party API driving the provider's own browser/computer-use/research task agent. Not documented for this product.",
       "checked": "2026-09-30"
     },
     "mcp_server": {
@@ -447,14 +453,14 @@
       "value": false,
       "source": "https://cloud.tencent.com/document/api/1039/94098",
       "quote": "Cloud Studio 支持的所有接口信息，请参见 API 概览。",
-      "note": "not offered: outside the product's scope — no egress allow/deny-list, security-group, or no-internet-mode control is documented for workspaces.",
+      "note": "Not documented for this product: no egress allow/deny-list, security-group, or no-internet-mode control is documented for workspaces.",
       "checked": "2026-09-30"
     },
     "egress_http_rules": {
       "value": false,
       "source": "https://cloud.tencent.com/document/api/1039/94098",
       "quote": "Cloud Studio 支持的所有接口信息，请参见 API 概览。",
-      "note": "not offered: outside the product's scope — no HTTP method/path-level egress rule capability is documented.",
+      "note": "Not documented for this product: no HTTP method/path-level egress rule capability is documented.",
       "checked": "2026-09-30"
     },
     "guest_firewall": {
@@ -468,21 +474,21 @@
       "value": false,
       "source": "https://cloud.tencent.cn/document/product/1039/131894",
       "quote": "Cloud Studio（云端 IDE）是腾讯云提供的一款基于浏览器的集成式开发环境（IDE）",
-      "note": "not offered: outside the product's scope — no fixed/dedicated outbound IP product documented for workspaces.",
+      "note": "Not documented for this product: no fixed/dedicated outbound IP product documented for workspaces.",
       "checked": "2026-09-30"
     },
     "windows": {
       "value": false,
       "source": "https://cloud.tencent.com/document/api/1039/94098",
       "quote": "预置多种主流开发环境（如 Java、Python、Node.js 等），并集成 GPU 算力、AI 代码助手",
-      "note": "not offered: outside the product's scope — a Linux-only browser IDE (card OS list is ['linux']); no Windows workspace option documented.",
+      "note": "Not documented for this product: a Linux-only browser IDE (card OS list is ['linux']); no Windows workspace option documented.",
       "checked": "2026-09-30"
     },
     "macos": {
       "value": false,
       "source": "https://cloud.tencent.com/document/api/1039/94098",
       "quote": "预置多种主流开发环境（如 Java、Python、Node.js 等），并集成 GPU 算力、AI 代码助手",
-      "note": "not offered: outside the product's scope — a Linux-only browser IDE; no macOS machine option documented.",
+      "note": "Not documented for this product: a Linux-only browser IDE; no macOS machine option documented.",
       "checked": "2026-09-30"
     },
     "arm64": {
@@ -496,14 +502,14 @@
       "value": false,
       "source": "https://cloud.tencent.cn/document/product/1039/131894",
       "quote": "Cloud Studio（云端 IDE）是腾讯云提供的一款基于浏览器的集成式开发环境（IDE）",
-      "note": "not offered: outside the product's scope — a single multi-tenant Tencent Cloud SaaS product; no self-hosted/on-prem distribution documented.",
+      "note": "Not documented for this product: a single multi-tenant Tencent Cloud SaaS product; no self-hosted/on-prem distribution documented.",
       "checked": "2026-09-30"
     },
     "byoc": {
       "value": false,
       "source": "https://cloud.tencent.cn/document/product/1039/131894",
       "quote": "Cloud Studio（云端 IDE）是腾讯云提供的一款基于浏览器的集成式开发环境（IDE）",
-      "note": "not offered: outside the product's scope — no bring-your-own-cloud-account deployment model documented.",
+      "note": "Not documented for this product: no bring-your-own-cloud-account deployment model documented.",
       "checked": "2026-09-30"
     },
     "open_source": {
@@ -517,21 +523,21 @@
       "value": false,
       "source": "https://cloud.tencent.cn/document/product/1039/131894",
       "quote": "Cloud Studio（云端 IDE）是腾讯云提供的一款基于浏览器的集成式开发环境（IDE）",
-      "note": "not offered: outside the product's scope — a mainland-China consumer/education-oriented dev-IDE product requiring real-name (PRC ID) account binding; no SOC 2 attestation page found for this specific product.",
+      "note": "Not documented for this product: a mainland-China consumer/education-oriented dev-IDE product requiring real-name (PRC ID) account binding; no SOC 2 attestation page found for this specific product.",
       "checked": "2026-09-30"
     },
     "hipaa": {
       "value": false,
       "source": "https://cloud.tencent.cn/document/product/1039/131894",
       "quote": "Cloud Studio（云端 IDE）是腾讯云提供的一款基于浏览器的集成式开发环境（IDE）",
-      "note": "not offered: outside the product's scope — a China-market dev-IDE product with no HIPAA/BAA documentation.",
+      "note": "Not documented for this product: a China-market dev-IDE product with no HIPAA/BAA documentation.",
       "checked": "2026-09-30"
     },
     "sso": {
       "value": false,
       "source": "https://cloud.tencent.com/document/api/1039/94098",
       "quote": "免费高性能工作空间暂不支持 API 调用。",
-      "note": "not offered: outside the product's scope — access is via Tencent Cloud account binding plus PRC real-name authentication; no SAML/OIDC SSO capability documented for Cloud Studio.",
+      "note": "Not documented for this product: access is via Tencent Cloud account binding plus PRC real-name authentication; no SAML/OIDC SSO capability documented for Cloud Studio.",
       "checked": "2026-09-30"
     },
     "fork": {
@@ -546,7 +552,7 @@
       "source": "https://ide.cloud.tencent.com/docs/guide/code_editing/FAQ/other-question/",
       "quote": "4）是否支持 SSH 直连？ 目前不支持直接 SSH 连接。",
       "note": "Official FAQ ('4) Is direct SSH connection supported? Currently direct SSH connection is not supported.') explicitly rules out SSH. Only HTTP/WebSocket port-preview URLs are exposed (port-plug doc); the in-browser terminal and git-plugin SSH-key setup are for git remotes, not inbound SSH to the workspace. Confirms card's false.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "eu_data_residency": {
       "value": false,
@@ -574,5 +580,10 @@
   "locations": [],
   "locations_source": "https://cloud.tencent.cn/document/product/1039/131894",
   "locations_quote": "Cloud Studio is a browser-based IDE running on Tencent Cloud mainland China/Asia datacenter infrastructure; exact runtime region selection not documented.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 5,
+    "source": "findings/tencent-cloud-studio.json; FAQ re-checked live",
+    "reviewed": 8
+  }
 }

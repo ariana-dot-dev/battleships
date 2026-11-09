@@ -14,7 +14,7 @@ Now branded T Cloud Public. Official service description revised 2026-08-17 has 
 | reserved-3y | s9.xlarge.2 36 months | See rule | EUR 62.03/month OR EUR 2084 total upfront. | https://www.open-telekom-cloud.com/en/prices |
 ## Gotchas
 - Stopped ECS, disk/snapshot and egress details not normalized.
-- Credits expire two months after contract and redemption deadline is 2026-12-31.
+- EUR 250 sign-up credit: "Voucher can be redeemed until 31 December 2026 and expires two months after conclusion of the contract." (https://www.t-cloud-public.com/en, checked 2026-11-08).
 - Annual upfront versus monthly commitment cannot be modeled with zero-runtime months by simple hourly rates.
 - Unknowns remain null, not free; generic infrastructure modes are opt-in alt.
 - Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.

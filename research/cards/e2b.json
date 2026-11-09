@@ -80,7 +80,7 @@
       "note": "$100 one-time credit (see free); account blocked when exhausted. 10 GiB disk. 1 create/s. Max continuous runtime 1 h, resets on pause/resume. Pricing page says 'Default sandbox CPU and RAM' vs docs 8 vCPU/8 GiB max (conflict).",
       "flags": [],
       "max_starts_per_min": 60,
-      "note (append)": "Hobby runs in US (us-west1) only; EU and APAC are 'Pro plan and above' after contacting support."
+      "note (append)": "Hobby runs in US (us-west1) by default. E2B offers its shared EU cluster on every plan once the workspace adds a payment method; support enables it (https://docs.e2b.dev/faq/eu-region, checked 2026-11-08). APAC is enabled by support."
     },
     {
       "name": "Pro",
@@ -93,10 +93,10 @@
       "max_vcpu": 8,
       "max_ram_gib": 8,
       "sizes_allowed": null,
-      "note": "Fee buys limits only, no credits. 20 GiB disk, 5 creates/s. '8+' vCPU/GiB on request. EU/Asia region on request.",
+      "note": "Fee buys limits only, no credits. 20 GiB disk, 5 creates/s. '8+' vCPU/GiB on request. EU (every plan with a payment method) and APAC regions enabled by support.",
       "flags": [],
       "max_starts_per_min": 300,
-      "note (append)": "Plan and fee are per project, and each project is pinned to one region (US us-west1, EU europe-west1, APAC asia-southeast1; EU/APAC Pro and above via support). Running in two regions, or splitting workloads across projects, means a separate $150 Pro fee (and separate concurrency pool / add-ons) per project. Consolidated workspace billing is 'on the roadmap'."
+      "note (append)": "Plan and fee are per project, and each project is pinned to one region (US us-west1, EU europe-west1, APAC asia-southeast1; EU on every plan with a payment method, enabled by support). Running in two regions, or splitting workloads across projects, means a separate $150 Pro fee (and separate concurrency pool / add-ons) per project. Projects in every region are managed in one console since 2026-09-28 (https://docs.e2b.dev/changelog); consolidated workspace billing is 'on the roadmap'."
     },
     {
       "name": "Pro+ (600 concurrent)",
@@ -217,7 +217,7 @@
     "anti_bot": false,
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
-    "ip_note": "Egress from rotating ephemeral Google Cloud IPs, no static IP on any plan; BYO SOCKS5 proxy / IP tunneling supported. Managed browser (CDP, stealth, CAPTCHA, residential proxies) only via partner Kernel, not E2B itself.",
+    "ip_note": "Egress from rotating ephemeral Google Cloud IPs, no static IP on any plan. Bring-your-own SOCKS5 egress proxy (network.egressProxy, private beta per changelog 2026-10-05) or IP tunneling gives a fixed IP you operate. Managed browser (CDP, stealth, CAPTCHA, residential proxies) via partner Kernel, not E2B itself.",
     "isolation": "firecracker",
     "image_oci": true,
     "snapshot_auto": true,
@@ -232,15 +232,16 @@
     "own_agent_api": false,
     "fast_boot": true,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "whole"
   },
   "perf": {
-    "cpu_runs_s": 12.61,
+    "cpu_runs_s": 11.08,
     "cold_start_ms": 575.51,
-    "burst_tti_ms": 1237.69,
-    "dax_s": 77.09
+    "burst_tti_ms": 1134.37,
+    "dax_s": 99.72
   },
-  "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
+  "perf_source": "CPU 11.08 runs/s: V8 Web Tooling Benchmark (Phoronix node-web-tooling), StarSling hpc-sandbox-benchmarks run 37073680030 (2026-10-03), row \"E2B\", median of 5 sandboxes at a 4 vCPU / 8 GB target, rank 7 of 15 (shared: the run cannot separate it from the providers at the same rank). https://github.com/starslingdev/hpc-sandbox-benchmarks/blob/297198a96ee827df5edcd918bd37b949526cfe20/LEADERBOARD.md ComputeSDK (each provider at its SDK default size and runtime): burst 1.13 s median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 99.72 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86); one-at-a-time start 576 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [
     {
       "id": "running_pct",
@@ -343,14 +344,14 @@
       "source": "https://docs.e2b.dev/sandbox/auto-resume.md",
       "quote": "| | `\"pause\"` | Sandbox is paused (full memory + filesystem snapshot) when timeout is reached |",
       "note": "Opt-in: lifecycle.onTimeout defaults to 'kill' (destructive); with onTimeout:'pause' the sandbox is snapshotted (memory + filesystem, running processes survive) when its timeout expires, and autoResume:true wakes it on the next SDK call or HTTP request. Object form onTimeout: { action: 'pause', mode: 'filesystem' } = filesystem-only (\"dropping memory so resume reboots the sandbox\", https://docs.e2b.dev/sandbox/persistence); keepMemory:false is \"deprecated but still works\". Paused sandboxes kept indefinitely.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://docs.e2b.dev/sandbox/snapshots.md",
       "quote": "Snapshots let you create a persistent point-in-time capture of a running sandbox, including both its filesystem and memory state.\nYou can then use a snapshot to spawn new sandboxes that start from the exact same state.",
-      "note": "createSnapshot (memory + filesystem; source briefly paused, same id); one snapshot spawns many sandboxes. Also sandbox.fork (up to 20 per call: \"With the SDKs and the CLI you can request up to 20 forks at once.\", https://docs.e2b.dev/sandbox/fork) from a running sandbox with memory, and manual pause() (memory by default; disk only with \"pass `mode: 'filesystem'`\", the older keepMemory:false form deprecated, https://docs.e2b.dev/sandbox/persistence).",
-      "checked": "2026-10-14"
+      "note": "createSnapshot saves memory + filesystem, or the filesystem only (changelog 2026-10-12: 'Pass 'filesystem' for smaller, faster snapshots that save only the filesystem and boot fresh.'); the source is briefly paused and keeps its id; one snapshot starts many sandboxes. Also sandbox.fork (1 to 20 per call, changelog 2026-10-05) from a running sandbox with memory, and manual pause() (memory by default; filesystem only with mode 'filesystem'; keepMemory:false deprecated, https://docs.e2b.dev/sandbox/persistence).",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -457,7 +458,7 @@
       "source": "https://docs.e2b.dev/sandbox/fork",
       "quote": "The sandbox is snapshotted in place — paused, captured with its full filesystem and memory state, and resumed — and new sandboxes boot from that snapshot... The original sandbox keeps running with its ID and expiration untouched.",
       "note": "sandbox.fork() (and Sandbox.fork by id) clones a running sandbox into new running sandboxes with memory+filesystem intact, with only a brief pause on the original. Up to 20 per call: \"With the SDKs and the CLI you can request up to 20 forks at once.\" (changelog 2026-10-05: SDKs \"reject a fork count outside 1 to 20\"); the count must also stay below the team's concurrency limit since the original keeps a slot.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -537,6 +538,22 @@
       "note": "granularity: account-only; E2B bills per vCPU-second and GB-second, but offers no REST API, SDK method, or CLI command to fetch billable usage per sandbox or group. The console usage tab is UI-only. Sandbox metrics endpoint returns live resource monitoring (CPU%, memory, disk), not consumption charges. Team metrics endpoint returns operational statistics, not billing data.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://docs.e2b.dev/sandbox/persistence",
+      "quote": "A paused sandbox is kept indefinitely.",
+      "how": "call pause() or set lifecycle onTimeout to 'pause' (the default is 'kill'); the whole filesystem, and memory unless mode is 'filesystem', comes back on resume",
+      "effort": "low",
+      "note": "Pause is E2B's stop: 'When you pause a sandbox, both the sandbox's filesystem and memory state will be saved.' No TTL; removed only on kill. With the default onTimeout 'kill', the sandbox and its files are deleted at timeout.",
+      "checked": "2026-11-08"
+    },
+    "self_host": {
+      "value": true,
+      "source": "https://docs.e2b.dev/changelog",
+      "quote": "Run E2B on your infrastructure with Docker Compose, Terraform, or Kubernetes deployments and pinned service images.",
+      "note": "E2B Embed, changelog 2026-09-14; a single-node Azure Terraform module was added 2026-10-12. Separate from Enterprise BYOC.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -566,7 +583,12 @@
     }
   ],
   "locations_source": "https://docs.e2b.dev/faq/eu-region",
-  "locations_quote": "E2B offers a shared EU cluster for customers on the Pro tier and above.",
-  "locations_note": "Region ids (us-west1, europe-west1, asia-southeast1) come from earlier research; E2B's current pages name no city or country for the EU cluster, so the EU city is null (Google's europe-west1 is in Belgium, not Frankfurt; country left as an EU placeholder). The changelog (2026-09-28) confirms US, EU and APAC projects. A managed US West (AWS us-west-2) region on every plan is documented at https://docs.e2b.dev/faq/us-west-aws-region but not modelled here.",
-  "locations_checked": "2026-10-14"
+  "locations_quote": "E2B offers a shared EU cluster on every plan for workspaces verified by adding a payment method.",
+  "locations_note": "Region ids (us-west1, europe-west1, asia-southeast1) come from earlier research; E2B's current pages name no city or country for the EU cluster, so the EU city is null (Google's europe-west1 is in Belgium; country left as an EU placeholder). EU is on every plan once a payment method is added, and support enables it (https://docs.e2b.dev/faq/eu-region, 2026-11-08), so self_serve stays false. The changelog (2026-09-28) shows US, EU and APAC projects in one console. A managed US West (AWS us-west-2) region on every plan is documented at https://docs.e2b.dev/faq/us-west-aws-region but not modelled here.",
+  "locations_checked": "2026-11-08",
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "findings/e2b.json and _cross.json, re-checked against e2b.dev/pricing, docs.e2b.dev/faq/eu-region, /sandbox/persistence and /changelog",
+    "reviewed": 9
+  }
 }
