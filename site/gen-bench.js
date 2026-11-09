@@ -77,8 +77,7 @@ module.exports = function genBench(B, nameOf) {
       `| Provider (runtime) | ${cols.map(c => c[1]).join(' | ')} |`, `|---|${cols.map(() => '---:').join('|')}|`);
     for (const { id, s } of SS) out.push(`| ${ssName(id)} | ${cols.map(([k, , f]) => sv(s, k) == null ? '–' : f(sv(s, k))).join(' | ')} |`);
     out.push('', `Source: [StarSling hpc-sandbox-benchmarks, run ${S.run_id}](${S.url}), ${S.run_date}, medians. boat.dev has no verified network result in this run.`, '');
-    const h = P.boat && P.boat.hpc && P.boat.hpc['cpu.node_js_web_tooling'];
-    if (h) out.push(`**boat.dev host classes.** Every boat sandbox in this run ran on an AMD Ryzen 9 9950X host. boat also runs some sandboxes on other hosts that this run did not measure. In the boat team's own run of 2026-08-24, a boat sandbox on a Hetzner cloud host did ${num(h.value, 2)} runs/s on the same CPU test ([results](${src('hpc').url})).`, '');
+    out.push('**boat.dev host classes.** Every boat sandbox in this run ran on an AMD Ryzen 9 9950X host. boat also places some sandboxes on AMD Ryzen 7 9700X hosts, which this run did not measure.', '');
   }
   return out.join('\n');
 };
