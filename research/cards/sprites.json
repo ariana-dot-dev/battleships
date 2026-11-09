@@ -45,7 +45,7 @@
       "windows_vcpu_h": null,
       "gpu": null,
       "disk_gib_h_running": 0.000683,
-      "note": "Every Sprite has 8 vCPU; CPU billed on cumulative cpu.stat CPU time, memory on actual usage (platform-managed; starts at 2 GB and autoscales up to 16 GB per the 2026-03-25 release note). Hot storage $0.000683/GB-h on bytes written only while awake (extra key disk_gib_h_running). Warm (~30 s idle) and cold states bill no CPU/RAM/hot storage. Granularity: 'metered per hour of active use', exact rounding unpublished. Region not selectable. [rates verified 2026-10-14] fly.io/pricing: CPU time \"Cumulative CPU usage measured by cpu.stat\" \"$0.0385 / CPU-hour\"; Memory time \"Actual memory usage\" \"$0.021875 / GB-hour\"; fly.io/sprites FAQ: \"CPU at $0.0385/CPU-hour, RAM at $0.021875/GB-hour, and hot storage at $0.000683/GB-hour\". \"Sprites have three states: running (billed), warm (not billed), and cold (not billed)\"; idle window ~30 s (docs.fly.io/sprites/concepts/lifecycle). No minimum/floor published. Whether page cache counts in \"actual memory usage\" is not stated (likely cgroup memory, which includes cache - unverified); \"billed hourly\" rounding unpublished."
+      "note": "Rates re-checked on fly.io/pricing 2026-11-08: CPU $0.0385/CPU-hour, memory $0.021875/GB-hour, hot $0.000683/GB-hour, cold $0.000027/GB-hour. Every Sprite has 8 vCPU; CPU billed on cumulative cpu.stat CPU time, memory on actual usage (platform-managed; starts at 2 GB and autoscales up to 16 GB per the 2026-03-25 release note). Hot storage $0.000683/GB-h on bytes written only while awake (extra key disk_gib_h_running). Warm (~30 s idle) and cold states bill no CPU/RAM/hot storage. Granularity: 'metered per hour of active use', exact rounding unpublished. Region not selectable. [rates verified 2026-10-14] fly.io/pricing: CPU time \"Cumulative CPU usage measured by cpu.stat\" \"$0.0385 / CPU-hour\"; Memory time \"Actual memory usage\" \"$0.021875 / GB-hour\"; fly.io/sprites FAQ: \"CPU at $0.0385/CPU-hour, RAM at $0.021875/GB-hour, and hot storage at $0.000683/GB-hour\". \"Sprites have three states: running (billed), warm (not billed), and cold (not billed)\"; idle window ~30 s (docs.fly.io/sprites/concepts/lifecycle). No minimum/floor published. Whether page cache counts in \"actual memory usage\" is not stated (likely cgroup memory, which includes cache - unverified); \"billed hourly\" rounding unpublished."
     }
   ],
   "storage": {
@@ -260,6 +260,7 @@
     "pause_resume": true,
     "fork": false,
     "persistent_disk": true,
+    "persist_scope": "whole",
     "volumes": false,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -273,7 +274,7 @@
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": true,
-    "ssh": false,
+    "ssh": "diy",
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
@@ -329,10 +330,10 @@
   "perf": {
     "cpu_runs_s": null,
     "cold_start_ms": null,
-    "burst_tti_ms": null,
+    "burst_tti_ms": 62668.65,
     "dax_s": null
   },
-  "perf_source": "Sprites is configured in ComputeSDK providers.ts but has no committed result; no HPC result.",
+  "perf_source": "ComputeSDK (each provider at its SDK default size and runtime): burst 62.67 s median at 100 at once, 16% succeeded (2026-11-06); DAX failed in the 2026-11-06 run, so no value. https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [
     {
       "id": "awake_share",
@@ -353,16 +354,17 @@
     }
   ],
   "caveats": [
-    "Pricing section says 'No plans and no tiers' while the FAQ on the same page (and Fly's 2026-09-09 article) describe optional plans; Hero $100 is confirmed current. Other tier prices/allowances come from the 2026-01-16 community post; the 2026-01-22 release note listed a different set (Recruit free, Adventurer $20, Legend $200, Mythic $2,000).",
+    "Storage layer changed: Fly replaced the JuiceFS-based storage with the Sprites Block Device (ext4 on a block device on a bucket; blog 2026-10-22, https://fly.io/blog/sprites-block-device/). Checkpoints are now block-level snapshots. Sprites created before 10/6 need a migration the customer runs (Fly docs give the steps); Fly says old-storage Sprites could fail to checkpoint in its stress tests. Fly's homepage lists SBD as private beta.",
+    "Pricing page (checked 2026-11-08) says \"No plans to pick up front on Machines or Sprites\" while the FAQ on the same page (and Fly's 2026-09-09 article) describe optional plans; Hero $100 is confirmed current. Other tier prices/allowances come from the 2026-01-16 community post; the 2026-01-22 release note listed a different set (Recruit free, Adventurer $20, Legend $200, Mythic $2,000).",
     "Plan fee is NOT credit: it buys per-resource unit allowances (CPU-h, RAM GB-h, storage GB-month) that are not fungible (Fly staff post 2026-01-16: \"Usage beyond included amounts is billed at standard usage-based rates\"). Encoded as included_cpu_h / included_ram_gib_h / included_storage_gib_month on each plan with included_usd 0, so the engine (which only knows a fungible included_usd) never credits unused CPU hours against RAM overage; until the engine consumes the buckets, plans are never auto-picked over PAYG and the PAYG price is an upper bound for heavy users. Fly account credits cannot pay plan fees.",
     "Storage: disk_gib_month 0.02 is COLD storage on all bytes written, billed for as long as kept (including while awake). HOT storage $0.000683/GB-h ($0.50/GB-mo) additionally bills on the awake working set (mode key disk_gib_h_running). Checkpoint storage not priced separately; snapshot_gib_month 0.02 assumes checkpoints are billed as cold storage (unverified).",
     "Memory is billed on actual usage; the engine's ram_util drives the bill. Release note 2026-03-25: \"Sprites now start with 2 GB of memory and can autoscale up to 16 GB based on demand\"; the lifecycle page publishes no figure (\"A Sprite doesn't run with one published RAM figure.\"). max_ram_gib 16 is that autoscale ceiling, not a reservable size (a Jan 2026 support reply had said 16 GB was 'not available yet').",
-    "Fixed shape: 8 vCPU, 100 GB filesystem ceiling, one managed Ubuntu image (no custom image), no region selection, no public IPv4/SSH.",
+    "Fixed shape: 8 vCPU, memory autoscaling 2-16 GB, 100 GB filesystem ceiling, one managed Ubuntu image (customize on top and checkpoint it), no region option on create (https://docs.fly.io/sprites/cli/commands), no public IPv4. SSH: install sshd and connect through `sprite proxy` (documented steps).",
     "Rates history: 2025-12-30 RAM $0.011/GB-h, CPU $0.07/CPU-h and storage $0.10/GB-mo; later CPU $0.07 and RAM $0.04375; from 2026-10-01 CPU $0.0385/CPU-h (the 2026-09 pricing-update notice said $0.03825) and RAM $0.021875/GB-h (checked on fly.io/pricing 2026-10-14). Plan allowances are unit buckets, so their dollar value roughly halved with the cut.",
     "PAYG running-concurrency cap unpublished (concurrency null). Limits return errors, never extra charges.",
     "Egress/bandwidth not metered today (egress_gib 0).",
     "No benchmark data in benchmarks.json (perf null); docs claim warm resume 100-500 ms, cold wake 1-2 s.",
-    "Docker runs inside a Sprite, but a 2026-05-26 community report shows \"docker exec will fail for any container whose PID 1 is non-root\" (Postgres, Redis, node images) because the capability bounding set is restricted to 16 of 41 Linux capabilities; --cap-add SYS_PTRACE/IPC_LOCK also fail. No systemd: services run via the Sprites services API (https://community.fly.io/t/27956, https://docs.fly.io/sprites/concepts/services.md)."
+    "Docker runs inside a Sprite (root access). A 2026-05-26 user report on the community forum (not a Fly doc) shows \"docker exec will fail for any container whose PID 1 is non-root\" (Postgres, Redis, node images) because the capability bounding set is restricted to 16 of 41 Linux capabilities; --cap-add SYS_PTRACE/IPC_LOCK also fail. No systemd: services run via the Sprites services API (https://community.fly.io/t/27956, https://docs.fly.io/sprites/concepts/services.md)."
   ],
   "sources": [
     "https://fly.io/pricing",
@@ -375,7 +377,9 @@
     "https://fly.io/learn/ai-sandbox-pricing/",
     "https://docs.fly.io/sprites/concepts/services.md",
     "https://docs.fly.io/sprites/working-with-sprites.md",
-    "https://community.fly.io/t/27956"
+    "https://community.fly.io/t/27956",
+    "https://docs.fly.io/sprites/cli/commands",
+    "https://fly.io/blog/sprites-block-device/"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -466,8 +470,8 @@
       "value": true,
       "source": "https://community.fly.io/t/27956",
       "quote": "Within sprites, running docker exec will fail for any container whose PID 1 is non-root.",
-      "note": "Confirms Docker 29.1.3 runs inside a Sprite (overlay2, cgroup v2; a /.sprite/docs/docker.md guide ships in the image) and docker exec works when the container's PID 1 is root. Known limitation: restricted capability bounding set (16 of 41) breaks docker exec into images that drop to non-root (Postgres, Redis, node, Elasticsearch) and blocks --cap-add SYS_PTRACE / IPC_LOCK, even with --privileged. Community report, not an official doc statement.",
-      "checked": "2026-10-14"
+      "note": "Confirms Docker 29.1.3 runs inside a Sprite (overlay2, cgroup v2; a /.sprite/docs/docker.md guide ships in the image) and docker exec works when the container's PID 1 is root. Known limitation: restricted capability bounding set (16 of 41) breaks docker exec into images that drop to non-root (Postgres, Redis, node, Elasticsearch) and blocks --cap-add SYS_PTRACE / IPC_LOCK, even with --privileged. Community report, not an official doc statement. Fly docs (services.md) confirm only that Sprites do not run systemd.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -480,8 +484,8 @@
       "value": false,
       "source": "https://docs.fly.io/sprites/index.md",
       "quote": "Sprites are persistent, hardware-isolated Linux environments for running arbitrary code. It's like having a small, stateful computer you can spin up on demand.",
-      "note": "not offered: outside the product's scope. Sprites is a general-purpose persistent Linux sandbox (AI code execution, dev environments, CI/CD); no managed/preinstalled browser or browser-automation product is documented anywhere in the Sprites docs, quickstart, or integrations pages.",
-      "checked": "2026-09-30"
+      "note": "No managed or preinstalled browser, and no browser guide in the Sprites docs, quickstart, integrations or release notes. Sprites is a general-purpose persistent Linux sandbox with sudo, so a user can install Chromium or Playwright with the package manager; not a documented path, so false per FAIRNESS rule 4.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -527,10 +531,10 @@
     },
     "eu_data_residency": {
       "value": false,
-      "source": "https://docs.fly.io/sprites/concepts/lifecycle.md",
-      "quote": "You don't set or resize these yourself. The vCPU count and the storage ceiling are fixed; memory is handled automatically.",
-      "note": "Region is not mentioned or selectable anywhere in the Sprites docs (quickstart, lifecycle, networking, index, maintenance) or on fly.io/sprites, unlike Fly Machines which documents an explicit multi-region list (docs.fly.io/reference/regions). No path to choose or guarantee an EU region for a Sprite was found; derived absence, not a direct statement.",
-      "checked": "2026-09-30"
+      "source": "https://docs.fly.io/sprites/cli/commands",
+      "quote": "sprite create [flags] [sprite-name]",
+      "note": "`sprite create` has no region option (flags: --org, --sprite, --skip-console, --label). Region is not mentioned or selectable anywhere in the Sprites docs (quickstart, lifecycle, networking, index, maintenance) or on fly.io/sprites, unlike Fly Machines which documents an explicit multi-region list (docs.fly.io/reference/regions). No path to choose or guarantee an EU region for a Sprite was found; derived absence, not a direct statement.",
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": "none",
@@ -541,10 +545,10 @@
     },
     "fork": {
       "value": false,
-      "source": "https://docs.fly.io/sprites/concepts/checkpoints.md",
-      "quote": "Restoring replaces the writable overlay with the saved state and restarts the environment. The base image is untouched.",
-      "note": "Restore is in-place/destructive on the same Sprite, not a clone into a new Sprite; the public API/CLI (checkpoints, exec, fs, policies, services, connectors per openapi.json) has no create-Sprite-from-checkpoint or clone endpoint. A 2026-04-02 release note mentions a 'Fork a Sprite' feature on an admin sprite page for 'Admins', but that's operator tooling absent from the public docs/API, not a customer-facing fork.",
-      "checked": "2026-09-30"
+      "source": "https://docs.fly.io/sprites/cli/commands",
+      "quote": "sprite restore <version-id>",
+      "note": "The CLI reference and the API docs have no fork, clone or create-from-checkpoint command; `sprite restore` restores a checkpoint in place on the same Sprite. Release notes (2026-04-02, 2026-04-16) say \"Admins can now fork an existing sprite's storage at any point in time and spin up a brand-new sprite from it\" from an admin sprite page; it is not in the CLI or API docs, so it is not counted here. Re-check if Fly documents it for customers.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
@@ -561,25 +565,27 @@
       "checked": "2026-09-30"
     },
     "ssh": {
-      "value": false,
+      "value": "diy",
       "source": "https://docs.fly.io/sprites/working-with-sprites.md",
       "quote": "Sprites don't expose SSH directly—you'll need to install an SSH server on your Sprite and tunnel the connection through `sprite proxy`.",
-      "note": "No native SSH access; only a DIY workaround (install sshd yourself, tunnel via `sprite proxy -W :22`). `sprite console` is offered as the SSH-like interactive shell instead.",
-      "checked": "2026-09-30"
+      "how": "install openssh-server, run sshd as a Sprites service and connect through `sprite proxy` (documented steps)",
+      "effort": "medium",
+      "note": "No SSH endpoint by default; the docs give the steps (apt install openssh-server, `sprite-env services create sshd`, ProxyCommand `sprite proxy -s %h -W 22`). `sprite console` is the built-in interactive shell. No public IP: SSH goes through the authenticated proxy.",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
-      "source": "https://fly.io/sprites",
-      "quote": "Sprites | Linux computers for agents",
-      "note": "not offered: outside the product's scope. Sprites are headless Linux compute for coding agents (exec/console/fs/services); no VNC/RDP/stream desktop is documented anywhere in the Sprites docs or API.",
-      "checked": "2026-09-30"
+      "source": "https://docs.fly.io/sprites/working-with-sprites.md",
+      "quote": "Install packages like you would locally",
+      "note": "No desktop is built in, and the Sprites docs publish no desktop guide or example (checked working-with-sprites, lifecycle, networking, release notes). A user with sudo can install a display server, a VNC server and a browser and reach the port through `sprite proxy` or the Sprite URL; this is not a documented path, so the value stays false per FAIRNESS rule 4.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
-      "source": "https://fly.io/sprites",
-      "quote": "Sprites | Linux computers for agents",
-      "note": "not offered: outside the product's scope. No desktop exists to drive by screenshots/clicks, and no such API appears in the Sprites OpenAPI or docs.",
-      "checked": "2026-09-30"
+      "source": "https://docs.fly.io/sprites/working-with-sprites.md",
+      "quote": "Install packages like you would locally",
+      "note": "No computer-use API or desktop is built in, and no Sprites doc or example shows one. A user can install a display and a browser and drive them with their own agent; not a documented path.",
+      "checked": "2026-11-08"
     },
     "custom_image": {
       "value": false,
@@ -689,7 +695,7 @@
     }
   },
   "locations": [],
-  "locations_source": "https://docs.fly.io/sprites/concepts/lifecycle/",
-  "locations_quote": "You don't set or resize these yourself. The vCPU count and the storage ceiling are fixed; memory is handled automatically.",
-  "locations_checked": "2026-10-01"
+  "locations_source": "https://docs.fly.io/sprites/cli/commands",
+  "locations_quote": "sprite create [flags] [sprite-name]",
+  "locations_checked": "2026-11-08"
 }

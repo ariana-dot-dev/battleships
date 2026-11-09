@@ -48,7 +48,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "PROMO launch list rates: $0.02/vCPU-h + $0.0125/GiB-h + $0.0002/GiB-h disk, billed while running on allocated resources (whole vCPUs 1-16, 128 MiB-64 GiB RAM, 2-128 GiB disk). Valid through 2026-12-22; later rates unpublished. Granularity/minimum undocumented. 4 vCPU/8 GiB = $0.18/h (+$0.001/h for the default 5 GiB disk)."
+      "note": "PROMO launch list rates: $0.02/vCPU-h + $0.0125/GiB-h + $0.0002/GiB-h disk, billed while running on allocated resources (whole vCPUs 1-16, 128 MiB-64 GiB RAM, 2-128 GiB disk). A paused sandbox is billed for disk only. Valid through 2026-12-22; later rates unpublished. Granularity/minimum undocumented. 4 vCPU/8 GiB = $0.18/h (+$0.001/h for the default 5 GiB disk)."
     },
     {
       "key": "gpu-pod-h100",
@@ -111,7 +111,7 @@
   "storage": {
     "included_disk_gib": 0,
     "disk_gib_month": 0.146,
-    "disk_billed_when_stopped": false,
+    "disk_billed_when_stopped": true,
     "snapshot_gib_month": 0.1,
     "paused_ram_billed": false
   },
@@ -181,11 +181,11 @@
     "arm64": false,
     "gpu": true,
     "gpu_types": [],
-    "snapshot": "fs",
-    "pause_resume": false,
+    "snapshot": "mem",
+    "pause_resume": true,
     "fork": true,
-    "persistent_disk": false,
-    "volumes": false,
+    "persistent_disk": true,
+    "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
@@ -193,19 +193,19 @@
     "nested_virt": false,
     "root": null,
     "systemd": true,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
     "ssh": true,
     "public_ipv4": false,
-    "inbound_https": false,
+    "inbound_https": true,
     "custom_domain": false,
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
     "static_egress_ip": false,
-    "private_network": null,
+    "private_network": true,
     "self_host": false,
     "byoc": false,
     "open_source": false,
@@ -222,7 +222,7 @@
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
-    "credential_injection": false,
+    "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
@@ -238,14 +238,14 @@
     "mcp_server": false,
     "isolation": "vm",
     "image_oci": true,
-    "snapshot_auto": false,
+    "snapshot_auto": true,
     "snapshot_on_demand": true,
     "harness_api": true,
     "egress_allowlist_level": "both",
     "ingress_rules": true,
     "guest_firewall": true,
-    "secret_proxy": false,
-    "volume_attach": false,
+    "secret_proxy": "any-http",
+    "volume_attach": true,
     "volume_shared": false,
     "anti_bot": false,
     "captcha_solving": false,
@@ -253,7 +253,8 @@
     "own_agent_api": false,
     "max_session_unlimited": true,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "whole"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -265,14 +266,14 @@
   "caveats": [
     "Rates are PROMOTIONAL launch list prices 'valid through December 22, 2026' (docs). Post-promo pricing is unpublished.",
     "Billed on allocated vCPU/RAM/disk while running; 30% CPU utilisation saves nothing. Billing granularity and minimum are undocumented.",
-    "No pause/resume or persistent volume. Filesystem checkpoints and fork shipped (files only, no memory/processes): keep state by checkpointing ($0.10/GiB-month) and restoring into a new sandbox. A checkpoint is lost if the source sandbox is deleted before it is DURABLE.",
-    "Idle timeout (optional, 1-1,440 min) TERMINATES the sandbox; the default lifetime is 60 min (can be unlimited).",
-    "disk_gib_month 0.146 = $0.0002/GiB-h x 730 h. The disk only exists while the sandbox runs, so this overstates part-time use. The default 5 GiB disk costs ~$0.001/h.",
+    "Pause/resume keeps memory, processes and disk on the same node, billed for disk only. The sandbox ends if that node is lost or a finite timeout runs out while paused. Sandboxes with volumes and GPU sandboxes cannot pause. Filesystem checkpoints ($0.10/GiB-month) and fork (files only) restore into a new sandbox; a checkpoint is lost if the source sandbox is deleted before it is DURABLE.",
+    "Idle timeout (optional, 1-1,440 min) TERMINATES the sandbox, it does not pause it; the default lifetime is 60 min (can be unlimited).",
+    "disk_gib_month 0.146 = $0.0002/GiB-h x 730 h. The disk is billed while running and while paused; it is deleted with the sandbox. The default 5 GiB disk costs ~$0.001/h.",
     "The first VM launch of a new image converts it (PENDING for minutes, ~10 min per the verifiers docs); whether that time is billed is unknown.",
     "GPU sandboxes (0-8 GPUs, VM-only) are coming soon and need a grant; no GPU types or prices are published. Prime's separate GPU Pods marketplace is modelled as the stock-flagged 'gpu-pod-h100' mode at the homepage H100 listing ($2.43/hr); actual price depends on the provider picked in the dashboard.",
     "Hosted Evaluations on Prime Inference don't bill sandbox runtime separately (tokens only). Not modelled.",
-    "No documented inbound port exposure. Prime Tunnel (unpriced, per-account tunnel_limit) publishes local services at an HTTPS URL; running it inside a sandbox is documented only for Hosted Evaluations. inbound_https is set false.",
-    "Secrets are injected as env vars visible to the sandbox (not proxy-swapped), so credential_injection is false. Egress rules are domain/IP only.",
+    "Inbound: an internet network rule publishes listed ports at https://<port>-<sandbox-id>.sandbox-v2-prod.pinfra.io. These URLs serve HTTP only and have no built-in auth. Raw TCP works only between sandboxes on a private network (<id>.sandbox.internal).",
+    "Secrets: env-var secrets land inside the VM; header secret injection keeps the value outside the VM for HTTPS (port 443) hosts you list, max 32 hosts, and the client must trust the Prime root CA. Egress rules are domain/IP only.",
     "Preinstalled languages depend on the image you pick (default python:3.11-slim), so lang_* is null.",
     "Egress price, regions and compliance certifications are undocumented (null).",
     "Duplicate: cards/prime-intellect-sandboxes.json describes the same product with the same rates. Keep only one in the estimator.",
@@ -281,7 +282,9 @@
     "Prepaid wallet is non-refundable: Terms of Service 'All sales are final and no refund will be issued.' (support may issue credits for provider failures per FAQ). GPU Pods are auto-deleted when the wallet runs out.",
     "GPU marketplace prices move in real time; the homepage GPU tiles are static marketing (e.g. H200 tiles showing '80 GB VRAM' at $0.47-$1.99/HR) and must not be used as rates. Use app.primeintellect.ai/api/trpc/availability.gpuSummary (public) for current cheapest per GPU.",
     "Checkpoint storage (shared rate with VM images): $0.10/GiB-month billed hourly, plus a one-time upload charge equal to one day of storage when a checkpoint becomes DURABLE (not modelled; ~3% of a month).",
-    "SSH is shell/remote-command only: no port forwarding, agent forwarding, scp or sftp (use prime sandbox upload/download)."
+    "SSH is shell/remote-command only: no port forwarding, agent forwarding, scp or sftp (use prime sandbox upload/download).",
+    "Volumes: named storage that outlives any sandbox, 100 GiB to 10 TiB, up to 8 per sandbox, published data billed as checkpoint storage. Writes are private to each sandbox until published; only sandboxes created later see a publish.",
+    "Browser: nothing preinstalled. verifiers BrowserEnv uses Browserbase (a separate paid service) as its documented browser provider, or boot an image with Chromium. No desktop or streamed screen is documented."
   ],
   "sources": [
     "https://www.primeintellect.ai/sandboxes",
@@ -293,7 +296,12 @@
     "https://docs.primeintellect.ai/sandboxes/tunnel.md",
     "https://docs.primeintellect.ai/faq",
     "https://docs.primeintellect.ai/tutorials-environments/hosted-evaluations",
-    "https://www.primeintellect.ai/"
+    "https://www.primeintellect.ai/",
+    "https://docs.primeintellect.ai/sandboxes/pause-resume.md",
+    "https://docs.primeintellect.ai/sandboxes/volumes.md",
+    "https://docs.primeintellect.ai/sandboxes/networks.md",
+    "https://docs.primeintellect.ai/sandboxes/secrets.md",
+    "https://docs.primeintellect.ai/verifiers/harnesses.md"
   ],
   "price_expires": "2026-12-22",
   "fleet": {
@@ -318,11 +326,12 @@
   },
   "feature_evidence": {
     "snapshot_auto": {
-      "value": false,
-      "source": "https://docs.primeintellect.ai/sandboxes/cli.md",
-      "quote": "`--idle-timeout-minutes` terminates the sandbox sooner when nothing is using it",
-      "note": "Checkpoints are manual only; lifetime/idle timeouts delete the sandbox without taking one. No pause/sleep state.",
-      "checked": "2026-10-14"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/pause-resume.md",
+      "quote": "the pause saves the sandbox's disk as a checkpoint, which appears in `prime sandbox checkpoint list`.",
+      "note": "Every pause checkpoints the disk automatically. Lifetime and idle timeouts still delete the sandbox without a checkpoint.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -330,14 +339,14 @@
       "source": "https://docs.primeintellect.ai/sandboxes/cli.md",
       "quote": "# 1. Create a checkpoint (prints its ID)\nprime sandbox checkpoint create sbx_123",
       "note": "Manual checkpoint create/list/restore in CLI; SDK has checkpoint(), wait_for_checkpoint(), get_checkpoint(), list_checkpoints(). Restore starts a new sandbox (docker_image and disk_size_gb come from the checkpoint).",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": true,
-      "source": "https://docs.primeintellect.ai/verifiers/v1/harnesses",
-      "quote": "verifiers supports a range of harnesses out of the box, including Claude Code, Codex, the tool-enabled `bash` harness, the CDP-driven `browser_use` harness, and the minimal tool-less `null` harness.",
+      "source": "https://docs.primeintellect.ai/verifiers/harnesses.md",
+      "quote": "verifiers ships with a range of harnesses out of the box, including Claude Code, Codex, Pi, Prime-Agent,",
       "note": "First-party open-source verifiers library (plus prime eval / Hosted Evaluations / prime-rl) runs Claude Code, Codex, OpenCode (OpenCodeEnv), mini-swe-agent etc. inside Prime sandboxes (runtime 'prime') with a task prompt and records traces live via an interception server. Batch eval/RL-oriented: no documented follow-up messages or conversation resume API.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": true,
@@ -356,10 +365,10 @@
     },
     "ingress_rules": {
       "value": true,
-      "source": "https://docs.primeintellect.ai/sandboxes/tunnel.md",
-      "quote": "By default, anyone with the URL can reach your tunnel. To require credentials, provide a username when creating the tunnel",
-      "note": "No port-exposure API on sandboxes (not publicly reachable by default). Prime Tunnel (first-party reverse proxy) is documented for \"services running on your local machine\"; use from inside a sandbox is documented only for Hosted Evaluations (--allow-tunnel-access), though the same CLI/SDK should run in any sandbox with a Prime API key. Optional server-enforced HTTP basic auth; per-account concurrent tunnel cap (tunnel_limit). No IP allowlists. SSH via ephemeral-key `prime sandbox ssh` only.",
-      "checked": "2026-10-14"
+      "source": "https://docs.primeintellect.ai/sandboxes/networks.md",
+      "quote": "Anyone with the URL can connect. Prime does not authenticate these requests.",
+      "note": "Only the ports that an internet rule lists are exposed. Private networks use directed per-port TCP rules. Prime Tunnel (optional basic auth) is a separate tool. SSH via ephemeral-key `prime sandbox ssh`.",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
@@ -370,25 +379,27 @@
       "derived": true
     },
     "secret_proxy": {
-      "value": false,
-      "source": "https://docs.primeintellect.ai/sandboxes/sdk.md",
-      "quote": "Both are injected into the sandbox as standard environment variables.",
-      "note": "Sandbox secrets are encrypted at rest but land as env vars inside the VM. Separately, verifiers routes harness model traffic through an interception server outside the sandbox ('The harness does *not* call the provider endpoint directly'), which acts like an LLM-only proxy for eval/RL runs, but it is not documented as a credential-hiding feature.",
-      "checked": "2026-09-29"
+      "value": "any-http",
+      "corrected_from": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/secrets.md",
+      "quote": "The value never goes into the sandbox's environment, files, or configuration.",
+      "note": "Header secret injection adds stored secrets to HTTPS request headers outside the sandbox. Limits: HTTPS on port 443 only, 32 rule hosts per sandbox, clients must trust the Prime root certificate. Env-var secrets are a separate option.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
-      "value": false,
-      "source": "https://www.primeintellect.ai/blog/sandboxes",
-      "quote": "In the near future, we will expand Prime Sandboxes to offer GPU microVMs, state snapshotting, sandbox forking, and shared persistent workspaces.",
-      "note": "Only the per-sandbox root disk (2-128 GiB), deleted with the sandbox. Persistent workspaces are announced, not shipped.",
-      "checked": "2026-09-29"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/volumes.md",
+      "quote": "A volume is named storage that outlives any sandbox.",
+      "note": "100 GiB (default) to 10 TiB capacity; up to 8 mounts per sandbox with --volume NAME:/path[:ro]. Published volume data is billed as checkpoint storage ($0.10/GiB-month). A sandbox with a volume cannot pause.",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": false,
-      "source": "https://www.primeintellect.ai/blog/sandboxes",
-      "quote": "persistent workspaces will let agents build on each other's work across rollouts instead of starting over.",
-      "note": "Future roadmap item; nothing shared today.",
-      "checked": "2026-09-29"
+      "source": "https://docs.primeintellect.ai/sandboxes/volumes.md",
+      "quote": "Its writes are invisible to every other sandbox, and a running sandbox never picks up later publishes.",
+      "note": "No live shared volume. To share data, publish a volume version; sandboxes created after the publish see it.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -454,26 +465,28 @@
       "checked": "2026-09-30"
     },
     "persistent_disk": {
-      "value": false,
-      "source": "https://docs.primeintellect.ai/sandboxes/overview.md",
-      "quote": "A checkpoint is usable once it reaches the `DURABLE` state. From then on it outlives its source sandbox.",
-      "note": "The sandbox root disk (2-128 GiB) is still deleted with the sandbox and there is no stop/resume. Files can be kept across sandboxes only via manual filesystem checkpoints ($0.10/GiB-month) restored into a new sandbox.",
-      "checked": "2026-10-14"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/pause-resume.md",
+      "quote": "a paused sandbox is billed only for its disk.",
+      "note": "The disk survives a pause. Filesystem checkpoints ($0.10/GiB-month) and named volumes also outlive the sandbox.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
-      "value": "fs",
-      "corrected_from": "none",
-      "source": "https://docs.primeintellect.ai/sandboxes/overview.md",
-      "quote": "A checkpoint saves a sandbox's filesystem so you can start new sandboxes from it later, or fork a running one to branch your work. Checkpoints capture files only, not running processes or memory.",
-      "note": "Filesystem checkpoints shipped (no longer \"coming soon\"). Usable once DURABLE, then it outlives its source sandbox; deleting the source before that loses it.",
-      "checked": "2026-10-14"
+      "value": "mem",
+      "corrected_from": "fs",
+      "source": "https://docs.primeintellect.ai/sandboxes/pause-resume.md",
+      "quote": "Pausing a sandbox saves its memory and disk on its node and stops the VM.",
+      "note": "Pause keeps memory and processes on the node. Checkpoints and forks are filesystem-only and outlive the source sandbox once DURABLE.",
+      "checked": "2026-11-08"
     },
     "pause_resume": {
-      "value": false,
-      "source": "https://docs.primeintellect.ai/sandboxes/overview.md",
-      "quote": "| Timeout | 1 min | Unlimited | 60 min |\n| Idle timeout | 1 min | 1,440 min (24 hr) | Disabled |",
-      "note": "Only create/run/delete lifecycle documented; idle/lifetime timeouts terminate (delete) the sandbox rather than pausing it. No pause/resume API exists.",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/pause-resume.md",
+      "quote": "Pausing a sandbox saves its memory and disk on its node and stops the VM.",
+      "note": "Resume restores it in place with running processes and memory. A paused sandbox is billed for disk only. Limits: it stays on its node and ends if that node is lost; a finite timeout still runs while paused (the timeout can be unlimited); sandboxes with volumes and GPU sandboxes cannot pause.",
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": true,
@@ -495,22 +508,24 @@
       "value": false,
       "source": "https://docs.primeintellect.ai/sandboxes/sdk.md",
       "quote": "Only files are restored: running processes and memory are not.",
-      "note": "Checkpoints and forks are filesystem-only; no memory snapshot.",
-      "checked": "2026-10-14"
+      "note": "Checkpoints and forks are filesystem-only. Pause keeps memory but resumes the same sandbox in place; it does not fork.",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
       "source": "https://docs.primeintellect.ai/sandboxes/overview.md",
       "quote": "Prime Sandboxes are disposable, isolated microVMs for AI-assisted coding, benchmarking, and quick experiments.",
-      "note": "Product is a headless CLI/SDK-driven Linux microVM (exec/upload/download); no VNC/RDP/streamed desktop is offered.",
-      "checked": "2026-09-30"
+      "note": "No desktop is preinstalled or streamed, and Prime documents no desktop/VNC example. Kept false.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
+      "value": "diy",
+      "corrected_from": false,
       "source": "https://docs.primeintellect.ai/guides/browser-environments.md",
       "quote": "Both modes use Browserbase (https://browserbase.com) as the browser provider.",
-      "note": "Browser automation available in the open-source `verifiers` library runs through the third-party Browserbase service, not a browser Prime itself provides/manages inside the sandbox.",
-      "checked": "2026-09-30"
+      "how": "use the verifiers BrowserEnv, which drives a Browserbase browser (separate paid service), or boot a sandbox image that includes Chromium",
+      "effort": "medium",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
@@ -523,29 +538,31 @@
       "value": false,
       "source": "https://docs.primeintellect.ai/sandboxes/overview.md",
       "quote": "| Idle timeout | 1 min | 1,440 min (24 hr) | Disabled |",
-      "note": "Idle timeout only terminates the sandbox; there is no sleep-and-wake-on-request mechanism documented.",
-      "checked": "2026-09-30"
+      "note": "Idle timeout terminates the sandbox; a paused sandbox resumes only on an explicit resume call, not on request.",
+      "checked": "2026-11-08"
     },
     "volumes": {
-      "value": false,
-      "source": "https://www.primeintellect.ai/blog/sandboxes",
-      "quote": "persistent workspaces will let agents build on each other's work across rollouts instead of starting over.",
-      "note": "No attachable/shared volume exists today; only the ephemeral root disk. Shared persistent workspaces are roadmap-only.",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/volumes.md",
+      "quote": "A volume is named storage that outlives any sandbox.",
+      "note": "See volume_attach.",
+      "checked": "2026-11-08"
     },
     "inbound_https": {
-      "value": false,
-      "source": "https://docs.primeintellect.ai/sandboxes/tunnel.md",
-      "quote": "Prime Tunnels creates secure, public URLs for services running on your local machine.",
-      "note": "No sandbox port exposure. Prime Tunnel is a generic reverse proxy for local services; the docs only describe running it from inside a sandbox for Hosted Evaluations (\"create the tunnel from inside the hosted sandbox\"). Kept false.",
-      "checked": "2026-10-14"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/networks.md",
+      "quote": "Anyone with the URL can connect. Prime does not authenticate these requests.",
+      "note": "An internet network rule publishes listed ports at https://<port>-<sandbox-id>.sandbox-v2-prod.pinfra.io. HTTP only, no built-in auth. Raw TCP works only between members of a private network.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
-      "source": "https://docs.primeintellect.ai/sandboxes/tunnel.md",
-      "quote": "Prime Tunnel creates secure, public URLs for services running on your local machine.",
-      "note": "Only a proxied HTTPS tunnel URL is offered; no routable public IPv4 address is assigned to a sandbox, consistent with network.ipv4_available=false in the card.",
-      "checked": "2026-09-30"
+      "source": "https://docs.primeintellect.ai/sandboxes/networks.md",
+      "quote": "Anyone with the URL can connect. Prime does not authenticate these requests.",
+      "note": "Public access is per-port HTTPS URLs on a shared Prime domain; no routable public IPv4 is assigned to a sandbox.",
+      "checked": "2026-11-08"
     },
     "agent_harnesses": {
       "value": false,
@@ -660,6 +677,28 @@
       "quote": "Only interactive shells and remote commands are supported: port forwarding (`-L`/`-R`), agent forwarding, `scp`, and `sftp` are not. Use `prime sandbox upload` / `download` to move files.",
       "note": "SSH via `prime sandbox ssh` with an ephemeral key per session; SSH sessions do not count as activity for the idle timeout.",
       "checked": "2026-10-14"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://docs.primeintellect.ai/sandboxes/pause-resume.md",
+      "quote": "Resuming restores it in place: running processes, open files, and in-memory state carry on from the moment of the pause.",
+      "note": "Pause keeps the whole disk and memory on the same node, billed for disk only ($0.0002/GiB-h). The sandbox ends if that node is lost or a finite timeout runs out. Sandboxes with volumes or GPUs cannot pause.",
+      "checked": "2026-11-08"
+    },
+    "private_network": {
+      "value": true,
+      "source": "https://docs.primeintellect.ai/sandboxes/networks.md",
+      "quote": "Each member is reachable from the others at `<sandbox-id>.sandbox.internal`",
+      "note": "Private networks between VM sandboxes of the same team or owner, with per-port TCP rules and localhost forwards.",
+      "checked": "2026-11-08"
+    },
+    "credential_injection": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.primeintellect.ai/sandboxes/secrets.md",
+      "quote": "The value never goes into the sandbox's environment, files, or configuration.",
+      "note": "See secret_proxy.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -682,5 +721,10 @@
   ],
   "locations_source": "https://docs.primeintellect.ai/api-reference/check-gpu-availability.md",
   "locations_quote": "Query Parameters: regions - List[string] - Filter by region(s) (e.g., united_states, canada, europe_west)",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 12,
+    "source": "public critique audit; checked against Prime docs (pause-resume, volumes, networks, secrets, overview, verifiers harnesses)",
+    "reviewed": 18
+  }
 }

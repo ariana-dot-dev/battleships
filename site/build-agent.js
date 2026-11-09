@@ -1,7 +1,8 @@
 // Agent-readable static layer for Battleships: llms.txt, llms-full.txt, JSON/Markdown per provider, feature definitions,
-// presets, the pricing engine. All static (no query endpoint to abuse); rankings per preset are added by rankings.mjs.
+// presets, the pricing engine. All static (no query endpoint to abuse); rankings per preset come from rankings.js
+// (node site/rankings.js site/dist/agent/data/rankings).
 // usage: node build-agent.js   ->   dist/agent/**
-const fs = require('fs'), path = require('path');
+const fs = require('fs'), path = require('path'), TODAY = new Date().toISOString().slice(0, 10);
 const R = path.join(__dirname, '..', 'research'), OUT = path.join(__dirname, 'dist', 'agent'), SITE = 'https://battleships.dev';
 fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(path.join(OUT, 'data', 'providers'), { recursive: true });
 require('./engine.js'); const PM = globalThis.PM;
@@ -37,15 +38,19 @@ const companyMd = f => !f ? [] : ['## Company', '',
 // ---- per provider: full card JSON (+ evidence) and a readable Markdown page
 const index = [];
 for (const c of cards) {
-  const f = feats(c), yes = FKEYS.filter(k => f[k] === true), no = FKEYS.filter(k => f[k] === false), fu = funding(c.id);
+  const f = feats(c), yes = FKEYS.filter(k => f[k] === true), no = FKEYS.filter(k => f[k] === false), diy = FKEYS.filter(k => f[k] === PM.DIY), fu = funding(c.id);
+  const checked = PM.cardChecked(c), stale = PM.isStale(checked, TODAY), how = PM.diyHow(c) || {};
   const entry = { id: c.id, name: c.name, url: c.url, category: c.category, isolation: c.isolation || (c.features || {}).isolation || null, discontinued: legacy(c) || undefined,
     stage: fu && fu.stage ? fu.stage.value : undefined, accelerators: fu && fu.accelerators && fu.accelerators.length ? fu.accelerators.map(a => a.name + (a.batch ? ' ' + a.batch : '')) : undefined,
-    json: `${SITE}/data/providers/${c.id}.json`, markdown: `${SITE}/data/providers/${c.id}.md`, features_yes: yes };
+    json: `${SITE}/data/providers/${c.id}.json`, markdown: `${SITE}/data/providers/${c.id}.md`, features_yes: yes, features_diy: diy.length ? diy : undefined, checked, stale };
   index.push(entry);
-  fs.writeFileSync(path.join(OUT, 'data', 'providers', c.id + '.json'), JSON.stringify(Object.assign({ features_resolved: f, company: fu || undefined }, c), null, 1));
-  const md = [`# ${c.name}`, '', `Official pricing: ${c.url}  `, `Category: ${c.category || 'n/a'} · Isolation: ${entry.isolation || 'not published'}${entry.discontinued ? ' · DISCONTINUED' : ''}`, '',
+  fs.writeFileSync(path.join(OUT, 'data', 'providers', c.id + '.json'), JSON.stringify(Object.assign({ features_resolved: f, company: fu || undefined, checked, stale }, c), null, 1));
+  const md = [`# ${c.name}`, '', `Official pricing: ${c.url}  `, `Category: ${c.category || 'n/a'} · Isolation: ${entry.isolation || 'not published'}${entry.discontinued ? ' · DISCONTINUED' : ''}  `,
+    `Last checked: ${checked || 'not recorded'}${stale ? ` (more than ${PM.STALE_DAYS} days ago)` : ''}`, '',
     '## Pricing regimes (raw)', '', ...priceHint(c).map(m => `- **${m.label || m.key}** (${m.pricing})${m.vcpu_h != null ? `: $${m.vcpu_h}/vCPU-h` : ''}${m.ram_gib_h != null ? `, $${m.ram_gib_h}/GiB-h` : ''}${m.sizes ? ': ' + m.sizes.map(s => `${s.name} ${s.vcpu ?? '?'} vCPU/${s.ram_gib ?? '?'} GiB $${s.hour}/h`).join('; ') : ''}${m.flags ? ` [${m.flags.join(', ')}]` : ''}`),
-    '', '## Features', '', `Yes: ${yes.map(k => PM.FEATURE_LABELS[k]).join(', ') || 'none recorded'}`, '', `No: ${no.map(k => PM.FEATURE_LABELS[k]).join(', ') || 'none recorded'}`, '',
+    '', '## Features', '', `Yes: ${yes.map(k => PM.FEATURE_LABELS[k]).join(', ') || 'none recorded'}`, '',
+    ...(diy.length ? ['With your own setup (documented, you do the work):', '', ...diy.map(k => `- ${PM.FEATURE_LABELS[k] || k}${how[k] && how[k].how ? `: ${how[k].how}` : ''}${how[k] && how[k].effort ? ` (effort: ${how[k].effort})` : ''}${how[k] && how[k].source ? ` [source](${how[k].source})` : ''}`), ''] : []),
+    `No: ${no.map(k => PM.FEATURE_LABELS[k]).join(', ') || 'none recorded'}`, '',
     `Unknown: everything else. Evidence (source + quote) per feature: ${SITE}/data/providers/${c.id}.json → feature_evidence`, '',
     ...companyMd(fu),
     ...(c.caveats && c.caveats.length ? ['## Caveats', '', ...c.caveats.map(x => '- ' + x), ''] : []),
@@ -85,7 +90,8 @@ Fields: sessions a month, minutes per session, machines at once, machines on 24/
 internet: what sandboxes must reach: 'open' (any site or API), 'pkg' (package registries, git hosting, LLM APIs) or 'none'. Some providers only reach an allowlist on cheap tiers (card.network.internet, plan.internet); the engine then prices the tier that opens the network and reports the prepay or plan it takes (r.access).
 
 ## Notes
-- Prices are list prices from public pages, re-checked 2026-09-28..30; unknown = not published (never assumed free or unlimited).
+- Prices are list prices from public pages; each provider file has its own \`checked\` date and \`stale\` = true when that is more than ${PM.STALE_DAYS} days old. Unknown = not published (never assumed free or unlimited).
+- Feature values: true, false, null (not published) or "diy": the provider documents a way to get it yourself (install, official example, add-on, other runtime). A required "diy" feature counts as a match "with your own setup" (r.diy in the engine), not as a missing feature. Rules: https://github.com/ariana-dot-dev/battleships/blob/main/FAIRNESS.md
 - Source code and data: https://github.com/ariana-dot-dev/battleships
 `;
 fs.writeFileSync(path.join(OUT, 'llms.txt'), llms);

@@ -15,15 +15,16 @@ Derived on-demand (AWS US): small **$0.1877/h**, large **$0.3720/h** (table ÷ 1
 | Commit 24 months (pool) | same | same (AWS has no 2-y plan; "procurement ladder") | 22.83% off: $105,756 / $209,565 | same |
 | Commit 36 months (pool) | same | same | 48.56% off: $70,504 / $139,710 | same |
 | Commit formula | Any term 1–36 months | price × (1 − D(x)), x = (months − 1)/35 | AWS D = 1.754933379x³ − 2.505391256x² + 1.236007877x; Hetzner-EU D = 0.08593592x³ − 0.13996941x² + 0.13095657x; Scaleway-EU D = 0.040349144x³ − 0.079545455x² + 0.339196311x | https://arker.ai/docs/pricing |
-| Pools (API) | Orgs with pools enabled (private access for partnered background-agent companies) | Quote → buy at `amount_cents`; min term 30 days; VMs placed via `pool_id`; after `ends_at`, VMs keep running at normal rates | Example quote: aws us-west, 32 vCPU / 64 GiB / 256 GiB, 30 days = $1,428 (illustrative) | https://arker.ai/docs/api/pools.md |
+| Pools (API, as of 2026-11-08) | Private access for partnered background-agent companies | Managed pool: reserved size at on-demand rates; commitments discount it but are "Not available yet in most regions". BYOC / self-hosted pool: VM use at 60% off on-demand, no org limits, plus your own infrastructure | No example quote published any more | https://arker.ai/docs/api/pools.md |
 | Proposed EU on Hetzner | **Not offered**, proposed prices | Same table model | $22,074 / $51,556 per 1,000/mo (1 mo) → $0.0302 / $0.0706 per VM-h; 36 mo $20,376 / $47,591 | https://arker.ai/docs/pricing |
 | Proposed EU on Scaleway | **Not offered** | Same | $22,603 / $45,205 (1 mo) → $0.0310 / $0.0619 per VM-h; 36 mo $15,822 / $31,644 | same |
 | Suspend / scale-to-zero | VM idle between runs; `scaling: {suspend: true}` policy suspends while outbound response pending or between inbound requests | "Charge for run time, not machine time"; memory+disk persisted to NVMe then object storage | Retention/storage price unpublished | https://arker.ai/docs/pricing, https://arker.ai/docs/api/policies.md |
 | Storage / filesystems | Persistent disk, object-storage filesystems | "Prices exclude persistent storage" | unpublished | https://arker.ai/docs/pricing |
 | Private regions (VPC / on-prem), private networking | Contact sales | Control plane in cloud, customer compute | unpublished | https://arker.ai/docs/deployment.md |
-| GPU (A100 40/80, H100, H200; fractional 0.125) | arker us-west, gcp us-central1 | unpublished | null | https://arker.ai/docs/regions.md |
+| GPU (H200 in arker us-west, B200 in gcp us-central1; fractional 0.125) | GPU images ubuntu-gpu, ubuntu-gpu-small | unpublished | null | https://arker.ai/docs/regions.md, https://arker.ai/docs/vms.md |
 | Free tier | — | None ("we don't currently offer a free tier") | $0 credit | https://arker.ai/docs/deployment.md |
-Dated changes: Pools and AWS eu-north-1 region (Sep 2026); run/fork queueing (Aug 2026); egress and auto-scaling
+Re-checked 2026-11-08: the commit table and the pools example quote are gone, so the 12/24/36-month rows below are history only (not priced on the card). Arker's current rates need a sign-in.
+Dated changes: AWS ap-southeast-1 Singapore region (Oct 2026); Pools and AWS eu-north-1 region (Sep 2026); run/fork queueing (Aug 2026); egress and auto-scaling
 policies (Jul 2026). The "public on-demand list prices as of 2026-06-11" comparison on the docs page covers competitors, not Arker.
 ## Gotchas
 1. **No public list price.** Every Arker number here comes from a capacity-planning example. It may not match what the console quotes.

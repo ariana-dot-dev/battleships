@@ -1,19 +1,23 @@
 # Datalayer Runtimes — billing regimes
-As of 2026-09-28. Prices are USD unless explicitly labelled otherwise. Source type: official published list/promo or unknown, never a fabricated quote.
-Rendered official pricing exposes one available CPU sandbox:1vCPU/1GiB at$0.30/h. Listed7CPU, T4 andA100 environments markedUnavailable. Wallet-credit plans, agentrun caps andorganization seats are separate.
+As of 2026-11-08. Datalayer bills in credits. The docs say "a credit is a cent" and call prices provisional. USD below = credits x $0.01.
 | Regime | When it applies | How billed / numbers | Source |
 |---|---|---|---|
-| CPU runtime | 1vCPU/1GiB | $0.30/hour while running. | https://datalayer.io/pricing |
-| Free | Personal | 50walletcredits and500agent runs/month. | https://datalayer.io/pricing |
-| Team | $49/month base | 500credits/5,000runs; organization adds$15/active seat. | https://datalayer.io/pricing |
-| Larger CPU/GPU | Unavailable on pricingpage | Do not infer rates. | https://datalayer.io/pricing |
+| CPU runtime, small | 1 CPU / 2 GiB | 0.0008 credits/s, per second while running (about $0.0288/h). | https://datalayer.ai/docs/environments-user |
+| CPU runtime, medium | 4 CPU / 8 GiB | 0.0016 credits/s (about $0.0576/h). | https://datalayer.ai/docs/environments-user |
+| CPU runtime, large | 8 CPU / 16 GiB | 0.0032 credits/s (about $0.1152/h). | https://datalayer.ai/docs/environments-user |
+| GPU classes | gpu-small / gpu-large | Run on your own Modal or Daytona account; "priced by the provider that runs it". | https://datalayer.ai/docs/environments-user |
+| Free | Personal | 50 wallet credits and 500 agent runs/month. | https://datalayer.io/pricing |
+| Team | $49/month base | 500 credits / 5,000 runs; organization adds $15/active seat. | https://datalayer.io/pricing |
 ## Gotchas
-- Rendered official pricing exposes one available CPU sandbox:1vCPU/1GiB at$0.30/h. Listed7CPU, T4 andA100 environments markedUnavailable. Wallet-credit plans, agentrun caps andorganization seats are separate.
-- Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.
-- A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.
+- The pricing page is client-rendered and could not be read on 2026-11-08. The older pricing-page row (1 vCPU / 1 GiB at $0.30/h, larger sizes "Unavailable") is not used.
+- A runtime runs for a time reserved up front and stops when it runs out. A sandbox can be paused to keep its state. An application can be kept always on under a daily credit limit.
+- Runtime pods reach no outside network by default (Shield). Install packages at environment build time.
+- Concurrency limits, snapshot storage and Volume prices are not published. Do not treat them as free.
 ## Worked workload
-4 vCPU / 8 GiB; 50 simultaneous instances × 8 h/day × 22 days = **8,800 instance-hours**, **35,200 vCPU-hours**, **70,400 GiB-hours**. At 30% observed CPU:10,560 active-vCPU-hours only where the meter actually uses utilization. Assume one start/instance/day:1,100starts. Retain50GiB snapshots for a month;100GiB outbound. Active disk capacity was not specified.
-The available1CPU/1GiB environment fails4vCPU/8GiB.7CPU/30GB is listed unavailable with no rate. Fiftyconcurrentmachines andretainedsnapshot fees require a quote; multiplying the1CPUrate byfour would invent unsupportedcapacity.
+4 vCPU / 8 GiB; 50 simultaneous instances × 8 h/day × 22 days = **8,800 instance-hours**.
+The medium class matches the shape: 8,800 h × 0.0016 credits/s × 3,600 s = 50,688 credits, about **$507** (provisional). Always-on, one instance: 0.0016 × 3,600 × 730 = 4,205 credits, about **$42/month**. Fifty concurrent runtimes, Volume storage and snapshot retention are unpublished and need a quote.
 ## Sources
+- https://datalayer.ai/docs/environments-user
+- https://datalayer.ai/docs/credits
 - https://datalayer.io/pricing
-- https://github.com/datalayer/code-sandboxes/blob/d9c39925d87447dab5f3f7f1bdf9451ec4ebca2a/code_sandboxes/providers.py
+- https://github.com/datalayer/agent-runtimes/blob/main/docs/docs/shield/index.mdx

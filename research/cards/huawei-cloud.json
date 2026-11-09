@@ -42,13 +42,13 @@
       "always_on_month_per_instance": null,
       "commit_note": null,
       "min_billed_seconds": null,
-      "granularity_s": 1,
+      "granularity_s": null,
       "start_fee": null,
       "boot_overhead_s": null,
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": " Native CNY public list/reference quote; rates converted using fx.json. Unknown: reviewed pricing source does not explicitly establish VAT/tax inclusion."
+      "note": "Native CNY public list/reference quote; rates converted using fx.json. CPU and memory are metered in CU per vCPU-hour and per GiB-hour for the time the session runs; the billing docs (agentarts_08_0003) state no per-second increment, so granularity is null (unknown). Unknown: reviewed pricing source does not explicitly establish VAT/tax inclusion."
     },
     {
       "key": "ecs-payg-sg",
@@ -353,7 +353,7 @@
       "min_billed_seconds": 0,
       "granularity_s": 1,
       "start_fee": 0,
-      "note": "Burstable with CPU credits. The calculator also lists t7/at7 at $0.0274/$0.0233 per hour for 4 vCPU / 8 GiB, but their baseline is not documented on the intl T6 page.",
+      "note": "Burstable with CPU credits; spec and 20% average baseline for t6.large.2 / t6.xlarge.2 / t6.2xlarge.2 per ecs_01_0024 (t6.4xlarge.2 is 15%). Prices from the international calculator; the official docs do not list T6 availability per region. A stopped pay-per-use ECS keeps its EVS system disk (installed packages stay) and that disk stays billed. The calculator also lists t7/at7 at $0.0274/$0.0233 per hour for 4 vCPU / 8 GiB, but their baseline is not documented on the intl T6 page.",
       "cpu_class": "shared"
     }
   ],
@@ -563,7 +563,10 @@
     "Re-checked 2026-09-28 (AgentArts 计费说明 v04, 2026-09-28): the only sandbox billing items are CPU (1 CU per vCPU-h) and memory (0.1 CU per GiB-h) for runtime, code interpreter and browser tool; disk/storage is not a billing item, so disk_gib_month=0 (sandbox disk size itself is unpublished). No snapshot or public-network egress item is listed; both stay null (unknown).",
     "Mainland-China console (support.huaweicloud.com, CNY); every feature is labelled 公测 (public beta) on the release-notes page. No SSH is documented (session API only) and the browser tool offers LiveView of the browser via noVNC, not a full desktop: ssh=false, desktop=false.",
     "CU annual pack (beta): example 20,000 CU for CNY 21,105/year (CNY 1.05525/CU, ~5% below on-demand), valid 1 year, needs an existing plan; ~$3,145 prepaid. Not modelled as a mode because the prepaid pack floor cannot be encoded.",
-    "Isolation is mixed across the tools in the base-cu mode (re-checked 2026-10-14): runtime sessions run in microVMs (agentarts_10_119), the browser tool runs one sandbox container per session (agentarts_10_164), and the code interpreter boundary is not documented. The card shows microvm; browser-only workloads get container isolation. Egress control is split the same way: domain allow/block lists exist only for browser sessions, runtimes use PUBLIC/VPC mode plus security groups."
+    "Isolation is mixed across the tools in the base-cu mode (re-checked 2026-10-14): runtime sessions run in microVMs (agentarts_10_119), the browser tool runs one sandbox container per session (agentarts_10_164), and the code interpreter boundary is not documented. The card shows microvm; browser-only workloads get container isolation. Egress control is split the same way: domain allow/block lists exist only for browser sessions, runtimes use PUBLIC/VPC mode plus security groups.",
+    "Snapshot, pause and fork values on this card describe the AgentArts runtime API only. Huawei sells a separate sandbox product, AgentSphere (microVM, E2B-compatible API and SDK), that can pause and hibernate a sandbox with its running state kept and no compute billed while hibernated, for at most 24 hours of run time per sandbox (https://www.huaweicloud.com/product/agentsphere.html, https://support.huaweicloud.com/sdkreference-agentsphere/agentsphere_05_0002.md). AgentSphere is not priced on this card. Re-checked 2026-11-08.",
+    "Secrets (re-checked 2026-11-08): the gateway injects keys only into model-provider calls (secret_proxy ai-only). For other APIs, AgentArts Identity (agentarts_10_044) offers API Key, OAuth2 (GitHub, Google, Microsoft) and STS credential providers that hand the agent a key or token at run time, so the secret is not baked into the image but still reaches the sandbox.",
+    "AgentArts release notes (October 2026) add public or VPC networking for the code interpreter and browser, TypeScript and SSE streaming for the code interpreter, a no-auth inbound option and new Managed Agents APIs; every feature is still public beta. Huawei announced an international preview at Huawei Connect 2026, but the docs list no AgentArts region outside mainland China."
   ],
   "sources": [
     "https://support.huaweicloud.com/price-agentarts/agentarts-price-pdf.pdf",
@@ -571,7 +574,12 @@
     "https://support.huaweicloud.com/api-agentarts/CreateCoreRuntime.html",
     "https://support.huaweicloud.com/wtsnew-agentarts/index.html",
     "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html",
-    "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0001.html"
+    "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0001.html",
+    "https://support.huaweicloud.com/price-agentarts/agentarts_08_0003.html",
+    "https://support.huaweicloud.com/intl/en-us/productdesc-ecs/ecs_01_0024.html",
+    "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_044.html",
+    "https://www.huaweicloud.com/product/agentsphere.html",
+    "https://support.huaweicloud.com/sdkreference-agentsphere/agentsphere_05_0002.md"
   ],
   "audit_2026_09_29": {
     "applied": 14,
@@ -604,7 +612,7 @@
       "value": true,
       "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0001.html",
       "quote": "平台负责提供整套Harness（运行编排框架）底座，自动完成Agent循环、沙箱隔离、网络管控、会话持久化。 … 干预或中断：指任务执行过程中，通过发送新的内容来变更原有执行方向，或是直接终止、暂停当前任务。",
-      "note": "Translation: 'The platform provides the whole Harness (run-orchestration framework) base, automatically handling the agent loop, sandbox isolation, network control, session persistence' and 'Intervene or interrupt: during task execution, send new content to change direction, or directly terminate or pause the current task.' Harness = Huawei's own Managed Agents harness only (public beta, launched 2026-09): you declare model (Huawei MaaS or custom OpenAI-protocol providers), system prompt, built-in tools (bash, read_file, write_file, edit_file, glob, list_files, grep), Skills, environment; then drive it at ws://{endpoint}/runtimes/{runtime_name}/ws with IAM/API Key/OAuth auth; stream frames (e2a.chunk / e2a.complete with status in_progress/succeeded/failed); multi-turn by reusing a session ID; 'send new content to change direction, or terminate/pause the current task' (干预与中断). Runs in a microVM sandbox. No first-party support for driving Claude Code / Codex / OpenCode / Gemini CLI inside the sandbox (those names appear only for the Memory plugin). The plain Runtime product just proxies HTTP/MCP to your own container (InvokeRuntime), which is not a harness API. (Previous source agentarts_13_0028.html now returns a 404; re-sourced to the Managed Agents intro page on 2026-10-14.)",
+      "note": "Translation: 'The platform provides the whole Harness (run-orchestration framework) base, automatically handling the agent loop, sandbox isolation, network control, session persistence' and 'Intervene or interrupt: during task execution, send new content to change direction, or directly terminate or pause the current task.' Harness = Huawei's own Managed Agents harness only (public beta, launched 2026-09): you declare model (Huawei MaaS or custom OpenAI-protocol providers), system prompt, built-in tools (bash, read_file, write_file, edit_file, glob, list_files, grep), Skills, environment; then drive it through the Managed Agents API with IAM/API Key/OAuth auth (the cited intro page does not name the transport; the earlier WebSocket detail came from a page that now returns 404, so it is not claimed); multi-turn by reusing a session ID; 'send new content to change direction, or terminate/pause the current task' (干预与中断). Runs in a microVM sandbox. No first-party support for driving Claude Code / Codex / OpenCode / Gemini CLI inside the sandbox (those names appear only for the Memory plugin). The plain Runtime product just proxies HTTP/MCP to your own container (InvokeRuntime), which is not a harness API. (Previous source agentarts_13_0028.html now returns a 404; re-sourced to the Managed Agents intro page on 2026-10-14.)",
       "checked": "2026-10-14"
     },
     "egress_allowlist": {
@@ -675,8 +683,8 @@
       "value": "none",
       "source": "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_119.html",
       "quote": "停止会话（销毁沙箱）和删除会话状态（清除持久化存储）是两个独立操作。",
-      "note": "The full AgentArts API reference (~150 operations across runtime/code-interpreter/browser/sessions/gateway/model) has no snapshot/checkpoint operation; stopping a session destroys the microVM and clears temp files. Only opt-in persistent storage (session storage/SFS/OBS mounts) survives, which is disk-level persistence, not a snapshot.",
-      "checked": "2026-09-30"
+      "note": "The full AgentArts API reference (~150 operations across runtime/code-interpreter/browser/sessions/gateway/model) has no snapshot/checkpoint operation; stopping a session destroys the microVM and clears temp files. Only opt-in persistent storage (session storage/SFS/OBS mounts) survives, which is disk-level persistence, not a snapshot. Scope: AgentArts only. Huawei's separate AgentSphere sandbox (E2B-compatible) can pause and hibernate a sandbox with state kept; see caveats. Per FAIRNESS.md a separate product belongs on its own card, not as diy here.",
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
@@ -703,8 +711,8 @@
       "value": false,
       "source": "https://support.huaweicloud.com/agentarts/v3_support_leftmenu_fragment.html",
       "quote": "停止会话（销毁沙箱）",
-      "note": "Only 'stop session' (destroys the sandbox/microVM and releases resources) is documented; there is no pause/suspend-and-resume operation for runtimes, code interpreters or browser sessions.",
-      "checked": "2026-09-30"
+      "note": "Only 'stop session' (destroys the sandbox/microVM and releases resources) is documented; there is no pause/suspend-and-resume operation for runtimes, code interpreters or browser sessions. Scope: AgentArts only. Huawei's separate AgentSphere product has sandbox.pause() and hibernate with state kept (https://support.huaweicloud.com/sdkreference-agentsphere/agentsphere_05_0002.md); it is a different product, not a path inside AgentArts.",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": true,
@@ -738,7 +746,7 @@
       "value": true,
       "source": "https://support.huaweicloud.com/managedagents-agentarts/agentarts_13_0001.html",
       "quote": "干预或中断：指任务执行过程中，通过发送新的内容来变更原有执行方向，或是直接终止、暂停当前任务。",
-      "note": "Managed Agents is Huawei's own first-party task-agent product (model + tools + prompt, browser/code-interpreter tool access), driven over a WebSocket API with multi-turn sessions and mid-task intervene/terminate — this is the provider's own agent API, not a coding-harness driver. (Previous source agentarts_13_0028.html now returns a 404; re-sourced to the Managed Agents intro page on 2026-10-14.)",
+      "note": "Managed Agents is Huawei's own first-party task-agent product (model + tools + prompt, browser/code-interpreter tool access), with multi-turn sessions and mid-task intervene/terminate — this is the provider's own agent API, not a coding-harness driver. (Previous source agentarts_13_0028.html now returns a 404; re-sourced to the Managed Agents intro page on 2026-10-14.)",
       "checked": "2026-10-14"
     },
     "mcp_server": {
@@ -780,8 +788,8 @@
       "value": "ai-only",
       "source": "https://support.huaweicloud.com/highcode-agentarts/agentarts_10_252.html",
       "quote": "模型提供商是模型服务的管理实体，定义统一的访问端点（base_url）、出站身份认证和网络配置。通过创建模型提供商，可以将外部模型服务（如OpenAI、Anthropic等）接入AgentArts平台，由网关统一管理推理请求的路由和认证。",
-      "note": "The Model Provider/Model Proxy feature stores model-vendor credentials (API Key or IAM) server-side and injects them when the gateway routes /inference/ requests to OpenAI, Anthropic, etc.; the sandbox never sees the key. This is scoped to model-provider inference endpoints only, not arbitrary HTTP APIs.",
-      "checked": "2026-09-30"
+      "note": "The Model Provider/Model Proxy feature stores model-vendor credentials (API Key or IAM) server-side and injects them when the gateway routes /inference/ requests to OpenAI, Anthropic, etc.; the sandbox never sees the key. This is scoped to model-provider inference endpoints only, not arbitrary HTTP APIs. For other APIs, AgentArts Identity (agentarts_10_044) offers API Key, OAuth2 and STS credential providers that hand the agent a key or token at run time: no secret baked into the image, but the secret still reaches the sandbox. Gateway targets also support IAM outbound auth for APIG and Huawei cloud services.",
+      "checked": "2026-11-08"
     },
     "static_egress_ip": {
       "value": false,
@@ -875,6 +883,7 @@
         "ecs-burstable-t6-sg": "burstable:20"
       },
       "source": "https://support.huaweicloud.com/intl/en-us/productdesc-ecs/ecs_01_0020.html",
+      "source_t6": "https://support.huaweicloud.com/intl/en-us/productdesc-ecs/ecs_01_0024.html",
       "quote": "General computing ECSs provide a balance of compute, memory, and networking resources and a baseline level of vCPU performance with the ability to burst above the baseline. ... Notes: S6 ECS burstable performance is neither restricted by CPU credits nor billed for additional credits.",
       "note": "The ecs-payg-sg / ecs-payg-latam / ecs-monthly-sg modes use S6 (general computing), X1 (FlexusX general computing) and C9 (general computing-plus/compute) flavors. Huawei's own ECS Types doc (en-us_topic_0035470096.html, Table 6 'Differences between dedicated and shared ECSs') states standard pay-per-use ECS instances (as opposed to a purchased Dedicated Host) are 'Shared ECS': 'CPUs are shared and CPU contention may occur.' The General Computing family page (ecs_01_0020.html) explicitly describes S6/X1 as baseline+burst instances, and S6 specifically runs on the CPU-credit mechanism (like T6) though its burst is not throttled by credits -- consistent with shared/oversubscribed vCPUs rather than a dedicated-core guarantee; no Huawei doc states S6/X1/C9 have dedicated/reserved cores. classified as 'shared', medium confidence since no page uses the word 'shared' specifically for C9. For ecs-burstable-t6-sg: the ECS General Computing-Basic T6 spec page (ecs_01_0024.html, Table 2) publishes an explicit 'Average CPU Baseline (%)' column per flavor -- e.g. t6.large.2 / t6.xlarge.2 / t6.2xlarge.2 = 20% (matching the card's baseline_pct:20; t6.4xlarge.2 is separately documented at 15%) -- and CPU Credits doc (ecs_01_0061.html) states 'General computing-basic T6 ECSs are shared ECSs restricted by CPU credits,' confirming burstable:20 for the sizes the card models.",
       "checked": "2026-09-30"

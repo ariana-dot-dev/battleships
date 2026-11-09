@@ -2,8 +2,9 @@
 Render bills three things: a flat **workspace plan** fee, **compute** (fixed plans with a monthly list price,
 prorated to the second while an instance runs), and **metered extras** (outbound bandwidth over the plan allowance,
 disks, pipeline minutes, domains). Same prices in all 5 regions (Oregon, Ohio, Virginia, Frankfurt, Singapore).
-Paid services never auto-stop, so "per second" only helps if you suspend/scale down yourself. The sandbox-like
-product (Render Sandboxes) is early access with **no published price**.
+Paid services never auto-stop, so "per second" only helps if you suspend/scale down yourself. Render Sandboxes
+(public beta since 2026-11-04) auto-suspend when idle and bill active CPU plus allocated memory, but Render
+publishes **no rates** for them yet.
 third-party sources used).
 4c-8g (4 CPU / 8 GB) = $175/month ≈ **$0.2397/h** (175/730; Render doesn't state the proration month length).
 ## Regime table
@@ -21,7 +22,7 @@ third-party sources used).
 | Workflows, flex (default) | Task runs ≤ 1 CPU / 4 GB | Actual CPU time + sampled RAM | $0.20/CPU-h + $0.05/GB-h (max $0.40/h); min charge = 1 s at 0.1 CPU/0.1 GB | https://render.com/docs/workflows-limits |
 | Workflow concurrency | Concurrent task runs | Included per plan + add-on | 20 Hobby / 50 Pro / 100 Scale; +$10/mo per 50 | https://render.com/pricing |
 | Workflow task state | Inputs/return values retained 30 days | Billed once per run | $0.25/GB | https://render.com/docs/workflows-limits |
-| Render Sandboxes | Early access, select workspaces by request | **Unpublished** | EA limits: 2 CPU / 4 GB / 10 GB per sandbox, 100 concurrent, 24 h timeout, Oregon only; filesystem or runtime (memory) snapshots, expire after 3 days | https://render.com/docs/sandboxes |
+| Render Sandboxes | Public beta since 2026-11-04, all workspace plans | Active CPU + allocated memory while running; only snapshot storage while suspended; **rates unpublished** | Firecracker microVMs with Docker inside; 1c-2g to 8c-16g, 40 GB storage; runtime timeout up to 30 days or disabled; idle suspend (default 15 min) with auto-snapshot, resumable 30 days; filesystem or runtime (memory) snapshots expire after 30 days by default; 10 groups x 1,000 concurrent; Oregon only; no public URLs or SSH yet | https://render.com/docs/sandboxes-limits, https://render.com/docs/sandboxes-snapshots, https://render.com/blog/introducing-render-sandboxes |
 | Persistent disk | Attached SSD | Per GB-month of provisioned size; daily snapshots (≥ 7 days) no separate charge published | $0.25/GB-mo | https://render.com/pricing, https://render.com/docs/disks |
 | Outbound bandwidth | Traffic to outside Render | Over plan allowance; unused doesn't roll over; no card → services suspended | $0.15/GB public; $0.03/GB via private link; inbound/private-network/same-region S3-GCS free | https://render.com/docs/outbound-bandwidth |
 | Dedicated outbound IPs | Pro+ | Monthly | $100/mo per IP set | https://render.com/pricing |
@@ -43,7 +44,8 @@ added. Workflows beta starter/standard plans replaced by flex.
 6. **Workflows cost ~4x services per hour** (4c-8g $1.00/h vs $0.24/h) but scale to zero; flex is cheap only for
    ≤ 1 CPU work.
 7. **HIPAA is +20% on everything** and irreversible; Singapore unavailable.
-8. **Sandboxes have no price** and are Oregon-only early access — can't be used for cost planning yet.
+8. **Sandboxes have no published rates** (public beta, Oregon only). They fit agent workloads better than services
+   (idle suspend, Docker inside), but they cannot be priced until Render publishes rates.
 9. **Free tier is time-boxed**: 750 instance-hours per workspace per month, then all free web services suspend.
 ## Worked example
 Workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days = **8,800 instance-hours**, 30% CPU, 50 GiB retained
@@ -61,4 +63,4 @@ $0.25 = $12.50. Egress: plan-dependent.
 | Cron 4c-8g (batch alternative) | Only for batch commands | $25 + 8,800 × $0.243 = $2,163.40 + extras |
 | Workflows 4c-8g fixed | Batch tasks, ≤ 24 h runs | $25 + 8,800 × $1.00 = $8,825 + extras |
 | Workflows flex | No: max 1 CPU / 4 GB | n/a |
-| Sandboxes (EA) | No: 2 CPU / 4 GB limit, price unpublished | unknown |
+| Sandboxes (public beta) | Yes on size (4c-8g plan, 50 concurrent, idle suspend), but Oregon only | unknown: rates unpublished |

@@ -6,8 +6,8 @@
   "isolation": "firecracker",
   "modes": [
     {
-      "key": "beta",
-      "label": "Invite-only beta (no published price)",
+      "key": "standard",
+      "label": "Firecracker microVM (per second while running)",
       "flags": [],
       "os": [
         "linux"
@@ -18,146 +18,219 @@
         "isolation": "firecracker"
       },
       "pricing": "resource",
-      "vcpu_h": null,
-      "ram_gib_h": null,
+      "vcpu_h": 0.004,
+      "ram_gib_h": 0.00225,
       "cpu_basis": "alloc",
       "ram_basis": "alloc",
       "active_floor": 0,
       "ram_per_vcpu": [
-        null,
-        null
+        2,
+        2
       ],
-      "ram_fixed_per_vcpu": null,
+      "ram_fixed_per_vcpu": 2,
       "vcpu_options": [
-        4
+        2,
+        4,
+        8,
+        16,
+        32
       ],
-      "min_vcpu": 4,
-      "max_vcpu": 4,
-      "max_ram_gib": 8,
+      "min_vcpu": 2,
+      "max_vcpu": 32,
+      "max_ram_gib": 64,
       "sizes": null,
       "pool_tiers": null,
       "requires_always_on": false,
       "always_on_month_per_instance": null,
       "commit_note": null,
       "min_billed_seconds": null,
-      "granularity_s": null,
-      "start_fee": null,
-      "boot_overhead_s": null,
+      "granularity_s": 1,
+      "start_fee": 0,
+      "boot_overhead_s": 0,
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "No price published (checked 2026-10-14). Pricing page: \"Free until we figure it out. Now : 5 machines free for everyone, each with 4 vCPUs and 8 GB of memory. Later : the most competitive pricing, with a generous free tier\" (instabox.sh/pricing); roadmap lists \"Pricing & usage : figuring out the pricing plan and usage tracking\" as in progress. One fixed size: \"Every machine gets the same size: 4 vCPUs, 8 GB of memory and 20 GB of storage\" (docs/api/machines); other sizes are refused with 400 spec_not_allowed. Unit rates left null so the engine treats it as not priceable; a temporary free beta is not a price."
+      "note": "Published unit rates (checked 2026-11-08): \"vCPU $0.004 per vCPU-hour\", \"Memory $0.00225 per GiB-hour\"; \"Runtime is metered by the second, only while a machine is running\" (instabox.sh/pricing). Billing counts \"the seconds it was running (not starting, paused or stopped)\" (docs/billing), so boot time is not billed. The default 4 vCPU / 8 GiB machine costs $0.034 per hour. Sizes are 2 GiB per vCPU: \"Pro: 2/4, 4/8, 8/16. Builder: 2/4 up to 16/32. Team: 2/4 up to 32/64\" (docs/limits); Free runs 4/8 only. The CPU basis and any overcommit are not published."
     }
   ],
   "storage": {
     "included_disk_gib": 20,
-    "disk_gib_month": null,
-    "disk_billed_when_stopped": null,
-    "snapshot_gib_month": null,
-    "paused_ram_billed": null
+    "disk_gib_month": 0.08,
+    "disk_billed_when_stopped": true,
+    "snapshot_gib_month": 0,
+    "paused_ram_billed": false,
+    "note": "\"/data\" is 20 GiB per machine (docs/limits). Free: disk at no charge, fixed at 20 GiB. Paid plans pool included disk across all machines (200 GiB Pro, 1 TiB Builder, 5 TiB Team); beyond that \"allocated /data is billed at $0.08 per GiB-month ($0.00011 per GiB-hour)\", billed \"while it exists (running, paused or stopped)\". \"The system disk, snapshots and a paused sandbox's saved memory are free\" (docs/billing). The pooled inclusion is modelled as 20 GiB per machine, which overstates the disk bill for fleets that stay inside the pool."
   },
   "network": {
-    "egress_free_gib": null,
-    "egress_gib": null,
+    "egress_free_gib": 100,
+    "egress_gib": 0.02,
     "ipv4_month": null,
-    "ipv4_available": false
+    "ipv4_available": false,
+    "note": "\"Ingress is always free. Each plan includes egress every month (100 GiB on Free, 1 TiB on Pro, 5 TiB on Builder, 50 TiB on Team), then $0.02 per GiB\" (docs/pricing). Outbound bandwidth is about 50 Mbit/s per machine (docs/limits). No per-machine public IPv4: access is through the SSH gateway and HTTPS port URLs."
   },
   "plans": [
     {
-      "name": "Free beta (invite-gated)",
-      "fee": 0,
       "flags": [],
-      "fee_is_credit": false,
-      "included_usd": null,
       "per_seat": null,
-      "concurrency": 5,
-      "max_session_h": null,
+      "max_session_h": 8,
+      "sizes_allowed": null,
+      "name": "Free",
+      "fee": 0,
+      "fee_is_credit": false,
+      "included_usd": 24.82,
+      "concurrency": 1,
       "max_vcpu": 4,
       "max_ram_gib": 8,
+      "max_starts_per_min": 3,
+      "egress_free_gib": 100,
+      "note": "\"Free gives you one 4 vCPU / 8 GiB machine to run every month at no cost\" (changelog 2026-10-20); \"A free sandbox is never billed, so a free month is $0.00\" (docs/billing). included_usd = one 4/8 machine for 730 h at list rates (730 x $0.034), so the engine bills $0 for anything that fits. Limits (docs/limits): 1 machine in any state, 4/8 only, 20 GiB fixed disk, 5 snapshots, 200 GiB stored data, 3 starts a minute, idle pause fixed at 30 min, max run 480 min at a time followed by a cooldown (5-20 min, longer when repeated). The API also documents a monthly hours cap on the free machine \"when the server enforces a cap\" (credit_exhausted); its size is not published."
+    },
+    {
+      "flags": [],
+      "per_seat": null,
+      "max_session_h": null,
       "sizes_allowed": null,
-      "note": "Documented allowance only: \"5 machines free for everyone, each with 4 vCPUs and 8 GB of memory\" (instabox.sh/pricing) and docs/limits: \"Machines 5, in any state: paused and stopped ones count\", \"Snapshots 10\", \"Storage 200 GB for your snapshots and machine files, counted hourly\", exec 4 at once. 5 x 4 vCPU / 8 GB is the founder's \"20 vCPU, 40GB RAM\"; the OpenAPI says \"There are no vCPU or memory quotas\" (the limit is machine count). No end date, no SLA, no published terms for when pricing starts. concurrency = 5 is the machine cap in any state, so 5 running at most."
+      "name": "Pro",
+      "fee": 20,
+      "fee_is_credit": true,
+      "included_usd": 0,
+      "concurrency": 100,
+      "max_vcpu": 8,
+      "max_ram_gib": 16,
+      "max_starts_per_min": 30,
+      "egress_free_gib": 1024,
+      "note": "\"$20/month + usage\", \"$20 / month free credits\", \"Max 100 concurrent machines\", \"Up to 8 vCPU / 16 GiB\", \"Disk up to 200 GiB\", \"200 GiB disk included\", \"Unlimited snapshots\", \"1 TiB egress / month\" (docs/pricing). 500 machines in any state; 30 starts a minute; idle pause 5-30 min or off; max run unlimited by default (docs/limits)."
+    },
+    {
+      "flags": [],
+      "per_seat": null,
+      "max_session_h": null,
+      "sizes_allowed": null,
+      "name": "Builder",
+      "fee": 100,
+      "fee_is_credit": true,
+      "included_usd": 0,
+      "concurrency": 200,
+      "max_vcpu": 16,
+      "max_ram_gib": 32,
+      "max_starts_per_min": 50,
+      "egress_free_gib": 5120,
+      "note": "Added 2026-11-03 (changelog). \"$100/month + usage\", \"$100 / month free credits\", \"Max 200 concurrent machines\", \"Up to 16 vCPU / 32 GiB\", \"Disk up to 500 GiB\", \"1 TiB disk included\", \"5 TiB egress / month\" (docs/pricing). 1,000 machines in any state; 50 starts a minute (docs/limits)."
+    },
+    {
+      "flags": [],
+      "per_seat": null,
+      "max_session_h": null,
+      "sizes_allowed": null,
+      "name": "Team",
+      "fee": 500,
+      "fee_is_credit": true,
+      "included_usd": 0,
+      "concurrency": 500,
+      "max_vcpu": 32,
+      "max_ram_gib": 64,
+      "max_starts_per_min": 100,
+      "egress_free_gib": 51200,
+      "note": "\"$500/month + usage\", \"$500 / month free credits\", \"500 concurrent machines\", \"Unlimited machines\", \"Up to 32 vCPU / 64 GiB\", \"Disk up to 1 TiB\", \"5 TiB disk included\", \"50 TiB egress / month\", \"Priority email support & SLAs\" (docs/pricing). 100 starts a minute (docs/limits)."
+    },
+    {
+      "flags": [
+        "sales"
+      ],
+      "per_seat": null,
+      "max_session_h": null,
+      "sizes_allowed": null,
+      "name": "Enterprise",
+      "fee": null,
+      "fee_is_credit": false,
+      "included_usd": null,
+      "concurrency": null,
+      "max_vcpu": 32,
+      "max_ram_gib": 64,
+      "note": "\"Custom\": \"99.9% SLA\", \"SSO / SAML and SCIM\", \"Audit logs\", \"Dedicated pool or BYOC\", \"HIPAA BAA\", \"Dedicated support\" (docs/pricing). Sizes up to 32/64 (docs/limits)."
     }
   ],
   "free": {
     "one_time_credit": null,
-    "monthly_credit": null
+    "monthly_credit": null,
+    "note": "The Free plan runs one 4 vCPU / 8 GiB machine at no cost (see plans). Accounts registered before 2026-10-20 and activated before 2026-10-25 07:45 UTC keep five free sandboxes until 2026-12-01 00:00 UTC, then one (docs/pricing)."
   },
   "features": {
     "linux": true,
     "windows": false,
     "macos": false,
     "arm64": null,
-    "gpu": false,
+    "gpu": null,
     "snapshot": "mem",
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
-    "volumes": false,
+    "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
-    "custom_image": false,
+    "custom_image": true,
     "docker_inside": true,
     "nested_virt": null,
     "root": true,
-    "systemd": null,
+    "systemd": true,
     "browser": true,
     "desktop": true,
     "computer_use": true,
     "code_interpreter": null,
-    "agent_harnesses": null,
+    "agent_harnesses": true,
     "ssh": true,
     "public_ipv4": false,
     "inbound_https": true,
     "custom_domain": null,
-    "raw_tcp_inbound": null,
+    "raw_tcp_inbound": true,
     "egress_allowlist": null,
     "static_egress_ip": null,
     "private_network": null,
     "self_host": null,
-    "byoc": null,
+    "byoc": true,
     "open_source": false,
     "soc2": null,
-    "hipaa": null,
-    "sso": false,
+    "hipaa": true,
+    "sso": true,
     "gpu_types": [],
     "regions": null,
     "lang_python": true,
-    "lang_node": null,
+    "lang_node": true,
     "lang_go": true,
     "lang_rust": true,
-    "lang_java": null,
-    "gpu_desktop": false,
+    "lang_java": true,
+    "gpu_desktop": null,
     "credential_injection": true,
     "egress_http_rules": null,
-    "wake_on_request": false,
+    "wake_on_request": true,
     "live_resize": false,
-    "fork_running": false,
+    "fork_running": true,
     "memory_snapshot_fork": false,
-    "webhooks": null,
+    "webhooks": true,
     "scheduled_wakeups": null,
-    "audit_logs": null,
+    "audit_logs": true,
     "eu_data_residency": null,
     "zero_data_retention": null,
     "scoped_api_keys": true,
-    "spend_limits": null,
-    "mcp_server": null,
+    "spend_limits": true,
+    "mcp_server": true,
     "isolation": "firecracker",
     "browser_control": null,
     "desktop_control": true,
     "anti_bot": null,
     "captcha_solving": null,
     "egress_ip_type": null,
-    "image_oci": false,
+    "image_oci": true,
     "ide_in_browser": null,
     "snapshot_auto": false,
     "guest_firewall": null,
-    "secret_proxy": false,
+    "secret_proxy": "any-http",
     "snapshot_on_demand": true,
-    "volume_attach": false,
-    "volume_shared": false,
+    "volume_attach": null,
+    "volume_shared": null,
     "harness_api": null,
     "own_agent_api": false,
-    "ingress_rules": false,
+    "ingress_rules": true,
     "max_session_unlimited": true,
     "usage_api": true,
     "persist_scope": "whole"
@@ -170,17 +243,20 @@
   },
   "knobs": [],
   "caveats": [
-    "Invite-only beta launched 2026-10-14. The OpenAPI documents an invite gate (\"With the server's invite gate on ... a new account must then redeem an invite code ... every other route answers 403 invite_required\"; each user gets a 3-use code). The signup page itself only shows GitHub/Google sign-in, and the pricing page says \"5 machines free for everyone\"; whether the gate is on in production was not verified (no account created).",
-    "Not priceable: no price, unit rate, billing granularity or start date for billing is published (\"Free until we figure it out\", pricing; \"figuring out the pricing plan and usage tracking\", roadmap). The free allowance is a temporary beta offer, not a tariff.",
-    "Unpublished: price, egress and IPv4 terms, regions (roadmap: \"More regions\" is only being explored), SLA, compliance, terms of service and privacy policy specific to Instabox (none linked from instabox.sh), and the CPU basis. The admin API shows the scheduler reserves \"(vcpus - hostReserve.vcpus) * cpuOvercommit\" and VMs can have a memory balloon, so vCPUs/RAM may be oversubscribed; the overcommit factor is not published. Not flagged shared: there is no dedicated tier to contrast it with.",
-    "Marketing-only claims (launch post / homepage, not defined or measured): \"spun up in <1s\" and \"You're in a new machine's shell in under a second\". The docs only say resume is \"usually in about a second\" and that preboot templates \"start faster\" from an already booted copy. No cold-start measurement possible without access; perf left null.",
-    "Isolation: Firecracker microVMs. Documented by the SDK package (npm @insforge/instabox-sdk: \"create sandboxes on Firecracker dev machines\") and the OpenAPI host report (firecrackerVersion); homepage: \"a real virtual machine with its own kernel and root\". Server source is not public (npm repository links github.com/InsForge/instabox and InsForge/instabox-sdk do not resolve publicly).",
-    "One fixed size for everyone: 4 vCPU / 8 GB / 20 GB storage, x86_64 templates; other sizes are refused (spec_not_allowed); \"Machine sizes\" and \"Volumes\" are roadmap items. Max 5 machines counting paused and stopped ones.",
-    "Snapshots and forks are disk-only and need a stopped machine (\"Saving stops a running or paused machine first\"; fork \"copies a stopped machine\"); pause/resume keeps memory and processes but falls back to a fresh boot when that is not possible.",
-    "Public port URLs are unauthenticated (\"It is not a secret: once published, anyone can reach the whole service\") and go offline while the machine is paused, including the default 30-minute idle pause; a visit does not wake it.",
-    "Operator: InsForge (footer \"(c) 2026 InsForge AI, Inc.\"; InsForge's own terms name \"InsForge, Inc., a Delaware corporation\"; the names differ and no Instabox-specific terms exist). Homepage says \"Backed by Y Combinator\" (not verified here). Hosting hint only, not a public claim: api.instabox.sh and *.instabox.tech resolve to an AWS EC2 address in us-west-2 (DNS, 2026-10-14), and the dashboard is on Vercel.",
-    "No independent runtime/account test or performance measurement performed.",
-    "Made by InsForge, which also sells InstaCloud (a separate backend platform, card insforge-instacloud). Instabox is a different product: agent VMs, not an app backend."
+    "Plans since 2026-10-20 (changelog): Free $0 (one 4 vCPU / 8 GiB machine), Pro $20, Builder $100 (added 2026-11-03), Team $500, Enterprise custom. Each paid fee is usage credit of the same amount; usage beyond it is $0.004 per vCPU-hour and $0.00225 per GiB-hour, per second while running (docs/pricing).",
+    "The site shows self-service sign-up with GitHub or Google and no beta or invite wording. The API still documents an invite gate as a server switch, and paying for a plan activates a held account (OpenAPI createOrg). The 2026-10-14 launch was an invite-only beta.",
+    "Free plan limits (docs/limits): 1 machine in any state, 4/8 only, 20 GiB fixed disk, 5 snapshots, 3 starts a minute, idle pause fixed at 30 min, max run 480 min at a time with a cooldown after (5-20 min; 60-75 and 120-135 min when repeated). The API documents an unpublished monthly hours cap for the free machine \"when the server enforces a cap\".",
+    "Early accounts (registered before 2026-10-20, activated before 2026-10-25 07:45 UTC) keep five free sandboxes until 2026-12-01 00:00 UTC, then one runs at a time; the others are paused, not deleted (docs/pricing).",
+    "Unpublished: regions (\"A machine has no `region` field in the API ... Placement is the platform's\", docs/machines), SOC 2, GPU types and prices, and the CPU basis. The OpenAPI admin schema shows a scheduler CPU overcommit factor and a memory balloon; the factor is not published. Not flagged shared: there is no dedicated tier to contrast it with (Enterprise lists a \"Dedicated pool or BYOC\" without detail).",
+    "Marketing-only claims (homepage, not defined or measured): \"You're in a new machine's shell in under a second\". The docs say resume is \"usually in about a second\" and the android template boots \"a few seconds longer than agent-browser\". No measurement here; perf left to the benchmark owner.",
+    "Isolation: Firecracker microVMs on Linux 6.18.60, amd64 (docs/limits). Server source is not public.",
+    "Sizes: 2/4, 4/8, 8/16 on Pro; up to 16/32 on Builder; up to 32/64 on Team and Enterprise; 4/8 only on Free. /data is 20 GiB per machine and grows to 200 GiB / 500 GiB / 1 TiB on Pro / Builder / Team. Resizing needs a stop or a restart.",
+    "Snapshots and forks copy the disk, not memory. Fork works on a running or stopped machine (up to 5 copies per call), not a paused one. Live snapshots keep the machine running but \"may leave out data programs have not written to disk yet\". Pause keeps memory and processes on the same machine. No automatic periodic snapshot.",
+    "Ports: up to 16 per machine, public by default; `--private` gives a token-gated URL. A visit wakes a machine that paused itself on idle, not one you paused or stopped. Outbound bandwidth is about 50 Mbit/s per machine (docs/limits).",
+    "Secrets (2026-10-24): an outbound proxy swaps a placeholder for the real key in HTTPS headers to each Secret's allowed hosts; it does not touch URLs or bodies, and clients must trust the sandbox CA (docs/secrets).",
+    "Templates: agent-browser (default), universal, t3, herdr, orca, android (Android 14 natively, no emulator or nested VM), omarchy (Arch + Hyprland) and ci (GitHub Actions runner, `runs-on: instabox-*`). Free creates from agent-browser, android, omarchy or ci only.",
+    "Operator: the SDK is published as @insforge/instabox-sdk; instabox.sh itself does not name the company. Hosting hint only, not a public claim: api.instabox.sh resolved to an AWS EC2 address in us-west-2 (DNS, 2026-10-14).",
+    "No independent runtime/account test or performance measurement performed."
   ],
   "sources": [
     "https://instabox.sh/",
@@ -207,11 +283,22 @@
     "https://instabox.sh/docs/api/account",
     "https://api.instabox.sh/v1/openapi.json",
     "https://api.instabox.sh/install.sh",
-    "https://dashboard.instabox.sh/signup",
     "https://www.npmjs.com/package/instabox",
     "https://www.npmjs.com/package/@insforge/instabox-sdk",
-    "https://insforge.dev/terms",
-    "https://x.com/hanghuang_"
+    "https://x.com/hanghuang_",
+    "https://instabox.sh/changelog.md",
+    "https://instabox.sh/docs/pricing",
+    "https://instabox.sh/docs/billing",
+    "https://instabox.sh/docs/idle-suspend",
+    "https://instabox.sh/docs/fork",
+    "https://instabox.sh/docs/custom-images",
+    "https://instabox.sh/docs/secrets",
+    "https://instabox.sh/docs/webhooks",
+    "https://instabox.sh/docs/mcp",
+    "https://instabox.sh/docs/android",
+    "https://instabox.sh/docs/ci",
+    "https://instabox.sh/docs/errors",
+    "https://instabox.sh/llms-full.txt"
   ],
   "launch_post": {
     "source": "https://x.com/hanghuang_",
@@ -221,62 +308,63 @@
     "note": "Quoted from the founder's launch announcement on X (Hang Huang, @hanghuang_); the individual post URL could not be retrieved without an X login, so the profile is cited."
   },
   "fleet": {
-    "default_max_instances": 5,
-    "default_max_vcpu": null,
+    "default_max_instances": 1,
+    "default_max_vcpu": 4,
     "default_max_gpus": 0,
-    "raise": null,
-    "raise_time_days": null,
-    "verification": "GitHub or Google sign-in; per the OpenAPI, a new account must redeem an invite code while the server's invite gate is on. No card, no credit.",
-    "tiers": "One beta tier: 5 machines in any state, 4 vCPU / 8 GB each, 10 snapshots, 200 GB stored data.",
-    "notes": "\"Sandboxes in any state, checked on create and fork (default 5). There are no vCPU or memory quotas.\" An admin can change a user's machine limit, but no public procedure to request more exists.",
+    "raise": "Self-serve plan upgrade: Pro 100 running (500 total), Builder 200 (1,000), Team 500 (unlimited); Enterprise by contract.",
+    "raise_time_days": 0,
+    "verification": "GitHub or Google sign-in. Paid plans need a card (Alipay for Pro and Builder since 2026-11-04).",
+    "tiers": "Free: 1 machine, 4/8, 3 starts/min. Pro $20: 100 running, up to 8/16, 30 starts/min. Builder $100: 200 running, up to 16/32, 50 starts/min. Team $500: 500 running, up to 32/64, 100 starts/min.",
+    "notes": "\"Machines | Free: 1, in any state (paused and stopped ones count). Pro: 500, 100 running at once. Builder: 1,000, 200 running at once. Team: unlimited, 500 running at once\" (docs/limits). exec: 32 requests at once, 10 min per command; `exec --background` has no exec timeout.",
     "sources": [
       "https://instabox.sh/docs/limits",
-      "https://api.instabox.sh/v1/openapi.json"
+      "https://instabox.sh/docs/pricing",
+      "https://instabox.sh/changelog.md"
     ],
-    "researched": "2026-10-14"
+    "researched": "2026-11-08"
   },
   "feature_evidence": {
     "isolation": {
       "value": "firecracker",
-      "source": "https://www.npmjs.com/package/@insforge/instabox-sdk",
-      "quote": "TypeScript SDK for instabox: create sandboxes on Firecracker dev machines, run commands, move files, pause, resume, fork and SSH in.",
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "on Linux 6.18.60 (`uname -r`: `6.18.60-instabox`; `6.18.60-instabox-android` on `android`, `6.18.60-instabox-drm` on `omarchy`) in a Firecracker microVM",
       "note": "Corroborated by the OpenAPI HostReport schema (node-agent field firecrackerVersion, https://api.instabox.sh/v1/openapi.json) and the homepage (\"Full VM: a real virtual machine with its own kernel and root\"). The server source is not public.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "linux": {
       "value": true,
       "source": "https://instabox.sh/docs/concepts",
       "quote": "Machine A Linux VM of your own in the cloud, with its own kernel, root and Docker.",
       "note": "",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
-      "source": "https://instabox.sh/docs/concepts",
-      "quote": "Template What a new machine starts from: agent-browser , universal , herdr or orca .",
-      "note": "All four templates are Linux; no Windows machine is offered anywhere in the docs or roadmap.",
-      "checked": "2026-10-14"
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "Every template but `ci` (Ubuntu 24.04) and `omarchy` (Arch Linux) is Debian 13 (trixie), amd64",
+      "note": "All eight templates are Linux; no Windows machine is documented.",
+      "checked": "2026-11-08"
     },
     "macos": {
       "value": false,
-      "source": "https://instabox.sh/docs/concepts",
-      "quote": "Template What a new machine starts from: agent-browser , universal , herdr or orca .",
-      "note": "Linux-only Firecracker microVMs; macOS appears only as a supported OS for the local CLI (install.sh), not as a machine.",
-      "checked": "2026-10-14"
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "Every template but `ci` (Ubuntu 24.04) and `omarchy` (Arch Linux) is Debian 13 (trixie), amd64",
+      "note": "Linux-only Firecracker microVMs.",
+      "checked": "2026-11-08"
     },
     "gpu": {
-      "value": false,
-      "source": "https://instabox.sh/roadmap",
-      "quote": "Exploring Ideas, not promises. ... GPUs : machines with a GPU, for agents that run models",
-      "note": "GPUs are only an idea on the roadmap; every machine is 4 vCPU / 8 GB.",
-      "checked": "2026-10-14"
+      "value": null,
+      "source": "https://instabox.sh/docs/machines",
+      "quote": "`gpu` | string | none: no GPU | a GPU type your org has access to, count 1",
+      "note": "Create takes a gpu field for orgs given access, but no GPU type, price or plan is published.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "mem",
       "source": "https://instabox.sh/docs/api/lifecycle",
       "quote": "A paused machine keeps its memory and running programs; a stopped one keeps only its files.",
       "note": "Pause preserves memory and processes (\"If that is not possible it starts fresh: files are kept, processes are not\", docs/machines). Saved snapshots themselves are disk-only: \"It does not hold memory or running processes\" (docs/snapshots).",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": true,
@@ -287,171 +375,171 @@
     },
     "fork": {
       "value": true,
-      "source": "https://instabox.sh/docs/api/lifecycle",
-      "quote": "Copies a stopped machine, its software and files, into a new machine. Returns the new machine's create operation.",
-      "note": "POST /v1/machines/{id}/fork; also new machines from a saved snapshot. Stopped machines only.",
-      "checked": "2026-10-14"
+      "source": "https://instabox.sh/docs/snapshots",
+      "quote": "`fork` (or `clone`) copies a running or stopped machine into one new machine, or up to 5 with `--count`.",
+      "note": "POST /v1/machines/{id}/fork; also new machines from a saved snapshot. Not from a paused machine.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
-      "value": false,
+      "value": true,
       "source": "https://instabox.sh/docs/snapshots",
-      "quote": "instabox fork dev dev-copy ( POST /v1/machines/{id}/fork ) copies a stopped machine into a new one in one step, without keeping a snapshot.",
-      "note": "Fork needs a stopped machine. Live snapshots of a running machine exist \"where the server allows it\" (limits.liveSnapshots), crash-consistent, but are not a running fork.",
-      "checked": "2026-10-14"
+      "quote": "`fork` (or `clone`) copies a running or stopped machine into one new machine, or up to 5 with `--count`.",
+      "note": "Disk only: \"Memory and running programs are not copied, and the source machine is not changed.\" A paused machine must be resumed first (409 fork_unavailable).",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
       "source": "https://instabox.sh/docs/snapshots",
-      "quote": "It does not hold memory or running processes. Snapshots are private to you.",
-      "note": "Forks and snapshots copy disks only.",
-      "checked": "2026-10-14"
+      "quote": "Memory and running programs are not copied, and the source machine is not changed.",
+      "note": "Forks and snapshots copy disks only; pause keeps memory on the same machine.",
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
       "value": true,
-      "source": "https://instabox.sh/docs/concepts",
-      "quote": "Files under /data (home is /data/home ) and the software you install stay.",
-      "note": "Storage is 20 GB per machine (docs/api/machines); stopped = files kept, deleted = gone.",
-      "checked": "2026-10-14"
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "a 20 GiB persistent ext4 disk at `/data` (`/dev/vdb`; home is `/data/home`)",
+      "note": "20 GiB fixed on Free; up to 200 GiB / 500 GiB / 1 TiB on Pro / Builder / Team.",
+      "checked": "2026-11-08"
     },
     "persist_scope": {
       "value": "whole",
       "source": "https://instabox.sh/docs/api/machines",
       "quote": "A machine is a Linux VM of your own: its files under /data and the software you install stay across stops and restarts.",
       "note": "Both system files (root disk) and /data persist: \"Both are kept across stop, pause and start\" (OpenAPI).",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "volumes": {
-      "value": false,
-      "source": "https://instabox.sh/roadmap",
-      "quote": "In Progress Working on it right now. Volumes : storage that outlives a machine; attach it to the next one",
-      "note": "Not available yet.",
-      "checked": "2026-10-14"
+      "value": null,
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "Disk (`/data`) | 20 GiB per machine. Free: fixed. A paid machine's grows up to 200 GiB on Pro, 500 GiB on Builder, 1 TiB on Team",
+      "note": "No separate volume that outlives a machine is documented; the earlier roadmap item is no longer on the site. Each machine's /data disk persists and grows on paid plans.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
-      "value": false,
-      "source": "https://instabox.sh/roadmap",
-      "quote": "Volumes : storage that outlives a machine; attach it to the next one",
-      "note": "Listed as in progress, not shipped.",
-      "checked": "2026-10-14"
+      "value": null,
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "Disk (`/data`) | 20 GiB per machine. Free: fixed. A paid machine's grows up to 200 GiB on Pro, 500 GiB on Builder, 1 TiB on Team",
+      "note": "No separate volume that outlives a machine is documented; the earlier roadmap item is no longer on the site. Each machine's /data disk persists and grows on paid plans.",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
-      "value": false,
-      "source": "https://instabox.sh/roadmap",
-      "quote": "Volumes : storage that outlives a machine; attach it to the next one",
-      "note": "No volumes yet, so no shared volume.",
-      "checked": "2026-10-14"
+      "value": null,
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "Disk (`/data`) | 20 GiB per machine. Free: fixed. A paid machine's grows up to 200 GiB on Pro, 500 GiB on Builder, 1 TiB on Team",
+      "note": "No separate volume that outlives a machine is documented; the earlier roadmap item is no longer on the site. Each machine's /data disk persists and grows on paid plans.",
+      "checked": "2026-11-08"
     },
     "auto_stop_idle": {
       "value": true,
-      "source": "https://instabox.sh/docs/concepts",
-      "quote": "A new machine pauses once it has been idle for 30 minutes ( instabox auto-suspend <machine> 0 turns that off).",
-      "note": "Configurable 120 s to 86400 s or off (autoSuspendAfterSeconds).",
-      "checked": "2026-10-14"
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "Idle pause | Free: 30 minutes, fixed. Paid plans: 5 to 30 minutes, or off",
+      "note": "The idle pause keeps memory (suspend), not a stop.",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
-      "value": false,
+      "value": true,
       "source": "https://instabox.sh/docs/ports",
-      "quote": "Pause and stop take it offline, the 30-minute idle pause too, and a visit does not wake it",
-      "note": "API exec, files and SSH do resume an idle-paused machine; inbound HTTP to a public port does not.",
-      "checked": "2026-10-14"
+      "quote": "A visit wakes a machine that paused itself after 30 idle minutes.",
+      "note": "Only a machine that paused itself on idle; one you paused or stopped stays offline. A request to a private port without its token does not wake it (docs/idle-suspend).",
+      "checked": "2026-11-08"
     },
     "max_session_h": {
-      "value": "none",
-      "source": "https://instabox.sh/docs/machines",
-      "quote": "When a machine's timeout passes, the server pauses it ( --on-timeout pause , the default) or deletes it ( kill ). 1 minute to 24 hours; 0 clears it.",
-      "note": "The timeout is optional; with idle pause off and no timeout, no maximum run time is documented.",
-      "checked": "2026-10-14"
+      "value": null,
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "Max run | Free: 480 minutes at a time, fixed. Paid plans: unlimited by default, or your choice",
+      "note": "Plan-dependent: Free 8 h (plans[Free].max_session_h); paid plans unlimited.",
+      "checked": "2026-11-08"
     },
     "custom_image": {
-      "value": false,
-      "source": "https://instabox.sh/docs/api/machines",
-      "quote": "templateId string A template , such as universal . Give this or snapshotId .",
-      "note": "Machines start from one of four Instabox templates or from your own snapshot; no user-supplied image.",
-      "checked": "2026-10-14"
+      "value": true,
+      "source": "https://instabox.sh/docs/custom-images",
+      "quote": "Turn a Docker or OCI image into a snapshot, then start machines from it.",
+      "note": "`instabox snapshot import IMAGE --name N` takes a few minutes and works on every plan; machines then start from that snapshot.",
+      "checked": "2026-11-08"
     },
     "image_oci": {
-      "value": false,
-      "source": "https://instabox.sh/docs/api/machines",
-      "quote": "templateId string A template , such as universal . Give this or snapshotId .",
-      "note": "No Docker/OCI image field on create.",
-      "checked": "2026-10-14"
+      "value": true,
+      "source": "https://instabox.sh/docs/custom-images",
+      "quote": "Turn a Docker or OCI image into a snapshot, then start machines from it.",
+      "note": "An import step, not an image field on create: the import lays the image's files over the machine's own and saves a snapshot.",
+      "checked": "2026-11-08"
     },
     "docker_inside": {
       "value": true,
       "source": "https://instabox.sh/",
       "quote": "Docker : Docker and Docker Compose run inside",
       "note": "Docs: \"with its own kernel, root and Docker\" (docs/concepts); universal template is \"dev plus Docker, Python (uv), Go and Rust\" (docs/api/account).",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": null,
-      "source": null,
-      "quote": null,
-      "note": "Not documented either way. Firecracker microVMs usually expose no /dev/kvm, but Instabox does not say, so this stays unknown.",
-      "checked": "2026-10-14"
+      "source": "https://instabox.sh/docs/android",
+      "quote": "Android runs as a container on the machine's own Linux kernel. There is no emulator and no nested VM.",
+      "note": "/dev/kvm is not documented either way. Android apps run natively through the android template (every plan, Free included).",
+      "checked": "2026-11-08"
     },
     "root": {
       "value": true,
       "source": "https://instabox.sh/",
       "quote": "Full VM : a real virtual machine with its own kernel and root",
       "note": "Exec runs as user dev; files API reads \"as root\".",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": true,
       "source": "https://instabox.sh/docs/desktop",
       "quote": "Machines from the agent-browser template (shown as base ) have a Linux desktop with a browser.",
       "note": "",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": true,
       "source": "https://instabox.sh/docs/desktop",
       "quote": "Machines from the agent-browser template (shown as base ) have a Linux desktop with a browser. You can watch it, let an agent drive it, and give other people a link to it.",
-      "note": "VNC-based; agent-browser template only.",
-      "checked": "2026-10-14"
+      "note": "VNC-based. Preinstalled on agent-browser, herdr, orca, android and omarchy; installed on request (about half a minute) on universal and t3 (docs/limits).",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": true,
       "source": "https://instabox.sh/docs/desktop",
       "quote": "const png = await sbx.desktop.screenshot() // PNG bytes, e.g. for a vision model await sbx.desktop.click(640, 400)",
       "note": "Screenshot/click/type/press/scroll/drag primitives; you bring the model (\"yourModel.nextAction(png)\"). No built-in computer-use agent.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "desktop_control": {
       "value": true,
       "source": "https://instabox.sh/docs/desktop",
       "quote": "Also: move(x, y) , drag([x1, y1], [x2, y2]) , cursorPosition() , status() .",
       "note": "Plus shareable view-only or control stream links (60 s to 24 h, revocable).",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": true,
       "source": "https://instabox.sh/docs/ssh",
       "quote": "The instabox gateway terminates SSH: ssh -p <port> <machine-id>@<host> , with a short-lived user certificate",
       "note": "Also SSH tokens and mosh. No agent forwarding, X11 or remote forwarding.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
       "source": "https://instabox.sh/docs/ssh",
       "quote": "It relays mosh's UDP too, so only the gateway has to be reachable.",
       "note": "Access is through Instabox's SSH gateway and shared HTTPS port domain (https://<port>-<id>.instabox.tech); no per-machine public IP is documented.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "inbound_https": {
       "value": true,
       "source": "https://instabox.sh/docs/ports",
-      "quote": "The URL is https://<port>-<machine id without m_>.<domain>/ .",
-      "note": "Up to 16 public ports per machine.",
-      "checked": "2026-10-14"
+      "quote": "A machine has up to 16 published ports.",
+      "note": "Public by default, token-gated with --private. Raw TCP to a public port is also supported (docs/idle-suspend).",
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
-      "value": false,
+      "value": true,
       "source": "https://instabox.sh/docs/ports",
-      "quote": "It is not a secret: once published, anyone can reach the whole service until you unpublish it.",
-      "note": "No auth, token or IP allowlist on public ports.",
-      "checked": "2026-10-14"
+      "quote": "A private port answers only requests that carry its token.",
+      "note": "Public is the default; `--private` gives a token-gated URL (401 without it). No IP allowlists.",
+      "checked": "2026-11-08"
     },
     "open_source": {
       "value": false,
@@ -461,102 +549,179 @@
       "checked": "2026-10-14"
     },
     "sso": {
-      "value": false,
-      "source": "https://instabox.sh/docs/keys-sdk",
-      "quote": "Signing in with GitHub or Google is for people, to use the dashboard and to create keys.",
-      "note": "GitHub/Google OAuth only; no SAML/OIDC enterprise SSO.",
-      "checked": "2026-10-14"
+      "value": true,
+      "source": "https://instabox.sh/docs/pricing",
+      "quote": "SSO / SAML and SCIM",
+      "note": "Enterprise plan only (custom price). Other plans sign in with GitHub or Google.",
+      "checked": "2026-11-08"
     },
     "lang_python": {
       "value": true,
       "source": "https://instabox.sh/docs/api/account",
       "quote": "\"description\": \"dev plus Docker, Python (uv), Go and Rust\"",
       "note": "universal template.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "lang_go": {
       "value": true,
       "source": "https://instabox.sh/docs/api/account",
       "quote": "\"description\": \"dev plus Docker, Python (uv), Go and Rust\"",
       "note": "universal template.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "lang_rust": {
       "value": true,
       "source": "https://instabox.sh/docs/api/account",
       "quote": "\"description\": \"dev plus Docker, Python (uv), Go and Rust\"",
       "note": "universal template.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "gpu_desktop": {
-      "value": false,
-      "source": "https://instabox.sh/roadmap",
-      "quote": "GPUs : machines with a GPU, for agents that run models",
-      "note": "No GPU machines exist yet (exploring only).",
-      "checked": "2026-10-14"
+      "value": null,
+      "source": "https://instabox.sh/docs/machines",
+      "quote": "`gpu` | string | none: no GPU | a GPU type your org has access to, count 1",
+      "note": "No published GPU offer.",
+      "checked": "2026-11-08"
     },
     "credential_injection": {
       "value": true,
-      "source": "https://instabox.sh/docs/machines",
-      "quote": "the Vault writes your secrets into every machine at boot, start and resume. An env item is exported in login shells; a file item is written under home",
-      "note": "Secrets are written into the machine (readable inside it), not proxied; \"Where the server has one ( limits.vault in GET /v1/usage )\".",
-      "checked": "2026-10-14"
+      "source": "https://instabox.sh/docs/secrets",
+      "quote": "A sandbox sees placeholders, and the outbound proxy adds the credentials to HTTPS headers sent to each Secret's allowed hosts.",
+      "note": "Org Secrets (proxy, key stays outside the machine) and the personal Vault (written into the machine at boot).",
+      "checked": "2026-11-08"
     },
     "secret_proxy": {
-      "value": false,
-      "source": "https://instabox.sh/docs/keys-sdk",
-      "quote": "A key with machines:write can read your Vault through exec in a machine it creates.",
-      "note": "Vault values enter the machine as env vars/files; no egress-side key swapping is documented.",
-      "checked": "2026-10-14"
+      "value": "any-http",
+      "source": "https://instabox.sh/docs/secrets",
+      "quote": "Encrypted credentials that sandboxes see as placeholders; the outbound proxy adds them to HTTPS headers for allowed hosts.",
+      "note": "Since 2026-10-24 (changelog). Headers only (port 443), not URLs or bodies; you list the allowed hosts per Secret. The older personal Vault still writes values into the machine.",
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
-      "source": "https://api.instabox.sh/v1/openapi.json",
-      "quote": "Only admins can resize an existing sandbox.",
-      "note": "Users get one fixed size; \"Machine sizes\" is a roadmap item.",
-      "checked": "2026-10-14"
+      "source": "https://instabox.sh/docs/api/machines",
+      "quote": "Changes the idle pause or labels, in any state and at once, or resizes a stopped paid machine: its vCPUs and memory, or its disk (`/data`).",
+      "note": "Resize needs a stop (or `--restart`, which stops, resizes and starts). Free machines cannot be resized.",
+      "checked": "2026-11-08"
     },
     "scoped_api_keys": {
       "value": true,
       "source": "https://instabox.sh/docs/keys-sdk",
       "quote": "Full access suits the SDK; Restricted picks scopes:",
       "note": "machines:read/write/delete, images:read/write/delete; optional expiry 1-365 days.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
       "source": "https://instabox.sh/docs/desktop",
       "quote": "const action = await yourModel.nextAction(png)",
       "note": "Instabox provides machines and desktop primitives; the agent and model are the customer's.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://instabox.sh/docs/snapshots",
       "quote": "instabox snapshot save dev --name dev-base instabox create --name dev2 --snapshot dev-base",
-      "note": "Disk-only; saving stops a running machine first unless the server allows live snapshots. Max 10 snapshots.",
-      "checked": "2026-10-14"
+      "note": "Disk only. Live snapshots: saving a running machine keeps it running, but \"the snapshot may leave out data programs have not written to disk yet\" (docs/snapshots). Free plan keeps 5; paid plans unlimited; snapshots are free (docs/pricing).",
+      "checked": "2026-11-08"
     },
     "snapshot_auto": {
       "value": false,
       "source": "https://instabox.sh/docs/snapshots",
       "quote": "In the dashboard: Save snapshot in a machine's menu, then New machine from it , now or later on the Snapshots page.",
       "note": "Snapshots are user-triggered; the idle pause is a suspend of the machine, not an automatic snapshot.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": true,
       "source": "https://instabox.sh/docs/api/account",
       "quote": "Your machine and snapshot counts, the data they store (measured about hourly) and your limits.",
-      "note": "granularity: account (storage also per sandbox); cost: no (there is no billing yet).",
-      "checked": "2026-10-14"
+      "note": "granularity: account and workspace, with cost (`GET /v1/usage` `cost`: runtime, storage and egress in USD; docs/billing).",
+      "checked": "2026-11-08"
     },
     "max_session_unlimited": {
       "value": true,
-      "source": "https://instabox.sh/docs/machines",
-      "quote": "1 minute to 24 hours; 0 clears it. A timeout is used once: a resumed machine has none until you set one again.",
-      "note": "No cap when no timeout is set and idle pause is off.",
-      "checked": "2026-10-14"
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "Max run | Free: 480 minutes at a time, fixed. Paid plans: unlimited by default, or your choice",
+      "note": "Paid plans only. Free machines pause after 8 h of running, then a cooldown.",
+      "checked": "2026-11-08"
+    },
+    "lang_node": {
+      "value": true,
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "gh, Node.js 22 with npm, pnpm and Yarn, Bun, uv, Go, Rust, a JDK (OpenJDK 21)",
+      "note": "agent-browser template (the default).",
+      "checked": "2026-11-08"
+    },
+    "lang_java": {
+      "value": true,
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "the JDK is OpenJDK 21 (Debian 13 has no 17; `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64`)",
+      "note": "agent-browser, universal and t3 templates.",
+      "checked": "2026-11-08"
+    },
+    "systemd": {
+      "value": true,
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "Every template but `ci` (Ubuntu 24.04) and `omarchy` (Arch Linux) is Debian 13 (trixie), amd64, with systemd",
+      "note": "",
+      "checked": "2026-11-08"
+    },
+    "agent_harnesses": {
+      "value": true,
+      "source": "https://instabox.sh/docs/limits",
+      "quote": "Docker with Compose, Claude Code, Codex, OpenCode, and the desktop (VNC, Xfce, Chromium)",
+      "note": "Preinstalled on agent-browser, herdr and orca; you run the agent yourself. Since 2026-11-01 every box also ships the instabox CLI, agent skills and MCP (changelog).",
+      "checked": "2026-11-08"
+    },
+    "webhooks": {
+      "value": true,
+      "source": "https://instabox.sh/changelog.md",
+      "quote": "InstaBox now sends a signed POST to your HTTPS endpoint when a sandbox is created, starts, stops",
+      "note": "2026-10-27. Also pause, failure, deletion and snapshot events; Standard Webhooks format.",
+      "checked": "2026-11-08"
+    },
+    "mcp_server": {
+      "value": true,
+      "source": "https://instabox.sh/docs/mcp",
+      "quote": "Sandbox tools for Claude Code, Cursor, Codex, OpenCode and Antigravity over the Model Context Protocol",
+      "note": "Hosted at https://api.instabox.sh/mcp; tools create, exec, read and write files, pause and resume sandboxes.",
+      "checked": "2026-11-08"
+    },
+    "spend_limits": {
+      "value": true,
+      "source": "https://instabox.sh/docs/errors",
+      "quote": "The paid workspace's usage this month reached its spend cap (or its allowance while a payment is past due); its machines cannot run.",
+      "note": "Set with `instabox workspace spend-cap <workspace> <usd>|off` or in the dashboard.",
+      "checked": "2026-11-08"
+    },
+    "audit_logs": {
+      "value": true,
+      "source": "https://instabox.sh/docs/pricing",
+      "quote": "Audit logs",
+      "note": "Listed on the Enterprise plan only.",
+      "checked": "2026-11-08"
+    },
+    "hipaa": {
+      "value": true,
+      "source": "https://instabox.sh/docs/pricing",
+      "quote": "HIPAA BAA",
+      "note": "Enterprise plan only.",
+      "checked": "2026-11-08"
+    },
+    "byoc": {
+      "value": true,
+      "source": "https://instabox.sh/docs/pricing",
+      "quote": "Dedicated pool or BYOC",
+      "note": "Enterprise plan only; no public detail.",
+      "checked": "2026-11-08"
+    },
+    "raw_tcp_inbound": {
+      "value": true,
+      "source": "https://instabox.sh/docs/idle-suspend",
+      "quote": "A raw TCP connection to a public port | Yes | The connection waits up to 45 seconds for the resume.",
+      "note": "Through the port gateway (TLS), not a per-machine IP.",
+      "checked": "2026-11-08"
     }
   },
   "claims": [
@@ -564,7 +729,8 @@
       "claim": "4 vCPU, 8 GB RAM",
       "verdict": "documented",
       "source": "https://instabox.sh/docs/limits",
-      "quote": "Machine size 4 vCPUs and 8 GiB of memory, the same for every new machine"
+      "quote": "Machine size | 4 vCPU / 8 GiB by default, the only size on the free plan. Pro: 2/4, 4/8, 8/16. Builder: 2/4 up to 16/32. Team: 2/4 up to 32/64 (vCPUs/GiB).",
+      "note": "Now the default and Free size; paid plans go to 32/64."
     },
     {
       "claim": "spun up in <1s",
@@ -585,39 +751,39 @@
       "verdict": "documented",
       "source": "https://instabox.sh/docs/snapshots",
       "quote": "Save a machine once, start new ones from it.",
-      "note": "Disk-only; saving or forking stops the machine first (live snapshots only where the server allows)."
+      "note": "Disk-only. Live snapshots and fork of a running machine (up to 5 copies) are supported."
     },
     {
       "claim": "Persistent files, packages, config",
       "verdict": "documented",
       "source": "https://instabox.sh/docs/concepts",
       "quote": "Files under /data (home is /data/home ) and the software you install stay.",
-      "note": "20 GB storage per machine; 200 GB per account."
+      "note": "20 GiB /data per machine, up to 1 TiB on Team."
     },
     {
       "claim": "Public URLs for local ports",
       "verdict": "documented",
       "source": "https://instabox.sh/docs/ports",
       "quote": "Give a web server in a machine an HTTPS URL.",
-      "note": "Unauthenticated, offline while paused, 16 per machine."
+      "note": "16 per machine; public by default, token-gated with --private; wakes an idle-paused machine."
     },
     {
       "claim": "invite-only beta",
-      "verdict": "documented",
-      "source": "https://api.instabox.sh/v1/openapi.json",
-      "quote": "With the server's invite gate on (`inviteRequired` in server.json or `INSTABOX_INVITE_REQUIRED=true`), a new account must then redeem an invite code",
-      "note": "Gate is a server switch; pricing page says \"5 machines free for everyone\" and signup shows plain GitHub/Google. Production state not verified."
+      "verdict": "stale",
+      "source": "https://instabox.sh/pricing",
+      "quote": "Free $0 ... Pro $20/month + usage",
+      "note": "True at the 2026-10-14 launch. Since 2026-10-20 the site shows self-service plans; the API keeps an invite-gate switch."
     },
     {
       "claim": "Early access includes 20 vCPU, 40GB RAM for free",
       "verdict": "documented",
-      "source": "https://instabox.sh/pricing",
-      "quote": "Now : 5 machines free for everyone, each with 4 vCPUs and 8 GB of memory",
-      "note": "20/40 is 5 machines x 4/8, not a pooled quota (\"There are no vCPU or memory quotas\"); paused and stopped machines count toward the 5. No end date."
+      "source": "https://instabox.sh/docs/pricing",
+      "quote": "Accounts registered before 2026-10-20 and activated before 2026-10-25 07:45 UTC got five free sandboxes until 2026-12-01 00:00 UTC.",
+      "note": "5 x 4/8. Ends 2026-12-01; then one free sandbox runs at a time."
     }
   ],
   "locations": [],
-  "locations_source": "https://instabox.sh/roadmap",
-  "locations_quote": "More regions : machines that run closer to you",
-  "locations_checked": "2026-10-14"
+  "locations_source": "https://instabox.sh/docs/machines",
+  "locations_quote": "A machine has no `region` field in the API, and create does not take one: a `region` in the body is refused as `400 unknown_field` (create rejects fields it does not know). Placement is the platform's.",
+  "locations_checked": "2026-11-08"
 }

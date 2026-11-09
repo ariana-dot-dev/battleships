@@ -284,7 +284,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Starts from $399/month; reserved fleet from $.03/hour; no binding scale tariff."
+      "note": "Starts from $399/month; reserved fleet from $0.03/hour; no binding scale tariff."
     }
   ],
   "free": {
@@ -373,7 +373,8 @@
     "ingress_rules": false,
     "max_session_unlimited": true,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "profile"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -387,17 +388,20 @@
     "Browser RAM is not published unless a specific mode overrides it.",
     "Quoted up-to 90/390/990 hours do not precisely equal fee divided by rate (29/.30=96.67 etc.). Use explicit fee and dollar rates; do not invent a second included-hours allowance.",
     "Fingerprint cpu/ram/OS/GPU values are browser identity fields, not server hardware or actual Windows/macOS guests.",
-    "CAPTCHA is included on pricing page, but docs overview mentions usage-billed solving. Record conflict rather than silently guaranteeing unlimited solves. Shared and premium proxies are distinct.",
-    "Browser-session regimes carry os [\"linux\"] (engine convention: a hosted browser serves a Linux-side workload). Surfsky does not publish the host OS; fingerprint OS values are spoofed identity fields. Rates re-checked 2026-09-28 on surfsky.io/pricing: $0.35/$0.30/$0.25/$0.20 per browser-hour on PAYG/Starter/Base/Advanced, reserved fleet from $0.03/h.",
+    "CAPTCHA solving is billed per solve (checked 2026-11-08): \"A paid solve is charged whatever its outcome, failed and timeout included\" (https://docs.surfsky.io/captcha-solving). Typical costs: reCAPTCHA about $0.0002, GeeTest and AWS WAF about $0.0015, image-to-text about $0.0003; Turnstile and PerimeterX free. Nothing is charged when the challenge passes on its own. Shared and premium proxies are distinct.",
+    "Browser-session regimes carry os [\"linux\"] (engine convention: a hosted browser serves a Linux-side workload). Surfsky does not publish the host OS; fingerprint OS values are spoofed identity fields. Rates re-checked 2026-11-08 on surfsky.io/pricing: $0.35/$0.30/$0.25/$0.20 per browser-hour on PAYG/Starter/Base/Advanced, reserved fleet from $0.03/h.",
     "Region is account-wide (Germany or US); it can be changed at most once every 24 h with no browsers running, and on some plans it is assigned by support (region_managed).",
-    "Region conflict (checked 2026-10-14): the Agent Browser marketing page says \"Sub-agent browsers from one orchestrator. Geo-distributed across US, EU, Asia.\" (https://surfsky.io/agent-browser), while the docs still say \"Surfsky runs in two regions, Germany and the United States.\" (https://docs.surfsky.io/llms-full.txt). The card keeps regions eu/us from the docs; the Asia claim likely refers to proxy exit locations (proxies are chosen separately from the browser region: \"A browser in Germany can use a US proxy.\"), not a browser-hosting region."
+    "Region conflict (checked 2026-10-14, still open 2026-11-08): the Agent Browser marketing page says \"Sub-agent browsers from one orchestrator. Geo-distributed across US, EU, Asia.\" (https://surfsky.io/agent-browser), while the docs still say \"Surfsky runs in two regions, Germany and the United States.\" (https://docs.surfsky.io/llms-full.txt). The card keeps regions eu/us from the docs; the Asia claim likely refers to proxy exit locations (proxies are chosen separately from the browser region: \"A browser in Germany can use a US proxy.\"), not a browser-hosting region.",
+    "Operator: the pricing page structured data gives the legal name Cyberfinity FZE LLC, Ajman, AE (checked 2026-11-08, https://surfsky.io/pricing)."
   ],
   "sources": [
     "https://surfsky.io/pricing",
     "https://docs.surfsky.io/llms-full.txt",
     "https://docs.surfsky.io/intro-to-surfsky.md",
     "https://docs.surfsky.io/sessions.md",
-    "https://docs.surfsky.io/proxies.md"
+    "https://docs.surfsky.io/proxies.md",
+    "https://docs.surfsky.io/captcha-solving",
+    "https://surfsky.io/agent-browser"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -411,7 +415,7 @@
     "sources": [
       "https://surfsky.io/pricing"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 3,
@@ -431,7 +435,7 @@
       "source": "https://docs.surfsky.io/llms-full.txt",
       "quote": "Use the REST API to start and stop browsers, manage saved profiles, and configure proxies and extensions. A start request returns the WebSocket URL used by your automation framework.",
       "note": "Product is a hosted antidetect browser controlled via CDP/Playwright/Puppeteer/ChromeDriver or Surfsky's own SDK, plus REST endpoints for profiles/proxies/scrape. Searched the full llms-full.txt dump for 'agent', 'harness', 'mcp', 'langchain', 'llm' — zero matches. No agent/LLM-harness API or MCP server exists. Confirms existing 'no' with direct evidence.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": true,
@@ -509,7 +513,7 @@
       "source": "https://docs.surfsky.io/sessions",
       "quote": "For persistent profiles, a normal stop saves the selected browser state.",
       "note": "A persistent profile saves selected browser storage (cookies, passwords, bookmarks, optionally localStorage/extensions/history/service workers) on stop and restores it on next start; this is profile-storage persistence, not a running-process memory snapshot, so treated like a filesystem-level snapshot rather than 'mem'.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
@@ -557,8 +561,8 @@
       "value": false,
       "source": "https://docs.surfsky.io/sessions",
       "quote": "storage_options selects the data saved with the profile: Website cookies, Browser-saved passwords, Bookmarks, Local storage...",
-      "note": "not offered: outside the product's scope. What persists is selected browser profile storage, not a general filesystem/disk you can write arbitrary files to.",
-      "checked": "2026-09-30"
+      "note": "What persists is the selected browser profile storage (persist_scope profile), not a filesystem you can write arbitrary files to.",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": false,
@@ -576,24 +580,24 @@
     },
     "agent_harnesses": {
       "value": false,
-      "source": "https://surfsky.io/agent-browser",
-      "quote": "Headless cloud browsers with real device fingerprints; CDP connection from Playwright, Puppeteer and Selenium; REST request-response mode without a browser session.",
-      "note": "not offered: outside the product's scope. Surfsky offers a browser reachable via CDP/WebDriver/REST for you to drive with your own code or agent; it does not preinstall/offer coding-agent harnesses (Claude Code, Codex, OpenCode, etc.) as templates.",
-      "checked": "2026-09-30"
+      "source": "https://docs.surfsky.io/llms-full.txt",
+      "quote": "Give this prompt to Claude Code, Codex, Cursor, or another agent that can run commands in your project: Read https://surfsky.io/SKILL.md and set up Surfsky in this project.",
+      "note": "Outside the product scope: the session is a hosted browser with no shell, so coding-agent harnesses do not run inside it. Your own coding agent (Claude Code, Codex, Cursor) drives Surfsky from your machine through the SKILL.md setup prompt and the SDKs.",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
       "source": "https://surfsky.io/agent-browser",
-      "quote": "Agent Browser — Give your AI agents reliable web access at scale. CDP connection from Playwright, Puppeteer and Selenium.",
-      "note": "not offered: outside the product's scope. 'Agent Browser' is marketing of the same CDP/API browser product for use by external AI agents; Surfsky does not run its own browsing/computer-use/research agent that you call via API.",
-      "checked": "2026-09-30"
+      "quote": "The harness exposes each capability as a CDP method. Call them directly, or let the SDK orchestrate them inside its run loop.",
+      "note": "The Agent Browser harness adds CDP methods (start_session, act, humanize, solve_captcha, switch_proxy, extract_typed) that catch CAPTCHAs, bans and session resets for your own agent loop. Self-serve signup gives free credit without a card; the page also shows Request Access. Surfsky does not run a hosted agent that you call with a task, so the value stays false.",
+      "checked": "2026-11-08"
     },
     "mcp_server": {
       "value": false,
       "source": "https://docs.surfsky.io/llms-full.txt",
       "quote": "Use the Python and TypeScript SDKs to manage browser sessions and automate web pages.",
-      "note": "No MCP server is mentioned anywhere in the docs (llms-full.txt); only REST API + Python/TypeScript SDKs are offered to control sessions.",
-      "checked": "2026-09-30"
+      "note": "Surfsky does not document its own MCP server. The Agent Browser page lists MCP among the clients that can connect over CDP (\"browser-use, LangGraph, Stagehand, Claude/OpenAI Agent SDKs, MCP. Anything that speaks CDP. Drop in the URL.\"). The docs ship a skill file (https://surfsky.io/SKILL.md) that Claude Code, Codex or Cursor reads to install the Surfsky integration.",
+      "checked": "2026-11-08"
     },
     "lang_python": {
       "value": true,
@@ -705,7 +709,7 @@
       "source": "https://docs.surfsky.io/llms-full.txt",
       "quote": "Surfsky runs in two regions, Germany and the United States. Choose the one closest to your automation worker in the dashboard.",
       "note": "An account's whole browser workload can be run in the Germany (EU) region.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": "none",
@@ -735,6 +739,13 @@
       "note": "granularity: none; Surfsky's stop-session endpoint returns an optional per-session cost receipt, but there is no dedicated usage API to query billable usage across sessions or to aggregate usage by tags/projects. Proxy traffic stats endpoints (GET /proxies/shared/stats, GET /proxies/premium/stats) report account-level traffic totals for time windows (24h, 7d, 30d), not session-level billable usage. The cost object in the stop response is optional and finalized only at stop time; no historical usage or per-tag billing queries are documented.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "persist_scope": {
+      "value": "profile",
+      "source": "https://docs.surfsky.io/sessions",
+      "quote": "For persistent profiles, a normal stop saves the selected browser state.",
+      "note": "A persistent profile saves the browser storage you select (cookies, passwords, bookmarks, optionally local storage, extensions, history) and restores it on the next start. Files and open tabs are not kept. Interrupted sessions are restored from saved cookies, storage and fingerprints (https://surfsky.io/agent-browser).",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -757,5 +768,10 @@
   ],
   "locations_source": "https://docs.surfsky.io/llms-full.txt",
   "locations_quote": "Surfsky runs in two regions, Germany and the United States. Choose the one closest to your automation worker in the dashboard.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-11-08",
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "findings/surfsky.json re-checked against surfsky.io/pricing, surfsky.io/agent-browser and docs.surfsky.io",
+    "reviewed": 3
+  }
 }

@@ -24,7 +24,7 @@ Reference: 8 GB function (~4.6 vCPU) = x86 **$0.48/h**, Arm **$0.384/h**.
 | Event poller units | Provisioned ESM pollers | Per unit-hour | $0.185/h (SQS $0.00925/h) | Price List API |
 | Egress | Internet data out | EC2 data-transfer tiers | 100 GB/month free then $0.09/GB | AWSDataTransfer price list |
 ## Gotchas
-1. **Not a sandbox**: 15-minute hard cap, stateless, no inbound shell; long agent sessions must be chained.
+1. **Functions are not a sandbox**: 15-minute cap per call, no inbound shell; long agent sessions must be chained (durable functions checkpoint across calls). Files that must last go on an EFS or S3 Files mount (VPC function). The sandbox product is Lambda MicroVMs (Arm64 default, x86_64 from base image v3; up to 8 h; suspend/resume with memory and disk), priced on the card's microvms mode.
 2. **You pay wall-clock, not CPU**: an invocation waiting on an LLM for 30 s pays 30 s of full memory.
 3. **CPU is bought through memory**: 4 vCPU needs ~7 GB; you cannot buy CPU without RAM (or vice versa).
 4. **Provisioned concurrency bills while idle** and the free tier doesn't cover it; break-even vs on-demand is ~60% utilisation.
@@ -34,7 +34,7 @@ Reference: 8 GB function (~4.6 vCPU) = x86 **$0.48/h**, Arm **$0.384/h**.
 ## Worked example
 4 vCPU / 8 GiB x 50 concurrent x 8 h/day x 22 days = 8,800 hours. Lambda can't hold an 8 h session; assume
 work is split into back-to-back 15-min invocations (35,200 invocations) with state externalised. 30% CPU saves
-nothing (duration billing). No snapshots exist (50 GiB state must live in S3/EFS, not priced here).
+nothing (duration billing). Functions have no machine snapshots; 50 GiB state lives on an EFS or S3 Files mount (EFS Standard $0.30/GB-month us-east-1, not added below).
 Egress 100 GiB inside the free 100 GB.
 | Regime | Calculation | Total / month |
 |---|---|---|

@@ -90,7 +90,8 @@
     "disk_gib_month": 0,
     "disk_billed_when_stopped": false,
     "snapshot_gib_month": 0,
-    "paused_ram_billed": false
+    "paused_ram_billed": false,
+    "note": "docs.shardflux.dev/limits (2026-11-08): retained state is included per plan (Developer 100 GiB, Pro 250, Startup 1,000, Scale 3,000), then '$0.15 per GiB-month for storage above the plan's retained state' (opt-in overage). The engine has no per-plan storage allowance, so rates stay 0 here: every preset fits the allowance of the plan it picks. A workload above its plan's retained state pays $0.15 per GiB-month more than shown."
   },
   "network": {
     "egress_free_gib": null,
@@ -116,23 +117,6 @@
     }
   },
   "plans": [
-    {
-      "name": "Free",
-      "fee": 0,
-      "flags": [],
-      "trial_only": true,
-      "fee_is_credit": false,
-      "included_usd": null,
-      "per_seat": null,
-      "concurrency": 3,
-      "max_session_h": null,
-      "max_vcpu": 1,
-      "max_ram_gib": 2,
-      "sizes_allowed": null,
-      "egress_free_gib": 9.31,
-      "note": "Free: 15 CPU-hours; RAM GiB-hours 'As available' on spare capacity, measured but not capped; no overage; 3 working at once; largest workspace 1 vCPU / 2 GiB / 2 GiB disk; 10 GiB retained; 10 GB egress; 1 shared volume of 1 GiB. Allowances reset each calendar month (UTC) (docs.shardflux.dev/limits, 2026-10-14).",
-      "egress_cap_gib": 9.31
-    },
     {
       "name": "Developer",
       "fee": 9,
@@ -221,7 +205,7 @@
   "free": {
     "monthly_credit": null,
     "one_time_credit": 80,
-    "conditions": "Signup trial: '30 days of Pro, with Pro's allowances and limits and no card' (500 CPU-hours + 4,000 RAM GiB-hours, valued at the overage rates = $80; hard caps, no overage). One per person with the first organization, after email verification; 'Trials are limited each month' (docs.shardflux.dev/limits, 2026-10-14)."
+    "conditions": "No Free plan. Signup trial: '7 days of Pro on us' (shardflux.dev): 500 CPU-hours + 4,000 RAM GiB-hours (valued at the overage rates = $80), 250 GiB retained state, 250 GB outbound, 10 working at once sharing 8 vCPU; hard caps, no overage. Needs a $0 card check and a GitHub account or work domain at least 30 days old; one per person, card and GitHub account, ever. After 7 days compute pauses until a paid plan; up to 10 GiB stays, nothing is deleted (docs.shardflux.dev/limits, 2026-11-08)."
   },
   "features": {
     "linux": true,
@@ -238,7 +222,7 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": "template",
-    "docker_inside": null,
+    "docker_inside": "diy",
     "nested_virt": false,
     "root": true,
     "systemd": null,
@@ -246,7 +230,7 @@
     "desktop": true,
     "computer_use": true,
     "code_interpreter": null,
-    "agent_harnesses": true,
+    "agent_harnesses": null,
     "ssh": false,
     "public_ipv4": false,
     "inbound_https": true,
@@ -295,9 +279,9 @@
     "image_oci": true,
     "snapshot_auto": true,
     "snapshot_on_demand": true,
-    "harness_api": true,
+    "harness_api": null,
     "egress_allowlist_level": "both",
-    "guest_firewall": true,
+    "guest_firewall": null,
     "secret_proxy": false,
     "volume_attach": true,
     "volume_shared": true,
@@ -309,7 +293,7 @@
   },
   "perf": {
     "cpu_runs_s": null,
-    "cold_start_ms": 200,
+    "cold_start_ms": null,
     "burst_tti_ms": null,
     "dax_s": null
   },
@@ -317,17 +301,18 @@
   "caveats": [
     "Plans include CPU-hours and RAM GiB-hours, not dollars. They are valued at the published overage rates ($0.04/CPU-hour, $0.015/GiB-hour) so the engine can net them against usage; in reality the two allowances do not offset each other, so a workload that uses up only one of them can cost somewhat more than shown. Startup and Scale GPU-hours (25 / 100) are not valued.",
     "Overage is off until you turn it on, with a spend cap you set (docs.shardflux.dev/limits, 2026-10-14).",
-    "Retained storage (suspended workspaces, shared volumes) is never charged; outgoing transfer has no overage price and is blocked when the plan allowance runs out, so egress beyond the allowance is priced as unknown.",
-    "Every workspace is its own microVM with its own kernel; the hypervisor is not named. Suspend checkpoints memory and processes; resume p50 0.3 s, new workspace p50 0.2 s (vendor claims on the landing page).",
-    "Templates (e.g. python-node-browser) are the base images; a template can be built from a Dockerfile (recipe v1). Docker inside and SSH are not documented; root via sudo in the ubuntu-24.04 base.",
+    "Retained state (suspended workspaces, shared volumes) is included up to the plan's allowance (100 / 250 / 1,000 / 3,000 GiB); above it, opt-in overage is $0.15 per GiB-month (docs.shardflux.dev/limits, 2026-11-08). Outgoing transfer has no overage price and is blocked when the plan allowance runs out, so egress beyond the allowance is priced as unknown.",
+    "Every workspace is its own microVM with its own kernel. A parked workspace runs the next call 'a few milliseconds later'; one documented resume of a suspended workspace took 341 ms on the server and 413 ms end to end (docs.shardflux.dev/concepts/lifecycle.md, 2026-11-08). The lifecycle page gives no time for a new workspace.",
+    "Templates (e.g. python-node-browser) are the base images; a template can be built from a Dockerfile (recipe v1). Root via sudo and apt in the ubuntu-24.04 base. Templates define long-running services kept up by the workspace with readiness checks. Containers run inside a workspace (the GPU guide starts them with `--gpus all` or `runtime: nvidia`). Nested virtualization (/dev/kvm) and an SSH server are not documented; a reverse tunnel forwards a workspace TCP port to a service on the machine that runs the SDK or CLI (docs.shardflux.dev/guides/ports.md).",
+    "E2B-compatible endpoint: existing E2B SDK code moves by setting E2B_API_URL, E2B_DOMAIN and E2B_API_KEY. Sandboxes made this way allow public previews by default (native Shardflux port URLs stay private); E2B sandbox timeout defaults to 300 s, up to 24 h (docs.shardflux.dev/reference/e2b.md, 2026-11-08).",
     "Workspaces run in AWS us-west-2 only; no data residency outside the United States. Start waits up to 15 minutes for capacity before failing with capacity_unavailable.",
     "Features set to null were not verified. No workspace was purchased or tested; feature/performance statements are documentation claims.",
     "Opt-in overage is capped at most at the plan price ($9/$29/$79/$299), so a month's bill is at most 2x the plan fee; beyond that, starts are refused and running workspaces are suspended (402 allowance_exhausted, details.reason spend_cap_reached). Scale with full overage covers 67,933 RAM GiB-hours a month; beyond that only Enterprise fits.",
     "Idle-but-running workspaces are parked: 'it then uses at most 256 MiB plus the compressed size of the rest, until the next call wakes it' (docs.shardflux.dev/limits); the homepage says a parked workspace 'counts 256 MiB for about 15 seconds, then nothing'. RAM is billed as used while it works: elastic memory (the default) counts 'what its processes use and at least its 1 GiB floor', a fixed workspace its full allocation (the homepage shorthand 'count a workspace’s full size while it works' is less precise; the limits page is followed); ram_basis is active on that basis. The engine bills RAM at utilisation for the whole session and does not model parked time between tool calls or the 1 GiB floor, so idle-heavy agent sessions are overstated. The adaptive idle timeout is 5 min until learned (10 s to 4 h), or it can be set to fixed:60-604800 s or never.",
     "Rate limits: 3,600 tool tokens per hour per API key (an open that returns a token counts; 429 rate_limited beyond), 3 concurrent template builds per org.",
-    "GPU on Startup and Scale is for rendering through Shardflux's own Vulkan driver, metered in GPU-hours (the larger of the scene's GPU memory over 16 GiB and the GPU busy share), 25 / 100 included, $1.00 per GPU-hour overage. The engine has no rendering-GPU meter, so GPU workloads are not priced.",
-    "Signup trial: 30 days of Pro with no card (500 CPU-hours, 4,000 RAM GiB-hours, hard caps), one per person, while each month's trials last; then the organization drops to Free with nothing deleted.",
-    "Agent accounts: several Claude and ChatGPT/Codex sign-ins per organization with their usage windows, one active per provider; `shard agents accounts use claude:2` switches it, and running conversations follow (docs.shardflux.dev/concepts/accounts, 2026-10-14). No feature key expresses account switching yet."
+    "GPU on Startup and Scale: every workspace renders through Shardflux's own Vulkan driver, and CUDA (e.g. Blender Cycles), NVENC and NVDEC run on the same GPU; the guide's example runs on an L4 (docs.shardflux.dev/guides/gpu.md, 2026-11-08). 25 / 100 GPU-hours included, $1.00 per GPU-hour overage (docs.shardflux.dev/limits). The engine has no rendering-GPU meter, so GPU workloads are not priced.",
+    "No Free plan. Signup trial: 7 days of Pro with a $0 card check (500 CPU-hours, 4,000 RAM GiB-hours, hard caps), one per person, card and GitHub account; after it, compute pauses until a paid plan, nothing is deleted (docs.shardflux.dev/limits, 2026-11-08).",
+    "Coding-agent harnesses: earlier docs described running Claude Code or Codex in a workspace through a conversations API; on 2026-11-08 the docs, CLI reference and HTTP API no longer mention them, so agent_harnesses and harness_api are null (not confirmed). Workspace tools for agent frameworks are offered through SDKs, CLI and MCP."
   ],
   "sources": [
     "https://shardflux.dev/#pricing",
@@ -338,8 +323,11 @@
     "https://docs.shardflux.dev/guides/ports",
     "https://docs.shardflux.dev/guides/computer-use.md",
     "https://docs.shardflux.dev/llms-full.txt",
-    "https://docs.shardflux.dev/concepts/accounts",
-    "https://docs.shardflux.dev/guides/credentials"
+    "https://docs.shardflux.dev/guides/credentials.md",
+    "https://docs.shardflux.dev/guides/gpu.md",
+    "https://docs.shardflux.dev/reference/e2b.md",
+    "https://docs.shardflux.dev/concepts/lifecycle.md",
+    "https://docs.shardflux.dev/concepts/templates.md"
   ],
   "audit_2026_09_29": {
     "applied": 10,
@@ -359,14 +347,23 @@
       "source": "https://docs.shardflux.dev/concepts/lifecycle.md",
       "quote": "records a checkpoint of a running or suspended workspace without stopping it. While a running workspace is captured, reads work and writes wait. The API has no call to list or restore snapshots yet; to branch from a state, [fork](#fork-a-workspace).",
       "note": "snapshot() exists but cannot yet be listed/restored. The usable on-demand path is fork: 'a copy of its disk and memory, restored into an independent VM' from a running or suspended workspace (memory included, boots new workspaces). Also save-as-template (disk only, new template layer) and reset keeps a 7-day recovery point.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "harness_api": {
-      "value": true,
+      "value": null,
       "source": "https://docs.shardflux.dev/reference/http-api",
-      "quote": "`POST /v1/conversations/{id}/messages` | `{text, from_conversation_id?}` | `202 {accepted: true, seq, restored?}`; queues the next turn and wakes parked work.",
-      "note": "POST /v1/conversations (harness, repo, base commit, size, model) starts a harness conversation in its own VM; /messages queues a turn, /wait blocks for the next event or question, /resume, /move, /land (merge, pr, keep, discard).",
-      "checked": "2026-10-14"
+      "quote": null,
+      "note": "The 2026-10-14 reference listed /v1/conversations (harness conversations). On 2026-11-08 the HTTP API reference has no /v1/conversations route and no mention of Claude Code or Codex. Not confirmed.",
+      "checked": "2026-11-08"
+    },
+    "docker_inside": {
+      "value": "diy",
+      "source": "https://docs.shardflux.dev/guides/gpu.md",
+      "quote": "Vulkan (Vulkan Video included), CUDA, NVENC, NVDEC and VA-API apps run unchanged, headless or on the workspace desktop, and in containers started with `--gpus all` or `runtime: nvidia`.",
+      "how": "install a container engine in the workspace or template with apt and sudo (ubuntu-24.04 base); the GPU guide runs containers inside a workspace",
+      "effort": "medium",
+      "note": "Was true. No Shardflux page says a container engine ships in a template: the templates page lists 'ubuntu-24.04 is a minimal base (bash, apt, sudo, curl and certificates)' and python-node-browser with headless Chromium, no Docker. The GPU guide documents containers running in a workspace, so the path is documented.",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": true,
@@ -384,12 +381,11 @@
       "checked": "2026-09-29"
     },
     "guest_firewall": {
-      "value": true,
-      "source": null,
+      "value": null,
+      "source": "https://docs.shardflux.dev/llms-full.txt",
       "quote": null,
-      "note": "Each workspace is a Firecracker microVM 'with its own kernel'; ubuntu-24.04 base includes sudo and template build steps run as root. iptables/nftables not mentioned in docs.",
-      "checked": "2026-09-29",
-      "derived": true
+      "note": "Was true (derived, no quote). Each workspace is a microVM 'with its own kernel' and the base has sudo, but no Shardflux page mentions iptables, nftables or a firewall inside the workspace (full docs searched 2026-11-08). Not confirmed.",
+      "checked": "2026-11-08"
     },
     "secret_proxy": {
       "value": false,
@@ -429,16 +425,16 @@
     "desktop": {
       "value": true,
       "source": "https://docs.shardflux.dev/guides/computer-use.md",
-      "quote": "A workspace with computer use on has a Linux desktop, 1280x800 by default, that your agent operates like a person:",
-      "note": "Desktop started on demand per workspace or template (POST /computer, 640-2560 x 480-1600); a private live-view link (computer.stream, optionally interactive).",
-      "checked": "2026-10-14"
+      "quote": "A workspace with computer use on has a Linux desktop, 1280x800 by default, that the agent in your product operates like",
+      "note": "Desktop started on demand per workspace or template (POST /computer, 640-2560 x 480-1600; template python-node-browser 15 and later); frames stream and VNC (view only by default) in the HTTP API.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": true,
       "source": "https://docs.shardflux.dev/guides/computer-use.md",
       "quote": "it takes screenshots, moves the pointer, clicks, types and presses keys.",
       "note": "Claude's computer toolset, agent tools in the SDKs, CLI and MCP; screenshots, clicks and typing batched in one call.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -465,15 +461,15 @@
       "value": false,
       "source": "https://docs.shardflux.dev/concepts/workspaces.md",
       "quote": "Tool | Console label | Allows | exec Run commands | files Read and write files | pty Terminal sessions | Interactive terminals | process Background processes | git Git | browser Browser",
-      "note": "not offered: outside the product's scope. All command/terminal access is through the API's exec/pty tools via a tool token at the workspace's cell_endpoint; no SSH server or key-based SSH access is documented.",
-      "checked": "2026-09-30"
+      "note": "Command/terminal access is through the API's exec/pty tools via a tool token at the workspace's cell_endpoint; no SSH server or key-based SSH access is documented. A reverse tunnel forwards a workspace TCP port to a service on the machine that runs the SDK or CLI (docs.shardflux.dev/guides/ports.md), outbound from the workspace only.",
+      "checked": "2026-11-08"
     },
     "agent_harnesses": {
-      "value": true,
-      "source": "https://docs.shardflux.dev/",
-      "quote": "`shard ./` opens Claude Code or Codex directly; `shard ./ --resume` continues a saved project conversation.",
-      "note": "Cloud conversations run Claude Code or Codex inside the workspace VM with a saved machine (tools, logins, skills) and project template; homepage: 'Cloud agents for Claude Code and Codex'.",
-      "checked": "2026-10-14"
+      "value": null,
+      "source": "https://docs.shardflux.dev/reference/cli.md",
+      "quote": null,
+      "note": "On 2026-11-08 the docs home, CLI reference, HTTP API reference and homepage no longer mention Claude Code, Codex or `shard ./`. The docs offer workspace tools for agent frameworks through SDKs, CLI and MCP. Not confirmed.",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
@@ -493,8 +489,8 @@
       "value": true,
       "source": "https://docs.shardflux.dev/guides/ports",
       "quote": "A private HTTPS URL for any port of a workspace. A request wakes the workspace, so previews, webhooks and OAuth callbacks always reach your app.",
-      "note": "URLs like https://3000-<handle>.shardflux.app for any TCP port; HTTP/1.1, streaming and WebSockets pass through; a parked workspace is woken and a suspended one resumed inside the request (up to 30 s).",
-      "checked": "2026-10-14"
+      "note": "URLs like https://3000-<handle>.shardflux.app for any TCP port; HTTP/1.1, streaming and WebSockets pass through; a parked workspace is woken and a suspended one resumed inside the request (up to 30 s). Native port URLs are private; sandboxes made through the E2B-compatible API allow public previews by default (docs.shardflux.dev/reference/e2b.md).",
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": true,
@@ -513,9 +509,9 @@
     "gpu": {
       "value": true,
       "source": "https://docs.shardflux.dev/guides/cloud-agents",
-      "quote": "On the Startup and Scale plans, workspaces render on a GPU through Shardflux's own Vulkan driver.",
-      "note": "Rendering only, through a Vulkan driver (OpenGL stays on Mesa llvmpipe); no CUDA/compute GPU or named GPU type. Metered in GPU-hours: 25 included on Startup, 100 on Scale, $1.00 per GPU-hour overage; Free/Developer/Pro answer 402 entitlement_required.",
-      "checked": "2026-10-14"
+      "quote": "Cycles renders on the GPU with CUDA.",
+      "note": "docs.shardflux.dev/guides/gpu.md: 'On the Startup and Scale plans every workspace renders on a GPU through Shardflux's own Vulkan driver'; CUDA Driver API, NVENC and NVDEC on the same GPU; the guide's timing example runs 'on an L4'. Metered in GPU-hours: 25 included on Startup, 100 on Scale, $1.00 per GPU-hour overage (docs.shardflux.dev/limits); Developer and Pro have none.",
+      "checked": "2026-11-08"
     },
     "self_host": {
       "value": false,
@@ -598,9 +594,9 @@
     "credential_injection": {
       "value": true,
       "source": "https://docs.shardflux.dev/guides/credentials",
-      "quote": "Sent end to end from your vault to the workspace; Shardflux only relays encrypted bytes.",
-      "note": "Approved vault fills (1Password etc.) for browser logins: the workspace fills username/password/TOTP fields itself and returns {filled: true} to the agent. Project secrets reach every command as environment variables (secret_proxy stays false). Agent accounts: several Claude and ChatGPT/Codex sign-ins per organization, one active per provider, switched with `shard agents accounts use claude:2` (running conversations switch too).",
-      "checked": "2026-10-14"
+      "quote": "The encrypted store holds the site's username, password, authenticator setup and passkeys.",
+      "note": "credential_fill({site, fields, account?}) fills selected login fields on an open page. Project secrets are stored encrypted with AWS KMS and reach every command as environment variables (secret_proxy stays false); 'Bound secret values are redacted from exec output, terminal streams and saved command logs.'",
+      "checked": "2026-11-08"
     }
   },
   "locations": [

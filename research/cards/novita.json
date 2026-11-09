@@ -42,7 +42,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "$0.0000098/vCPU-s + $0.0000032/GiB-s on allocation, per second. RAM in 512 MiB steps (0.5-8 GiB). Paused = $0 compute. Same rates in both regions (us-phx-1 v2, us-virginia-1 v1). Sessions > 1 h need long_running metadata (default timeout 5 min, cap 1 h without it; docs/guides/sandbox-long-running). Verified 2026-09-28: CPU 'Billed based on the number of vCPU cores used and usage duration', RAM on 'allocated memory capacity and usage duration'; paused: 'CPU and RAM stop being billed' (docs.novita.ai/guides/sandbox-pricing). Running-but-idle bills in full. 'Timeout is the maximum lifetime ... regardless of activity' (default onTimeout kill); an opt-in 'Idle timeout only fires when no client is connected for the configured duration' (docs.novita.ai/guides/sandbox-auto-resume.md).",
+      "note": "$0.0000098/vCPU-s + $0.0000032/GiB-s on allocation, per second. RAM in 512 MiB steps (0.5-8 GiB). Paused = $0 compute. Same rates in both regions (us-phx-1 v2, us-virginia-1 v1). Sessions > 1 h need long-running mode, set at create (default timeout 5 min, cap 1 h without it; with it 'the timeout you pass when creating the sandbox can exceed 1 hour', 7-day example, no maximum stated; docs/guides/sandbox-long-running, checked 2026-11-08). Verified 2026-09-28: CPU 'Billed based on the number of vCPU cores used and usage duration', RAM on 'allocated memory capacity and usage duration'; paused: 'CPU and RAM stop being billed' (docs.novita.ai/guides/sandbox-pricing). Running-but-idle bills in full. 'Timeout is the maximum lifetime ... regardless of activity' (default onTimeout kill); an opt-in 'Idle timeout only fires when no client is connected for the configured duration' (docs.novita.ai/guides/sandbox-auto-resume.md).",
       "flags": [],
       "features": {
         "isolation": null
@@ -231,11 +231,11 @@
       "included_usd": 0,
       "per_seat": 0,
       "concurrency": 100,
-      "max_session_h": 24,
+      "max_session_h": null,
       "max_vcpu": 8,
       "max_ram_gib": 8,
       "sizes_allowed": null,
-      "note": "Unlocks when balance > $0. Session cap conflicting: 24 h (landing), 3 h (docs quota table), long_running lifts the cap (examples up to 168 h / 7 days); card uses 24 h. Manual top-ups must be greater than $10 (docs payment-methods), so unlocking Paid needs a >$10 prepayment (one-time, not a monthly fee).",
+      "note": "Unlocks when balance > $0. Session length: 24 h (landing), 3 h (docs quota table); long-running mode, set at create, lifts the cap with no stated maximum (7-day example; NovitaClaw: 'No session cap — your instance runs 24/7'), checked 2026-11-08. Card uses null = no published cap. Manual top-ups must be greater than $10 (docs payment-methods), so unlocking Paid needs a >$10 prepayment (one-time, not a monthly fee).",
       "flags": []
     },
     {
@@ -245,11 +245,11 @@
       "included_usd": 0,
       "per_seat": 0,
       "concurrency": 500,
-      "max_session_h": 4,
+      "max_session_h": null,
       "max_vcpu": 8,
       "max_ram_gib": 8,
       "sizes_allowed": null,
-      "note": "Custom contract; all limits adjustable (landing says unlimited concurrency); region selection, dedicated infra, 99.95% SLA. Pricing not published.",
+      "note": "Custom contract; all limits adjustable (landing says unlimited concurrency); quota table '4 hours by default, adjustable', and long-running mode lifts the timeout cap (no stated maximum), so card uses null; region selection ('Deployment Region: Your Choice'), dedicated infra, 99.95% SLA. Pricing not published.",
       "flags": [
         "sales"
       ]
@@ -272,9 +272,9 @@
     "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
-    "max_session_h": 24,
+    "max_session_h": null,
     "custom_image": true,
-    "docker_inside": false,
+    "docker_inside": null,
     "nested_virt": false,
     "root": true,
     "systemd": true,
@@ -339,12 +339,12 @@
     "usage_api": false
   },
   "perf": {
-    "cpu_runs_s": 19.52,
+    "cpu_runs_s": 20.16,
     "cold_start_ms": null,
-    "burst_tti_ms": null,
-    "dax_s": null
+    "burst_tti_ms": 1512.16,
+    "dax_s": 86.85
   },
-  "perf_source": "StarSling hpc-sandbox-benchmarks, run 36498291449 (2026-09-29), Node.js V8 Web Tooling p50 at a 4 vCPU / 8 GB target",
+  "perf_source": "CPU 20.16 runs/s: V8 Web Tooling Benchmark (Phoronix node-web-tooling), StarSling hpc-sandbox-benchmarks run 37073680030 (2026-10-03), row \"Novita\", median of 5 sandboxes at a 4 vCPU / 8 GB target, rank 2 of 15 (shared: the run cannot separate it from the providers at the same rank). https://github.com/starslingdev/hpc-sandbox-benchmarks/blob/297198a96ee827df5edcd918bd37b949526cfe20/LEADERBOARD.md ComputeSDK (each provider at its SDK default size and runtime): burst 1.51 s median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 86.85 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [
     {
       "id": "timeout_tail",
@@ -382,17 +382,21 @@
     }
   ],
   "caveats": [
-    "Isolation technology not named by Novita: docs.novita.ai/guides/sandbox-overview only says 'Each has its own filesystem and runtime' (checked 2026-10-14). isolation 'firecracker' comes from a third-party measurement, not the docs: StarSling hpc-sandbox-benchmarks (run 36498291449) lists Novita as 'firecracker' in its Isolation and Virtualization rows; E2B-derived envd, memory snapshots and virtio-mem are consistent with that.",
+    "Isolation technology not named by Novita: docs.novita.ai/guides/sandbox-overview only says 'Each has its own filesystem and runtime' (checked 2026-11-08). isolation 'firecracker' comes from a third-party measurement, not the docs: StarSling hpc-sandbox-benchmarks lists Novita as 'firecracker' with its own guest kernel (6.1.158+). Each sandbox is a microVM with its own kernel, not a container.",
+    "Start time: Novita states 'Launch sandbox instances in under 200ms on average' (novita.ai/sandbox, checked 2026-11-08). Vendor claim, not a measurement.",
+    "NovitaClaw (docs.novita.ai/guides/novitaclaw, checked 2026-11-08): a first-party persistent OpenClaw agent on Novita Sandbox with a Web UI, web terminal and file manager. 'No session cap — your instance runs 24/7'; on-demand mode: 'Sandbox auto-pauses after idle, resumes on access. Zero billing while paused.'",
+    "Regions: public regions are us-phx-1 and us-virginia-1. Enterprise can choose its region (novita.ai/sandbox: 'Deployment Region: Your Choice', checked 2026-11-08).",
     "Persistent storage (paused sandboxes + templates + snapshots) has a 60 GB free allowance per ACCOUNT (extra key snapshot_free_gib_account), then $0.00009/GB-h = $0.0657/GB-month; billed daily; landing (2026-09-29): 'Measured hourly and charged daily. First 60 GB included'. An engine ignoring the allowance overstates small snapshot bills.",
     "Paused sandbox state includes memory; its GB size is not documented.",
-    "Max session conflicts across Novita's own pages (checked 2026-10-14): docs quota table 'Maximum session duration | 1 hour | 3 hours | 4 hours by default, adjustable' (Free/Paid/Enterprise); novita.ai/sandbox 'Paid: 24 hours max session length'; sandbox-long-running 'Long-running mode lifts this cap' with no ceiling stated, longest example 7 days (--timeout 168h). Card rule: Paid max_session_h = 24 (landing, and long_running allows more), Free 1, Enterprise 4 (quota table); a Paid session over 3 h may still hit the 3 h quota-table limit unless long_running is set.",
-    "Default timeout 5 min and default onTimeout action is kill.",
+    "Max session conflicts across Novita's own pages (checked 2026-11-08): docs quota table 'Maximum session duration | 1 hour | 3 hours | 4 hours by default, adjustable' (Free/Paid/Enterprise); novita.ai/sandbox 'Paid: 24 hours max session length'; sandbox-long-running 'Long-running mode lifts this cap: with it enabled, the timeout you pass when creating the sandbox can exceed 1 hour', no maximum stated, longest example 7 days (--timeout 168h). Card rule: Free 1 h; Paid and Enterprise null (no published cap with long-running mode). The caller must opt in per sandbox at create time.",
+    "Default timeout 5 min and default onTimeout action is kill. To keep the work, set lifecycle onTimeout to pause (files and memory kept; autoResume wakes it on the next call) or use long-running mode (docs.novita.ai/guides/sandbox-pause-resume).",
+    "Docker inside a sandbox is not documented either way (checked 2026-11-08). features.docker_inside is null; test it yourself before you rely on it.",
     "The $100 promo credit may not unlock Paid-tier limits; Paid requires a top-up or credit line. Credit validity period unspecified.",
     "No minimum billed duration or per-start fee documented (Novita blog: 'no additional per-session startup fee').",
     "Egress, volume (beta) and Enterprise pricing not published.",
     "Overdue prepaid balance terminates sandboxes with data loss; no spend caps.",
     "Ephemeral disk fixed at 20 GB (Enterprise adjustable); no per-GB disk upgrade price.",
-    "Benchmarks: CPU score is StarSling run 36498291449 (2026-09-29), 19.52 Node.js tooling runs/s at 4 vCPU / 8 GB (perf.cpu_runs_s); the older hpc 2026-08-24 run measured 13.52 (n=10) and is superseded. No computesdk cold-start/burst/dax data.",
+    "Benchmarks: the CPU score is StarSling's Phoronix Node.js V8 Web Tooling Benchmark (JS tooling throughput, not a build-and-test loop); see perf_source for the run. Hardware, storage and region differ per provider (Novita ran on AMD EPYC in Phoenix).",
     "Idle auto-stop exists but is off by default (must be configured), so the estimator does not apply idle suspension; set a pinned offer if you enable it.",
     "GPU Instances (novita.ai/gpus) are a separate GPU-cloud product from the CPU Agent Sandbox, modelled as alt-flagged gpu_only modes (patch v4-gpu, 2026-09-28). PPIO (ppio-sandbox card, China, CNY 0.108/vCPU-h + 0.054/GiB-h) is a separately billed offer; engineering overlap with Novita is visible (novita-gym PPIO templates) but common ownership / shared credits are unverified (patch v10-regional).",
     "GPU Instance regimes un-flagged alt (fix 2026-09-28): an ordinary self-serve GPU VM product; prices re-rendered from novita.ai/gpus 2026-09-28 (H100 SXM 3.39 / spot 1.70 /hr/GPU). Egress is still not published on docs.novita.ai/guides/sandbox-pricing or novita.ai/sandbox (egress_gib stays null).",
@@ -410,6 +414,8 @@
     "https://docs.novita.ai/guides/sandbox-snapshot-create",
     "https://starsling.dev/hpc-sandbox-benchmarks",
     "https://novita.ai/sandbox",
+    "https://docs.novita.ai/guides/novitaclaw",
+    "https://docs.novita.ai/guides/sandbox-pause-resume",
     "https://blogs.novita.ai/ai-agent-sandbox-pricing-models/",
     "https://novita.ai/gpus",
     "https://api-server.novita.ai/api/v1/market/products"
@@ -422,7 +428,8 @@
     "raise_time_days": null,
     "verification": "Free promotional credit requires account setup survey, no card; real balance top-up or credit line activates paid tier.",
     "tiers": "Free 5; Paid 100 after top-up; Enterprise 500 default, adjustable via support.",
-    "notes": "10/50 paid self-serve; 300 Enterprise; 1,000 requires quota request. Docs say paid max session 3h while landing page says 24h (both still live 2026-10-14); long_running lifts the cap; card uses 24h. Aggregate vCPU/GPU account quotas and approval delay not stated.",
+    "notes": "10/50 paid self-serve; 300 Enterprise; 1,000 requires quota request. Docs say paid max session 3h while landing page says 24h (both still live 2026-11-08); long-running mode lifts the cap with no stated maximum; card uses null. Aggregate vCPU/GPU account quotas and approval delay not stated.",
+    "checked": "2026-11-08",
     "sources": [
       "https://docs.novita.ai/guides/sandbox-quota-limit",
       "https://docs.novita.ai/guides/sandbox-pricing",
@@ -647,7 +654,7 @@
       "value": false,
       "source": "https://novita.ai/docs/guides/sandbox-overview.md",
       "quote": "| Name | Version | Domain | Description |\n| us-phx-1 | v2 | `us-phx-1.sandbox.novita.ai` | Default region (used by the current SDK / CLI) |\n| us-virginia-1 | v1 | `sandbox.novita.ai` | Specified via environment variable |",
-      "note": "Agent Sandbox only runs in two US regions (us-phx-1, us-virginia-1); no EU region is offered for this product, so there's no way to keep sandbox data in the EU. (Novita's separate GPU Instance/GPU cloud product does have EU clusters (e.g. 'EU-01', 'EU-GB-01' per the GPU v2 API docs), but that's a different product from the Agent Sandbox this card models.)",
+      "note": "Self-serve Agent Sandbox runs in two US regions (us-phx-1, us-virginia-1); no EU region is listed. Enterprise can choose its region (novita.ai/sandbox: 'Deployment Region: Your Choice', checked 2026-11-08), but no EU location is named, so this stays false for self-serve. (Novita's separate GPU Instance/GPU cloud product does have EU clusters (e.g. 'EU-01', 'EU-GB-01' per the GPU v2 API docs), but that's a different product from the Agent Sandbox this card models.)",
       "checked": "2026-09-30"
     },
     "private_network": {
@@ -658,7 +665,8 @@
       "checked": "2026-09-30"
     },
     "docker_inside": {
-      "value": false,
+      "value": null,
+      "status_note": "2026-11-08: changed from false to null. Novita's docs do not say Docker is unavailable inside a sandbox; they do not document it either way. Sandboxes are Firecracker microVMs with root and their own kernel. Test it yourself before you rely on it.",
       "source": "https://docs.novita.ai/guides/sandbox-legacy-e2b-compatible",
       "quote": "import { Sandbox } from 'novita-sandbox/code-interpreter' ... const sbx = await Sandbox.create()",
       "note": "Novita Sandbox's SDK/CLI is explicitly the E2B-compatible line (same class names, same `novita-sandbox` package mirroring `e2b`), and the card's own caveats say the underlying engine is an E2B-derived Firecracker-style microVM (envd, memory snapshots, virtio-mem). Across the full docs (llms-full.txt) there is no mention of Docker, dockerd, containerd, privileged mode, or cgroup/overlay setup running *inside* a sandbox — Docker only appears as the mechanism to *build* templates (`novita.Dockerfile`) on Novita's side, not as a capability exposed to the guest. E2B-style microVM guests are known not to expose nested container-runtime support out of the box, so docker-inside is judged unsupported by default; not found stated explicitly either way, hence medium confidence rather than high.",
@@ -672,18 +680,20 @@
       "checked": "2026-09-30"
     },
     "max_session_h": {
-      "value": 24,
-      "source": "https://novita.ai/sandbox",
-      "quote": "24 hours max session length",
-      "note": "Paid tier on the landing page. Conflicts with the docs quota table (docs.novita.ai/guides/sandbox-quota-limit): 'Maximum session duration | 1 hour | 3 hours | 4 hours by default, adjustable'. sandbox-long-running: 'Long-running mode lifts this cap', no ceiling stated, longest example 7 days. Kept at 24 (landing; long_running permits longer).",
-      "checked": "2026-10-14"
+      "value": null,
+      "source": "https://docs.novita.ai/guides/sandbox-long-running",
+      "quote": "Long-running mode lifts this cap: with it enabled, the `timeout` you pass when creating the sandbox can exceed 1 hour.",
+      "how": "create the sandbox with long-running mode (metadata long_running / CLI --long-running) and a longer timeout",
+      "effort": "low",
+      "note": "No maximum stated; longest docs example is 7 days (--timeout 168h). NovitaClaw docs: 'No session cap — your instance runs 24/7'. Other pages conflict: landing 'Paid: 24 hours max session length'; quota table 1 h / 3 h / 4 h (adjustable). Without long-running mode the timeout caps at 1 hour. null = no published cap.",
+      "checked": "2026-11-08"
     },
     "isolation": {
       "value": "firecracker",
       "source": "https://starsling.dev/hpc-sandbox-benchmarks",
       "quote": "firecracker",
-      "note": "Third-party measurement (StarSling Observed environments table, Isolation and Virtualization rows for Novita), not a Novita claim. docs.novita.ai/guides/sandbox-overview names no technology: 'Each has its own filesystem and runtime'.",
-      "checked": "2026-10-14",
+      "note": "Third-party measurement (StarSling Observed environments table, Isolation and Virtualization rows for Novita; guest kernel 6.1.158+), not a Novita claim. docs.novita.ai/guides/sandbox-overview names no technology: 'Each has its own filesystem and runtime'. MicroVM with its own kernel, not a container.",
+      "checked": "2026-11-08",
       "derived": true
     },
     "usage_api": {
@@ -715,5 +725,5 @@
   ],
   "locations_source": "https://docs.novita.ai/guides/sandbox-overview",
   "locations_quote": "us-phx-1 (v2, Default region) | us-virginia-1 (v1, Specified via environment variable)",
-  "locations_checked": "2026-10-14"
+  "locations_checked": "2026-11-08"
 }

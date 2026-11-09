@@ -111,7 +111,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "You pay your own compute. Whether the $0.08/session-hour runtime SKU also applies to self-hosted sessions is not documented (pricing table does not distinguish; self-hosted docs silent) -> hour null.",
+      "note": "Tool calls run on a worker you operate: any Linux or macOS host with /bin/bash at that path and outbound HTTPS. The worker host sets the size, Docker, ports, disk and desktop, so the cloud-sandbox limits (8 GB, 10 GB, no inbound) do not apply. Anthropic links worker guides for 11 platforms: AWS Lambda MicroVMs, Blaxel, Cloudflare, Daytona, E2B, Fly.io (Sprites), GKE Agent Sandbox, Modal, Namespace, Superserve, Vercel. Sessions accept only memory_store resources (no file or github_repository resources). You pay your own compute. The pricing page does not say if the $0.08/session-hour runtime SKU applies to self-hosted sessions -> hour null.",
       "product_class": "byoc"
     },
     {
@@ -268,6 +268,7 @@
     "snapshot": "fs",
     "pause_resume": true,
     "fork": false,
+    "persist_scope": "whole",
     "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
@@ -329,7 +330,7 @@
     "secret_proxy": "any-http",
     "volume_attach": true,
     "volume_shared": true,
-    "anti_bot": false,
+    "anti_bot": "diy",
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
     "own_agent_api": false,
@@ -365,17 +366,21 @@
   "caveats": [
     "Managed Agents session runtime (on-demand) is flagged alt / product_class agent-platform: it only exists inside a Claude agent session and LLM tokens are billed on top (not modeled). Sandbox vCPU unpublished -> shown as unsized.",
     "Code execution tool containers have NO outbound network access (pre-installed libraries only).",
-    "Not a general-purpose sandbox: the runtime only exists inside a Claude agent session, and model tokens (not modeled by this card) usually dominate the bill. In Anthropic's own example a 1 h Opus 5 session costs $0.625 in tokens vs $0.08 runtime.",
-    "Flat $0.08/h regardless of resources; the sandbox vCPU count is unpublished (size vcpu null), memory 'up to 8 GB', disk 'up to 10 GB'. Workloads needing >8 GiB RAM are infeasible.",
+    "The runtime exists only inside a Claude agent session, and model tokens (not modeled by this card) usually dominate the bill. In Anthropic's own example a 1 h Opus 5 session costs $0.625 in tokens vs $0.08 runtime.",
+    "Cloud sandbox: flat $0.08/h regardless of resources; the vCPU count is unpublished (size vcpu null), memory 'up to 8 GB', disk 'up to 10 GB'. Workloads that need more than 8 GiB RAM do not fit the cloud sandbox. A self-hosted worker runs the tools on a host you choose, with no such size limit (you pay that host).",
+    "Self-hosted workers: Anthropic links official worker guides for 11 sandbox platforms (AWS Lambda MicroVMs, Blaxel, Cloudflare, Daytona, E2B, Fly.io Sprites, GKE Agent Sandbox, Modal, Namespace, Superserve, Vercel). The cloud-sandbox limits on this card (size, Docker, inbound ports, desktop) do not apply to a self-hosted worker.",
+    "Sandbox state: checkpointed when the session goes idle and kept 30 days after the sandbox is created (activity does not extend it). Conversation history, memory stores, Files API uploads and downloaded outputs stay until you delete them.",
+    "Desktop / computer use: the built-in toolset (bash, read, write, edit, glob, grep, web fetch, web search) has no desktop or computer-use tool. You can add tools through custom tools or MCP servers, use Kernel's cloud browsers (clicks and screenshots, separate Kernel bill), or run a self-hosted worker on a host with a desktop.",
+    "Availability: beta on the Claude API, Claude Platform on AWS and Claude Models on Google Cloud (Anthropic managed). Newer beta features: session budgets, workflow runs, outcomes; MCP tunnels in research preview.",
     "'running' includes time the agent spends waiting on model inference, not only CPU activity; cpu util does not reduce cost.",
-    "Idle sessions retain their sandbox free of charge; retention limit for idle sessions/sandboxes is unpublished. Deleting a session deletes its sandbox and session-produced files.",
+    "Idle sessions retain their sandbox free of charge, up to 30 days after sandbox creation. Deleting a session deletes its sandbox and session-produced files.",
     "Self-hosted environment runtime billing not documented (mode hour null, flagged alt).",
     "Code execution tool (Messages API) is a separate SKU: $0.05/container-hour after 1,550 free hours/org/month, 5-min minimum, 1 CPU/5 GiB, no internet; free when used with web_search/web_fetch 20260209+. The 1,550 free hours ($77.50) are encoded as included_usd on the API plan, scoped to the code-execution-tool mode.",
-    "Egress/IPv4 not priced or offered (no inbound ports). Region: sandbox code execution and data at rest follow the workspace geo, and \"us\" is the only workspace geo available (US, no state/city published); model inference can still run \"global\" unless inference_geo = us (1.1x tokens).",
+    "Egress/IPv4 not priced. No documented inbound ports or SSH for cloud sandboxes; you reach the sandbox through the sessions and events API. Region: sandbox code execution and data at rest follow the workspace geo, and \"us\" is the only workspace geo available (US, no state/city published); model inference can still run \"global\" unless inference_geo = us (1.1x tokens).",
     "Beta since 2026-04-08; runtime price unchanged at $0.08 since launch. Some third-party blogs quote $0.25/session-hour — not supported by the official pricing page.",
     "Not eligible for HIPAA BAA or ZDR. No concurrency cap published; creates limited to 300/min per org.",
     "No benchmark data in benchmarks.json.",
-    "Docker inside the cloud sandbox is listed as 'limited availability' (keep features.docker_inside null).",
+    "Docker inside the cloud sandbox is listed as 'limited availability' (keep features.docker_inside null). A self-hosted worker host can run Docker.",
     "Other limits: max 1,000 scheduled deployments per org (support can raise); max 500 files per session; max 8 memory stores per session; memory versions retained 30 days. Dreams and advisor consultations are billed at token rates only.",
     "Multiagent sessions: up to 25 concurrent threads (coordinator + subagents) share ONE sandbox and filesystem, and runtime is metered per session status, so parallel subagents do not multiply the $0.08/h runtime (they do multiply tokens)."
   ],
@@ -385,14 +390,15 @@
     "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
     "https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool",
     "https://platform.claude.com/docs/en/managed-agents/environments",
-    "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
     "https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes",
     "https://platform.claude.com/docs/en/managed-agents/session-operations",
+    "https://platform.claude.com/docs/en/managed-agents/events-and-streaming",
+    "https://platform.claude.com/docs/en/managed-agents/tools",
     "https://platform.claude.com/docs/en/managed-agents/reference",
     "https://platform.claude.com/docs/en/managed-agents/budgets",
     "https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws",
-    "https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool",
-    "https://platform.claude.com/docs/en/manage-claude/data-residency"
+    "https://platform.claude.com/docs/en/manage-claude/data-residency",
+    "https://kernel.sh/docs/integrations/claude-managed-agents"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -415,20 +421,34 @@
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 5
   },
+  "audit_2026_11_08": {
+    "applied": 5,
+    "source": "findings/claude-managed-agents.json (provider-fact findings), re-checked against the pricing, self-hosted-sandboxes, tools, events-and-streaming and session-operations pages",
+    "reviewed": 8
+  },
   "feature_evidence": {
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://platform.claude.com/docs/en/managed-agents/events-and-streaming",
+      "quote": "When a session goes idle, its sandbox is checkpointed. The checkpoint preserves the full sandbox state, including the filesystem, installed packages, and any files the agent created.",
+      "note": "Automatic, no user action. Limit: 'Sandbox state is preserved for only 30 days after the sandbox is created, and activity does not extend this window.' After that a resumed session starts from a fresh sandbox. History, memory stores, Files API uploads and outputs you download are kept until you delete them.",
+      "ttl_days": 30,
+      "beta": true,
+      "checked": "2026-11-08"
+    },
     "snapshot_auto": {
       "value": true,
       "source": "https://platform.claude.com/docs/en/managed-agents/events-and-streaming",
-      "quote": "When a session goes idle, its sandbox is checkpointed, preserving the full sandbox state, including the filesystem, installed packages, and any files the agent created.",
-      "note": "Trigger: session goes idle (agent finished its turn / waiting for input or tool confirmation). Resumes on next user.message. Memory/running processes not stated (docs list filesystem, packages, files only). Sandbox state kept only 30 days after sandbox creation ('Activity does not extend this window'), then a resumed session starts from a fresh sandbox. Idle time is not billed.",
-      "checked": "2026-09-29"
+      "quote": "When a session goes idle, its sandbox is checkpointed. The checkpoint preserves the full sandbox state, including the filesystem, installed packages, and any files the agent created.",
+      "note": "Trigger: session goes idle (agent finished its turn / waiting for input or tool confirmation). Resumes on next user.message. Memory/running processes not stated (docs list filesystem, packages, files only). Sandbox state kept only 30 days after sandbox creation ('activity does not extend this window'), then a resumed session starts from a fresh sandbox. Idle time is not billed.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
       "source": "https://platform.claude.com/docs/en/managed-agents/events-and-streaming",
-      "quote": "When a session goes idle, its sandbox is checkpointed, preserving the full sandbox state, including the filesystem, installed packages, and any files the agent created.",
-      "note": "Not a contradiction: snapshot=\"fs\" describes the TYPE of state saved (filesystem/packages/files), which happens only automatically on session-idle (snapshot_auto=true). No API/CLI endpoint exists to trigger a checkpoint on demand; the beta API surface (sessions, events, threads, environments, vaults) has no snapshot/checkpoint-create endpoint.",
-      "checked": "2026-09-30"
+      "quote": "When a session goes idle, its sandbox is checkpointed. The checkpoint preserves the full sandbox state, including the filesystem, installed packages, and any files the agent created.",
+      "note": "snapshot=\"fs\" describes the type of state saved (filesystem/packages/files). The checkpoint happens automatically on session idle (snapshot_auto=true). The docs show no API call to take a checkpoint on demand; to keep files past the 30-day window, write them to outputs and download them.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": true,
@@ -456,8 +476,8 @@
       "value": false,
       "source": "https://platform.claude.com/docs/en/managed-agents/environments",
       "quote": "The networking field controls the sandbox's outbound network access.",
-      "note": "Cloud-sandboxes-reference and environments docs document only outbound (egress) network controls (unrestricted/limited + allowed_hosts); no inbound ports, preview URLs, IP allowlists, or security groups for reaching the sandbox are documented anywhere. Nothing to control since there is no ingress at all.",
-      "checked": "2026-09-30"
+      "note": "The environments docs describe only outbound network modes (unrestricted / limited + allowed_hosts). They show no inbound ports, preview URLs or inbound rules for cloud sandboxes. A self-hosted worker host uses its own firewall.",
+      "checked": "2026-11-08"
     },
     "secret_proxy": {
       "value": "any-http",
@@ -484,29 +504,31 @@
       "value": false,
       "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
       "quote": "Cloud sandboxes run as isolated Linux containers on Anthropic-managed infrastructure.",
-      "note": "not offered: outside the product's scope. Sandboxes are shared-kernel Linux containers (isolation: container), and even the in-container docker tool is only 'limited availability'; no /dev/kvm or nested-virtualization capability is documented.",
+      "note": "Cloud sandboxes are shared-kernel Linux containers, and Docker inside them is 'limited availability'. The docs show no /dev/kvm or nested virtualization for cloud sandboxes. A self-hosted worker runs on a host you choose, which can have KVM.",
       "checked": "2026-09-30"
     },
     "computer_use": {
       "value": false,
-      "source": "https://platform.claude.com/docs/en/managed-agents/overview",
-      "quote": "Claude Managed Agents gives Claude access to a set of built-in tools: Bash ... File operations ... Web search and fetch ... MCP servers",
-      "note": "not offered: outside the product's scope. The documented built-in toolset is bash/files/web-search-fetch/MCP; there is no screenshot+click desktop-driving 'computer use' tool for Managed Agents sandboxes (no desktop/VNC surface either, features.desktop=false).",
-      "checked": "2026-09-30"
+      "source": "https://platform.claude.com/docs/en/managed-agents/tools",
+      "quote": "Claude Managed Agents also supports custom, user-defined tools. Your application runs these tools separately and returns the results to Claude, which uses them to continue the task.",
+      "note": "The built-in toolset (bash, read, write, edit, glob, grep, web_fetch, web_search) has no desktop computer-use tool, and cloud sandboxes have no desktop. Ways to add it: a custom tool or MCP server that your app runs; Kernel's cloud browsers (computer-use clicks and screenshots in a browser, not a desktop, billed by Kernel: https://kernel.sh/docs/integrations/claude-managed-agents); or a self-hosted worker on a host with a desktop. Each path means you build and run the desktop side yourself, so the value stays false for the cloud sandbox.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
-      "value": false,
-      "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
-      "quote": "Playwright (Python and Node.js) - Browser automation library; Chromium (/opt/pw-browsers/chromium) - Browser used by Playwright",
-      "note": "not offered: outside the product's scope. The sandbox ships plain Playwright/Chromium for browser automation/testing; no stealth or anti-fingerprinting feature against bot detection is documented.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://kernel.sh/docs/integrations/claude-managed-agents",
+      "quote": "Kernel owns the browser — a fresh, isolated, stealth Chromium session per run",
+      "how": "add Kernel's stealth cloud browser and drive it with the Kernel CLI from the session shell (Kernel guide; Kernel bills separately)",
+      "effort": "low",
+      "note": "The built-in sandbox ships plain Playwright/Chromium with no stealth feature. Kernel's official Managed Agents guide adds stealth Chromium sessions; the agent runs the Kernel CLI from its built-in shell.",
+      "checked": "2026-11-08"
     },
     "captcha_solving": {
       "value": false,
-      "source": "https://platform.claude.com/docs/en/managed-agents/overview",
-      "quote": "Pre-built, configurable agent harness that runs in managed infrastructure. Best for long-running tasks and asynchronous work.",
-      "note": "not offered: outside the product's scope. Managed Agents is a general coding/task-agent harness (bash, files, web search/fetch, MCP); no CAPTCHA-solving tool or service is documented.",
-      "checked": "2026-09-30"
+      "source": "https://platform.claude.com/docs/en/managed-agents/tools",
+      "quote": "Claude Managed Agents also supports custom, user-defined tools.",
+      "note": "No built-in CAPTCHA-solving tool is documented. A custom tool or MCP server can call a third-party solver that you choose and pay.",
+      "checked": "2026-11-08"
     },
     "egress_ip_type": {
       "value": "datacenter",
@@ -518,22 +540,22 @@
     "wake_on_request": {
       "value": true,
       "source": "https://platform.claude.com/docs/en/managed-agents/events-and-streaming",
-      "quote": "When a session goes idle, its sandbox is checkpointed, preserving the full sandbox state, including the filesystem, installed packages, and any files the agent created. This allows you to resume cleanly from inactivity.",
+      "quote": "When a session goes idle, its sandbox is checkpointed. The checkpoint preserves the full sandbox state, including the filesystem, installed packages, and any files the agent created.",
       "note": "An idle session's checkpointed sandbox resumes automatically (no separate 'start' API call) the next time a user.message event arrives, as long as it's within the 30-day sandbox-state retention window; functionally equivalent to wake-on-request for a sleeping machine.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
       "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
       "quote": "Memory: Up to 8 GB; Disk space: Up to 10 GB",
-      "note": "not offered: outside the product's scope. Sandbox size is a fixed, unpublished spec ('up to 8 GB/10 GB') set by the flat $0.08/session-hour SKU; there is no API or config field to change CPU/RAM of a running sandbox.",
+      "note": "Cloud sandbox size is fixed ('up to 8 GB / 10 GB') under the flat $0.08/session-hour SKU. The docs show no field to change CPU or RAM of a running cloud sandbox. A self-hosted worker host has whatever size you give it.",
       "checked": "2026-09-30"
     },
     "own_agent_api": {
       "value": false,
       "source": "https://platform.claude.com/docs/en/managed-agents/overview",
       "quote": "Claude Managed Agents provides the harness and infrastructure for running Claude as an autonomous agent.",
-      "note": "not offered: outside the product's scope as defined. This IS a first-party API for Anthropic's own agent, but it drives a general coding/task harness (already captured by harness_api=true) rather than a distinct browser/computer-use/research task-agent product; Anthropic documents no separate own-agent API of that kind for Managed Agents.",
+      "note": "This IS a first-party API for Anthropic's own agent, but it drives a general coding/task harness (already captured by harness_api=true) rather than a distinct browser/computer-use/research task-agent product; Anthropic documents no separate own-agent API of that kind for Managed Agents.",
       "checked": "2026-09-30"
     },
     "guest_firewall": {
@@ -547,7 +569,7 @@
       "value": false,
       "source": "https://platform.claude.com/docs/en/managed-agents/environments",
       "quote": "allowed_hosts specifies domains the sandbox can reach. Specify bare hostnames or wildcard patterns (such as *.example.com).",
-      "note": "not offered: egress control in the docs is entirely domain/host-based (allowed_hosts, allow_package_managers, allow_mcp_servers); no fixed/dedicated outbound IP address or IP-based egress feature is documented for cloud sandboxes.",
+      "note": "Cloud sandboxes: egress control in the docs is domain/host-based (allowed_hosts, allow_package_managers, allow_mcp_servers); no fixed/dedicated outbound IP address or IP-based egress feature is documented for cloud sandboxes.",
       "checked": "2026-09-30"
     },
     "sso": {
@@ -590,15 +612,15 @@
       "value": false,
       "source": "https://platform.claude.com/docs/en/managed-agents/overview",
       "quote": "Send user messages as events. Claude autonomously runs tools and streams back results through server-sent events (SSE).",
-      "note": "The sandbox is reachable only via the sessions/events API driving the agent's own bash tool; no SSH/remote-shell access for the human operator is documented anywhere in the Managed Agents docs (overview, cloud-sandboxes-reference, self-hosted-sandboxes).",
-      "checked": "2026-09-30"
+      "note": "No documented inbound ports or SSH for cloud sandboxes; you reach the sandbox through the sessions and events API. A self-hosted worker runs on your own host, which you can reach by SSH.",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
       "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
       "quote": "Cloud sandboxes run as isolated Linux containers on Anthropic-managed infrastructure. They come pre-installed with a comprehensive set of programming languages, databases, and utilities.",
-      "note": "Product is a headless container sandbox (no VNC/RDP/GUI streaming documented); features.browser=true refers to a managed headless browser tool, not a graphical desktop. Outside the product's scope.",
-      "checked": "2026-09-30"
+      "note": "The docs show no desktop, VNC or RDP for cloud sandboxes; features.browser=true is the preinstalled Playwright/Chromium. A self-hosted worker can run on a host that has a desktop (you build and run it), so desktop stays false for the cloud sandbox only.",
+      "checked": "2026-11-08"
     },
     "custom_image": {
       "value": true,
@@ -620,8 +642,8 @@
       "value": false,
       "source": "https://platform.claude.com/docs/en/managed-agents/cloud-sandboxes-reference",
       "quote": "Cloud sandboxes run as isolated Linux containers on Anthropic-managed infrastructure.",
-      "note": "No HTTPS/URL exposure mechanism for sandbox ports is documented; the sandbox environments/networking docs cover outbound access only, and the sandbox is reachable exclusively through the sessions API, never via a public URL.",
-      "checked": "2026-09-30"
+      "note": "No documented HTTPS/URL exposure for cloud sandbox ports; the environments docs cover outbound access only, and you reach the sandbox through the sessions and events API.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -662,9 +684,9 @@
       "value": true,
       "corrected_from": false,
       "source": "https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes",
-      "quote": "Self-hosted sandboxes keep the orchestration on Anthropic's side but move tool execution into infrastructure you control, so the agent's code, filesystem, and network egress never leave your environment. Tool execution stays on your host: the filesystem the agent reads and writes, the processes it spawns, and the network it can reach are all under your control.",
-      "note": "Contradiction in the card: top-level features.self_host=false even though the card's own \"self-hosted\" mode sets features.self_host=true and self-hosted-sandboxes docs describe running the sandbox/worker entirely on infrastructure you control. Correct top-level self_host to true.",
-      "checked": "2026-09-30"
+      "quote": "Self-hosted sandboxes move the agent’s tool execution from Anthropic-managed cloud sandboxes into infrastructure you control, while Anthropic keeps running the agent.",
+      "note": "self_hosted environment: the worker runs tool calls on a Linux or macOS host you control (needs /bin/bash and outbound HTTPS). Anthropic links worker guides for 11 platforms (AWS Lambda MicroVMs, Blaxel, Cloudflare, Daytona, E2B, Fly.io, GKE Agent Sandbox, Modal, Namespace, Superserve, Vercel). Anthropic still runs the model and orchestration.",
+      "checked": "2026-11-08"
     },
     "open_source": {
       "value": false,

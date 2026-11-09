@@ -7,7 +7,7 @@ are priced per GPU. The Sandbox API has **no published price**. The rates below 
 ## Regime table
 | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|
-| Free CPU Studio | The one active Default CPU Studio every account gets | $0. On the Free plan it must restart every 4 h; on Pro and above it has no restarts. You can create unlimited Studios, but only one runs for free at a time | Default (CPU) 4 cores / 16 GB = **Free** | https://lightning.ai/pricing (CPU tab + FAQ) |
+| Free CPU Studio | The one active Default CPU Studio every account gets | $0. On the Free plan it must restart every 4 h; on Pro and above it has no restarts. You can create unlimited Studios, but only one runs for free at a time | Default (CPU) 16 GB = **Free**; "The first 4-CPU instance on any cloud is always free" | https://lightning.ai/pricing, https://lightning.ai/docs/platform/build/ai-studio.md |
 | On-demand CPU Studio | Any extra running CPU Studio or a larger shape | Per second while running, bundled CPU + RAM | Large 8/32 GB **$0.51/h**; X-Large 16/64 **$0.99**; Data prep 32/128 **$1.48**; Data prep max 64/256 **$2.69**; Data prep ultra 96/384 **$4.79**. The on-demand price of a *second* Default 4/16 Studio is not published | https://lightning.ai/pricing (CPU tab) |
 | Interruptible (spot) CPU | You opt in to interruptible machines | Per second; can be reclaimed | Default 4/16 **$0.22/h**; Large **$0.33**; X-Large **$0.54**; Data prep ultra **$4.51**; Data prep and Data prep max have no spot price | https://lightning.ai/pricing (CPU tab) |
 | On-demand GPU Studio, 1 GPU | GPU workload | Per GPU-hour, per second. What CPU/RAM comes with each GPU machine is not stated | T4 $0.55, L4 $0.79, L40S $2.14, RTX PRO 6000 $2.89, A100 40GB $2.19, A100 80GB $2.71, **H100 $4.68**, H200 $4.50 | https://lightning.ai/pricing (1 GPU tab) |
@@ -26,7 +26,7 @@ are priced per GPU. The Sandbox API has **no published price**. The rates below 
 | Credits expiry | All purchased and plan credits | Credits expire 12 months after purchase, so **monthly plan credits roll over for up to a year** | — | https://lightning.ai/docs/overview/faq/billing |
 | Drive storage | Data above 10 GB (account Drive) | $0.10/GB-month, billed daily; data connections (S3/GCS/R2) are not billed | Drive caps: Free 50 GB, Pro 200 GB, Teams 2 TB, Enterprise unlimited | billing FAQ |
 | Sleeping Studio | 10 min idle leads to auto-sleep (customisable on paid tiers) | Compute $0 while asleep; "sleeping Studios don't cost anything" (Drive storage above 10 GB still bills) | 10 min idle tail billed | https://lightning.ai/docs/platform/build/ai-studio.md |
-| Egress / IPv4 | — | Not published. Lightning Storage cloud folders are marketed as having no ingress/egress fees | null | features research |
+| Egress / IPv4 | — | Lightning storage egress is $0/GB (pricing page, checked 2026-11-08). Internet egress from a Studio or sandbox and public IPv4 have no published price. Sandboxes get a live preview URL in the Lightning UI; the SDK returns no URL | null | https://lightning.ai/pricing, https://lightning.ai/docs/platform/build/sandbox.md |
 Dated changes: on 2026-09-21 Lightning repriced its GPU rate card (third-party usagepricing.com: T4 $0.19 to $0.55, H200
 $6.53 to $4.50) and **turned the Free tier's monthly 15 credits into a one-time grant of up to 30**. Plan prices did
 not change. The usagepricing.com capture lists H100 at $4.50, but the live official page on 2026-09-28 shows **$4.68**

@@ -62,9 +62,53 @@
   },
   "plans": [
     {
-      "name": "Current applicable tariff unverified",
-      "fee": null,
+      "name": "Trial",
+      "fee": 0,
       "flags": [],
+      "fee_is_credit": false,
+      "included_usd": 0,
+      "per_seat": null,
+      "concurrency": null,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "120 one-time credits; overage $0.06/credit (limrun.com/pricing, checked 2026-11-08)."
+    },
+    {
+      "name": "Entry",
+      "fee": 20,
+      "flags": [],
+      "fee_is_credit": true,
+      "included_usd": 0,
+      "per_seat": null,
+      "concurrency": null,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "$20/month ($192/year) with 500 credits a month ($0.04/credit); overage $0.05/credit."
+    },
+    {
+      "name": "Individual",
+      "fee": 200,
+      "flags": [],
+      "fee_is_credit": true,
+      "included_usd": 0,
+      "per_seat": null,
+      "concurrency": null,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "$200/month ($1,920/year) with 5,000 credits a month; overage $0.05/credit."
+    },
+    {
+      "name": "Company",
+      "fee": null,
+      "flags": [
+        "sales"
+      ],
       "fee_is_credit": false,
       "included_usd": null,
       "per_seat": null,
@@ -73,7 +117,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": ""
+      "note": "Custom price."
     }
   ],
   "free": {
@@ -89,7 +133,10 @@
     "snapshot": "fs",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": true,
+    "persistent_disk": "diy",
+    "whole_disk": false,
+    "persist_scope": "snapshot",
+    "persist_path": "Xcode sandbox workspace",
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -169,9 +216,11 @@
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "Billing model (from the official OpenAPI spec, no prices): subscription plans with monthlyPrice/yearlyPrice/minutePrice and included monthlyMinutes (credit-minutes that refill monthly). Usage is metered in credits on graduated tiers (labels like 'First 50,000' ... '5,000,001 and above'). Some plans have no overage ('overageRate ... absent when the plan has no overage'). Build instances are priced per phase (build, cache, sync, apiWork, idle); otherwise they are billed on wall-clock. Orgs carry concurrencyLimit and maxConcurrencyLimit. Terms: 'Limrun offers usage-based, monthly, and annual subscription plans. The fees, usage rates ... presented at checkout or set forth in an applicable order form will apply.'",
-    "Homepage advertises 'Idle/build time pricing' for remote Xcode (idle priced differently from build), with no numbers. /pricing returns 404, and Wayback has no pricing-page captures."
+    "Published prices (limrun.com/pricing, checked 2026-11-08), per minute on Entry/Individual within the monthly allowance: iOS simulator $0.08 (2 credits), Android emulator $0.04 (1 credit), Xcode active $0.08 (2 credits), Xcode warm $0.016 (0.4 credits); overage $0.10 / $0.05 / $0.10 / $0.02. CPU and RAM per instance are not published, so the mode stays unpriced in the VM ranking.",
+    "Files across instances: Xcode sandboxes created with a snapshot key save the workspace (sources and DerivedData) when you delete the instance after a successful build, and restore it on the next create with the same key. Simulators and emulators have no disk snapshot."
   ],
   "sources": [
+    "https://limrun.com/pricing",
     "https://www.ycombinator.com/companies/limrun",
     "https://limrun.com/",
     "https://limrun.com/llms.txt"
@@ -330,13 +379,23 @@
       "note": "not offered: there is no sleeping/paused state to wake from — an idle instance is deleted (inactivity timeout), and a fresh instance must be created and re-provisioned (with `reuseIfExists`/`--reuse-if-exists` reusing a still-running warm instance, not waking a stopped one).",
       "checked": "2026-09-30"
     },
+    "persist_scope": {
+      "value": "snapshot",
+      "source": "https://docs.limrun.com/docs/ios/snapshots.md",
+      "quote": "Use a disk snapshot to carry source files, dependencies, and Xcode's DerivedData into your next instance.",
+      "how": "create the Xcode sandbox with a snapshot key; deleting it after a successful build saves the workspace, and the next create with the same key restores it",
+      "effort": "low",
+      "checked": "2026-11-08"
+    },
     "persistent_disk": {
-      "value": true,
-      "corrected_from": false,
+      "value": "diy",
+      "corrected_from": true,
       "source": "https://docs.limrun.com/docs/ios/snapshots.md",
       "quote": "Use a disk snapshot to carry source files, dependencies, and Xcode's DerivedData into your next instance. Snapshots belong to your organization. Without snapshot configuration, a new instance starts without a saved workspace.",
-      "note": "Opt-in disk snapshotting for Xcode/Gradle build sandboxes: create with --snapshot-key, files persist across instance termination and are restored into the next instance via --snapshot-restore-keys. Default (no snapshot-key) is no persistence -- a new instance starts cold. iOS/Android simulator instances have no general persistent disk, only optional keychain-state assets. So the card's flat false is wrong; should be true with the opt-in/default-delete caveat noted.",
-      "checked": "2026-09-30"
+      "how": "create the Xcode sandbox with a snapshot key; the workspace is saved when you delete it and restored on the next create with the same key",
+      "effort": "low",
+      "note": "Opt-in workspace snapshots for Xcode build sandboxes. Without a snapshot key a new instance starts without a saved workspace. Simulators and emulators have no disk snapshot, only optional keychain assets.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": false,

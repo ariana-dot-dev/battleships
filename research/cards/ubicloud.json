@@ -448,7 +448,7 @@
         "A100-80GB": 1.2261,
         "B200": 3
       },
-      "note": "Per-minute rates from config/billing_rates/vm_metal.yml: Gpu 20b5 (NVIDIA A100 80GB PCIe) hetzner-fsn1 $0.020435/min = $1.226/GPU-h; Gpu 2901 (NVIDIA B200) tr-ist-u1 (Istanbul) $0.05/min = $3.00/GPU-h; host vCPU standard-gpu family $0.0003480863/vCPU-min ($0.0209/vCPU-h) in Germany, standard $0.0003050596/vCPU-min in Istanbul. GPU counts 1/2/4/8. vCPU/RAM per GPU not published. B300 exists only in a private location (price $0 = contract). Access: 'Projects without GPU access enabled will see a helpful message explaining how to request access to NVIDIA B200 and RTX PRO 6000 GPUs by contacting support.'",
+      "note": "Per-minute rates from config/billing_rates/vm_metal.yml (re-checked 2026-11-08, both rates active, not in the deprecated section): Gpu 20b5 (NVIDIA A100 80GB PCIe) hetzner-fsn1 $0.020435/min = $1.226/GPU-h; Gpu 2901 (NVIDIA B200) tr-ist-u1 (Istanbul) $0.05/min = $3.00/GPU-h; host vCPU standard-gpu family $0.0003480863/vCPU-min ($0.0209/vCPU-h) in Germany, standard $0.0003050596/vCPU-min in Istanbul. The public docs name A100 only in the May 2025 Germany preview; the current access text names B200 and RTX PRO 6000 (changelog 2025-12). RTX PRO 6000 has no public rate. vCPU/RAM per GPU not published. Since Oct 2026, dedicated B300 hosts (a full host or a share such as half a host) rent in the SF Bay Area for a flat monthly fee on request (changelog 2026-10; billing rate $0 = contract), not priced here. Access: 'Projects without GPU access enabled will see a helpful message explaining how to request access to NVIDIA B200 and RTX PRO 6000 GPUs by contacting support.'",
       "cpu_class": "dedicated"
     }
   ],
@@ -503,6 +503,7 @@
     "pause_resume": false,
     "fork": true,
     "persistent_disk": true,
+    "persist_scope": "whole",
     "volumes": null,
     "auto_stop_idle": false,
     "max_session_h": null,
@@ -530,7 +531,12 @@
     "soc2": true,
     "hipaa": false,
     "sso": true,
-    "gpu_types": [],
+    "gpu_types": [
+      "A100",
+      "B200",
+      "RTX-PRO-6000",
+      "B300"
+    ],
     "regions": [
       "eu",
       "us",
@@ -593,7 +599,9 @@
     "CI runners use images built from GitHub actions/runner-images templates (\"fully compatible with default runners\"), which ship Docker Server/Client; docker_inside=true on ci-* modes.",
     "Two 2026 price rises: +26% for new deployments from 2026-05-01 (existing from 2026-06-01; Germany/Finland/Virginia, not premium runners) and +25% for Germany/Finland from 2026-09-01 (VMs, Postgres, K8s, standard AND premium runners; Virginia/AWS/GCP unaffected). The card's rates already equal the post-2026-09-01 Germany rates (standard-2 $0.00104/min = 2 x $0.0004804689 vCPU-min + 40 x $0.0000019531 GiB-min). Pre-May standard-2 was $26.60/mo -> $33.52 (May) -> $41.89 (Sept), i.e. +57.5% in 5 months.",
     "The '/mo' figures on the pricing page are 672-hour (28-day) months: the console code computes monthly = unit_price x 60 x 672. A 730-hour month of standard-2 is $45.51, not $41.89. The card correctly uses per-minute rates.",
-    "Invoices under $0.50 are not charged (minimum_invoice_charge_threshold 0.5). Tax/VAT added on top."
+    "Invoices under $0.50 are not charged (minimum_invoice_charge_threshold 0.5). Tax/VAT added on top.",
+    "Keeping a disk without paying for an idle VM: stop the VM, capture a machine image (one disk up to 40 GiB), delete the VM, and boot a new VM from that image later (ubicloud.com/docs/machine-images/overview.md, checked 2026-11-08). The image bills at about $0.15/GiB-month of compressed archive. A plain stop keeps the whole disk but bills as if the VM still runs.",
+    "Since Oct 2026, 8, 16 and 30 vCPU GitHub runners move to AWS when no Ubicloud host is free within 60 s. 'Overflow capacity doesn't support nested virtualization (KVM).' Ubicloud can pin repositories or projects to bare-metal runners on request (ubicloud.com/docs/changelog/2026-10, checked 2026-11-08)."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/ubicloud",
@@ -602,7 +610,12 @@
     "https://www.ubicloud.com/",
     "https://www.ubicloud.com/docs/overview",
     "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
-    "https://ubicloud.com/docs/networking/load-balancer"
+    "https://ubicloud.com/docs/networking/load-balancer",
+    "https://ubicloud.com/docs/machine-images/overview.md",
+    "https://ubicloud.com/docs/about/regions",
+    "https://ubicloud.com/docs/changelog/2025-12",
+    "https://ubicloud.com/docs/changelog/2026-10",
+    "https://raw.githubusercontent.com/ubicloud/ubicloud/main/config/billing_rates/vm_metal.yml"
   ],
   "audit_2026_09_29": {
     "applied": 16,
@@ -637,8 +650,17 @@
       "value": true,
       "source": "https://ubicloud.com/docs/machine-images/overview.md",
       "quote": "Ubicloud Machine Images let you capture a virtual machine's disk as a reusable, versioned image and boot new VMs from it.",
-      "note": "Disk only, no memory; source VM must be stopped and have a single disk <= 40 GiB; versioned images; new VMs boot from them (template/fork), same location. Billed on compressed archive size.",
-      "checked": "2026-09-29"
+      "note": "Disk only, no memory. The page says: 'Stop the VM before capturing an image or version from it.' and 'The VM must have a single disk no larger than 40 GiB.' New VMs boot from the image ('When creating a VM, you can select a machine image as its boot image'). Billed on compressed archive size (pricing page).",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://www.ubicloud.com/docs/llms-full.txt",
+      "quote": "When a VM is stopped, all configuration, storage, and compute resources remain fully reserved to ensure immediate availability upon restart. Billing continues as if the instance were still running.",
+      "how": "stop the VM: the whole disk stays, but the VM bills at full rate. To stop paying for compute, stop the VM, capture a machine image (one disk up to 40 GiB), delete the VM, and boot a new VM from the image later.",
+      "effort": "medium",
+      "note": "Machine image path source: https://ubicloud.com/docs/machine-images/overview.md ('Stop the VM before capturing an image or version from it.' / 'The VM must have a single disk no larger than 40 GiB.'). The image bills on compressed archive size (storage.snapshot_gib_month).",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -742,9 +764,9 @@
     "fork_running": {
       "value": false,
       "source": "https://ubicloud.com/docs/machine-images/overview.md",
-      "quote": "source VM must be stopped and have a single disk <= 40 GiB",
-      "note": "Machine Images (the closest thing to a fork) require the source VM to be stopped first; no clone-while-running feature.",
-      "checked": "2026-09-30"
+      "quote": "Stop the VM before capturing an image or version from it.",
+      "note": "Machine Images (the closest thing to a fork) need the source VM stopped first, with a single disk no larger than 40 GiB; no clone-while-running feature is documented.",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -818,10 +840,10 @@
     },
     "gpu": {
       "value": true,
-      "source": "https://www.ubicloud.com/docs/llms-full.txt",
-      "quote": "Ubicloud now supports provisioning GPU VMs with powerful NVIDIA B200 chips in our new Türkiye (Istanbul) location.",
-      "note": "GPU VMs (A100 80GB, B200, and B300 in a private location) available on request/feature-flag.",
-      "checked": "2026-09-30"
+      "source": "https://ubicloud.com/docs/changelog/2025-12",
+      "quote": "Projects without GPU access enabled will see a helpful message explaining how to request access to NVIDIA B200 and RTX PRO 6000 GPUs by contacting support.",
+      "note": "GPU VMs on request: B200 in Istanbul (changelog 2025-10), RTX PRO 6000 (changelog 2025-12), A100 80GB in Germany (active billing rate in config/billing_rates/vm_metal.yml; public docs mention it only in the May 2025 preview). Since Oct 2026, dedicated B300 hosts in the SF Bay Area: 'You can now rent a dedicated NVIDIA B300 host, or a share of one such as half a host, in our SF Bay Area location for a flat monthly fee.' (https://ubicloud.com/docs/changelog/2026-10).",
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
@@ -955,9 +977,17 @@
       "provider_region": "tr-ist-u1",
       "self_serve": true,
       "choosable": true
+    },
+    {
+      "country": "US",
+      "state": "CA",
+      "city": "SF Bay Area",
+      "provider_region": "us-west-u1-dedicated",
+      "self_serve": false,
+      "choosable": false
     }
   ],
-  "locations_source": "https://www.ubicloud.com/docs/llms-full.txt",
-  "locations_quote": "Each Ubicloud region can be mapped to particular provider and its data center. Below you can find the mapping of existing Ubicloud regions. eu-central-h1 Hetzner Falkenstein, Germany; eu-north-h1 Hetzner Helsinki, Finland; us-east-a2 Leaseweb Manassas, VA, US. Ubicloud now supports provisioning GPU ",
-  "locations_checked": "2026-10-01"
+  "locations_source": "https://ubicloud.com/docs/about/regions",
+  "locations_quote": "eu-central-h1 | Hetzner | Falkenstein, Germany; eu-north-h1 | Hetzner | Helsinki, Finland; us-east-a2 | Leaseweb | Manassas, VA, US. GPUs: Istanbul (B200 GPU VMs, changelog 2025-10) and SF Bay Area (dedicated B300 hosts on request, flat monthly fee, changelog 2026-10: 'You can now rent a dedicated NVIDIA B300 host, or a share of one such as half a host, in our SF Bay Area location').",
+  "locations_checked": "2026-11-08"
 }

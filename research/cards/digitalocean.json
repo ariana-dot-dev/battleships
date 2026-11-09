@@ -1144,8 +1144,7 @@
       "MI300X",
       "MI325X",
       "B300",
-      "MI350X",
-      "MI355X"
+      "MI350X"
     ],
     "snapshot": "fs",
     "pause_resume": false,
@@ -1160,13 +1159,13 @@
     "root": true,
     "systemd": true,
     "browser": false,
-    "desktop": false,
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
     "ssh": true,
     "public_ipv4": true,
-    "inbound_https": false,
+    "inbound_https": "diy",
     "custom_domain": true,
     "raw_tcp_inbound": true,
     "egress_allowlist": true,
@@ -1184,8 +1183,8 @@
     "soc2": true,
     "hipaa": true,
     "sso": true,
-    "lang_python": false,
-    "lang_node": false,
+    "lang_python": "diy",
+    "lang_node": "diy",
     "lang_go": null,
     "lang_rust": null,
     "lang_java": null,
@@ -1206,6 +1205,7 @@
     "mcp_server": true,
     "snapshot_auto": false,
     "snapshot_on_demand": true,
+    "persist_scope": "whole",
     "harness_api": false,
     "egress_allowlist_level": "ip",
     "ingress_rules": true,
@@ -1250,7 +1250,8 @@
     "Bandwidth doc says Droplet seconds are 'rounded to the nearest minute' (while the pricing docs say per-second with a 60 s / $0.01 minimum); effective granularity may be 60 s. Negligible for bills.",
     "MicroVMs (public preview since 2026-10-09, MKC1 only) are modelled as mode microvms-preview, but card-level storage and network fields belong to Droplets: the engine applies $0.10/GiB-month disk and the 5,000 GiB free egress allowance to it, while MicroVMs bill $0.05/GiB-month on used disk and checkpoints and $0.01/GiB egress with no allowance. Compute is exact; heavy egress or disk is understated / misstated. Deserves its own card (digitalocean-microvms). See .work/engine-needs/digitalocean.md.",
     "Agent Droplets plans (Pro $50 = 15% off, Team $200 = 20% off, public preview) are modelled as included_usd = fee / (1 - discount) scoped to the Harness Runtime mode. Third-party models are not discounted but still draw from the subscription balance at standard rates; unused balance expires monthly. The plans list concurrency 3 to mirror the team tier; the engine cannot restrict a plan to one mode, so they are never chosen for Droplet workloads only because they add no benefit there.",
-    "GPU types MI350X and HGX B300 are sales-reserved ('Contact sales to reserve capacity'); MI355X is Spot-only in MEM1. See the digitalocean-gpu card for GPU pricing."
+    "GPU types MI350X and HGX B300 are sales-reserved ('Contact sales to reserve capacity'). MI355X is not on the GPU Droplets page and is left out of gpu_types. See the digitalocean-gpu card for GPU pricing.",
+    "2026-11-08 fairness audit: the 672 h monthly cap applies to bundled plans only ('Unlike bundled plans, v5 Droplets do not have a monthly usage cap'). A powered-off Droplet keeps its whole disk and IP with no retention limit, and a bundled one bills in full while off. Desktop (Xfce + VNC tutorial), Python, Node.js and HTTPS (Load Balancer with managed Let's Encrypt, from $12/month) are documented setups, marked diy."
   ],
   "sources": [
     "https://www.digitalocean.com/pricing/droplets",
@@ -1282,7 +1283,12 @@
     "https://docs.digitalocean.com/products/microvms/details/limits/",
     "https://docs.digitalocean.com/products/microvms/concepts/lifecycle/",
     "https://docs.digitalocean.com/products/microvms/concepts/checkpoints/",
-    "https://docs.digitalocean.com/products/microvms/concepts/networking-access/"
+    "https://docs.digitalocean.com/products/microvms/concepts/networking-access/",
+    "https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-vnc-on-ubuntu-22-04",
+    "https://www.digitalocean.com/community/tutorials/how-to-install-python-3-and-set-up-a-programming-environment-on-an-ubuntu-22-04-server",
+    "https://marketplace.digitalocean.com/apps/nodejs",
+    "https://docs.digitalocean.com/products/networking/load-balancers/how-to/ssl-termination/",
+    "https://www.digitalocean.com/pricing/load-balancers"
   ],
   "fleet": {
     "default_max_instances": 3,
@@ -1433,18 +1439,29 @@
       "checked": "2026-09-30"
     },
     "lang_python": {
-      "value": false,
-      "source": "https://marketplace.digitalocean.com/",
-      "quote": "Node.js 20.04 ... Packer image",
-      "note": "not offered: outside the product's scope as a runtime feature. Droplets boot from plain OS images you choose (Ubuntu, Debian, Fedora, etc.); DigitalOcean's own docs don't curate/guarantee a language runtime on the base image, and DO separately markets dedicated 1-Click Marketplace app images for specific runtimes/frameworks, implying the base Droplet is not documented as shipping a managed Python runtime out of the box.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://www.digitalocean.com/community/tutorials/how-to-install-python-3-and-set-up-a-programming-environment-on-an-ubuntu-22-04-server",
+      "quote": "This tutorial will get your Ubuntu server set up with a Python 3 programming environment.",
+      "how": "install Python 3 with apt on the Droplet (official DigitalOcean tutorial)",
+      "effort": "low",
+      "note": "Droplets boot plain OS images; DigitalOcean does not list a managed Python runtime as a Droplet feature, but its own tutorial documents the install.",
+      "checked": "2026-11-08"
     },
     "lang_node": {
-      "value": false,
-      "source": "https://marketplace.digitalocean.com/",
-      "quote": "NodeJS ... imageLabel\":\"nodejs-20-04",
-      "note": "not offered on a base Droplet: DigitalOcean ships a separate 'Node.js on Ubuntu' 1-Click Marketplace image specifically to add Node.js, confirming plain Droplets don't include Node.js out of the box.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://marketplace.digitalocean.com/apps/nodejs",
+      "quote": "A lightweight and efficient platform that's ideal for building fast, scalable network applications in Javascript",
+      "how": "create the Droplet from the Node.js 1-Click Marketplace image, or install Node.js with apt",
+      "effort": "low",
+      "note": "Base Droplet images do not include Node.js; the 1-Click Marketplace image adds it at create time at no extra charge listed.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://docs.digitalocean.com/products/droplets/details/pricing/",
+      "quote": "You are still billed for bundled-plan CPU Droplets that are powered off because the compute resources stay reserved on the hypervisor.",
+      "note": "Power-off keeps the whole Droplet disk and its public IP; no retention limit while the Droplet exists. The cost: a powered-off bundled Droplet bills in full. To stop paying compute you snapshot ($0.06/GiB-month) and destroy, then recreate from the snapshot (new IP unless you use a Reserved IP).",
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": "none",
@@ -1468,18 +1485,20 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
-      "source": "https://docs.digitalocean.com/products/droplets/details/features/index.html.md",
-      "quote": "DigitalOcean Droplets are Linux-based virtual machines (VMs) that run on top of virtualized hardware.",
-      "note": "Droplets are plain headless Linux VMs; DigitalOcean documents no built-in VNC/RDP/streamed-desktop feature for Droplets (a desktop must be installed and self-managed by the user like on any Linux server). Outside the product's built-in scope.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-vnc-on-ubuntu-22-04",
+      "quote": "Point your viewer at `localhost:59000`, accept the host key warning if prompted, then authenticate with the password from Step 4. You should see the default Xfce workspace",
+      "how": "install Xfce and a VNC server on the Droplet and connect over an SSH tunnel (official DigitalOcean tutorial, Ubuntu 22.04 and 24.04)",
+      "effort": "medium",
+      "note": "Droplet images are server editions with no desktop; DigitalOcean's own tutorial documents the setup.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
       "source": "https://docs.digitalocean.com/products/droplets/details/features/index.html.md",
       "quote": "DigitalOcean Droplets are Linux-based virtual machines (VMs) that run on top of virtualized hardware.",
-      "note": "No managed/pre-installed browser feature documented for Droplets; a browser would have to be installed by the user like any other software on a plain VM.",
-      "checked": "2026-09-30"
+      "note": "No managed or preinstalled browser on Droplets and no official DigitalOcean guide for a headless browser on a Droplet was found (2026-11-08); the user installs one like any package. DigitalOcean's Harness Runtime (mode harness-runtime-preview on this card, public preview, RIC1) ships Chromium in its microVM sandboxes.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
@@ -1503,11 +1522,13 @@
       "checked": "2026-09-30"
     },
     "inbound_https": {
-      "value": false,
-      "source": "https://docs.digitalocean.com/products/networking/load-balancers/index.html.md",
-      "quote": "How to Configure SSL Termination ... Set up SSL termination to decrypt SSL requests at the load balancer and send them unencrypted to the backend Droplet pool via the private network.",
-      "note": "Managed TLS/HTTPS termination is a separate paid Load Balancer product feature, not something a Droplet provides on its own; a bare Droplet only gets a raw public IPv4 (card: public_ipv4/raw_tcp_inbound true) and the operator must run their own reverse proxy/certs (or attach a Load Balancer/App Platform) to get an HTTPS URL.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://docs.digitalocean.com/products/networking/load-balancers/how-to/ssl-termination/",
+      "quote": "If you manage your domain with DigitalOcean DNS, you can choose the Let's Encrypt option to create a new, fully-managed SSL certificate. ... We create and automatically renew this certificate for you.",
+      "how": "put a DigitalOcean Load Balancer (from $12/month, https://www.digitalocean.com/pricing/load-balancers) with a managed Let's Encrypt certificate in front of the Droplet, or run your own reverse proxy and certificate on its public IPv4",
+      "effort": "medium",
+      "note": "A bare Droplet has no HTTPS URL; you need your own domain and either the paid Load Balancer add-on or your own TLS setup.",
+      "checked": "2026-11-08"
     },
     "agent_harnesses": {
       "value": false,
@@ -1590,13 +1611,12 @@
         "MI300X",
         "MI325X",
         "B300",
-        "MI350X",
-        "MI355X"
+        "MI350X"
       ],
       "source": "https://www.digitalocean.com/products/gpu-droplets",
       "quote": "AMD Instinct™ MI350X * 288 GB 256 GiB 24 720 GiB NVMe 5 TiB NVMe CDNA 4™ ... NVIDIA HGX B300 * 288 GB 448 GiB 28 720 GiB NVMe 5 TiB NVMe Blackwell ... * Contact sales to reserve capacity.",
-      "note": "MI350X and HGX B300 (1- and 8-GPU) are listed on the GPU Droplets page but marked \"Contact sales to reserve capacity\". MI355X is Spot only: \"AMD Instinct MI355X GPUs are now available in MEM1 as Spot GPU Droplets in 1- and 8-GPU configurations.\" (https://docs.digitalocean.com/release-notes/, 2026-08-10). GPU pricing lives on the digitalocean-gpu card.",
-      "checked": "2026-10-14"
+      "note": "The GPU Droplets page lists B300, H200, H100, RTX 4000 Ada, RTX 6000 Ada, L40S, MI350X, MI325X and MI300X (re-checked 2026-11-08). MI350X and HGX B300 are marked \"Contact sales to reserve capacity\". MI355X is removed: the GPU Droplets page does not list it; it appears only as Spot capacity in the release notes. GPU pricing lives on the digitalocean-gpu card.",
+      "checked": "2026-11-08"
     },
     "harness_runtime_billing": {
       "value": {

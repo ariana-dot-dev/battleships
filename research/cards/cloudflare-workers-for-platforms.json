@@ -50,7 +50,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Added 2026-09-28 (missing-providers audit). https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/reference/pricing/: $0.02 per additional million CPU-ms => $0.072 per CPU-hour (cpu_basis active: CPU time = wall time x utilisation); $0.30 per additional million requests => start_fee $0.0000003 (one session = one request); memory not billed. Isolate limits (https://developers.cloudflare.com/workers/platform/limits/): 128 MB memory, WfP pricing page: max 30 s CPU per invocation (15 min per Cron Trigger/Queue consumer), unlike standard Workers Paid (default 30 s, up to 5 min). Duration/wall time not billed.",
+      "note": "Added 2026-09-28 (missing-providers audit); rates re-checked 2026-11-08. https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/reference/pricing/: $0.02 per additional million CPU-ms => $0.072 per CPU-hour (cpu_basis active: CPU time = wall time x utilisation); $0.30 per additional million requests => start_fee $0.0000003 (one session = one request); memory not billed. Isolate limits (https://developers.cloudflare.com/workers/platform/limits/): 128 MB memory, WfP pricing page: max 30 s CPU per invocation (15 min per Cron Trigger/Queue consumer), unlike standard Workers Paid (default 30 s, up to 5 min). Duration/wall time not billed.",
       "plans": [
         "Workers for Platforms"
       ]
@@ -73,7 +73,7 @@
       "granularity_s": 1,
       "start_fee": 0.0020003,
       "product_class": "code-interpreter",
-      "note": "Requires Workers Paid ($5/month minimum per account; includes 10M requests + 30M CPU-ms, shared with normal Workers). $0.002 per unique Dynamic Worker (Worker ID + code) per day beyond 1,000/month; .load(code) without ID = 1 per invocation. Requests $0.30/M, CPU $0.02/M CPU-ms incl. isolate startup. Limit: 4 distinct Dynamic Workers in flight per Worker request, 10 per Durable Object. Changelog 2026-03-24 'open beta'; docs no longer show a beta label. Could alternatively be its own card.",
+      "note": "Requires Workers Paid ($5/month minimum per account; includes 10M requests + 30M CPU-ms, shared with normal Workers). https://developers.cloudflare.com/dynamic-workers/pricing/ (re-checked 2026-11-08): $0.002 per Dynamic Worker per day beyond 1,000 unique Dynamic Workers/month; .load(code) without ID = 1 per invocation. Requests $0.30/M beyond 10M, CPU $0.02/M CPU-ms beyond 30M, incl. isolate startup. Limit: 4 distinct Dynamic Workers in flight per Worker request, 10 per Durable Object. Changelog 2026-03-24 announced an open beta; the pricing page shows no beta label.",
       "plans": [
         "Workers Paid (Dynamic Workers)"
       ]
@@ -172,7 +172,7 @@
       "asia"
     ],
     "soc2": true,
-    "hipaa": true,
+    "hipaa": null,
     "sso": true,
     "lang_python": true,
     "lang_node": true,
@@ -222,17 +222,22 @@
   "perf_source": "No benchmark row: provider is not in ComputeSDK results or the HPC run (as of 2026-09-28). See research/perf-map.json.",
   "knobs": [],
   "caveats": [
-    "Isolates, not VMs: 128 MB memory, one thread; workloads needing more RAM are ineligible.",
+    "Isolates, not VMs: 128 MB memory, one thread, 30 s CPU per invocation on WfP. Workloads needing more RAM, a shell or a lasting disk belong in the Cloudflare Sandbox SDK (separate card cloudflare-sandbox).",
     "One estimator session = one request; CPU billed on CPU time only (cpu_util x wall time), wall-clock/idle not billed.",
     "Per-script fee ($0.02 beyond 1,000 scripts) not modelled.",
     "Dynamic Workers (Worker Loader) are priced separately on the Workers Paid plan ($5/month): 1,000 unique Dynamic Workers/month included then $0.002 per Dynamic Worker per day, plus Workers Standard requests ($0.30/M beyond 10M) and CPU ($0.02/M CPU-ms beyond 30M, including isolate startup time). See additions.",
     "Dynamic Workers concurrency: only 4 distinct Dynamic Workers can have in-flight requests per parent Worker request (10 per Durable Object); many concurrent sandboxes need fan-out across requests/DOs.",
     "WfP bills 1 request across dispatch Worker -> user Worker -> outbound Worker; CPU is charged across all three. Custom per-customer CPU/subrequest limits can be set in the dispatch Worker (spend-control lever). Script limit is unlimited (billing $0.02/script beyond 1,000).",
-    "Go (and C, C++, Kotlin) run only as WebAssembly inside the isolate; the first-class languages are JavaScript, TypeScript, Python and Rust."
+    "Go (and C, C++, Kotlin) run only as WebAssembly inside the isolate; the first-class languages are JavaScript, TypeScript, Python and Rust.",
+    "Compliance: SOC 2 Type II covers Workers (Trust Hub). Cloudflare does not publish whether a HIPAA BAA covers Workers."
   ],
   "sources": [
     "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/reference/pricing/",
-    "https://developers.cloudflare.com/workers/platform/limits/"
+    "https://developers.cloudflare.com/workers/platform/limits/",
+    "https://developers.cloudflare.com/dynamic-workers/pricing/",
+    "https://developers.cloudflare.com/workers/reference/security-model/",
+    "https://developers.cloudflare.com/sandbox/",
+    "https://www.cloudflare.com/trust-hub/compliance-resources/soc-2/"
   ],
   "audit_2026_09_29": {
     "applied": 7,
@@ -243,21 +248,21 @@
       "value": false,
       "source": "https://developers.cloudflare.com/workers/runtime-apis/nodejs/fs/index.md",
       "quote": "However, the contents of `/tmp` are not persistent and are unique to each request.",
-      "note": "WfP user Workers are stateless V8 isolates invoked per request; there is no machine state to checkpoint. Durable state lives in bindings (KV, D1, R2, Durable Objects). (Sandbox SDK/Containers also lose all state on sleep: 'Containers restart after inactivity or failures'.)",
-      "checked": "2026-09-29"
+      "note": "User Workers are V8 isolates invoked per request; there is no machine state to checkpoint. Lasting state lives in bindings (KV, D1, R2, Durable Objects). The Sandbox SDK (separate card cloudflare-sandbox) is the Cloudflare product with filesystem backups.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
       "source": "https://developers.cloudflare.com/workers/runtime-apis/nodejs/fs/index.md",
       "quote": "The Workers Virtual File System (VFS) is a memory-based file system",
-      "note": "No snapshot/checkpoint API for Workers isolates. Differs in Sandbox SDK: createBackup()/restoreBackup() snapshot a sandbox directory (disk only, no memory) to R2 and can restore into a sandbox later (sandbox/api/backups).",
-      "checked": "2026-09-29"
+      "note": "No snapshot API for Workers isolates. The Sandbox SDK (separate card cloudflare-sandbox) has createBackup()/restoreBackup() for a sandbox directory.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
       "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/reference/pricing/",
       "quote": "User Workers (V8 isolates), per request + CPU-ms",
-      "note": "not offered: outside the product's scope - WfP exposes an API to deploy/dispatch/manage customer-authored Workers (scripts), not a first-party API that drives a coding-agent harness (prompt/stream events/follow-ups) inside the sandbox. No such API is documented anywhere in the Workers or Workers for Platforms docs.",
+      "note": "WfP exposes an API to deploy, dispatch and manage customer Workers. It has no API that drives a coding-agent harness inside the isolate.",
       "checked": "2026-09-30"
     },
     "egress_allowlist": {
@@ -312,30 +317,30 @@
     },
     "isolation": {
       "value": "v8-isolate",
-      "source": "https://developers.cloudflare.com/workers/platform/limits/",
-      "quote": "Workers run in V8 isolates rather than containers or virtual machines",
-      "note": "Workers for Platforms dispatches requests to user Workers, which are V8 isolates (128 MB memory, one thread each; see card's own isolation field 'isolate').",
-      "checked": "2026-09-30"
+      "source": "https://developers.cloudflare.com/workers/reference/security-model/",
+      "quote": "In Cloudflare Workers, tenants are isolated from each other using V8 isolates — not processes nor VMs.",
+      "note": "User Workers run in V8 isolates (128 MB memory, one thread each). The same page describes a layer 2 sandbox around the runtime process that uses Linux namespaces and seccomp.",
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": false,
       "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/reference/pricing/",
       "quote": "User Workers (V8 isolates), per request + CPU-ms",
-      "note": "not offered: outside the product's scope - WfP user Workers are JS/Wasm code deployed via the Workers API, not machines booted from a Docker/OCI image. (Cloudflare's separate 'Containers' product supports container images, but that is not this product.)",
-      "checked": "2026-09-30"
+      "note": "User Workers deploy as JS/Wasm bundles, not OCI images. Cloudflare Containers and the Sandbox SDK (separate products) run container images.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
       "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/reference/pricing/",
       "quote": "User Workers (V8 isolates), per request + CPU-ms",
-      "note": "not offered: outside the product's scope - WfP is a multi-tenant serverless isolate dispatch platform for running customer code, not a browser/stealth automation product. Cloudflare Bot Management is a separate WAF-side product, not a WfP sandbox feature.",
+      "note": "WfP runs customer code; it is not a browser automation product. Cloudflare Bot Management is a separate WAF product.",
       "checked": "2026-09-30"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/reference/pricing/",
       "quote": "User Workers (V8 isolates), per request + CPU-ms",
-      "note": "not offered: outside the product's scope - no browser or CAPTCHA-solving capability documented for Workers/Workers for Platforms.",
+      "note": "No CAPTCHA-solving capability is documented for Workers or Workers for Platforms.",
       "checked": "2026-09-30"
     },
     "egress_ip_type": {
@@ -349,7 +354,7 @@
       "value": false,
       "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/reference/pricing/",
       "quote": "User Workers (V8 isolates), per request + CPU-ms",
-      "note": "not offered: outside the product's scope - WfP has no first-party browser/computer-use/research agent product or API of its own; it only runs customer-authored Workers.",
+      "note": "WfP has no first-party browser, computer-use or research agent API; it runs customer-authored Workers.",
       "checked": "2026-09-30"
     },
     "mcp_server": {
@@ -374,11 +379,11 @@
       "checked": "2026-09-30"
     },
     "hipaa": {
-      "value": true,
-      "source": "https://www.cloudflare.com/trust-hub/compliance-resources/",
-      "quote": "HIPAA - The Health Insurance Portability and Accountability Act (HIPAA) sets the standard for protecting sensitive patient data. Contact your account team to request the HIPAA AoC.",
-      "note": "HIPAA Assurance/BAA is available for Cloudflare (Enterprise), covering the Cloudflare platform including Workers/Workers for Platforms; requires contacting an account team.",
-      "checked": "2026-09-30"
+      "value": null,
+      "source": "https://www.cloudflare.com/trust-hub/hipaa/",
+      "quote": null,
+      "note": "Not published for this product. The Cloudflare HIPAA and compliance-resources pages do not say which products a BAA covers or whether Workers is in scope. The earlier quote is no longer on the cited page.",
+      "checked": "2026-11-08"
     },
     "eu_data_residency": {
       "value": true,
@@ -392,21 +397,21 @@
       "source": "https://developers.cloudflare.com/workers/platform/limits/",
       "quote": "There is no hard limit on duration for HTTP-triggered Workers. As long as the client remains connected, the Worker can continue processing, making subrequests, and streaming a response body.",
       "note": "Not a VM/session concept: each invocation is a stateless per-request isolate execution. Wall-clock duration is uncapped while the client stays connected (waitUntil() extends up to 30s after response); CPU time is capped separately (WfP: 30s CPU per invocation, 15 min for Cron/Queue triggers) but that is compute billing, not a session-length stop.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
       "value": false,
       "source": "https://developers.cloudflare.com/workers/runtime-apis/nodejs/fs/index.md",
       "quote": "The Workers Virtual File System (VFS) is a memory-based file system... However, the contents of `/tmp` are not persistent and are unique to each request.",
-      "note": "User Worker isolates have no durable filesystem; the only writable path (/tmp) is memory-based and scoped to a single request. Durable state must go through bindings (KV/D1/R2/Durable Objects), not a disk.",
-      "checked": "2026-09-30"
+      "note": "The isolate has no lasting filesystem: /tmp is in memory and lasts one request. Data that must last goes to bindings (Durable Objects storage, R2, KV, D1). For a Linux disk with backups and R2 mounts, Cloudflare offers the Sandbox SDK (see card cloudflare-sandbox).",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
       "source": "https://developers.cloudflare.com/workers/reference/how-workers-works/index.md",
       "quote": "A given isolate has its own scope, but isolates are not necessarily long-lived. An isolate may be spun down and evicted for a number of reasons... Workers are fundamentally preemptible (unlike containers or VMs).",
-      "note": "No checkpoint/snapshot API exists for isolates; there is no VM/container image to snapshot in the first place.",
-      "checked": "2026-09-30"
+      "note": "No snapshot API for isolates; there is no machine image to snapshot. State lives in bindings. The Sandbox SDK (separate card cloudflare-sandbox) has backup and restore of a sandbox filesystem.",
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": false,
@@ -466,24 +471,24 @@
     },
     "desktop": {
       "value": false,
-      "source": "https://developers.cloudflare.com/workers/reference/how-workers-works/index.md",
-      "quote": "V8 orchestrates isolates: lightweight contexts that provide your code with variables it can access and a safe environment to be executed within.",
-      "note": "Plainly outside the product: a headless JS/Wasm request-handler isolate has no display server or desktop environment.",
-      "checked": "2026-09-30"
+      "source": "https://developers.cloudflare.com/sandbox/",
+      "quote": "Each instance is a microVM with its own kernel and network, so no other workload shares it.",
+      "note": "A V8 isolate has no display server. For workloads that need a Linux machine, Cloudflare points to its Sandbox SDK, a microVM product with its own price (see card cloudflare-sandbox).",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
-      "source": "https://developers.cloudflare.com/workers/reference/security-model/index.md",
-      "quote": "Currently, Workers does not allow any access to the local filesystem... Today, Workers are allowed to talk to the rest of the world only via HTTP — both incoming and outgoing.",
-      "note": "No browser runtime inside the isolate (Cloudflare's separate Browser Rendering product remotely controls headless Chromium elsewhere; it isn't a browser running inside the Worker/WfP isolate itself).",
-      "checked": "2026-09-30"
+      "source": "https://developers.cloudflare.com/browser-rendering/",
+      "quote": "Deploy within Cloudflare Workers or connect from any environment via CDP.",
+      "note": "No browser runs inside the isolate. A Worker can drive a headless Chromium through Cloudflare Browser Rendering, a separate product with its own price (see card cloudflare-browser).",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://developers.cloudflare.com/workers/reference/how-workers-works/index.md",
       "quote": "V8 orchestrates isolates: lightweight contexts that provide your code with variables it can access and a safe environment to be executed within.",
-      "note": "No GUI/OS surface for computer-use style control; product is a request-scoped JS/Wasm execution sandbox.",
-      "checked": "2026-09-30"
+      "note": "The isolate has no GUI or OS surface. Headless browser control is available through Cloudflare Browser Rendering (see card cloudflare-browser); a full Linux machine through the Sandbox SDK (see card cloudflare-sandbox).",
+      "checked": "2026-11-08"
     },
     "custom_image": {
       "value": false,
@@ -515,10 +520,10 @@
     },
     "agent_harnesses": {
       "value": false,
-      "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/",
-      "quote": "Build a multi-tenant platform that runs untrusted code in secure, isolated sandboxes.",
-      "note": "not offered: outside the product's scope - Workers for Platforms is a dispatch/isolation layer for running your own customers' JS/Wasm Workers; there are no preinstalled/templated coding-agent harnesses (Claude Code, Codex, OpenCode, etc.) for this product. Cloudflare's separate Sandbox SDK / Containers product has agent-related tutorials, but that is a different product from WfP's V8-isolate dispatch.",
-      "checked": "2026-09-30"
+      "source": "https://developers.cloudflare.com/sandbox/",
+      "quote": "The instance is a full Linux environment, so you can run any language and keep processes running.",
+      "note": "Workers for Platforms runs JS/Wasm Workers, so CLI coding agents (Claude Code, Codex) do not run in its isolates. Cloudflare runs them in its Sandbox SDK, a separate microVM product (see card cloudflare-sandbox).",
+      "checked": "2026-11-08"
     },
     "gpu": {
       "value": false,
@@ -531,14 +536,14 @@
       "value": false,
       "source": "https://developers.cloudflare.com/workers/reference/how-workers-works/index.md",
       "quote": "Instead of creating a virtual machine for each function, an isolate is created within an existing environment. This model eliminates the cold starts of the virtual machine model.",
-      "note": "Plainly outside the product: there is no OS selection at all, isolates run inside V8, not a Windows or Linux guest OS chosen by the user.",
+      "note": "No OS choice: code runs in V8 isolates, not in a guest OS.",
       "checked": "2026-09-30"
     },
     "macos": {
       "value": false,
       "source": "https://developers.cloudflare.com/workers/reference/how-workers-works/index.md",
       "quote": "Instead of creating a virtual machine for each function, an isolate is created within an existing environment. This model eliminates the cold starts of the virtual machine model.",
-      "note": "Same reasoning as windows: no macOS guest OS option exists for a V8-isolate execution product.",
+      "note": "No OS choice: code runs in V8 isolates, not in a guest OS.",
       "checked": "2026-09-30"
     },
     "arm64": {
@@ -566,8 +571,8 @@
       "value": false,
       "source": "https://developers.cloudflare.com/workers/platform/limits/index.md",
       "quote": "Memory per isolate | 128 MB",
-      "note": "Memory (128 MB) and CPU-time limits are fixed platform limits (CPU-time cap is configurable per-Worker at deploy time up to 5 min, but there is no live/runtime resizing of a running isolate's resources).",
-      "checked": "2026-09-30"
+      "note": "Memory (128 MB) is a fixed limit. On WfP the CPU-time cap is 30 s per invocation (15 min for Cron Triggers and Queue consumers) per the WfP pricing page; it is set per invocation, not resized while a Worker runs.",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,
@@ -590,6 +595,13 @@
       "quote": "This allows you to write Workers using programming language beyond the languages listed above, including C, C++, Kotlin, Go and more.",
       "note": "Via WebAssembly only, not first-class: Go is compiled to Wasm and runs inside the V8 isolate under the same 128 MB memory and CPU-time limits; no native Go runtime.",
       "checked": "2026-10-14"
+    },
+    "soc2": {
+      "value": true,
+      "source": "https://www.cloudflare.com/trust-hub/compliance-resources/soc-2/",
+      "quote": "Cloudflare's SOC 2 Type II report covers security, confidentiality, and availability controls to protect customer data",
+      "note": "Workers is listed in scope under Developer Platform. The report is shared under NDA through the dashboard.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -3356,5 +3368,10 @@
   ],
   "locations_source": "https://www.cloudflare.com/network/",
   "locations_quote": "Every service runs in every data center... 348 cities · 8 regions... Cloudflare will only use data centers that are physically located within the specified region to decrypt and service HTTPS traffic.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 5,
+    "source": "compare-fix audit findings/cloudflare-workers-for-platforms.json, re-checked against Cloudflare pricing, Sandbox, Browser Rendering and Trust Hub pages",
+    "checked": "2026-11-08"
+  }
 }

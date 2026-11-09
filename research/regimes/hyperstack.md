@@ -9,6 +9,7 @@ GPU cloud. Added by the missing-providers audit (single-H100 SKUs).
 ## Gotchas
 - SXM H100 only as 8x.
 - Storage and IPv4 billed hourly; egress free.
+- Snapshots bill at the volume rate from creation until deletion. A hibernated VM bills its root disk only (2026-11-08, https://docs.hyperstack.cloud/docs/faq).
 ## Worked example
 1x H100 PCIe, 500 sessions x 30 min = 250 h x $2.50 = $625/month (+ volume storage).
 Sources: https://www.hyperstack.cloud/gpu-pricing, https://docs.hyperstack.cloud/docs/hardware/flavors

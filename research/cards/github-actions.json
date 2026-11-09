@@ -228,7 +228,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Official runner pricing reference. Larger-runner RAM assumed 4 GB/core (not on the pricing page). Windows arm64 larger runners ($0.008-0.194/min, 2-64 cores) and Windows GPU 4-core ($0.102/min) not encoded.",
+      "note": "Official runner pricing reference. Larger-runner RAM assumed 4 GB/core (not on the pricing page). Windows arm64 runners are in the windows-arm64 mode; Windows GPU 4-core ($0.102/min) is in the gpu mode. Re-checked 2026-11-08: the 4-core and larger sizes are larger runners; on Team and Enterprise Cloud they draw from the included compute usage, and the 2-core standard size draws from it on every plan (https://docs.github.com/en/billing/reference/product-usage-included). Larger Windows x64 runners can save their disk as a custom image with the `snapshot` keyword; the card does not encode it on this mode because the 2-core standard size cannot.",
       "product_class": "ci-runner"
     },
     {
@@ -323,8 +323,10 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "features": {},
-      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://docs.github.com/en/billing/reference/actions-runner-pricing: 4-core $0.012/min, 8 $0.022, 16 $0.042, 32 $0.082, 64 $0.162, 96 $0.252. \"Included minutes cannot be used for larger runners.\" RAM 4 GB/core and disk sizes carried over from the previous card (not on the pricing page). Requires Team or Enterprise plan.",
+      "features": {
+        "persist_scope": "snapshot"
+      },
+      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://docs.github.com/en/billing/reference/actions-runner-pricing: 4-core $0.012/min, 8 $0.022, 16 $0.042, 32 $0.082, 64 $0.162, 96 $0.252. Re-checked 2026-11-08: on Team and Enterprise Cloud, larger-runner cost can draw from the plan's included compute usage (https://docs.github.com/en/billing/reference/product-usage-included: \"Where larger runners are available, their cost can also draw from the included compute usage.\"). Larger runners allow 1,000 concurrent jobs on Team and Enterprise (https://docs.github.com/en/actions/reference/limits); the engine applies the plan's standard-runner cap. Disk state carries to later jobs via a custom image (`snapshot` keyword, see feature_evidence.persist_scope). RAM 4 GB/core and disk sizes carried over from the previous card (not on the pricing page). Requires Team or Enterprise plan.",
       "plans": [
         "Team",
         "Enterprise Cloud"
@@ -456,9 +458,10 @@
       "windows_vcpu_h": null,
       "gpu": null,
       "features": {
-        "arm64": true
+        "arm64": true,
+        "persist_scope": "snapshot"
       },
-      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://docs.github.com/en/billing/reference/actions-runner-pricing: arm64 2-core $0.005/min (standard actions_linux_arm and linux_2_core_arm; private-repo standard arm runner 2 cores / 8 GB), 4 $0.008, 8 $0.014, 16 $0.026, 32 $0.050, 64 $0.098. RAM per size from docs.github.com/en/actions/reference/runners/larger-runners (2026-09-28): 4-core 16 GB, 8 32, 16 64, 32 128, 64 208. Included minutes not applied (only the 2-core standard arm runner draws them for public/free use; not modelled). Larger runners restricted to Team / Enterprise Cloud like the x64 larger runners.",
+      "note": "CI runner. Added 2026-09-28 (missing-providers audit). https://docs.github.com/en/billing/reference/actions-runner-pricing: arm64 2-core $0.005/min (standard actions_linux_arm and linux_2_core_arm; private-repo standard arm runner 2 cores / 8 GB), 4 $0.008, 8 $0.014, 16 $0.026, 32 $0.050, 64 $0.098. RAM per size from docs.github.com/en/actions/reference/runners/larger-runners (2026-09-28): 4-core 16 GB, 8 32, 16 64, 32 128, 64 208. Re-checked 2026-11-08: on Team and Enterprise Cloud, larger-runner cost can draw from the plan's included compute usage (https://docs.github.com/en/billing/reference/product-usage-included); 1,000 concurrent larger-runner jobs (https://docs.github.com/en/actions/reference/limits). Disk state carries to later jobs via a custom image (`snapshot` keyword, Linux ARM64 supported). Larger runners restricted to Team / Enterprise Cloud like the x64 larger runners.",
       "product_class": "ci-runner",
       "plans": [
         "Team",
@@ -581,7 +584,7 @@
       "granularity_s": 60,
       "start_fee": 0,
       "product_class": "ci-runner",
-      "note": "Larger sizes (all but the standard 2-core) require Team/Enterprise Cloud and never draw included minutes. Split into standard + larger modes if the engine needs per-mode plan gating. Windows 2-core larger RAM/disk (8 GB/75 GB) from the general larger-runner table (2-core row lists Ubuntu only; Windows 2-core arm spec inferred, low confidence)."
+      "note": "Larger sizes (all but the standard 2-core) require Team/Enterprise Cloud, where they draw from the plan's included compute usage (https://docs.github.com/en/billing/reference/product-usage-included, re-checked 2026-11-08). Custom images (`snapshot` keyword) support Linux x64, Linux ARM64 and Windows x64 only, not Windows arm64. Split into standard + larger modes if the engine needs per-mode plan gating. Windows 2-core larger RAM/disk (8 GB/75 GB) from the general larger-runner table (2-core row lists Ubuntu only; Windows 2-core arm spec inferred, low confidence)."
     }
   ],
   "storage": {
@@ -618,7 +621,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "2,000 minutes/month (https://docs.github.com/en/billing/concepts/product-billing/github-actions) = $12 at the 2-core Linux $0.006/min; included minutes only apply to standard runners, encoded for the Linux standard mode only."
+      "note": "$12/month included compute usage, a dollar amount, not minutes (https://docs.github.com/en/billing/concepts/product-billing/github-actions, re-checked 2026-11-08): about 2,000 minutes of 2-core Linux. It covers standard runners in private repos and Copilot cloud sandboxes. Encoded for the Linux standard modes only, because the Windows and macOS modes mix standard and larger sizes."
     },
     {
       "name": "Team",
@@ -630,14 +633,18 @@
       "waives_start_fee": false,
       "included_applies_to_modes": [
         "linux",
-        "linux-arm64"
+        "linux-arm64",
+        "linux-larger",
+        "linux-arm64-larger",
+        "windows",
+        "windows-arm64"
       ],
       "concurrency": 60,
       "max_session_h": 6,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "$4/user/month (github.com/pricing: \"first 12 months\" - intro price); 3,000 minutes/month = $18 on Linux standard. Larger runners available."
+      "note": "$4/user/month (github.com/pricing: \"first 12 months\" - intro price); $18/month included compute usage (about 3,000 minutes of 2-core Linux). On Team it covers standard runners, larger runners where available, and Copilot cloud sandboxes (https://docs.github.com/en/billing/reference/product-usage-included, re-checked 2026-11-08). macOS and GPU modes not credited: the docs do not confirm them. Concurrency 60 is the standard-runner cap; larger runners allow 1,000."
     },
     {
       "name": "Enterprise Cloud",
@@ -649,14 +656,18 @@
       "waives_start_fee": false,
       "included_applies_to_modes": [
         "linux",
-        "linux-arm64"
+        "linux-arm64",
+        "linux-larger",
+        "linux-arm64-larger",
+        "windows",
+        "windows-arm64"
       ],
       "concurrency": 500,
       "max_session_h": 6,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "$21/user/month (\"first 12 months\" per github.com/pricing); 50,000 minutes/month = $300 on Linux standard."
+      "note": "$21/user/month (\"first 12 months\" per github.com/pricing); $300/month included compute usage (about 50,000 minutes of 2-core Linux). On Enterprise Cloud it covers standard runners, larger runners where available, and Copilot cloud sandboxes (https://docs.github.com/en/billing/reference/product-usage-included, re-checked 2026-11-08). macOS and GPU modes not credited: the docs do not confirm them. Concurrency 500 is the standard-runner cap; larger runners allow 1,000, and GitHub Support can raise limits (https://docs.github.com/en/actions/reference/limits)."
     },
     {
       "name": "Pro",
@@ -675,7 +686,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Personal accounts only; 3,000 minutes/month ($18 at Linux list), 40 concurrent standard jobs (macOS 5). Fee not shown on github.com/pricing (2026-09-29) so null (never auto-picked). No larger runners."
+      "note": "Personal accounts only; $18/month included compute usage (about 3,000 minutes of 2-core Linux), 40 concurrent standard jobs (macOS 5). Fee not shown on github.com/pricing (2026-09-29) so null (never auto-picked). No larger runners."
     }
   ],
   "free": {
@@ -695,6 +706,7 @@
     "pause_resume": false,
     "fork": false,
     "persistent_disk": false,
+    "persist_scope": "none",
     "volumes": false,
     "auto_stop_idle": true,
     "max_session_h": 6,
@@ -780,11 +792,14 @@
     "macOS minimum is effectively 1 minute: GitHub is the lessor running 'Permitted Developer Services' on its own fleet.",
     "Linux CI runner modes are CI-minute products (jobs ≤6 h, ephemeral), not interactive sandboxes; the engine treats product class per preset.",
     "Plan fees ($4 Pro/Team per user, $21 Enterprise per user) are GitHub list prices from github.com/pricing as previously recorded; Pro is for personal accounts.",
-    "macOS/Windows modes: included minutes not applied (draw-down rules not stated on the current billing page).",
+    "macOS modes: included usage not applied, because the mode mixes standard and larger sizes and the docs do not confirm macOS larger runners draw from it.",
     "Team $4/user and Enterprise $21/user are shown on github.com/pricing as first-12-months prices (2026-09-28); the later price is not shown. Personal Pro plan not encoded.",
     "Overage: without a payment method usage is blocked once included minutes are used; larger runners are always blocked until a payment method exists and the Actions budget must be > $0. With a card on file, overage is on unless a budget with 'Stop usage when budget limit is reached' is set.",
     "Copilot code review consumes Actions minutes on private repos since 2026-06-01, competing for included minutes.",
-    "Plan included minutes apply to all standard runners (Linux x64/arm64 2-core, Windows 2-core, macOS standard), drawn down at list price, never to larger or GPU runners. The card applies them to the linux and linux-arm64 standard modes only, because the windows and macOS modes mix standard and larger sizes.",
+    "Plan included usage is a dollar amount ($12 Free, $18 Pro/Team, $300 Enterprise Cloud), not minutes. It covers standard runners in private repos on every plan, larger runners where available on Team and Enterprise Cloud, and Copilot cloud sandboxes. No usage type has priority (https://docs.github.com/en/billing/reference/product-usage-included, 2026-11-08). The card credits the Linux and Windows modes on Team/Enterprise, and only the Linux standard modes on Free/Pro. macOS and GPU are not credited because the docs do not confirm them.",
+    "Copilot cloud sandboxes (2026): isolated Linux sessions that keep a snapshot when stopped and resume with files intact, billed per second ($0.000024 per vCPU-second, $0.000003 per GiB-second, $0.005 per GiB-month of snapshot storage). GitHub creates them for Copilot sessions only; you cannot provision one for your own workload, so the card does not encode them as a mode. Copilot in the cloud uses a cloud sandbox by default; sessions from the Agents tab, other web entry points and Copilot Chat run on Actions runners (https://docs.github.com/en/billing/concepts/product-billing/cloud-and-local-sandboxes, https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-sandboxes, https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-coding-agent).",
+    "Larger runners (Linux x64, Linux ARM64, Windows x64) can save their disk as a custom image with the `snapshot` keyword when a job completes successfully; new jobs then boot from that image. It is not a live fork and keeps no memory. Image storage is billed as Actions storage (https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/use-custom-images).",
+    "The proposed $0.002/min platform fee for self-hosted runners is postponed, not cancelled. Self-hosted runner use is free today.",
     "Copilot cloud agent and third-party coding agents (Claude, Codex) run on Actions runners and draw from the same budget: \"Coding agents consume GitHub Actions minutes and AI credits.\" (about-third-party-coding-agents, 2026-10-14). AI credits are not modelled."
   ],
   "sources": [
@@ -794,7 +809,12 @@
     "https://github.blog/changelog/2025-12-16-coming-soon-simpler-pricing-and-a-better-experience-for-github-actions/",
     "https://github.com/pricing",
     "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/customize-the-agent-environment",
-    "https://docs.github.com/en/copilot/concepts/agents/about-third-party-coding-agents"
+    "https://docs.github.com/en/copilot/concepts/agents/about-third-party-coding-agents",
+    "https://docs.github.com/en/billing/reference/product-usage-included",
+    "https://docs.github.com/en/actions/reference/limits",
+    "https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/use-custom-images",
+    "https://docs.github.com/en/billing/concepts/product-billing/cloud-and-local-sandboxes",
+    "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-sandboxes"
   ],
   "fleet": {
     "default_max_instances": 20,
@@ -803,12 +823,12 @@
     "raise": "ticket",
     "raise_time_days": null,
     "verification": null,
-    "tiers": "Standard hosted jobs: Free 20, Pro 40, Team 60, Enterprise 500; macOS sublimit 5 on Free/Pro/Team. Larger runners have separate limits.",
-    "notes": "Jobs, not persistent machines. Paid plan upgrade increases included concurrency; further increases require GitHub Support. Usage minutes/budgets and runner-type eligibility also apply. Start/queue limits: workflow trigger events 1,500 / 10 s / repository; 500 workflow runs queued / 10 s; 256 jobs per matrix; 50 re-runs per run; larger-runner concurrency normally max 1,000 per runner for Linux CPU; 10 static-IP pools. ubuntu-slim (1-core container, $0.002/min) jobs capped at 15 minutes.",
+    "tiers": "Standard hosted jobs: Free 20, Pro 40, Team 60, Enterprise 500; macOS sublimit 5 on Free/Pro/Team. Larger runners: 1,000 concurrent jobs on Team and Enterprise (macOS 5 Team / 50 Enterprise, GPU 100).",
+    "notes": "Jobs, not persistent machines. Paid plan upgrade increases included concurrency; GitHub Support can raise job concurrency limits further. Usage minutes/budgets and runner-type eligibility also apply. Start/queue limits: workflow trigger events 1,500 / 10 s / repository; 500 workflow runs queued / 10 s; 256 jobs per matrix; 50 re-runs per run; larger-runner concurrency normally max 1,000 per runner for Linux CPU; 10 static-IP pools. ubuntu-slim (1-core container, $0.002/min) jobs capped at 15 minutes.",
     "sources": [
       "https://docs.github.com/en/enterprise-cloud%40latest/actions/reference/limits"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 13,
@@ -849,8 +869,8 @@
       "value": true,
       "source": "https://docs.github.com/en/organizations/managing-organization-settings/about-azure-private-networking-for-github-hosted-runners-in-your-organization",
       "quote": "It is recommended to explicitly block all inbound connections to the runners. GitHub will never require inbound connections to these machines.",
-      "note": "Standard hosted runners expose no inbound ports at all (no public URL/IP ingress). With Azure VNET private networking, inbound is governed by your NSG ('GitHub cannot block inbound connections'; AllowVNetInBound by default).",
-      "checked": "2026-09-29"
+      "note": "No public inbound access on hosted runners. Larger runners joined to your Azure network can be reached from inside that network; inbound is governed by your NSG ('GitHub cannot block inbound connections'; AllowVNetInBound by default). Static IP ranges are a separate larger-runner feature; Azure private networking does not support static IPs.",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
@@ -885,8 +905,8 @@
       "value": "hyper-v",
       "source": "https://docs.github.com/en/actions/reference/runners/github-hosted-runners",
       "quote": "each GitHub-hosted runner is a new virtual machine (VM) hosted by GitHub ... Windows and Ubuntu runners are hosted in Azure",
-      "note": "Standard/larger runners are full per-job Azure VMs (Windows/Ubuntu run on Azure IP ranges; macOS on GitHub's own macOS fleet using Apple's Virtualization Framework). Azure's default hypervisor is Hyper-V; docs don't name the hypervisor explicitly, so this is derived. ubuntu-slim single-CPU runners instead use a shared-VM container ('hypervisor level 2 isolation').",
-      "checked": "2026-09-30"
+      "note": "Standard/larger runners are full per-job VMs. Windows and larger runners run in Azure; standard Linux runners now run on a multi-cloud compute pool, not only Azure, so Hyper-V is derived and not certain for every Linux job. macOS runs on GitHub's own macOS fleet using Apple's Virtualization Framework. ubuntu-slim single-CPU runners use a container, not a VM ('hypervisor level 2 isolation').",
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": false,
@@ -970,8 +990,17 @@
       "value": false,
       "source": "https://docs.github.com/en/actions/get-started/understand-github-actions",
       "quote": "Each workflow run executes in a fresh, newly-provisioned virtual machine.",
-      "note": "No first-party way for a hosted-runner job's disk to survive between runs; only actions/cache, artifacts, or custom images (separate storage products) persist data, not the runner's own filesystem.",
-      "checked": "2026-09-30"
+      "note": "Standard runners: a job's disk does not survive to the next run; actions/cache and artifacts are separate storage. Larger runners: the disk can carry over through a custom image, encoded as persist_scope \"snapshot\" on the larger-runner modes (see feature_evidence.persist_scope).",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "snapshot",
+      "source": "https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/use-custom-images",
+      "quote": "The image is generated only when the job completes successfully.",
+      "how": "on a larger runner (Linux x64, Linux ARM64 or Windows x64), add the `snapshot` keyword to the job; new jobs then boot from that custom image",
+      "effort": "medium",
+      "note": "Applies to the linux-larger and linux-arm64-larger modes only (card-level value is \"none\" for standard runners). The image is the disk at successful job end, versioned per run; no memory. Storage billed as Actions storage. Requires an image-generation runner, Team or Enterprise Cloud.",
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": false,
@@ -984,8 +1013,8 @@
       "value": false,
       "source": "https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/use-custom-images",
       "quote": "After you create an image-generation runner, run a workflow that includes the `snapshot` keyword to generate a custom image.",
-      "note": "Custom images are a boot template for future NEW runners, not cloning a specific machine's current state into siblings; no clone/fork-a-machine API exists for hosted runners.",
-      "checked": "2026-09-30"
+      "note": "No live fork. A larger-runner job can save its disk as a custom image with the `snapshot` keyword when it completes successfully, and new jobs start from that image; this is a boot template, not a copy of a running machine.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,

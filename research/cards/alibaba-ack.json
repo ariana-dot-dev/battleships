@@ -92,11 +92,19 @@
       "default": "none",
       "gate": {
         "kind": "addon",
-        "plan": "Internet NAT Gateway + EIP",
+        "plan": "Elastic IP: one per pod through a pod annotation, or an Internet NAT Gateway + EIP with SNAT entries",
         "usd": null,
         "recurring": true
       },
       "evidence": [
+        {
+          "quote": "Specify the EIP instance ID in a pod annotation to associate an existing EIP.",
+          "url": "https://help.aliyun.com/en/ack/ack-managed-and-ack-dedicated/user-guide/associate-an-eip-with-a-pod-1"
+        },
+        {
+          "quote": "Terway and ack-extend-network-controller are free to enable, but cloud resources they consume incur charges.",
+          "url": "https://help.aliyun.com/en/ack/ack-managed-and-ack-dedicated/user-guide/associate-an-eip-with-a-pod-1"
+        },
         {
           "quote": "Create NAT gateway SNAT rules in the cluster's Virtual Private Cloud (VPC) for Internet access, such as pulling images or downloading packages.",
           "url": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/enable-an-existing-ack-cluster-to-access-the-internet"
@@ -149,14 +157,14 @@
     "arm64": true,
     "gpu": true,
     "snapshot": "fs",
-    "pause_resume": false,
-    "fork": false,
+    "pause_resume": "diy",
+    "fork": "diy",
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": false,
+    "docker_inside": "diy",
     "nested_virt": false,
     "root": null,
     "systemd": null,
@@ -196,8 +204,8 @@
     "egress_http_rules": false,
     "wake_on_request": true,
     "live_resize": false,
-    "fork_running": false,
-    "memory_snapshot_fork": false,
+    "fork_running": null,
+    "memory_snapshot_fork": "diy",
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
@@ -233,6 +241,7 @@
   },
   "knobs": [],
   "caveats": [
+    "ACK has an Agent Sandbox add-on (ack-agent-sandbox-controller; Agent Sandbox on ACK Knative): MicroVM per session, E2B-compatible SDK, warm pools, pause/hibernate and resume, Checkpoint clones, in a cluster you run. pause_resume, fork and memory_snapshot_fork are \"diy\" through it. A plain pod has none of these.",
     "Harbor ACK is customer-managed Alibaba Kubernetes, distinct from Alibaba AgentRun/FC sandbox. Harbor's ack.py is generic (\"Generic Kubernetes implementation for Harbor sandboxes\" / \"Supports any Kubernetes cluster accessible via kubeconfig.\"): it never mentions ECS or ECI, so whether pods land on ECS nodes or ECI virtual nodes is a cluster choice. Platform and underlying worker node/storage/network billing must be combined.",
     "Not fully priceable in ENGINE_CARD: unknown USD resource rates or machine shape. Null is not zero; do not rank as a free provider.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
@@ -243,7 +252,13 @@
     "https://github.com/laude-institute/harbor/blob/main/src/harbor/environments/ack.py",
     "https://www.alibabacloud.com/help/en/eci/product-overview/what-is-elastic-container-instance",
     "https://www.alibabacloud.com/help/en/user-center/developer-reference/api-bssopenapi-2017-12-14-describeinstancebill",
-    "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/comparison-of-docker-containerd-and-sandboxed-container"
+    "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/comparison-of-docker-containerd-and-sandboxed-container",
+    "https://www.alibabacloud.com/help/en/cs/user-guide/ack-agent-sandbox-controller",
+    "https://www.alibabacloud.com/help/en/cs/user-guide/hibernate-and-wake-up-the-agent-sandbox",
+    "https://help.aliyun.com/en/ack/ack-managed-and-ack-dedicated/user-guide/deploy-agent-sandbox-workloads-in-knative",
+    "https://help.aliyun.com/en/ack/ack-managed-and-ack-dedicated/user-guide/associate-an-eip-with-a-pod-1",
+    "https://www.alibabacloud.com/blog/running-a-docker-in-docker-dind-on-alibaba-cloud_602033",
+    "https://www.alibabacloud.com/help/en/agent-sandbox/agent-sandbox-overview"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -265,12 +280,17 @@
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
   },
+  "audit_2026_11_08": {
+    "applied": 5,
+    "source": "findings/alibaba-ack.json, re-checked against official docs",
+    "reviewed": 5
+  },
   "feature_evidence": {
     "snapshot_on_demand": {
       "value": true,
       "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/use-volume-snapshots-created-from-disks",
       "quote": "Volume snapshots help you back up and restore application data.",
-      "note": "Disk-volume (PVC) snapshots only via Kubernetes VolumeSnapshot backed by ECS disk snapshots (billed as ECS snapshots); restore into a new PVC via dataSource, so new pods can start from it. No memory, no container rootfs. ECS worker-node disks can also be snapshotted via ECS. ACS Agent Sandbox (separate product) offers memory checkpoint and cloning.",
+      "note": "Disk-volume (PVC) snapshots only via Kubernetes VolumeSnapshot backed by ECS disk snapshots (billed as ECS snapshots); restore into a new PVC via dataSource, so new pods can start from it. No memory, no container rootfs. ECS worker-node disks can also be snapshotted via ECS. The ACK Agent Sandbox add-on offers Checkpoint cloning (see fork).",
       "checked": "2026-09-29"
     },
     "egress_allowlist": {
@@ -331,11 +351,13 @@
       "checked": "2026-09-30"
     },
     "docker_inside": {
-      "value": false,
-      "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/comparison-of-docker-containerd-and-sandboxed-container",
-      "quote": "Docker runtime is discontinued.",
-      "note": "not offered as a feature: nodes run containerd (\"If your cluster runs Docker, migrate to containerd.\"), no Docker daemon in pods. Harbor's ack.py runs the sandbox pod privileged as root by default (\"privileged\": True, \"runAsUser\": 0, overridable via pod_overrides) and builds images in a separate privileged Job from dind_image \"docker:dind\", so a user could run DinD themselves, but neither Alibaba nor Harbor provides Docker inside the sandbox.",
-      "checked": "2026-10-14"
+      "value": "diy",
+      "source": "https://www.alibabacloud.com/blog/running-a-docker-in-docker-dind-on-alibaba-cloud_602033",
+      "quote": "The --privileged flag is necessary for DinD to work properly.",
+      "how": "run the pod privileged with a docker:dind sidecar or image (Alibaba Cloud blog example; ECI also documents the privileged security context); ACK pod-security guidance advises against privileged pods",
+      "effort": "medium",
+      "note": "Nodes run containerd, not Docker (\"Docker runtime is discontinued.\"), so no Docker daemon ships in pods. The Alibaba Cloud blog shows an ACK pod with securityContext privileged: true running DinD. ECI security context: https://www.alibabacloud.com/help/en/elastic-container-instance/latest/configure-a-security-context . Pod security guidance: https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/security-and-compliance/pod-security . Harbor's ack.py already runs the sandbox pod privileged as root by default.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -346,24 +368,24 @@
     },
     "desktop": {
       "value": false,
-      "source": "https://www.alibabacloud.com/product/kubernetes",
-      "quote": "A Kubernetes-based service that ensures high efficiency for enterprises by running containerized applications on the cloud",
-      "note": "not offered: outside the product's scope. ACK is a generic Kubernetes container platform, not a desktop/remote-GUI product.",
-      "checked": "2026-10-14"
+      "source": "https://www.alibabacloud.com/help/en/agent-sandbox/agent-sandbox-overview",
+      "quote": "Provides a full desktop GUI operating environment.",
+      "note": "Not in ACK itself: ACK ships no desktop. Alibaba Agent Sandbox (a separate Alibaba product with a Kubernetes Container Edition) has a desktop sandbox type for computer-use agents; see the alibaba-agentbay / alibaba-agentrun cards.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
-      "source": "https://www.alibabacloud.com/product/kubernetes",
-      "quote": "A Kubernetes-based service that ensures high efficiency for enterprises by running containerized applications on the cloud",
-      "note": "not offered: outside the product's scope. No managed browser ships with ACK.",
-      "checked": "2026-10-14"
+      "source": "https://www.alibabacloud.com/help/en/agent-sandbox/agent-sandbox-overview",
+      "quote": "Provides a headless or graphical user interface (GUI) browser environment.",
+      "note": "Not in ACK itself: no managed browser ships with ACK. Alibaba Agent Sandbox (separate product) has a browser sandbox type.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
-      "source": "https://www.alibabacloud.com/product/kubernetes",
-      "quote": "A Kubernetes-based service that ensures high efficiency for enterprises by running containerized applications on the cloud",
-      "note": "not offered: outside the product's scope. No screenshot/click desktop-driving API is part of ACK.",
-      "checked": "2026-10-14"
+      "source": "https://www.alibabacloud.com/help/en/agent-sandbox/agent-sandbox-overview",
+      "quote": "Computer Use agents, desktop software automation, and office task execution.",
+      "note": "Not in ACK itself: no screenshot/click API is part of ACK. Alibaba Agent Sandbox (separate product) lists Computer Use agents as a desktop sandbox use.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -397,7 +419,7 @@
       "value": "fs",
       "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/use-volume-snapshots-created-from-disks",
       "quote": "Volume snapshots help you back up and restore application data.",
-      "note": "Disk/PVC snapshots only (backed by ECS disk snapshots); no memory/process-state snapshot for plain ACK pods.",
+      "note": "Disk/PVC snapshots (backed by ECS disk snapshots) for plain pods. With the Agent Sandbox add-on, hibernation saves the Sandbox rootfs to a cloud disk or a snapshot, and the Knative path documents memory-level pause and Checkpoint cloning (see pause_resume, memory_snapshot_fork).",
       "checked": "2026-09-30"
     },
     "snapshot_auto": {
@@ -408,32 +430,38 @@
       "checked": "2026-09-30"
     },
     "fork": {
-      "value": false,
-      "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/use-volume-snapshots-created-from-disks",
-      "quote": "Volume snapshots help you back up and restore application data.",
-      "note": "not offered: outside the product's scope. Kubernetes pods are declarative/replicated from a spec (ReplicaSet scaling), not cloned as a single running machine; there is no 'fork this pod' API.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://www.alibabacloud.com/help/en/cs/user-guide/ack-agent-sandbox-controller",
+      "quote": "Checkpoints now carry selectable labels, which makes filtering easier when cloning a Sandbox by Checkpoint.",
+      "how": "install the ack-agent-sandbox-controller add-on, take a Checkpoint of a Sandbox and clone new Sandboxes from it",
+      "effort": "medium",
+      "note": "A plain pod has no fork API. The Agent Sandbox add-on (Sandbox CRs, controller releases May to Sep 2026) clones Sandboxes from a Checkpoint, also through its E2B-compatible flow.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
-      "value": false,
-      "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/use-volume-snapshots-created-from-disks",
-      "quote": "Volume snapshots help you back up and restore application data.",
-      "note": "not offered: outside the product's scope; no running-pod clone/fork capability documented.",
-      "checked": "2026-09-30"
+      "value": null,
+      "source": "https://www.alibabacloud.com/help/en/cs/user-guide/ack-agent-sandbox-controller",
+      "quote": "Checkpoints now carry selectable labels, which makes filtering easier when cloning a Sandbox by Checkpoint.",
+      "note": "Not confirmed. Clones come from a Checkpoint; the docs do not say whether a Checkpoint can be taken while the source Sandbox keeps running. A plain pod has no clone API.",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
-      "value": false,
-      "source": "https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/user-guide/use-volume-snapshots-created-from-disks",
-      "quote": "Volume snapshots help you back up and restore application data.",
-      "note": "not offered: outside the product's scope; snapshots are disk-only, no memory/process state, and there is no fork/clone feature to carry it.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://help.aliyun.com/en/ack/ack-managed-and-ack-dedicated/user-guide/deploy-agent-sandbox-workloads-in-knative",
+      "quote": "Memory-level pause and resume, with Checkpoint cloning capabilities.",
+      "how": "deploy Agent Sandbox workloads on ACK Knative (MicroVM per session) and clone from a Checkpoint",
+      "effort": "medium",
+      "note": "Plain ACK volume snapshots are disk-only. The Agent Sandbox path on ACK Knative documents memory-level pause and Checkpoint cloning.",
+      "checked": "2026-11-08"
     },
     "pause_resume": {
-      "value": false,
-      "source": "https://www.alibabacloud.com/product/kubernetes",
-      "quote": "A Kubernetes-based service that ensures high efficiency for enterprises by running containerized applications on the cloud",
-      "note": "not offered: outside the product's scope. Kubernetes pods are scaled to 0 replicas or deleted/recreated, not paused/resumed as a single machine with billing paused mid-state.",
-      "checked": "2026-10-14"
+      "value": "diy",
+      "source": "https://help.aliyun.com/en/ack/ack-managed-and-ack-dedicated/user-guide/deploy-agent-sandbox-workloads-in-knative",
+      "quote": "When an instance is paused, its Pod IP and file system are preserved.",
+      "how": "install the Agent Sandbox add-on (ack-agent-sandbox-controller, or Agent Sandbox on ACK Knative) and pause or hibernate Sandboxes; they resume on the next access",
+      "effort": "medium",
+      "note": "A plain pod has no pause; you scale to 0 or delete it. Agent Sandbox on ACK Knative: memory-level pause, 'resumes in seconds'. Hibernation (https://www.alibabacloud.com/help/en/cs/user-guide/hibernate-and-wake-up-the-agent-sandbox) 'reclaims the compute resources (vCPU and memory)' and saves the rootfs to a cloud disk (default) or a snapshot; the Stop strategy keeps only PVC data.",
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
       "value": true,
@@ -474,7 +502,7 @@
       "value": false,
       "source": "https://www.alibabacloud.com/product/kubernetes",
       "quote": "A Kubernetes-based service that ensures high efficiency for enterprises by running containerized applications on the cloud",
-      "note": "not offered: outside the product's scope. ACK has no first-party browser/computer-use/research agent product; that is Alibaba's separate ACS Agent Sandbox / AgentRun offering.",
+      "note": "not offered by ACK itself. The ACK Agent Sandbox add-on gives E2B-compatible MicroVM sandboxes, not a first-party browser/computer-use agent API; that is Alibaba Agent Sandbox / AgentRun.",
       "checked": "2026-10-14"
     },
     "lang_python": {

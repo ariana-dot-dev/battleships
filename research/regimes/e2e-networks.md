@@ -4,12 +4,14 @@ India-based cloud, distinct from E2B. Current public page rendered USD. INR was 
 ## Currency, VAT and residency
 - Native catalog: USD. FX: 1 USD = 1 USD, ECB 2026-09-28 ([source](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html)). USD-listed catalogs remain independent quotes.
 - Tax: Unknown: reviewed pricing source does not explicitly establish VAT/tax inclusion.
-- Residency/restrictions: Indian sovereign-cloud positioning; exact C3 facility selectable region not confirmed.
+- Residency/restrictions: regions are Delhi NCR and Chennai, India ([source](https://www.e2enetworks.com/pricing.md), checked 2026-11-08).
+- CPU class: E2E sells C3 as "Dedicated vCPU plans" and SDC3 as "Dedicated-core plans"; E1 is "Shared-core" ([source](https://www.e2enetworks.com/pricing.md)).
+- Stop: only E1 and E1WC nodes can be stopped; other families bill while powered off ([source](https://docs.e2enetworks.com/myaccount/node/how-to/stop-a-node/)).
 ## Regimes
 | Regime | When it applies | How billed | Native / USD numbers | Source |
 |---|---|---|---|---|
-| c3 | C3 compute-intensive | allocated wall time; None second increment | C3.8GB 4/8: USD 0.049/h → USD 0.049; month cap None | https://www.e2enetworks.com/pricing |
-| sdc3 | Dedicated CPU | allocated wall time; None second increment | SDC3-4.30GB 4/30: USD 0.099/h → USD 0.099; month cap None | https://www.e2enetworks.com/pricing |
+| c3 | C3 compute-intensive, dedicated vCPU | allocated wall time; hourly | C3.8GB 4/8: USD 0.049/h → USD 0.049; month cap None | https://www.e2enetworks.com/pricing |
+| sdc3 | Dedicated CPU | allocated wall time; hourly | SDC3-4.30GB 4/30: USD 0.099/h → USD 0.099; month cap None | https://www.e2enetworks.com/pricing |
 | monthly | C3.8GB | See rule | USD 35.64/month listed; cap versus reserved-bundle mechanics unverified, not auto-selected. | https://www.e2enetworks.com/pricing |
 | gpu | GPU cloud | See rule | GPU bundles, on-demand and longer commitments published separately; not CPU sandbox pricing. | https://www.e2enetworks.com/pricing |
 ## Gotchas
@@ -32,3 +34,5 @@ India-based cloud, distinct from E2B. Current public page rendered USD. INR was 
 - https://docs.e2enetworks.com/docs/myaccount/billing/pricing-update-july-2026/
 - https://docs.e2enetworks.com/docs/myaccount/node/e1-series/
 - https://www.e2enetworks.com/policy-faq
+- https://www.e2enetworks.com/pricing.md
+- https://docs.e2enetworks.com/myaccount/node/how-to/stop-a-node/

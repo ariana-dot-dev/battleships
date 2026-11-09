@@ -1,20 +1,21 @@
 # OpenPond Cloud Sandboxes — billing regimes
-As of 2026-09-28. Prices are USD unless explicitly labelled otherwise. Source type: official published list/promo or unknown, never a fabricated quote.
-Hosted sandbox plans with monthly shared usage credits. CPU/RAM unit rates not found. Team subscription is not an unlimited compute pool.
+As of 2026-11-08. Prices are USD. Source type: official published docs, never a fabricated quote.
+Hosted sandbox plans with monthly included usage, then per-second resource meters. Since 2026-11, https://openpond.ai/pricing lists GPU training/inference only and sends sandbox capacity to sales; the sandbox plans and rates are on the docs page.
 | Regime | When it applies | How billed / numbers | Source |
 |---|---|---|---|
-| Free | 1 concurrent | Limited included monthly usage; top-ups available. | https://openpond.ai/pricing |
-| Starter | $10/month | $10 usage;10 concurrent;3 members included, extra$8/member. | https://openpond.ai/pricing |
-| Pro | $20/month | $20 usage;10 concurrent;3 members included, extra$8/member. | https://openpond.ai/pricing |
-| Enterprise | C50 workload | Custom dedicated capacity and usage policy. | https://openpond.ai/pricing |
+| Free | $0 | Limited monthly usage; 1 concurrent, 5 retained sandboxes. | https://openpond.ai/docs/sandbox-sdk/pricing-and-budgets |
+| Pro | $20/month | $20 monthly usage; 10 concurrent, 100 retained sandboxes. Then prepaid credit or opt-in metered overage. | https://openpond.ai/docs/sandbox-sdk/pricing-and-budgets |
+| Enterprise | Custom | Usage, concurrency and retained sandboxes are contract-defined. | https://openpond.ai/docs/sandbox-sdk/pricing-and-budgets |
+| Meters | Every plan | $0.000020/vCPU-s ($0.072/h), $0.0000065/GiB-s memory ($0.0234/h), $0.0000000333/GiB-s VM disk ($0.00012/h), $0.00000002/GiB-s durable volume. Default 1 vCPU / 2 GiB / 10 GiB = $0.12/h. | https://openpond.ai/docs/sandbox-sdk/pricing-and-budgets |
 ## Gotchas
-- Hosted sandbox plans with monthly shared usage credits. CPU/RAM unit rates not found. Team subscription is not an unlimited compute pool.
-- Not fully priceable in ENGINE_CARD: unknown USD resource rates or machine shape. Null is not zero; do not rank as a free provider.
-- Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.
-- A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.
+- No Starter plan is published any more.
+- A stopped sandbox keeps its root disk. That disk bills on a separate storage meter whose rate is not published.
+- Snapshot storage rate is not published.
+- Isolation technology is not published.
+- Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims.
 ## Worked workload
-4 vCPU / 8 GiB; 50 simultaneous instances × 8 h/day × 22 days = **8,800 instance-hours**, **35,200 vCPU-hours**, **70,400 GiB-hours**. At 30% observed CPU:10,560 active-vCPU-hours only where the meter actually uses utilization. Assume one start/instance/day:1,100starts. Retain50GiB snapshots for a month;100GiB outbound. Active disk capacity was not specified.
-Self-serve concurrency10 cannot serve50. Need Enterprise quote and resource-hour rates; cannot divide plan fees by8,800h to invent a rate.
+4 vCPU / 8 GiB; 50 simultaneous instances × 8 h/day × 22 days = **8,800 instance-hours**. Self-serve concurrency is 10 on Pro, so 50 needs an Enterprise contract.
 ## Sources
+- https://openpond.ai/docs/sandbox-sdk/pricing-and-budgets
 - https://openpond.ai/pricing
 - https://github.com/openpond/openpond

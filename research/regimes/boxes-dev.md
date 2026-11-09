@@ -1,30 +1,32 @@
 # boxes.dev — Cloud devboxes for coding agents
-As of 2026-09-28. USD list prices. Plans and awake limits are PER PERSON, not whole organization. Models/subscriptions not resold. Show HN 2026-06-04 item 48399358.
+As of 2026-11-08. USD list prices. Plans and awake limits are PER PERSON, not whole organization. Models/subscriptions not resold. Show HN 2026-06-04 item 48399358.
 ## Regimes
 | Regime | When it applies | How billed / numbers | Source |
 |---|---|---|---|
-| Starter box-hours | Native product usage | $0.75/hour after 40 included hours per paiduser;19 USD/seat/month. | [Primary pricing](https://boxes.dev/) |
-| Pro box-hours | Native product usage | $0.60/hour after 250 included hours per paiduser;99 USD/seat/month. | [Primary pricing](https://boxes.dev/) |
-| Larger machines | Native product usage | 4 vCPU 16 GiB≈1.39 box-hours/h;8 vCPU 16 GiB 2;8 vCPU 24 GiB≈2.39;8 vCPU 32 GiB≈2.78. | [Primary pricing](https://boxes.dev/) |
-| Sleeping | Native product usage | No box-hour charge; unlimited sleeping devboxes advertised. | [Primary pricing](https://boxes.dev/) |
-| Trial | Account plan | $0/month; 10 box-hours/user total;2 awake devboxes plus Template;2 projects. | [Primary pricing](https://boxes.dev/) |
-| Starter | Account plan | $19/month; Per user/paidseat:40 box-hours/month,4 awake plus Template;5 projects; extra$0.75/box-hour. | [Primary pricing](https://boxes.dev/) |
-| Pro | Account plan | $99/month; Per user/paidseat:250 box-hours/month,10 awake plus Template;10 projects; extra$0.60/box-hour. | [Primary pricing](https://boxes.dev/) |
-| Teams | Account plan | Unpublished / sales; Custom seats/hour pools, resources/limits and deployment; contact sales. | [Primary pricing](https://boxes.dev/) |
+| Overage box-hours | Native product usage, all paid plans | $0.40 per box-hour after the seat's included hours, from prepaid team credits. Bulk credit discounts: $100 = 5%, $250 = 7.5%, $500+ = 10%. | [Plans](https://boxes.dev/help/plans-and-box-hours), [Billing](https://boxes.dev/help/billing-and-usage) |
+| Larger machines | Native product usage | 4 vCPU 16 GiB ≈1.39 box-hours/h; 8 vCPU 16 GiB 2; 8 vCPU 24 GiB ≈2.39; 8 vCPU 32 GiB ≈2.78. | [Plans](https://boxes.dev/help/plans-and-box-hours) |
+| Sleeping | Native product usage | No box-hour charge; sleeping devboxes are not limited. | [Primary pricing](https://boxes.dev/) |
+| Trial | Account plan | $0; 20 box-hours per user in total; 3 awake devboxes plus Template; 2 projects. | [Plans](https://boxes.dev/help/plans-and-box-hours) |
+| Starter | Account plan | $19/seat/month; 50 box-hours per user; 5 awake plus Template; 5 projects; extra $0.40/box-hour. | [Plans](https://boxes.dev/help/plans-and-box-hours) |
+| Pro | Account plan | $99/seat/month; 300 box-hours per user; 12 awake plus Template; 10 projects; extra $0.40/box-hour. | [Plans](https://boxes.dev/help/plans-and-box-hours) |
+| Max | Account plan | $249/seat/month; 750 box-hours per user; 25 awake plus Template; 20 projects; extra $0.40/box-hour. | [Plans](https://boxes.dev/help/plans-and-box-hours) |
+| Teams | Account plan | Volume pricing on request; custom seat and hour pools, concurrency limits, network allowlists, spend limits, audit logs. | [Primary pricing](https://boxes.dev/) |
 ## Gotchas
-- Default 4 vCPU/8 GiB 100 GBdisk; larger machines burn weighted box-hours. About 1.39/2.39/2.78 multipliers are approximate.
-- Single paidseat does not satisfy 50 awake devboxes. Multiple seats must be assigned to real users; do not buy fake seats solely to bypass limits.
-- Template boxes consume box-hours while awake but do not occupy devbox slots; Team Template source maintenance wakes bill admin, ordinary devbox maintenance-onlywakes free.
-- Included box-hours are per user, overage draws shared team prepaid balance; unequal usage per person can leave some included hours unused.
-- Sleeping devboxes free; snapshot storage andegress rates not separately itemized; 100 GiBegress not assumed free.
-- Monthly price not fee-as-credit: 19 includes 40 hours,99 includes 250 hours.
-- Exact hypervisor type not established by reviewed docs.
+- Default 4 vCPU / 8 GiB, 100 GB disk; larger machines burn weighted box-hours (the provider says "about").
+- One seat allows at most 25 awake devboxes (Max). Each seat must belong to a different real person.
+- Self-serve teams can buy at most $1,000 of credits per calendar month (UTC). More needs an email to boxes.dev or the Teams plan.
+- Template boxes consume box-hours while awake but do not occupy devbox slots.
+- Included box-hours belong to each user; overage draws from the shared team prepaid balance.
+- Sleeping devboxes are free; snapshot storage and egress rates are not itemized.
+- Template box snapshots keep memory: Docker containers and system services keep running on each new devbox.
+- Hypervisor type is not published.
 ## Required worked example
 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days = **8,800 instance-hours**, 30% CPU, 50 GiB retained snapshots and 100 GiB egress.
-A single self-serve seat cannot meet 50 concurrency. **Conditional 5-person Pro scenario**, each legitimately owns 10 boxes and consumes 1,760 hours/month: fee 5×99=$495; usage 5×(1,760−250)×.60=$4,530; known subtotal **$5,025**. This is not guaranteed organization-pooled billing or an Enterprise quote. Excludes extra Template hours, models, egress and separately unpublished snapshot terms. At 30% CPU wall-time price unchanged; full total unknown.
+One seat cannot hold 50 awake devboxes (Max = 25). Two Max seats plus overage (2 × $249 + 7,300 h × $0.40 = $3,418) exceeds the $1,000 monthly self-serve credit cap. **Self-serve scenario: 9 people on Max**, each with up to 25 awake devboxes: fees 9 × $249 = $2,241; included 6,750 h; overage 2,050 h × $0.40 = $820 (about $738 with the 10% bulk discount); known subtotal **about $2,980-$3,060**. 12 Max seats cover all hours for $2,988. Teams volume pricing is not published. Excludes extra Template hours, models, egress and unpublished snapshot terms.
 ## Feature evidence
 - https://boxes.dev/help/plans-and-box-hours
 - https://boxes.dev/help/billing-and-usage
 - https://boxes.dev/help/sleep-wake-recover
 - https://boxes.dev/help/template-box-snapshots
+- https://boxes.dev/help/agent-command-reference
 - https://boxes.dev/llms.txt

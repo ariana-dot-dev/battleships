@@ -3,7 +3,8 @@ Stateful Firecracker microVMs (AWS's E2B/Daytona-style product). You configure a
 2 GB : 1 vCPU ratio; default 1 vCPU / 2 GB, max baseline 4 vCPU / 8 GB). Baseline is billed **per second while
 running**; the VM bursts vertically up to 4x baseline (16 vCPU / 32 GB) and the extra is billed only for seconds
 actually consumed ("baseline-plus-consumption"). Suspended VMs pay only snapshot storage. Rates below are from the
-**AWS Price List API** (AWSLambda offer, publication 2026-09-19); the pricing page text describes only Graviton.
+**AWS Price List API** (AWSLambda offer, publication 2026-10-30, re-fetched 2026-11-08; unchanged since 2026-09-19);
+the pricing page text describes only Graviton. ARM64 is the default; x86_64 is supported from base image version 3.
 Reference 4 vCPU / 8 GB baseline: Arm us-east-1 = 4 x 0.0997 + 8 x 0.0132 = **$0.5044/h**; x86 = **$0.59476/h**.
 ## Regime table
 | Regime | When it applies | How billed | Numbers (per vCPU-h / per GB-h) | Source |
@@ -12,10 +13,10 @@ Reference 4 vCPU / 8 GB baseline: Arm us-east-1 = 4 x 0.0997 + 8 x 0.0132 = **$0
 | Arm baseline, eu-north-1 (cheapest EU) | Region pin EU | Same | $0.09975 / $0.013208 | Price List API EUN1 |
 | Arm baseline, eu-west-1 / eu-central-1 | | Same | $0.10497 / $0.013897; $0.12599 / $0.016679 | Price List API |
 | Arm baseline, ap-northeast-1 / ap-southeast-1 / ap-southeast-2 | | Same | $0.11607 / $0.015368; $0.12481 / $0.016524; $0.10079 / $0.013345 | Price List API |
-| x86 baseline, us-east-1/2, us-west-2, ap-south-1 | x86 MicroVMs (SKU exists in API) | Same | $0.0000326557/vCPU-s = $0.11756; $0.0000043235/GB-s = $0.015565 | Price List API Lambda-MicroVM-vCPU-Second |
+| x86 baseline, us-east-1/2, us-west-2, ap-south-1 | x86_64 MicroVM images (base image v3+, `--cpu-configurations architecture=X86_64`) | Same | $0.0000326557/vCPU-s = $0.11756; $0.0000043235/GB-s = $0.015565 | Price List API Lambda-MicroVM-vCPU-Second |
 | x86 baseline, eu-north-1 | | Same | $0.117954 / $0.015617 | Price List API |
 | Burst above baseline | Automatic, up to 4x baseline | Only seconds consumed, same unit rates | as above | https://aws.amazon.com/lambda/pricing/ |
-| Suspended | `suspend` or auto-suspend (default after 5 min idle) | No compute; snapshot storage | $0.0001111111/GB-h = $0.0811/GB-month | Price List API Lambda-MicroVM-Snapshot-Storage-GB-Hour |
+| Suspended | `suspend` or auto-suspend (idle policy `maxIdleDurationSeconds`, set per MicroVM; no default) | No compute; snapshot storage | $0.0001111111/GB-h = $0.0811/GB-month | Price List API Lambda-MicroVM-Snapshot-Storage-GB-Hour |
 | Snapshot write / read | Each suspend (write) and start/resume (read) | Per GB | write $0.0037977138/GB; read $0.0015467699/GB | Price List API |
 | MicroVM image storage | Custom images | Snapshot storage rate, **1-week minimum retention** | $0.0811/GB-month | pricing page |
 | Egress / VPC | Outbound internet default on; Lambda Network Connector to VPC | Standard AWS data transfer | 100 GB/month free then $0.09/GB | AWSDataTransfer |
@@ -25,7 +26,7 @@ Reference 4 vCPU / 8 GB baseline: Arm us-east-1 = 4 x 0.0997 + 8 x 0.0132 = **$0
 2. **Snapshot I/O is metered**: an 8 GB suspend/resume cycle costs ~$0.043 in write+read fees on top of storage.
 3. **eu-west-1 is 5% dearer than eu-north-1** and eu-central-1 is 26% dearer than us-east-1.
 4. The "$0.0000291572/vCPU-s" rate quoted by a secondary source is the **eu-west-1 Arm** rate, not x86.
-5. Max lifetime is configurable (launch example 28,800 s = 8 h); the true cap isn't published. Min billed duration and launch fee aren't published either.
+5. Max lifetime is a hard 8 h (28,800 s) including suspended time, not adjustable (quotas page). Min billed duration and launch fee aren't published. To keep files past 8 h, mount Amazon S3 Files inside the MicroVM (needs `additionalOsCapabilities ["ALL"]`; S3 Files billed separately).
 6. Same unit rates as the announced AgentCore Runtime v2 committed baseline.
 ## Worked example
 4 vCPU / 8 GB baseline x 50 concurrent x 8 h/day x 22 days = **8,800 VM-hours**, 30% CPU, 50 GiB snapshots

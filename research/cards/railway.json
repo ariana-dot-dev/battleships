@@ -117,7 +117,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {},
-      "note": "Size fixed by plan: Hobby 2 vCPU/2 GB, Pro/Enterprise 4/4 (Trial/Free 2/1). Persistent disk. No idle timeout: bills while awake even with no client connected. Sleep stops compute and keeps disk (disk price not stated). Max 25 creations per user per day. Priority Boarding (Railway's beta program; docs: 'Breaking changes may occur.'). Verified 2026-09-28: VM rates cover 'sandboxes and cloud agents'; 'Charges follow measured CPU use, memory in use (including the operating system and filesystem cache)' (docs.railway.com/pricing/plans#vm-pricing); 'A running agent bills for compute while it is awake, including when no client is connected' (docs.railway.com/cloud-agents.md), so no auto-stop on idle.",
+      "note": "Size fixed by plan: Hobby 2 vCPU/2 GB, Pro/Enterprise 4/4 (Trial/Free 2/1). Persistent disk. No idle timeout: bills while awake even with no client connected. Sleep stops compute and keeps disk (disk price not stated). Max 25 creations per user per day. Docs (re-checked 2026-11-08): 'Cloud agents are available through Priority Boarding. Breaking changes may occur.' Image includes Chromium; connect through Claude Desktop, Codex Desktop, OpenCode or Herdr. Verified 2026-09-28: VM rates cover 'sandboxes and cloud agents'; 'Charges follow measured CPU use, memory in use (including the operating system and filesystem cache)' (docs.railway.com/pricing/plans#vm-pricing); 'A running agent bills for compute while it is awake, including when no client is connected' (docs.railway.com/cloud-agents.md), so no auto-stop on idle.",
       "flags": [
         "beta"
       ]
@@ -275,11 +275,11 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": null,
-    "nested_virt": false,
+    "nested_virt": null,
     "root": true,
     "systemd": null,
     "browser": true,
-    "desktop": false,
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": true,
@@ -404,6 +404,8 @@
     "Re-checked 2026-09-28: docs.railway.com/sandboxes, /pricing/plans and /cloud-agents.md still state no sandbox/cloud-agent disk size, disk price or checkpoint storage price (only container Volumes $0.15/GB-month). included_disk_gib and snapshot_gib_month stay null.",
     "Fresh sandboxes default to US West (us-west2) regardless of the account's preferred region; another region (us-east4, europe-west4, asia-southeast1) must be requested via the SDK/API 'region' option (the CLI has no region flag). Forks/checkpoints/templates stay in the region they were captured in.",
     "Usage hard limit (Compute) takes all workloads offline, minimum $10 (CLI: 0 or $10-$500,000). Agent Usage (Railway Agent LLM) has a separate, non-removable hard limit defaulting to $5 Hobby / $20 Pro; Railway Agent tokens draw from the same included plan credit as compute.",
+    "Pro sandbox maximum: docs.railway.com/sandboxes.md says 32 vCPU / 32 GB; railway.com/pricing says 24 vCPU / 24 GB (both re-checked 2026-11-08). The card uses the docs value (32); a workload above 24 vCPU may need confirmation from Railway.",
+    "No desktop is included. A sandbox is a root Ubuntu VM: install a desktop (for example Xvfb and noVNC) with the template builder and publish it on a sandbox HTTPS domain (features.desktop = diy). Docker and /dev/kvm are not documented: install and verify them yourself (not tested by us).",
     "Raw TCP inbound exists only for Services (TCP Proxy, one per service, Railway domain:port); Sandboxes publish only HTTPS domains (up to 10 ports, set at creation) or SSH port forwarding. Top-level raw_tcp_inbound is false; the container-service mode sets it true (checked 2026-10-14)."
   ],
   "sources": [
@@ -451,14 +453,14 @@
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "Once the sandbox has no activity keeping it alive and its idle timeout expires, Railway destroys it.",
       "note": "Sandboxes: idle timeout destroys, no automatic save. Cloud Agents (beta) sleep keeps the persistent disk but stops processes ('Sleeping stops its processes and compute billing while retaining files'); that is persistent disk, not a snapshot. Services volumes have scheduled backups (not this).",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "A checkpoint is a named snapshot of a sandbox's disk, stored server-side in the environment. Capture one from a running sandbox after expensive setup, then boot new sandboxes from it by name, from any process with access to the environment.",
       "note": "Disk only, no memory: 'a sandbox created from a checkpoint boots fresh from a copy of the disk: files are preserved, running processes are not'. New sandboxes can boot from it; fork() of a running sandbox also copies disk only. Count capped at plan sandbox limit (10/50/100 per environment); storage price unpublished.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": true,
@@ -486,7 +488,7 @@
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "Pass `domains` with `networkIsolation: \"PRIVATE\"` when creating a sandbox to publish its HTTP servers on Railway-provided HTTPS domains",
       "note": "Ports are private unless you publish chosen ports (max 10) at creation; otherwise reach via SSH port forwarding (`railway sandbox forward`). ISOLATED mode blocks private-network inbound from other services. Published domains have no auth/IP allowlist. Services have a WAF (docs.railway.com/networking/waf.md, listed in llms.txt, not read).",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
@@ -522,7 +524,7 @@
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "A template is a reusable base: an ordered list of build steps that Railway builds once, content-addresses, and caches... `.withPackages(...names)` | Install system packages via `apt-get`",
       "note": "Sandboxes/Cloud Agents boot from Railway's own Ubuntu base image, customized only via an apt-get-based template builder (packages/env/run steps) — not from a user-supplied Docker/OCI image. Railway Services (container-service mode) do support deploying from an arbitrary Docker/OCI image (Docker Hub, GHCR, Quay), per docs.railway.com/quick-start.md ('Railway supports deploying pre-built Docker images from the following registries'), but that is a separate, non-sandbox product mode already recorded as true on that mode.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -579,7 +581,7 @@
       "source": "https://docs.railway.com/cloud-agents.md",
       "quote": "The disk lasts for the life of the agent. Closing a connection keeps the VM running. Sleeping stops its processes and compute billing while retaining files; deleting the agent removes its disk.",
       "note": "Contradiction confirmed and corrected: Cloud Agents (VM mode) keep the filesystem across sleep/wake (pause/resume). Default behaviour: files persist until the agent is explicitly deleted; sleep only stops compute billing, not the disk. Sandboxes proper are different: idle timeout DESTROYS the sandbox (no pause) so no persistent disk in that mode, but checkpoints (disk-only snapshots) let you re-create from saved state on demand. Card's mode-level cloud-agent.features.persistent_disk was already true; only the top-level features.persistent_disk was wrongly false.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": true,
@@ -594,21 +596,30 @@
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "a sandbox created from a checkpoint boots fresh from a copy of the disk: files are preserved, running processes are not",
       "note": "Checkpoints/forks copy disk state only; no memory/process-state snapshot-and-resume is offered for sandboxes or cloud agents. Confirms existing 'false'.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "desktop": {
-      "value": false,
+      "value": "diy",
+      "source": "https://docs.railway.com/sandboxes.md",
+      "quote": "`.withPackages(...names)` | Install system packages via `apt-get` ... Pass `domains` with `networkIsolation: \"PRIVATE\"` when creating a sandbox to publish its HTTP servers on Railway-provided HTTPS domains",
+      "how": "add Xvfb, x11vnc and noVNC to a sandbox template with withPackages, start them, and publish the noVNC port on a sandbox domain",
+      "effort": "medium",
+      "note": "Railway includes no desktop. A sandbox is a root Ubuntu VM: the template builder installs apt packages and a sandbox can publish up to 10 ports on HTTPS domains. Railway has no official desktop example, so this path is not tested by Railway.",
+      "checked": "2026-11-08"
+    },
+    "browser": {
+      "value": true,
       "source": "https://docs.railway.com/cloud-agents.md",
-      "quote": "Launch a coding agent directly on the Railway machine and work with it through your terminal. ... Coding tools execute and edit files on that machine.",
-      "note": "Railway's compute products (Sandboxes, Cloud Agents, Services) are headless Linux VMs/containers accessed via CLI/SSH/API/dashboard. No streamed GUI desktop (VNC/RDP-style) is offered anywhere in the docs. Product is plainly terminal/API-first, so 'no desktop' fits what the product is.",
-      "checked": "2026-09-30"
+      "quote": "build tools, and Chromium",
+      "note": "Chromium is in the Cloud Agent image. In Sandboxes, add it with withPackages (apt-get).",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "Sandboxes are isolated Linux VMs you create on demand, run commands in, and destroy. Use them for coding agents, dependency installs, test runs, builds, and isolated code execution.",
-      "note": "No GUI-automation/computer-use API (mouse/keyboard/screen control) is documented; the sandbox surface is exec/files/checkpoint/fork only, plus preinstalled CLI coding agents. Consistent with there being no desktop to drive.",
-      "checked": "2026-09-30"
+      "note": "Railway documents no computer-use API (mouse, keyboard, screen control). The sandbox API is exec, files, checkpoint and fork. A user can install a desktop (see desktop) and run their own computer-use agent in it.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -629,14 +640,14 @@
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "Sandboxes are isolated Linux VMs you create on demand",
       "note": "Sandboxes, Cloud Agents ('Ubuntu development image'), and Services all run on Linux only; no Windows OS option exists on any Railway compute product. Confirms 'false'.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "macos": {
       "value": false,
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "Sandboxes are isolated Linux VMs you create on demand",
       "note": "Same as windows: all compute products are Linux VMs/containers; no macOS runtime is offered. Confirms 'false'.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": false,
@@ -660,11 +671,13 @@
       "checked": "2026-09-30"
     },
     "nested_virt": {
-      "value": false,
+      "value": null,
+      "corrected_from": false,
+      "correction_note": "2026-11-08: the Sandboxes docs do not mention /dev/kvm. Silence is not a statement that it is not offered, so the value is null (not published). Not tested.",
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "Because Railway containers are non-privileged, GitHub Workflows that build-and-then-mount containers on the same host (i.e. Docker-in-Docker) will fail.",
-      "note": "No page mentions /dev/kvm, nested virtualization, or a privileged/KVM device passthrough for any product mode. The container-service mode is explicitly non-privileged (no NET_ADMIN, Docker-in-Docker/privileged mounts fail per docs.railway.com/guides/github-actions.md). The VM-based Sandboxes/Cloud Agents docs describe exec, files, checkpoint, fork, and templates in detail but never mention KVM device exposure or nested VM/emulator support inside the sandbox, so despite root access inside the guest there is no documented path to run a VM-in-a-VM. Treated as 'not offered' rather than null since the silence is consistent across all detailed docs.",
-      "checked": "2026-09-30"
+      "note": "No page mentions /dev/kvm, nested virtualization, or a privileged/KVM device passthrough for any product mode. The container-service mode is explicitly non-privileged (no NET_ADMIN, Docker-in-Docker/privileged mounts fail per docs.railway.com/guides/github-actions.md). The VM-based Sandboxes/Cloud Agents docs describe exec, files, checkpoint, fork, and templates in detail but never mention KVM device exposure or nested VM/emulator support inside the sandbox, so there is no documented path to run a VM-in-a-VM, and also no statement that it is blocked. Sandboxes are root VMs: check /dev/kvm yourself.",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,
@@ -679,21 +692,21 @@
       "source": "https://docs.railway.com/cloud-agents.md",
       "quote": "The disk lasts for the life of the agent. Closing a connection keeps the VM running. Sleeping stops its processes and compute billing while retaining files; deleting the agent removes its disk.",
       "note": "The whole disk survives a stop, installed packages included.",
-      "checked": "2026-10-01"
+      "checked": "2026-11-08"
     },
     "docker_inside": {
       "value": null,
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "The standard sandbox image uses an Ubuntu base with git, Node, and common coding agents preinstalled.",
-      "note": "Sandbox docs (sandboxes.md, sandboxes/quickstart.md, guides/code-execution-sandboxes.md, guides/agents-in-sandboxes.md) and cloud-agents.md never mention Docker. Undocumented, so null; sandboxes are full VMs with root, so the engine still derives Docker as possible. Services (container-service) are non-privileged containers without Docker-in-Docker.",
-      "checked": "2026-10-14"
+      "note": "Sandbox docs (sandboxes.md, sandboxes/quickstart.md, guides/code-execution-sandboxes.md, guides/agents-in-sandboxes.md) and cloud-agents.md never mention Docker. Undocumented, so null: the docs neither offer nor forbid it. Sandboxes are root Ubuntu VMs, so you install Docker yourself and verify it (not tested by us). Services (container-service) are non-privileged containers without Docker-in-Docker.",
+      "checked": "2026-11-08"
     },
     "raw_tcp_inbound": {
       "value": false,
       "source": "https://docs.railway.com/sandboxes.md",
       "quote": "Pass `domains` with `networkIsolation: \"PRIVATE\"` when creating a sandbox to publish its HTTP servers on Railway-provided HTTPS domains",
       "note": "Sandbox inbound is HTTPS domains only ('You can request up to 10 domains, with unique ports from 1 to 65535', set only at creation) or SSH port forwarding ('railway sandbox forward'). TCP Proxy is service-scoped: 'Manage public TCP proxies for a service.' (docs.railway.com/cli/tcp-proxy.md); recorded true on the container-service mode.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -737,5 +750,9 @@
     "applied": 3,
     "rejected": 1,
     "source": ".work/card-findings/railway.md re-checked against live docs.railway.com and railway.com/pricing"
+  },
+  "audit_2026_11_08": {
+    "applied": 5,
+    "source": "compare-fix/findings/railway.json; re-checked docs.railway.com/sandboxes.md, docs.railway.com/cloud-agents.md and railway.com/pricing (VM and container rates unchanged)"
   }
 }

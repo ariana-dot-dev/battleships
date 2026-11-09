@@ -111,8 +111,8 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": null,
-    "docker_inside": null,
-    "nested_virt": null,
+    "docker_inside": "diy",
+    "nested_virt": "diy",
     "root": true,
     "systemd": null,
     "browser": true,
@@ -183,9 +183,10 @@
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "Omnara Cloud is prepaid: managed sandboxes and managed models consume credits bought through Stripe; purchased credits are non-refundable; agents pause or fail when the organization has insufficient credits. Minimum purchase and any signup credit are not published ('No credit card required' to start).",
-    "Omnara is an agent control plane; its machines are sandboxes from one of nine providers (Arker, Blaxel, boxd, CreateOS, Daytona, Freestyle, Modal, Tenki, Unikraft Cloud). The hosted default pool runs on Blaxel microVMs ('On Omnara's hosted service, every organization starts with a default pool on Blaxel'); its vCPU/RAM shape and region are unpublished. With a BYO provider pool the compute is billed by that provider, not Omnara (Omnara platform fee $0).",
+    "Omnara is an agent control plane; its machines are sandboxes from one of twelve providers (Agent37, Arker, Blaxel, boxd, CreateOS, Daytona, E2B, Freestyle, Modal, Superserve, Tenki, Unikraft Cloud). The hosted default pool runs on Blaxel microVMs ('On Omnara's hosted service, every organization starts with a default pool on Blaxel'); its vCPU/RAM shape and region are unpublished. With a BYO provider pool the compute is billed by that provider, not Omnara (Omnara platform fee $0).",
     "Retention is charged 'in addition to runtime' for every retained machine (not only sleeping ones): while online the effective rate is $0.0414 + ~$0.000278 per GiB-hour. Pool machines are deleted after a configurable idle period (minimum 5 min; 0 disables), after which retention stops.",
-    "Disk is not priced separately because Blaxel machines keep files in RAM: 'Blaxel keeps each machine's files in memory, so give each machine at least 4 GB for coding work' (docs.omnara.com/machines/providers/blaxel.md, 2026-10-14). Size the memory for working set plus files. Region of the managed default pool is unpublished; Blaxel pools offer us-pdx-1, us-was-1, eu-lon-1, eu-fra-1 (BYO Blaxel account, billed by Blaxel)."
+    "Disk is not priced separately because Blaxel machines keep files in RAM: 'Blaxel keeps each machine's files in memory, so give each machine at least 4 GB for coding work' (docs.omnara.com/machines/providers/blaxel.md, 2026-10-14). Size the memory for working set plus files. Region of the managed default pool is unpublished; Blaxel pools offer us-pdx-1, us-was-1, eu-lon-1, eu-fra-1 (BYO Blaxel account, billed by Blaxel).",
+    "Default managed pool: Docker and /dev/kvm are not documented. A Freestyle pool (BYO, billed by Freestyle) runs Docker through nested virtualization (docs.omnara.com/machines/providers/freestyle.md, checked 2026-11-08)."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/omnara",
@@ -195,7 +196,10 @@
     "https://www.omnara.com/llms.txt",
     "https://docs.omnara.com/machines/pools.md",
     "https://docs.omnara.com/machines/providers/overview.md",
-    "https://docs.omnara.com/machines/providers/blaxel.md"
+    "https://docs.omnara.com/machines/providers/blaxel.md",
+    "https://docs.omnara.com/machines/providers/freestyle.md",
+    "https://docs.omnara.com/changelog.md",
+    "https://docs.omnara.com/tools/built-in.md"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -204,10 +208,13 @@
     "raise": null,
     "raise_time_days": null,
     "verification": "No credit card for open-source self-hosting; hosted/Enterprise onboarding not specified.",
-    "tiers": "Per agent: 1 machine by default ('By default, Omnara creates one machine at launch and allows one machine in total'), raised via max_machines within pool/project limits. Account-level limits of the hosted default-pool are unpublished.",
+    "tiers": "The docs give no per-agent machine default: initial_num_machines sets the start count, agents can create more pool machines within pool/project limits, and an agent with no granted pool starts with no machine. Account-level limits of the hosted default pool are unpublished. API rate limits: 100k reads / 50k writes per hour (changelog 2026-10-29).",
     "notes": "Current pricing offers open-source self-hosting and Enterprise deployment/on-prem support. No managed new-account VM quota established; customer-supplied infrastructure is not unlimited hosted fleet access.",
     "sources": [
-      "https://www.omnara.com/pricing"
+      "https://www.omnara.com/pricing",
+      "https://docs.omnara.com/machines/overview.md",
+      "https://docs.omnara.com/agents/configuration.md",
+      "https://docs.omnara.com/changelog.md"
     ],
     "researched": "2026-09-28"
   },
@@ -219,23 +226,23 @@
   "feature_evidence": {
     "snapshot_auto": {
       "value": true,
-      "source": "https://docs.omnara.com/machines/pools",
+      "source": "https://docs.omnara.com/machines/pools.md",
       "quote": "A pool machine keeps its files, installed dependencies, and running processes across turns, including when the provider suspends and resumes it while idle.",
-      "note": "Pricing page: 'Idle machines auto-sleep, preserving data and pausing runtime charges.' Trigger = idle; running processes (memory) preserved. Mechanism is the underlying provider's suspend (Blaxel / Unikraft Cloud / Daytona / Modal); Modal pool machines hard-terminate at 24 h. Pool machines are deleted after the configured idle-deletion period; replacements start from the pool image/snapshot.",
-      "checked": "2026-09-29"
+      "note": "Pricing page: 'Idle machines auto-sleep, preserving data and pausing runtime charges.' Trigger = idle; running processes (memory) preserved. Mechanism is the underlying provider's suspend. Idle deletion is a per-pool setting (minimum 5 min when on; 0 disables it); only when it is on is a machine deleted and replaced from the pool image. Memory stores (storage_* tools) keep files in Omnara outside the machine.",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": true,
       "source": "https://docs.omnara.com/introduction",
       "quote": "Omnara is an open source platform for running managed agents. It handles execution and state while you choose the models, tools, machines, and how users interact with each agent.",
-      "note": "Omnara's OWN agent harness only (not Claude Code/Codex/OpenCode). REST API, TypeScript SDK, CLI and MCP server: launch agent from YAML config, POST inputs (follow-ups, steering), SSE event stream with resume, approvals, cron triggers, webhooks. The agent loop runs in Omnara's control plane, not inside the machine; machines (omnarad daemon) are attached as tool execution environments.",
+      "note": "Omnara's OWN agent harness only (not Claude Code/Codex/OpenCode). REST API, TypeScript SDK, CLI and MCP server: launch agent from YAML config, POST inputs (follow-ups, steering), SSE event stream with resume, approvals, scheduled launches, webhooks. The agent loop runs in Omnara's control plane, not inside the machine; machines (omnarad daemon) are attached as tool execution environments. Since 2026-09-14 Claude Code and Codex can also use Omnara as an MCP server (changelog).",
       "checked": "2026-09-29"
     },
     "harness_api": {
       "value": false,
       "source": "https://docs.omnara.com/introduction",
       "quote": "Omnara is an open source platform for running managed agents. It handles execution and state while you choose the models, tools, machines, and how users interact with each agent.",
-      "note": "Omnara's OWN agent harness only (not Claude Code/Codex/OpenCode). REST API, TypeScript SDK, CLI and MCP server: launch agent from YAML config, POST inputs (follow-ups, steering), SSE event stream with resume, approvals, cron triggers, webhooks. The agent loop runs in Omnara's control plane, not inside the machine; machines (omnarad daemon) are attached as tool execution environments.",
+      "note": "Omnara's OWN agent harness only (not Claude Code/Codex/OpenCode). REST API, TypeScript SDK, CLI and MCP server: launch agent from YAML config, POST inputs (follow-ups, steering), SSE event stream with resume, approvals, scheduled launches, webhooks. The agent loop runs in Omnara's control plane, not inside the machine; machines (omnarad daemon) are attached as tool execution environments.",
       "checked": "2026-09-29"
     },
     "secret_proxy": {
@@ -305,22 +312,22 @@
       "value": false,
       "source": "https://docs.omnara.com/tools/built-in",
       "quote": "create_machine, delete_machine, list_machines, inspect_machine",
-      "note": "create_machine provisions a new machine from the pool's configured image/snapshot; there is no operation to clone an existing machine's current state into a new one.",
-      "checked": "2026-09-30"
+      "note": "No fork tool: create_machine provisions a new machine from the pool image/snapshot. Freestyle pools boot every new machine from a whole-machine snapshot (memory and processes included), but that snapshot is built with the Freestyle CLI from a base image and setup script, not taken from an agent's running machine (https://docs.omnara.com/machines/providers/freestyle.md).",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
       "source": "https://docs.omnara.com/tools/built-in",
       "quote": "create_machine, delete_machine, list_machines, inspect_machine",
       "note": "No clone-while-running capability is documented; create_machine only adds a fresh pool machine from the base image/snapshot.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
       "source": "https://docs.omnara.com/tools/built-in",
       "quote": "create_machine, delete_machine, list_machines, inspect_machine",
       "note": "No fork capability at all is documented, so a memory-preserving fork is not offered.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": true,
@@ -354,8 +361,8 @@
       "value": false,
       "source": "https://docs.omnara.com/introduction",
       "quote": "Omnara is an open source platform for running managed agents. It handles execution and state while you choose the models, tools, machines, and how users interact with each agent.",
-      "note": "Omnara runs its own agent loop in the control plane against any model you configure; it does not offer preinstalled third-party coding harnesses like Claude Code, Codex, or OpenCode as templates.",
-      "checked": "2026-09-30"
+      "note": "Omnara runs its own agent loop in the control plane against any model you configure; it does not ship Claude Code, Codex or OpenCode as harnesses inside its machines. Claude Code and Codex can call Omnara as an MCP server (changelog 2026-09-14).",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -437,9 +444,9 @@
     "lang_node": {
       "value": true,
       "source": "https://docs.omnara.com/machines/pools.md",
-      "quote": "Machines from Omnara-managed pools run Ubuntu 24.04 as root, with common development tools preinstalled so agents can start working without installing them. ... Languages | Python 3.12, Node.js 24, Go 1.27, C and C++ (gcc 13)",
+      "quote": "Machines from Omnara-managed pools run Ubuntu 26.04 as root, with common development tools preinstalled so agents can start working without installing them. ... Languages | Python 3.14, Node.js 24, Go 1.27, C and C++ (gcc 15)",
       "note": "Node.js 24 preinstalled in the default environment of Omnara-managed pools. Custom (BYO provider) pools use whatever image you choose.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": true,
@@ -459,34 +466,50 @@
     "lang_python": {
       "value": true,
       "source": "https://docs.omnara.com/machines/pools.md",
-      "quote": "Machines from Omnara-managed pools run Ubuntu 24.04 as root, with common development tools preinstalled so agents can start working without installing them. ... Languages | Python 3.12, Node.js 24, Go 1.27, C and C++ (gcc 13)",
-      "note": "Python 3.12 preinstalled in the default environment of Omnara-managed pools. Custom (BYO provider) pools use whatever image you choose.",
-      "checked": "2026-10-14"
+      "quote": "Machines from Omnara-managed pools run Ubuntu 26.04 as root, with common development tools preinstalled so agents can start working without installing them. ... Languages | Python 3.14, Node.js 24, Go 1.27, C and C++ (gcc 15)",
+      "note": "Python 3.14 preinstalled in the default environment of Omnara-managed pools (Ubuntu 26.04 since the 2026-10-29 changelog). Custom (BYO provider) pools use whatever image you choose.",
+      "checked": "2026-11-08"
     },
     "lang_go": {
       "value": true,
       "source": "https://docs.omnara.com/machines/pools.md",
-      "quote": "Machines from Omnara-managed pools run Ubuntu 24.04 as root, with common development tools preinstalled so agents can start working without installing them. ... Languages | Python 3.12, Node.js 24, Go 1.27, C and C++ (gcc 13)",
+      "quote": "Machines from Omnara-managed pools run Ubuntu 26.04 as root, with common development tools preinstalled so agents can start working without installing them. ... Languages | Python 3.14, Node.js 24, Go 1.27, C and C++ (gcc 15)",
       "note": "Go 1.27 preinstalled in the default environment of Omnara-managed pools. Custom (BYO provider) pools use whatever image you choose.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "root": {
       "value": true,
       "source": "https://docs.omnara.com/machines/pools.md",
-      "quote": "Machines from Omnara-managed pools run Ubuntu 24.04 as root, with common development tools preinstalled",
+      "quote": "Machines from Omnara-managed pools run Ubuntu 26.04 as root, with common development tools preinstalled",
       "note": "Managed pool runs as root (sudo also preinstalled). Custom pools depend on the image.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "isolation": {
       "value": "microvm",
       "source": "https://docs.omnara.com/machines/providers/blaxel.md",
       "quote": "Each machine runs in its own microVM with its own kernel, boots in milliseconds, and is fully isolated from every other machine.",
-      "note": "Applies to the managed mode: \"On Omnara's hosted service, every organization starts with a default pool on Blaxel\" (https://docs.omnara.com/machines/providers/overview.md). BYO pools vary by provider (Daytona = container, Modal = gVisor container, others microVM/full VM).",
+      "note": "Applies to the managed mode: \"On Omnara's hosted service, every organization starts with a default pool on Blaxel\" (https://docs.omnara.com/machines/providers/overview.md). BYO pools (twelve providers) vary by provider (Daytona = container, Modal = gVisor container, others microVM/full VM).",
       "checked": "2026-10-14"
+    },
+    "docker_inside": {
+      "value": "diy",
+      "source": "https://docs.omnara.com/machines/providers/freestyle.md",
+      "quote": "nested virtualization runs Docker and even other VMs inside it.",
+      "how": "create a Freestyle pool (your own Freestyle account, billed by Freestyle) and run Docker in its VM; Docker is not documented on the default managed pool",
+      "effort": "medium",
+      "checked": "2026-11-08"
+    },
+    "nested_virt": {
+      "value": "diy",
+      "source": "https://docs.omnara.com/machines/providers/freestyle.md",
+      "quote": "nested virtualization runs Docker and even other VMs inside it.",
+      "how": "create a Freestyle pool (your own Freestyle account, billed by Freestyle); the default managed pool does not document /dev/kvm",
+      "effort": "medium",
+      "checked": "2026-11-08"
     }
   },
   "locations": [],
   "locations_source": "https://docs.omnara.com/machines/providers/overview.md",
-  "locations_quote": "Omnara supports nine sandbox providers for machine pools, and agents get the same tools on all of them. On Omnara's hosted service, every organization starts with a default pool on Blaxel.",
-  "locations_checked": "2026-10-14"
+  "locations_quote": "Omnara supports twelve sandbox providers for machine pools, and agents get the same tools on all of them. On Omnara's hosted service, every organization starts with a default pool on Blaxel.",
+  "locations_checked": "2026-11-08"
 }

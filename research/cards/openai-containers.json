@@ -82,7 +82,7 @@
       "plans": [
         "API pay as you go"
       ],
-      "note": "https://developers.openai.com/api/docs/pricing (2026-09-29): \"Containers | Hosted Shell and Code Interpreter | 1 GB $0.03, 4 GB $0.12, 16 GB $0.48, 64 GB $1.92 per 20-minute session per container.\" + \"Eligible container sessions will be billed by the minute, with a 5-minute minimum per session.\" Changelog 2026-06-02: \"The underlying per-minute rate will remain the same.\" => hour = 3 x 20-min price ($0.0015/$0.006/$0.024/$0.096 per minute). memory_limit enum \"1g\"|\"4g\"|\"16g\"|\"64g\", default \"1g\" (API ref containers/create; openai-python container_create_params.py). vCPU per tier NOT published for Responses containers; the Agents API hosted sandboxes at the same 'standard container rates' are 1 vCPU/1 GB, 2/4 GB, 4/16 GB (see mode agents-api-hosted) - inference only, so vcpu left null here. Runtime Debian 12, /mnt/data, no sudo, no TTY; Python 3.11, Node 22.16, Java 17, PHP 8.2, Ruby 3.1, Go 1.23 (tools-shell guide). \"A container expires if it is not used for 20 minutes.\" (tools-code-interpreter, checked 2026-10-14; tools-shell states no default, only an expires_after {anchor:last_active_at, minutes:20} example and explicit deletion; max undocumented). GA since Code Interpreter 2025-05-20 / Hosted Shell 2026-02-10. Code Interpreter regional processing US + EU (your-data guide). Model tokens billed separately."
+      "note": "https://developers.openai.com/api/docs/pricing (2026-09-29): \"Containers | Hosted Shell and Code Interpreter | 1 GB $0.03, 4 GB $0.12, 16 GB $0.48, 64 GB $1.92 per 20-minute session per container.\" + \"Eligible container sessions will be billed by the minute, with a 5-minute minimum per session.\" Changelog 2026-06-02: \"The underlying per-minute rate will remain the same.\" => hour = 3 x 20-min price ($0.0015/$0.006/$0.024/$0.096 per minute). memory_limit enum \"1g\"|\"4g\"|\"16g\"|\"64g\", default \"1g\" (API ref containers/create; openai-python container_create_params.py). vCPU per tier NOT published for Responses containers; the Agents API hosted sandboxes at the same 'standard container rates' are 1 vCPU/1 GB, 2/4 GB, 4/16 GB (see mode agents-api-hosted) - inference only, so vcpu left null here. Runtime Debian 12, /mnt/data, no sudo, no TTY; Python 3.11, Node 22.16, Java 17, PHP 8.2, Ruby 3.1, Go 1.23 (tools-shell guide). \"A container expires if it is not used for 20 minutes.\" (tools-code-interpreter, checked 2026-10-14). 20 minutes is the default: the Containers API create call accepts expires_after {anchor: \"last_active_at\", minutes} (API ref containers/create, checked 2026-11-08); no maximum is published. Explicit deletion also ends a container. GA since Code Interpreter 2025-05-20 / Hosted Shell 2026-02-10. Code Interpreter regional processing US + EU (your-data guide). Model tokens billed separately."
     },
     {
       "key": "agents-api-hosted",
@@ -165,7 +165,7 @@
       "plans": [
         "API pay as you go"
       ],
-      "note": "https://developers.openai.com/api/docs/guides/agents-api/environments/openai-hosted (2026-09-29): container_size small 1 vCPU/1 GB, medium 2/4 GB (default), large 4/16 GB; \"OpenAI-hosted sandboxes use standard container rates.\" Prices mapped to the 1g/4g/16g container rows. min_billed_seconds/granularity inferred from the container rate card's per-minute/5-min rule (not stated for Agents API). \"Connected sandboxes receive keep-alives, including between turns. If activity and keep-alives stop for an hour, the sandbox can be deleted. This timeout isn't configurable.\" => likely billed for the session's whole life until deleted (unconfirmed). Network default enabled; restricted = 1-100 exact hosts. Hosted browser via environment.desktop.enabled (agents-api/tools/computer-use). \"The Agents API currently supports data residency only in the United States and does not support Zero Data Retention (ZDR).\" Public beta since 2026-09-10 (changelog). Covered in depth by the 'new' research agent."
+      "note": "https://developers.openai.com/api/docs/guides/agents-api/environments/openai-hosted (2026-09-29): container_size small 1 vCPU/1 GB, medium 2/4 GB (default), large 4/16 GB; \"OpenAI-hosted sandboxes use standard container rates.\" Prices mapped to the 1g/4g/16g container rows. min_billed_seconds/granularity inferred from the container rate card's per-minute/5-min rule (not stated for Agents API). \"Connected sandboxes receive keep-alives, including between turns. If activity and keep-alives stop for an hour, the sandbox can be deleted. This timeout isn't configurable.\" => likely billed for the session's whole life until deleted (unconfirmed). Network default enabled; restricted = 1-100 exact hosts. Hosted browser via environment.desktop.enabled (agents-api/tools/computer-use). \"The Agents API currently supports data residency only in the United States and does not support Zero Data Retention (ZDR).\" (agents-api/overview, checked 2026-11-08). Public beta since 2026-09-10 (changelog). Covered in depth by the 'new' research agent."
     },
     {
       "key": "codex-cloud",
@@ -353,7 +353,7 @@
       "max_ram_gib": null,
       "sizes_allowed": null,
       "max_starts_per_min": 100,
-      "note": "Containers bill on top of model tokens. Code Interpreter tool: \"100 RPM per org\" (tools-code-interpreter usage table) - encoded as max_starts_per_min (it caps tool requests, not container creations; hosted shell limit unpublished). No published container concurrency cap or per-usage-tier limits (rate-limits guide silent). Container expires 20 min after last activity; each distinct container is its own session."
+      "note": "Containers bill on top of model tokens. Code Interpreter tool: \"100 RPM per org\" (tools-code-interpreter usage table) - encoded as max_starts_per_min (it caps tool requests, not container creations; hosted shell limit unpublished). No published container concurrency cap or per-usage-tier limits (rate-limits guide silent). By default a container expires 20 min after last activity (expires_after.minutes changes this on create); each distinct container is its own session."
     },
     {
       "name": "ChatGPT Plus",
@@ -572,15 +572,15 @@
         "agents-api-hosted"
       ],
       "map": null,
-      "why": "OpenAI does not say whether the minutes between last use and expiry (20 min for containers, 1 h keep-alive window for Agents API sandboxes) are billed. If they are and you don't DELETE the container, factor = (session + tail)/session, e.g. 5-min run + 20-min tail = 5x. Default 1 assumes explicit deletion."
+      "why": "OpenAI does not say whether the minutes between last use and expiry (20 min by default for containers, set by expires_after; 1 h keep-alive window for Agents API sandboxes) are billed. If they are and you don't DELETE the container, factor = (session + tail)/session, e.g. 5-min run + 20-min tail = 5x. Default 1 assumes explicit deletion."
     }
   ],
   "caveats": [
     "Model input/output tokens are billed separately and are not in this estimate; for short runs they often exceed container cost.",
     "vCPU per Responses container tier is not published; the engine matches container-session on RAM only. The Agents API beta mode publishes 1/2/4 vCPU for 1/4/16 GB at the same rates (suggestive, not confirmed for Responses containers). 64 GB tier vCPU unknown.",
     "Per-minute billing with 5-minute minimum applies to 'eligible' sessions since 2026-06-02 ('eligible' undefined); 2026-03-31 to 2026-06-01 each session was billed in full 20-minute blocks; before that $0.03-$1.92 per container.",
-    "Whether idle minutes until the 20-minute expiry are billed is undocumented; delete containers explicitly (DELETE /v1/containers/{id}). See knob idle_expiry_tail.",
-    "No snapshots or persistence: an expired container's data is 'discarded … not recoverable'. No documented max lifetime; keeping a container alive requires touching it at least every 20 minutes (or a larger expires_after.minutes, max undocumented).",
+    "Whether idle minutes until the idle expiry (20 minutes by default) are billed is undocumented; delete containers explicitly (DELETE /v1/containers/{id}). See knob idle_expiry_tail.",
+    "No machine snapshots: an expired container's data is 'discarded … not recoverable'. Download files through the container files endpoints before expiry if you need them later. Agents API sessions keep their state across turns, and published artifacts stay until you delete them. No documented max lifetime. By default a container expires after 20 minutes without use; expires_after.minutes sets a different idle expiry on create (no published maximum).",
     "Outbound network is disabled by default for Responses API containers (Code Interpreter / Hosted Shell); enabling requires an admin-configured org allow list plus a per-request network_policy allowlist. domain_secrets inject credentials via a sidecar. No inbound ports/URLs. The Agents API hosted sandbox (beta mode) is the opposite: network.access 'enabled' ('Allow outbound access. This is the default unless you inherit a template policy.'), with disabled / restricted (1-100 exact hosts) as opt-ins. The card-level internet default stays 'allowlist', so the internet-access check also holds that mode to an allowlist.",
     "Only rate limit published: Code Interpreter '100 RPM per org'. No container concurrency cap, no usage-tier table, nothing for hosted shell.",
     "Disk size of containers not published ('ephemeral block storage').",
@@ -965,9 +965,9 @@
     "max_session_h": {
       "value": "none",
       "source": "https://developers.openai.com/api/reference/resources/containers/methods/create",
-      "quote": "expires_after: optional object { anchor, minutes } Container expiration time in seconds relative to the 'anchor' time. anchor: \"last_active_at\" ... minutes: number",
-      "note": "derived: no maximum total session lifetime is published. Expiry is purely inactivity-based (default 20 minutes since last_active_at, extendable via expires_after.minutes with no documented cap) and resets on activity, so an actively-used session/container is not capped at a fixed number of hours by the provider. Agents API hosted sandboxes similarly expire only after ~1h of no activity/keep-alives ('this timeout isn't configurable'), again with no stated maximum total runtime while kept alive.",
-      "checked": "2026-09-30"
+      "quote": "Container expiration time in seconds relative to the 'anchor' time. ... Time anchor for the expiration time. Currently only 'last_active_at' is supported.",
+      "note": "derived: no maximum total session lifetime is published. Expiry is purely inactivity-based (default 20 minutes since last_active_at, set on create via expires_after.minutes with no documented cap) and resets on activity, so an actively-used session/container is not capped at a fixed number of hours by the provider. Agents API hosted sandboxes similarly expire only after ~1h of no activity/keep-alives ('this timeout isn't configurable'), again with no stated maximum total runtime while kept alive.",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,
@@ -980,6 +980,6 @@
   },
   "locations": [],
   "locations_source": "https://developers.openai.com/api/docs/guides/your-data",
-  "locations_quote": "Code Interpreter regional processing US + EU. Agents API hosted sandbox (beta mode): US-only data residency.",
-  "locations_checked": "2026-10-01"
+  "locations_quote": "Code Interpreter regional processing US + EU (guides/your-data). Agents API hosted sandbox (beta mode): \"The Agents API currently supports data residency only in the United States and does not support Zero Data Retention (ZDR).\" (https://developers.openai.com/api/docs/guides/agents-api/overview).",
+  "locations_checked": "2026-11-08"
 }

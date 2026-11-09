@@ -202,14 +202,14 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Plans = $0.01667/vCPU-h + $0.00833/GB-h exactly (monthly price = 720 h). Plans below 1 vCPU are shared CPU; 1+ are dedicated. Kata microVM runtime. Billed per second on the allocated plan while running, with no minimum and no start/resume fees. No idle auto-pause: bills until explicitly paused (scale to 0), and pause wipes ephemeral disk and processes. 1 GB ephemeral disk included; 5/10/20 GB options billed at $0.15/GB-month only while running. Verified 2026-09-28 (northflank.com/docs/v1/application/sandboxes/sandboxes-on-northflank-cloud): 'Northflank cloud bills compute per second of runtime' on the selected resource plan (e.g. nf-compute-200) = allocation; 'Pausing a sandbox scales it to zero instances, which stops compute charges'; no idle auto-pause documented.",
+      "note": "Plans = $0.01667/vCPU-h + $0.00833/GB-h exactly (monthly price = 720 h). Plans below 1 vCPU are shared CPU; 1+ are dedicated. Kata microVM runtime. Billed per second on the allocated plan while running, with no minimum and no start/resume fees. No idle auto-pause: bills until explicitly paused (scale to 0). Pause wipes ephemeral disk and processes unless you take a filesystem snapshot first (Kata only). Ephemeral storage is listed as free and not persisted on the pricing page (checked 2026-11-08); persistent volumes cost $0.11657/GiB-month. Verified 2026-09-28 (northflank.com/docs/v1/application/sandboxes/sandboxes-on-northflank-cloud): 'Northflank cloud bills compute per second of runtime' on the selected resource plan (e.g. nf-compute-200) = allocation; 'Pausing a sandbox scales it to zero instances, which stops compute charges'; no idle auto-pause documented.",
       "perf": {
         "cpu_runs_s": null,
         "cold_start_ms": 82.8,
-        "burst_tti_ms": 24110.49,
+        "burst_tti_ms": null,
         "dax_s": null
       },
-      "perf_source": "ComputeSDK (github.com/computesdk/benchmarks results/): cold 82.8 ms (seq TTI 2026-08-07, runtime \"node\", SDK default plan), burst 24,110 ms (2026-09-16, composite 0, ~21% success at 100-way). DAX never succeeded. No HPC result."
+      "perf_source": "CPU plan (Kata microVM). ComputeSDK (each provider at its SDK default size and runtime): burst failed in the 2026-11-06 run (0% succeeded), so no value; DAX failed in the 2026-11-06 run, so no value; one-at-a-time start 83 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results"
     },
     {
       "key": "custom-plan",
@@ -261,10 +261,10 @@
       "perf": {
         "cpu_runs_s": null,
         "cold_start_ms": 82.8,
-        "burst_tti_ms": 24110.49,
+        "burst_tti_ms": null,
         "dax_s": null
       },
-      "perf_source": "Same runtime as on-demand; ComputeSDK (github.com/computesdk/benchmarks results/) cold 82.8 ms (2026-08-07), burst 24,110 ms (2026-09-16, ~21% success)."
+      "perf_source": "CPU plan (Kata microVM). ComputeSDK (each provider at its SDK default size and runtime): burst failed in the 2026-11-06 run (0% succeeded), so no value; DAX failed in the 2026-11-06 run, so no value; one-at-a-time start 83 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results"
     },
     {
       "key": "byoc",
@@ -381,7 +381,7 @@
   ],
   "storage": {
     "included_disk_gib": 1,
-    "disk_gib_month": 0.15,
+    "disk_gib_month": 0.11657,
     "disk_billed_when_stopped": true,
     "snapshot_gib_month": 0,
     "paused_ram_billed": false
@@ -486,7 +486,7 @@
     "nested_virt": false,
     "root": null,
     "systemd": null,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
@@ -550,8 +550,7 @@
     "fast_boot": false,
     "open_internet": true,
     "usage_api": true,
-    "persist_scope": "folder",
-    "persist_path": "attached volumes"
+    "persist_scope": "snapshot"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -584,17 +583,19 @@
   "caveats": [
     "BYOC regime is FEE-ONLY (+ your cloud bill): its total excludes the underlying CPU/GPU VMs, disk and egress, so it is not comparable with full-compute rows; it stays alt-flagged (opt-in) and the GPU map is only the $0.00278/GB-vRAM-h management fee, not a GPU price.",
     "BYOC mode prices only Northflank's management fee ($0.01389/vCPU-h + $0.00139/GB-h). The underlying cloud VM, disk and egress are billed by your cloud and not modelled (flag alt). The pricing page also claims 'No added cost for running in your VPC', which contradicts its own BYOC tab.",
-    "No idle auto-pause: sandboxes bill their full plan until explicitly paused. Pause wipes ephemeral disk and processes; only volumes persist (billed $0.15/GB-month while paused).",
+    "No idle auto-pause: sandboxes bill their full plan until explicitly paused. Pause wipes ephemeral disk and processes. Attached volumes survive (billed $0.11657/GiB-month while paused). The rest of the filesystem survives only if you take a filesystem snapshot before the pause and restore from it (Kata microVM sandboxes only).",
     "snapshot_gib_month 0 is the vendor's 'no snapshot fees' claim (blog). Container snapshots are written to a configured backup destination whose storage may be billed elsewhere; no memory snapshots.",
     "Egress $0.06/GB with no published free allowance (egress_free_gib 0). Internal platform traffic is free.",
     "GPU mode assumes the blog's 'combined' GPU rate (vCPU/RAM included). If CPU/RAM are billed on top per the docs, GPU costs rise by the compute plan rate. $50 credit minimum for GPUs.",
     "Custom vCPU/RAM plans assumed to use the published unit rates (flag sales). Enterprise volume discounts unpublished.",
-    "Plan sizes' disk_gib = 1 GB included ephemeral disk; extra ephemeral (5/10/20 GB) is billed at $0.15/GB-month only while running, not modelled per size.",
+    "Plan sizes' disk_gib = 1 GB included ephemeral disk. The pricing page lists ephemeral storage as free and not persisted (checked 2026-11-08).",
     "perf: computesdk cold start median 82.8 ms; burst median 24,110 ms with only 21% success at 100-way concurrency; DAX never succeeded; no hpc CPU benchmark.",
     "max_vcpu 20 / 40 GB = largest listed plan; larger via custom plans or BYOC.",
     "Data residency: project region is fixed at creation and runtime resources stay there, but managed builds run on Northflank build infrastructure outside the project region unless builds are configured on your own (BYOC) cluster. Zurich (europe-west-zurich) is Switzerland, not EU. Tax: EU VAT reverse-charge on valid registration; no blanket VAT on USD list. (patch v10-regional, 2026-09-28)",
     "Jobs and builds: the pricing-page calculator JS (dist bundle) displays job/build time at 2x the service rate (nf-compute-400 job $0.2667/h vs service $0.1333/h); not stated in the static pricing text, so not modelled as a mode. Calculator shows $2.71/$5.41 for nf-compute-10/20 vs table $2.70/$5.40 (rounding). (patch v5-calculators, 2026-09-28, unverified in static page)",
-    "raw_tcp_inbound: public ports on a sandbox are HTTP/HTTP2 only; raw TCP/UDP from the internet needs a separate team-level Layer 4 load balancer (stable public IP, up to 100 ports, backends must be running), whose price is not published and is not modelled. Not a direct per-machine TCP port. (checked 2026-10-14)"
+    "raw_tcp_inbound: public ports on a sandbox are HTTP/HTTP2 only; raw TCP/UDP from the internet needs a separate team-level Layer 4 load balancer (stable public IP, up to 100 ports, backends must be running), whose price is not published and is not modelled. Not a direct per-machine TCP port. (checked 2026-10-14)",
+    "The pricing, docs and blog pages show a banner (2026-11-08): 'Northflank has experienced a security incident. ... Please rotate all user defined credentials.' Compliance listed on the pricing page: SOC 2 Type II, HIPAA, ISO 27001.",
+    "Locations: 17 managed regions from the regions page. Countries for regions without a city in the name (europe-west = GB, asia-northeast = JP, asia-southeast = SG, asia-east = HK, southamerica-east = BR, africa-south = ZA) follow the earlier GCP region mapping; the regions page names only the region."
   ],
   "sources": [
     "https://northflank.com/pricing",
@@ -607,7 +608,11 @@
     "https://northflank.com/blog/ai-sandbox-pricing",
     "https://northflank.com/blog/aws-lambda-microvms-vs-northflank-pricing",
     "https://northflank.com/docs/v1/application/network/configure-load-balancers",
-    "https://northflank.com/docs/v1/application/network/configure-ports"
+    "https://northflank.com/docs/v1/application/network/configure-ports",
+    "https://northflank.com/cloud/northflank/regions",
+    "https://northflank.com/changelog/august-and-september-2026",
+    "https://northflank.com/blog/how-to-run-browser-agents-in-secure-sandboxes-on-northflank",
+    "https://northflank.com/docs/v1/application/sandboxes/examples"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -636,21 +641,21 @@
       "source": "https://northflank.com/docs/v1/api/project/services/create-deployment-service.md",
       "quote": "Creates a snapshot when a service container terminates, including crashes, rollouts, scale-downs, evictions, and manual restarts.",
       "note": "Opt-in per service (deployment.containerSnapshot.capture.onTermination + backupDestinationId, retention maxSnapshots); snapshot trigger enum 'containerTermination'. Pause = scale to zero, so a pause/scale-down is captured. Filesystem only (changelog: 'capture the filesystem of a running or terminating service pod'), no memory; Kata runtime required. Restore is NOT automatic: you set containerSnapshot.restoreFrom=<snapshot uuid>. Default pause without this wipes ephemeral disk.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://northflank.com/changelog/august-and-september-2026",
       "quote": "You can now capture the filesystem of a running or terminating service pod and restore a service from a successful snapshot. Snapshots are available through the dashboard, CLI, and API and require a Kata runtime.",
       "note": "POST /v1/projects/{projectId}/services/{serviceId}/snapshots (stored in a configured backup destination). Filesystem only, no memory. New services can boot from it: create-deployment-service accepts deployment.containerSnapshot.restoreFrom ('The successful container snapshot to restore the service from'), so fork/template is possible. Snapshot records base image digest + arch compatibility. Separate volume backups/clones also exist.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
       "source": "https://northflank.com/docs/v1/api/project/harnesses/create-harness.md",
-      "quote": "The harness environment type to run. (enum: codex, claude, pi, opencode, cursor, none)",
-      "note": "Cloud Harness (Aug/Sep 2026) is a first-party API/CLI/dashboard resource that provisions a workspace with Claude Code, Codex, Cursor, OpenCode or Pi preinstalled and authenticated (create/get/patch/pause/resume/restart/logs/delete). But interaction with the agent is via browser terminal or SSH ('northflank dev ssh'); the API has no prompt/message, event-stream or conversation endpoints. Counts as agent_harnesses (+ lifecycle API), not a harness-driving API. Borderline; revisit if a prompt/session API appears.",
-      "checked": "2026-09-29"
+      "quote": "The harness environment type to run. (enum: codex, claude, pi, omp, devin, opencode, cursor, none)",
+      "note": "Cloud Harness (Aug/Sep 2026) is a first-party API/CLI/dashboard resource that provisions a workspace with Claude Code, Codex, Cursor, OpenCode, Pi, OMP or Devin preinstalled and authenticated (create/get/patch/pause/resume/restart/logs/delete). But interaction with the agent is via browser terminal or SSH ('northflank dev ssh'); the API has no prompt/message, event-stream or conversation endpoints. Counts as agent_harnesses (+ lifecycle API), not a harness-driving API. Borderline; revisit if a prompt/session API appears.",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": true,
@@ -678,8 +683,8 @@
       "value": true,
       "source": "https://northflank.com/docs/v1/application/sandboxes/examples.md",
       "quote": "Attach a volume when you need files to survive.",
-      "note": "Separate volume resource, attached at creation via createOptions.volumesToAttach or attach/detach API; 'You can attach multiple volumes to the same service.' $0.15/GB-month; 4 GB to 64 TB (product page).",
-      "checked": "2026-09-29"
+      "note": "Separate volume resource, attached at creation via createOptions.volumesToAttach or attach/detach API; 'You can attach multiple volumes to the same service.' $0.11657/GiB-month (pricing page, 2026-11-08); 4 GB to 64 TB (product page).",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -791,7 +796,7 @@
       "source": "https://northflank.com/changelog/august-and-september-2026",
       "quote": "You can now capture the filesystem of a running or terminating service pod and restore a service from a successful snapshot.",
       "note": "Northflank's changelog and API docs describe container snapshots as filesystem-only ('capture the filesystem of a running or terminating service pod'); no memory/process-state capture is offered, so a fork/restore never resumes running processes.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": true,
@@ -805,22 +810,23 @@
       "value": false,
       "source": "https://northflank.com/changelog/august-and-september-2026",
       "quote": "Choose Claude Code, OpenAI Codex, Cursor, OpenCode or Pi, authenticate with your own account or API key, and connect through the browser terminal or SSH.",
-      "note": "Harness/sandbox access is only via browser terminal or SSH; no VNC/RDP or streamed graphical desktop is documented. Previous source northflank.com/sandboxes now returns 404.",
-      "checked": "2026-10-14"
+      "note": "No desktop, VNC or screen streaming is documented. The browser-agent guide (2026-09-09) runs Playwright without a desktop. Access is by browser terminal or SSH.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://northflank.com/changelog/august-and-september-2026",
-      "quote": "Choose Claude Code, OpenAI Codex, Cursor, OpenCode or Pi, authenticate with your own account or API key, and connect through the browser terminal or SSH.",
-      "note": "The only 'browser' surface Northflank documents is a browser-based terminal (shell UI) for Harnesses/services, not a managed/real browser instance (e.g. Chrome) inside the sandbox for web use. No product page or docs mention a bundled browser.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://northflank.com/blog/how-to-run-browser-agents-in-secure-sandboxes-on-northflank",
+      "quote": "Playwright-based browser workloads can run inside a Northflank Sandbox alongside the browser runtime and application code that controls it.",
+      "how": "build an image with Playwright and its browser and run it in the sandbox (official guide, 2026-09-09)",
+      "effort": "medium",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://northflank.com/changelog/august-and-september-2026",
       "quote": "Choose Claude Code, OpenAI Codex, Cursor, OpenCode or Pi, authenticate with your own account or API key, and connect through the browser terminal or SSH.",
-      "note": "not offered: access is terminal/SSH only and the sandbox API is exec/files/ports/snapshots; no screenshot+click driving API documented. Previous source northflank.com/sandboxes now returns 404.",
-      "checked": "2026-10-14"
+      "note": "No screenshot-and-click API or desktop example is documented. The sandbox API covers exec, files, ports and snapshots.",
+      "checked": "2026-11-08"
     },
     "auto_stop_idle": {
       "value": false,
@@ -841,8 +847,8 @@
       "corrected_from": false,
       "source": "https://northflank.com/changelog/august-and-september-2026",
       "quote": "Coding agents can now work directly inside a managed Northflank workspace. Choose Claude Code, OpenAI Codex, Cursor, OpenCode or Pi, authenticate with your own account or API key, and connect through the browser terminal or SSH.",
-      "note": "Northflank ships 'Harnesses': preinstalled/first-party-managed coding-agent workspaces (Claude Code, Codex, Cursor, OpenCode, Pi), created via dashboard, API, or template. The card's 'false' is wrong; corrected to true (harness_api stays false, matching existing feature_evidence, since there's no prompt/event-stream API for driving the agent).",
-      "checked": "2026-09-30"
+      "note": "Northflank ships 'Harnesses': managed coding-agent workspaces with Claude Code, Codex, Cursor, OpenCode, Pi, OMP or Devin (create-harness enum), created by dashboard, API or template. You talk to the agent through a browser terminal or SSH (harness_api stays false).",
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
@@ -896,11 +902,13 @@
       "checked": "2026-10-01"
     },
     "persist_scope": {
-      "value": "folder",
-      "source": "https://northflank.com/docs/v1/api/project/services/create-deployment-service.md",
-      "quote": "Creates a snapshot when a service container terminates, including crashes, rollouts, scale-downs, evictions, and manual restarts.",
-      "note": "Only attached volumes survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
-      "checked": "2026-10-01"
+      "value": "snapshot",
+      "source": "https://northflank.com/changelog/august-and-september-2026",
+      "quote": "You can now capture the filesystem of a running or terminating service pod and restore a service from a successful snapshot. Snapshots are available through the dashboard, CLI, and API and require a Kata runtime.",
+      "how": "take a filesystem snapshot before you pause (or turn on snapshot on termination), then restore the sandbox from it; CPU (Kata microVM) sandboxes only, not gVisor GPU sandboxes. Attached volumes also survive a pause.",
+      "effort": "low",
+      "note": "Without a snapshot, pause wipes ephemeral storage (examples page: 'Ephemeral storage is wiped whenever a sandbox restarts or pauses.'). Restore is not automatic: set containerSnapshot.restoreFrom. Filesystem only, no memory. Volumes bill $0.11657/GiB-month while paused.",
+      "checked": "2026-11-08"
     },
     "raw_tcp_inbound": {
       "value": true,
@@ -913,49 +921,65 @@
   "locations": [
     {
       "country": "US",
-      "state": "IA",
-      "city": "Iowa",
-      "provider_region": "us-central1",
+      "state": null,
+      "city": "US Central",
+      "provider_region": "us-central",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "US",
-      "state": "VA",
-      "city": "Ashburn",
-      "provider_region": "us-east4",
+      "state": null,
+      "city": "US East",
+      "provider_region": "us-east1",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "US",
-      "state": "SC",
-      "city": "South Carolina",
-      "provider_region": "us-east5",
+      "state": "OH",
+      "city": "Ohio",
+      "provider_region": "us-east-ohio",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "US",
-      "state": "OR",
-      "city": "Oregon",
-      "provider_region": "us-west1",
+      "state": null,
+      "city": "US West",
+      "provider_region": "us-west",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "US",
       "state": "CA",
-      "city": "Los Angeles",
-      "provider_region": "us-west2",
+      "city": "California",
+      "provider_region": "us-west-california",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "CA",
+      "state": null,
+      "city": "Canada Central",
+      "provider_region": "canada-central",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "BR",
+      "state": null,
+      "city": "South America East",
+      "provider_region": "southamerica-east",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "GB",
       "state": null,
-      "city": "London",
-      "provider_region": "europe-west2",
+      "city": "Europe West",
+      "provider_region": "europe-west",
       "self_serve": true,
       "choosable": true
     },
@@ -963,15 +987,15 @@
       "country": "DE",
       "state": null,
       "city": "Frankfurt",
-      "provider_region": "europe-west3",
+      "provider_region": "europe-west-frankfurt",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "NL",
       "state": null,
-      "city": "Eemshaven",
-      "provider_region": "europe-west4",
+      "city": "Netherlands",
+      "provider_region": "europe-west-netherlands",
       "self_serve": true,
       "choosable": true
     },
@@ -979,23 +1003,23 @@
       "country": "CH",
       "state": null,
       "city": "Zurich",
-      "provider_region": "europe-west6",
+      "provider_region": "europe-west-zurich",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "JP",
       "state": null,
-      "city": "Tokyo",
-      "provider_region": "asia-northeast1",
+      "city": "Asia Northeast",
+      "provider_region": "asia-northeast",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "SG",
       "state": null,
-      "city": "Singapore",
-      "provider_region": "asia-southeast1",
+      "city": "Asia Southeast",
+      "provider_region": "asia-southeast",
       "self_serve": true,
       "choosable": true
     },
@@ -1003,52 +1027,41 @@
       "country": "IN",
       "state": null,
       "city": "Delhi",
-      "provider_region": "asia-south2",
+      "provider_region": "asia-south-delhi",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "HK",
       "state": null,
-      "city": "Hong Kong",
-      "provider_region": "asia-east2",
+      "city": "Asia East",
+      "provider_region": "asia-east",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "AU",
       "state": null,
-      "city": "Sydney",
-      "provider_region": "australia-southeast2",
+      "city": "Australia Southeast",
+      "provider_region": "australia-southeast",
       "self_serve": true,
       "choosable": true
     },
     {
       "country": "ZA",
       "state": null,
-      "city": "Johannesburg",
-      "provider_region": "africa-south1",
-      "self_serve": true,
-      "choosable": true
-    },
-    {
-      "country": "CA",
-      "state": "ON",
-      "city": "Toronto",
-      "provider_region": "northamerica-northeast2",
-      "self_serve": true,
-      "choosable": true
-    },
-    {
-      "country": "BR",
-      "state": null,
-      "city": "São Paulo",
-      "provider_region": "southamerica-east1",
+      "city": "Africa South",
+      "provider_region": "africa-south",
       "self_serve": true,
       "choosable": true
     }
   ],
-  "locations_source": "https://northflank.com/docs/v1/application/sandboxes/examples",
-  "locations_quote": "region\": \"us-central1\", \"region\": \"us-east4\", \"region\": \"us-east5\", \"region\": \"us-west1\", \"region\": \"us-west2\", \"region\": \"europe-west2\", \"region\": \"europe-west3\", \"region\": \"europe-west4\", \"region\": \"europe-west6\", \"region\": \"asia-northeast1\", \"region\": \"asia-southeast1\", \"region\": \"asia-south2\", \"",
-  "locations_checked": "2026-10-01"
+  "locations_source": "https://northflank.com/cloud/northflank/regions",
+  "locations_quote": "africa-south, asia-east, asia-northeast, asia-south-delhi, asia-southeast, australia-southeast, canada-central, europe-west, europe-west-frankfurt, europe-west-netherlands, europe-west-zurich, southamerica-east, us-central, us-east-ohio, us-east1, us-west, us-west-california",
+  "locations_checked": "2026-11-08",
+  "audit_2026_11_08": {
+    "applied": 8,
+    "source": "findings/northflank.json, re-checked against northflank.com/pricing, regions page, changelog Aug-Sep 2026, create-harness API, browser-agent guide",
+    "reviewed": 12
+  }
 }

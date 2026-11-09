@@ -346,6 +346,10 @@ details.scfold{display:block}
    Same box as the isolation tag next to it (size, padding, line height), no border: a light tint of its text colour */
 .iso,.acc{display:inline-block;line-height:1.4;vertical-align:middle}
 .acc{font-size:var(--t4);font-weight:400;color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent);padding:1px 6px;white-space:nowrap;cursor:help}
+/* fairness tags (FAIRNESS.md): a match that needs your own setup, a plan's start cap, a card not re-checked for 30+ days */
+.ftag{display:inline-block;line-height:1.4;vertical-align:middle;font-size:var(--t4);padding:1px 6px;white-space:nowrap;cursor:help;color:var(--ink-2);background:var(--fill)}
+.ftag.setup{color:var(--royal);background:color-mix(in srgb,var(--royal) 12%,transparent)}
+.ftag.stale{color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
 .co{margin:0 0 12px;line-height:1.7}
 .co .hint{display:inline}
 .estv{color:var(--ink-2)}
@@ -686,6 +690,7 @@ html{overflow-x:clip}
 .tbl td.y{color:var(--ink);text-align:center;font-weight:600}
 .tbl td.x{color:var(--ink-2);text-align:center}
 .tbl td.u,.tbl .u{color:var(--ink-2);opacity:.45;text-align:center}
+.tbl td.d{color:var(--royal);text-align:center}
 .provgrid{display:grid;grid-template-columns:240px minmax(0,1fr)}
 .pside{display:flex;flex-direction:column;align-self:start;position:sticky;top:calc(var(--navh,46px) - 1px)}
 .pside input{border:0;border-bottom:1px solid var(--line);padding:12px 16px;width:100%}
@@ -1160,7 +1165,7 @@ const FEAT_WHY={
   secret_proxy_any:'A secret proxy that covers any HTTP API you register (GitHub, Stripe, your own services), not only LLM keys:\n• The agent calls those APIs normally; the proxy adds the real credential on the way out.\n• The secret never enters the machine, so a compromised agent can’t leak it.',
   persistent_disk:'Files are still there after the machine stops, sleeps or times out:\n• On a VM that is the whole disk. On many sandboxes it is only one folder or an attached volume, such as /workspace: see "Whole disk survives a stop".\n• A saved browser profile (cookies, logins) does not count: it keeps no files.',
   whole_disk:'Everything on the disk survives a stop, not just one folder:\n• Packages, tools and settings you installed are still there next time, so a dev box or always-on agent does not rebuild its setup on every start.\n• Many sandboxes advertise a persistent disk that is really one folder (/workspace, /home) on top of a disk that resets: your code survives there, apt and pip installs elsewhere do not.',
-  persist_scope:'What is still there after a stop: the whole disk, only one folder or volume (named in the table), only a browser profile (cookies, logins), or nothing.',
+  persist_scope:'What is still there after a stop: the whole disk, only one folder or volume (named in the table), a snapshot you take and restore yourself, only a browser profile (cookies, logins), or nothing.\n• “Your own setup” anywhere on this page: the provider documents how to get the feature (install, official example, add-on, other runtime) and you do the work. It counts as a match, marked “with your own setup”.',
   sidecar:'Run your own extra containers next to the sandbox, on the same host but isolated from it:\n• Keep credentials, a proxy or the agent harness in the sidecar, where the agent\u2019s code can\u2019t read them, and still talk to it locally with no network round trip.\n• Run a database or service for the sandbox without packing it into the same image.',
   fuse:'Mount FUSE filesystems inside the machine (s3fs, gcsfuse, rclone mount, sshfs):\n• Work on a bucket or a remote disk as if it were a local folder.\n• Needs a kernel of its own: VMs and microVMs have it; gVisor sandboxes don\u2019t.',
   kernel_features:'Linux features that need a kernel of its own: eBPF, custom filesystem mounts, nested cgroups, network namespaces:\n• Profilers, tracers and security tools work; agents can split CPU and memory between their own processes.\n• VMs and microVMs have them; gVisor and isolates don\u2019t.',
@@ -1502,7 +1507,12 @@ let lastWO=null, focusProv=null, rankIdx=new Map();
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); act=(act+(e.key==='ArrowDown'?1:-1)+list.length)%Math.max(1,list.length); show(); }
     else if(e.key==='Enter'&&list[act]){ e.preventDefault(); go(list[act].id); }
     else if(e.key==='Escape'){ dd.hidden=true; } }); }
-window.__pm={ run:()=>run(), readW:()=>readW(), readOpts:()=>readOpts() }; // test/measurement hook
+// test/measurement hook. rankPreset(k) = exactly what the page ranks when it opens on preset k (site/rankings.js)
+window.__pm={ run:()=>run(), readW:()=>readW(), readOpts:()=>readOpts(),
+  rankPreset:k=>{ holdRun=true; try{ applyPreset(k); }finally{ holdRun=false; }
+    const W=readW(), O=readOpts(), perRegime=$('#perRegime').checked;
+    return Object.assign(rankRes(W,perRegime,pool().flatMap(c=>rowsFor(c,W,O,perRegime))),{W,O,preset:PRESETS.find(p=>p.k===k)}); },
+  helpers:()=>({ unsure, PRESETS, CARDS, multiRegime:c=>(c.modes||[]).filter(m=>!PM.flagsOf(m).includes('legacy')&&!/^region-/.test(m.key)).length>1 }) };
 let holdRun=false;
 function run(){
   if(holdRun) return;
@@ -1580,7 +1590,8 @@ function rowsFor(c,W,O,perRegime){
       return r; }).filter(r=>r.eligible);
     return rows.length?rows:[PM.priceSoft(c,W,O)];
 }
-function RUN_REST(W,O,perRegime,res,hrs,nf){
+// The ranking itself, with no DOM: the page and site/rankings.js (the published /data/rankings) both call it, so they can't drift.
+function rankRes(W,perRegime,res){
   // a bill with no compute price for real running hours is a data gap, not a free provider
   res.forEach(r=>{ if(r.eligible&&r.hours>0&&!W.showZero){ const b=r.breakdown||{}; if((b.compute||0)+(b.memory||0)+(b.gpu||0)+(b.fees||0)<=0.01){ r.eligible=false; r.reasons=['no usable compute price for this workload']; } } });
   res.forEach(r=>{ r.key=r.card.id+'|'+(r.regime?r.regime.key:''); r.weird=weirdness(r); });
@@ -1593,7 +1604,10 @@ function RUN_REST(W,O,perRegime,res,hrs,nf){
   // one ranking: meets by price; compromises by severity then price; ≤3 distinct regimes per provider
   const RK=PM.rankRows(res,W,perRegime?3:1);
   const isoKeep=r=>!isoOnly||(isoOfRow(r)||[])[0]===isoOnly;
-  const strictOk=RK.meets.filter(isoKeep), softOk=RK.soft.filter(isoKeep), bad=RK.noPrice, offTopic=RK.offTopic;
+  return {strictOk:RK.meets.filter(isoKeep), softOk:RK.soft.filter(isoKeep), bad:RK.noPrice, offTopic:RK.offTopic};
+}
+function RUN_REST(W,O,perRegime,res,hrs,nf){
+  const {strictOk,softOk,bad,offTopic}=rankRes(W,perRegime,res);
   // how many ranked rows each mismatch touches (rows you already accepted count too, so their toggle stays visible)
   const cmpCount=new Map(); softOk.concat(strictOk.filter(r=>r.accepted)).forEach(r=>(r.cmpAtoms||[]).forEach(t=>cmpCount.set(t,(cmpCount.get(t)||0)+1)));
   { // 'far below comparable': compare with the median of the same kind of product (VMs with VMs, CI runners with CI runners)
@@ -1635,7 +1649,7 @@ function RUN_REST(W,O,perRegime,res,hrs,nf){
     else if(r.accepted) icons.push(ic('blue','✓',`Ranked as a full match because you're fine with:\n• ${r.accepted.join('\n• ')}`));
     if(r.pinned&&!r.regime) icons.push(ic('blue','✎','You customised this offer'));
     const uns=unsure(r); if(uns.length) icons.push(ic('unsure','?',`Not sure it can do this. Not confirmed:\n• ${uns.join('\n• ')}`));
-    return `<div class="r${isBoat(r.card)?' me':''}${open===r.key?' open':''}" data-id="${esc(r.key)}"><div class="pos">${i+1}</div><div class="nm"><span class="pname">${esc(r.card.name)}</span>${accTag(r.card)}${chip}<span class="icons">${icons.join('')}</span></div><div class="bar">${segs}</div><div class="price" data-tip="${esc(fmtH(r.perHour))} per hour of work"><b>${fmt(r.total)}</b><small data-tip="${esc(fmtH(r.perHour))} per hour of work done${r.reused?` · priced as ${r.reused} machines kept on and reused`:''}">${fmtH(r.perHour)}/h</small></div>${open===r.key?detail(r):''}</div>`;};
+    return `<div class="r${isBoat(r.card)?' me':''}${open===r.key?' open':''}" data-id="${esc(r.key)}"><div class="pos">${i+1}</div><div class="nm"><span class="pname">${esc(r.card.name)}</span>${accTag(r.card)}${chip}${setupTag(r)}${startTag(r)}${staleTag(r.card)}<span class="icons">${icons.join('')}</span></div><div class="bar">${segs}</div><div class="price" data-tip="${esc(fmtH(r.perHour))} per hour of work"><b>${fmt(r.total)}</b><small data-tip="${esc(fmtH(r.perHour))} per hour of work done${r.reused?` · priced as ${r.reused} machines kept on and reused`:''}">${fmtH(r.perHour)}/h</small></div>${open===r.key?detail(r):''}</div>`;};
   const DM=10, DS=strictOk.length?5:10, NM=showAll.meets?1e9:DM, NS=showAll.soft?1e9:DS;
   // expand / collapse toggle under each group
   const more=(k,total,def)=>total<=def?'':showAll[k]?`<button class="more" data-more="${k}" data-less="1">Show fewer</button>`:`<button class="more" data-more="${k}">Show ${total-def} more</button>`;
@@ -1799,6 +1813,13 @@ function findFixes(){ const run0=++fixRun, list=lastMissing.slice(), cand=FIXES(
 $('#inel').addEventListener('toggle',()=>{ if($('#inel').open) findFixes(); });
 // ---- icons with hover / tap tooltips
 const ic=(cls,glyph,tipText)=>`<span class="ic ${cls}" data-tip="${esc(tipText)}" tabindex="0">${glyph}</span>`;
+// ---- fairness tags (FAIRNESS.md): a feature you set up yourself, the plan's start cap, a card not re-checked for 30+ days
+const diyText=(c,k)=>{ const h=(c.diy_how||{})[k]||{}; return `${PM.FEATURE_LABELS[k]||k}: ${h.how||'the provider documents how; you set it up'}${h.effort?` (effort: ${h.effort})`:''}`; };
+const setupTag=r=>(r.diy||[]).length?`<span class="ftag setup" tabindex="0" data-tip="${esc('A match with your own setup. The provider documents how to get this; you do the work:\n• '+r.diy.map(k=>diyText(r.card,k)).join('\n• '))}">with your own setup</span>`:'';
+const startTxt=s=>[s.per_min!=null?`${s.per_min}/min`:'',s.per_hour!=null?`${s.per_hour}/hour`:'',s.per_day!=null?`${s.per_day}/day`:''].filter(Boolean).join(' · ');
+const startTag=r=>{ const s=r.startLimits; if(!s) return ''; const first=s.per_min!=null?`${s.per_min} starts/min`:s.per_hour!=null?`${s.per_hour} starts/hour`:`${s.per_day} starts/day`;
+  return `<span class="ftag" tabindex="0" data-tip="${esc(`Plan “${s.plan}” limits how many machines you can start: ${startTxt(s)}.`)}">max ${esc(first)}</span>`; };
+const staleTag=c=>c.stale?`<span class="ftag stale" tabindex="0" data-tip="${esc(`Last checked against the provider’s pages on ${c.checked}, more than 30 days before this page was built. Prices and features can have changed.`)}">checked ${esc(c.checked)}</span>`:'';
 const SVG={
   usage:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9 1 3 9h4l-1 6 6-8H8z"/></svg>',
   fixed:'<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1"/></svg>',
@@ -1955,11 +1976,14 @@ function detail(r){
   const atomsL=r.cmpAtoms||[], capT=t=>t.charAt(0).toUpperCase()+t.slice(1);
   const comp=(r.soft||r.accepted)&&atomsL.length?`<h4>${r.soft?'Doesn’t fully match':'Full match because you’re fine with'}</h4><p class="hint" style="margin:0 0 8px">Accept every point and it ranks with the full matches.</p><div class="cmpchips dchips">${atomsL.map(t=>`<button type="button" class="cmpk" aria-pressed="${okComp.has(t)}" data-t="${esc(t)}" data-tip="Applies to every provider">${esc(capT(t))}</button>`).join('')}</div>`
     :r.soft?`<h4>Doesn’t fully match</h4><ul style="margin:0 0 12px">${r.compromises.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'';
-  return `<div class="detail" data-card="${esc(c.id)}"><div>${comp}${acc}${r.why?`<h4>Versus boat.dev</h4><p style="margin:0 0 12px;white-space:pre-line">${esc(r.why.long)}</p>`:''}${r.weird&&r.weird.length?`<h4>Worth knowing</h4><ul style="margin:0 0 12px">${r.weird.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}${coHtml(c)}<h4>Regime</h4><p style="margin:0 0 12px">${esc(r.modeLabel)} · ${esc(r.plan)}${r.shape&&r.shape.label?' · '+esc(r.shape.label):''} · ${esc(fmtH(r.perHour))}/h</p><h4>This month</h4><table>${rows}<tr><td><b>total</b></td><td><b>${fmt(r.total)}</b></td></tr></table>
+  const setup=(r.diy||[]).length?`<h4>With your own setup</h4><ul style="margin:0 0 12px">${r.diy.map(k=>{ const src=((c.diy_how||{})[k]||{}).source; return `<li>${esc(diyText(c,k))}${src?` · <a href="${esc(src)}" target="_blank" rel="noopener">source</a>`:''}</li>`; }).join('')}</ul>`:'';
+  const lim=r.startLimits?`<p class="hint" style="margin:0 0 12px">Start limit on plan “${esc(r.startLimits.plan)}”: ${esc(startTxt(r.startLimits))}.</p>`:'';
+  return `<div class="detail" data-card="${esc(c.id)}"><div>${comp}${setup}${lim}${acc}${r.why?`<h4>Versus boat.dev</h4><p style="margin:0 0 12px;white-space:pre-line">${esc(r.why.long)}</p>`:''}${r.weird&&r.weird.length?`<h4>Worth knowing</h4><ul style="margin:0 0 12px">${r.weird.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}${coHtml(c)}<h4>Regime</h4><p style="margin:0 0 12px">${esc(r.modeLabel)} · ${esc(r.plan)}${r.shape&&r.shape.label?' · '+esc(r.shape.label):''} · ${esc(fmtH(r.perHour))}/h</p><h4>This month</h4><table>${rows}<tr><td><b>total</b></td><td><b>${fmt(r.total)}</b></td></tr></table>
   ${r.perfFactor&&r.perfFactor!==1?`<p class="hint">Session time ×${r.perfFactor.toFixed(2)} by measured CPU speed (applies to the ${Math.round(((lastWO&&lastWO.W.cpuUtil)||0)*100)}% of the time the CPU is busy).</p>`:''}
   ${r.unknowns.length?`<p class="hint">Unverified: ${esc(r.unknowns.join(', '))}</p>`:''}
   ${cav.length?`<ul>${cav.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
-  <p class="hint"><a href="#providers" data-prov="${esc(c.id)}">Full pricing write-up</a> · <a href="${esc(c.url)}" target="_blank" rel="noopener">Official pricing page</a></p></div>
+  ${c.checked?`<p class="hint">Last checked ${esc(c.checked)}${c.stale?' (more than 30 days ago)':''}.</p>`:''}
+  <p class="hint"><a href="#providers" data-prov="${esc(c.id)}">Full pricing write-up</a> ·<a href="${esc(c.url)}" target="_blank" rel="noopener">Official pricing page</a></p></div>
   <div class="offer"><h4>Offer for ${esc(c.name)}</h4>
     <label class="f">Billing regime<select data-ov="mode"><option value="auto">Cheapest that fits (auto)</option>${modes}</select></label>
     <label class="f">Plan<select data-ov="plan"><option value="auto">Cheapest that fits (auto)</option>${plans}</select></label>
@@ -2141,13 +2165,13 @@ const isoOf=c=>isoClasses(c).join(' · ');
 const DERIVED=['custom_image','vm_isolation','strong_isolation','image_oci','guest_firewall','persistent_disk','image_snapshot','fuse','kernel_features'];
 // per-product features (set on a mode, not the card): yes when any of the provider's products has it
 const MODE_KEYS=['burst'];
-const anyMode=(c,k)=>{ const v=(c.modes||[]).map(m=>PM.testFeature(PM.modeFeatures(c,m),k)); return v.includes(true)?true:v.includes(null)?null:false; };
+const anyMode=(c,k)=>{ const v=(c.modes||[]).map(m=>PM.testFeature(PM.modeFeatures(c,m),k)); return v.includes(true)?true:v.includes(PM.DIY)?PM.DIY:v.includes(null)?null:false; };
 const cellVal=(f,k)=>(f[k]===undefined||DERIVED.includes(k))?PM.testFeature(f,k):f[k];
 // what survives a stop, with the VM default (a VM keeps its whole disk) that only the engine's per-product view applies
 const scopeOf=c=>{ const fs=(c.modes||[]).map(m=>PM.modeFeatures(c,m)); for(const f of fs) if(f.persist_scope) return f.persist_scope;
   if(fs.some(f=>PM.testFeature(f,'whole_disk')===true)) return 'whole';
   const f=c.features||{}; return f.persistent_disk===false&&f.snapshot==='none'?'none':null; };
-const VAL_NAME={'any-http':'any API','ai-only':'LLM keys only',mem:'memory',fs:'disk only',disk:'disk only',whole:'whole disk',folder:'one folder',profile:'browser profile'};
+const VAL_NAME={'any-http':'any API','ai-only':'LLM keys only',mem:'memory',fs:'disk only',disk:'disk only',whole:'whole disk',folder:'one folder',profile:'browser profile',diy:'your own setup',snapshot:'snapshot you restore'};
 const tok=v=>v===true?'Yes':v===false||v==='none'?'No':v==null?'Unknown':VAL_NAME[v]||String(v);
 // every column's values for one provider (isolation can have several)
 const tokensOf=(c,k)=>{ const f=c.features||{};
@@ -2203,7 +2227,8 @@ function renderMatrix(){
   $('#mcount').innerHTML='<b>'+rows.length+'</b> of '+CARDS.length+' providers';
   const ks=Object.keys(mf);
   $('#mchips').innerHTML=ks.map(k=>'<span class="mfchip" data-k="'+k+'"><button type="button" class="mfedit" data-k="'+k+'" data-tip="Change this filter">'+esc(FL(k))+': <b>'+esc(mf[k].join(', '))+'</b></button><button type="button" class="mfx" data-k="'+k+'" aria-label="Remove filter">×</button></span>').join('')+(ks.length>1?'<button class="mclear">Clear all</button>':'');
-  const cell=(k,v)=>{ const c=on(k); return v===true?'<td class="y '+c+'">✓</td>':v===false||v==='none'?'<td class="x '+c+'">–</td>':v==null?'<td class="u '+c+'">?</td>':'<td class="'+c+'">'+esc(VAL_NAME[v]||v)+'</td>'; };
+  const cell=(k,v)=>{ const c=on(k); return v===true?'<td class="y '+c+'">✓</td>':v===false||v==='none'?'<td class="x '+c+'">–</td>':v==null?'<td class="u '+c+'">?</td>'
+    :v===PM.DIY?'<td class="d '+c+'" data-tip="The provider documents a way to get this yourself (install, official example, add-on or other runtime).">your own setup</td>':'<td class="'+c+'">'+esc(VAL_NAME[v]||v)+'</td>'; };
   const th=(k,label,cls)=>'<th class="'+cls+' '+on(k)+'" data-k="'+k+'"'+(on(k)?' data-tip="Filtered: '+esc(mf[k].join(', '))+'"':'')+'><span class="fs">'+(on(k)?'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 2h9L7 6.5V10L5 11V6.5z"/></svg>':'')+'</span>'+esc(label)+'</th>';
   const amtCell=(k,x)=>'<td class="num cn '+on(k)+'">'+(x?(x.src?'<a href="'+esc(x.src)+'" target="_blank" rel="noopener">':'')+(x.s==='estimated'?'~':'')+money(x.v)+(x.src?'</a>':'')+(x.s==='estimated'?' <span class="estv">est.</span>':''):'<span class="u">?</span>')+'</td>';
   $('#matrix').innerHTML='<table><thead><tr><th class="pn" data-sort="1">Provider '+(msortD>0?'↑':'↓')+'</th>'+['accel','stage','raised','revenue'].map(k=>th(k,FL(k),'fh')).join('')+th('iso','Isolation','fh')+th('session','Max session','fh')

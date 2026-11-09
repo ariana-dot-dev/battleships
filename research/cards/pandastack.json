@@ -78,7 +78,8 @@
       "max_vcpu": 8,
       "max_ram_gib": 4,
       "sizes_allowed": null,
-      "note": "Plan RAM cap 4 GiB; account CPU/RAM pools 40/10 (0 is unlimited/custom API sentinel); paid TTL is idle timeout, not running lifetime. Volume quota 1 GiB; max 1 volumes. Also: 1 org seat, 60 creates/hour, sustained CPU capped at 2 cores (API max_cpu_quota_cores 2), sandbox deleted 1 h after creation (apps/DBs exempt); credit exhaustion pauses the workspace (402 on create), never bills."
+      "note": "Plan RAM cap 4 GiB; account CPU/RAM pools 40/10 (0 is unlimited/custom API sentinel); paid TTL is idle timeout, not running lifetime. Volume quota 1 GiB; max 1 volumes. Also: 1 org seat, 60 creates/hour, sustained CPU capped at 2 cores (API max_cpu_quota_cores 2), sandbox deleted 1 h after creation (apps/DBs exempt); credit exhaustion pauses the workspace (402 on create), never bills.",
+      "max_starts_per_hour": 60
     },
     {
       "name": "Pro",
@@ -92,7 +93,8 @@
       "max_vcpu": 8,
       "max_ram_gib": 16,
       "sizes_allowed": null,
-      "note": "Plan RAM cap 16 GiB; account CPU/RAM pools 400/800 (0 is unlimited/custom API sentinel); paid TTL is idle timeout, not running lifetime. Volume quota 100 GiB; max 10 volumes."
+      "note": "Plan RAM cap 16 GiB; account CPU/RAM pools 400/800 (0 is unlimited/custom API sentinel); paid TTL is idle timeout, not running lifetime. Volume quota 100 GiB; max 10 volumes.",
+      "max_starts_per_hour": 600
     },
     {
       "name": "Team",
@@ -106,7 +108,8 @@
       "max_vcpu": 8,
       "max_ram_gib": 64,
       "sizes_allowed": null,
-      "note": "Plan RAM cap 64 GiB; account CPU/RAM pools 8000/32000 (0 is unlimited/custom API sentinel); paid TTL is idle timeout, not running lifetime. Volume quota 2500 GiB; max 50 volumes."
+      "note": "Plan RAM cap 64 GiB; account CPU/RAM pools 8000/32000 (0 is unlimited/custom API sentinel); paid TTL is idle timeout, not running lifetime. Volume quota 2500 GiB; max 50 volumes. Pricing API lists max CPU per sandbox 16 (Enterprise 64), but the templates docs pin cpu to 8 server-side; card keeps 8.",
+      "max_starts_per_hour": 6000
     },
     {
       "name": "Enterprise",
@@ -122,7 +125,8 @@
       "max_vcpu": 8,
       "max_ram_gib": 256,
       "sizes_allowed": null,
-      "note": "Plan RAM cap 256 GiB; account CPU/RAM pools 0/0 (0 is unlimited/custom API sentinel); paid TTL is idle timeout, not running lifetime. Volume quota 0 GiB; max 0 volumes."
+      "note": "Plan RAM cap 256 GiB; account CPU/RAM pools 0/0 (0 is unlimited/custom API sentinel); paid TTL is idle timeout, not running lifetime. Volume quota 0 GiB; max 0 volumes.",
+      "max_starts_per_hour": null
     }
   ],
   "free": {
@@ -146,7 +150,7 @@
     "docker_inside": true,
     "nested_virt": false,
     "root": true,
-    "systemd": null,
+    "systemd": true,
     "browser": true,
     "desktop": false,
     "computer_use": false,
@@ -215,8 +219,8 @@
   },
   "knobs": [],
   "caveats": [
-    "Every first-party template is pinned to 8 vCPUs, not selectable 4; RAM is baked per template. Live API lists Team CPU quota 16 and Enterprise 64, but quota does not prove launchable >8 template cores.",
-    "Engine bumps 4-vCPU request to mandatory 8 and keeps CPU utilization fraction. Equal absolute CPU work requires adjusting utilization from 30% of 4 to 15% of 8.",
+    "Every first-party template is pinned to 8 burstable vCPUs (cpu is pinned to 8 server-side); RAM is baked per template, from 1 GB (postgres-16) to 16 GB, and custom templates set it with --memory-mb. The pricing API lists max CPU per sandbox 16 on Team and 64 on Enterprise, but no doc shows how to launch above 8. CPU bills by active seconds only, so idle vCPUs cost nothing.",
+    "Engine bumps a 4-vCPU request to the mandatory 8 and keeps the CPU utilization fraction. Because PandaStack bills active CPU only, equal absolute CPU work means 15% of 8 rather than 30% of 4; the engine figure overstates CPU cost by up to 2x.",
     "Live API Team SAML differs from pricing page Enterprise-only SSO presentation; confirm plan entitlement.",
     "Pricing FAQ says hibernated state storage currently included/free; lifecycle page says hibernated storage costs. Card follows explicit pricing FAQ but treats this as a documented conflict.",
     "Plain pause freezes CPU but retains RAM on the host; RAM billing while merely paused is not clearly specified. Do not equate pause and full hibernation.",
@@ -226,9 +230,10 @@
     "Performance claims are vendor claims, not independent measurements.",
     "Disk (verified 2026-09-28): each template ships a fixed rootfs (base 2 GB, agent 6 GB, claude-agent 8 GB, browser 4 GB; docs/templates/overview) with no separate rootfs charge; included_disk_gib = 2 (base). Extra space comes from persistent volumes: plan quota included (Free 1 GiB, Pro 10 x 10 GiB = 100 GiB, Team 50 x 50 GiB = 2.5 TiB), then $0.15/GiB-month (pricing page, api.pandastack.ai/v1/pricing volume_usd_per_gib_month). The engine charges $0.15 on all disk beyond 2 GiB, so it overstates cost for disk that fits inside the plan's volume quota.",
     "SSH (verified 2026-09-28): 'pandastack sandbox ssh <id>' opens an interactive PTY over WebSocket (docs/sandboxes/terminal); no SSH protocol or SSH keys are documented, so standard ssh/scp/VS Code Remote-SSH clients don't work. ssh = false.",
-    "Desktop (verified 2026-09-28): the 8 official templates (base, code-interpreter, agent, claude-agent, browser, 3 postgres) include no desktop/VNC/GUI template; the browser template is headless Chromium. desktop = false (a custom image could add one; unverified).",
+    "Desktop (verified 2026-11-08): the 8 official templates (base, code-interpreter, agent, claude-agent, browser, 3 postgres) include no desktop/VNC/GUI template; the browser template is headless Chromium. Custom Dockerfile templates exist, but no desktop example is documented, so desktop = false.",
     "Hourly create caps per workspace: Free 60, Pro 600, Team 6,000 (Enterprise custom). Each returns HTTP 429 'hourly create limit exceeded'. Forks, restored snapshots and template launches each count as a sandbox. Bursty fan-out beyond 600 creates/h forces Team.",
-    "Non-persistent sandboxes are killed at TTL (default 1 h, refreshed by API activity; paid TTL cap Pro 7 d / Team 30 d idle timeout). Only persistent:true sandboxes are hibernated by the 5-min idle sweeper."
+    "Non-persistent sandboxes are killed at TTL (default 1 h, refreshed by API activity; paid TTL cap Pro 7 d / Team 30 d idle timeout). Only persistent:true sandboxes are hibernated by the 5-min idle sweeper.",
+    "Preview URLs (verified 2026-11-08): the docs say the URL is the bearer credential with no separate token; the changelog mentions preview URL ACLs (v0.2.5) and auth-aware sharing (v0.3.5), not reflected in current docs."
   ],
   "sources": [
     "https://www.pandastack.ai/pricing/",
@@ -245,7 +250,8 @@
     "https://docs.pandastack.ai/docs/self-host/overview/",
     "https://docs.pandastack.ai/docs/sandboxes/repl/",
     "https://docs.pandastack.ai/docs/sandboxes/terminal/",
-    "https://docs.pandastack.ai/docs/faq/limits-and-concurrency/"
+    "https://docs.pandastack.ai/docs/faq/limits-and-concurrency/",
+    "https://www.pandastack.ai/changelog/"
   ],
   "fleet": {
     "default_max_instances": 5,
@@ -255,13 +261,14 @@
     "raise_time_days": null,
     "verification": null,
     "tiers": "Free 5, Pro 50, Team 500, Enterprise unlimited/custom. Aggregate CPU/RAM pools additionally apply: Free 40 vCPU/10 GiB, Pro 400/800, Team 8,000/32,000.",
-    "notes": "Free quota can be memory-bound well below 5 for larger machines. 10/50 fit Pro, 300 Team, 1,000 Enterprise subject to resources. Hibernation, retained objects and create-rate limits must also be considered.",
+    "notes": "Free quota can be memory-bound well below 5 for larger machines. 10/50 fit Pro, 300 Team, 1,000 Enterprise subject to resources. Hibernation, retained objects and create-rate limits must also be considered. Create-rate caps per hour (Free 60, Pro 600, Team 6,000) are set as plan max_starts_per_hour.",
     "sources": [
       "https://www.pandastack.ai/pricing/",
       "https://api.pandastack.ai/v1/pricing",
       "https://docs.pandastack.ai/docs/getting-started/billing/"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-09-28",
+    "checked": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 5,
@@ -308,8 +315,9 @@
       "value": false,
       "source": "https://docs.pandastack.ai/docs/faq/networking-and-egress/",
       "quote": "The URL itself is the credential: anyone who has it can reach that port, and there is no separate token to revoke.",
-      "note": "Every listening port (up to 32) is automatically public at https://{port}-{sandbox-id}.pandastack.ai; the unguessable UUID is the only protection; no auth/IP allowlist/port selection. Apps get custom domains; DBs need TLS+password.",
-      "checked": "2026-09-29"
+      "note": "Every listening port (up to 32) is public at https://{port}-{sandbox-id}.pandastack.ai; the docs say the sandbox UUID is the bearer credential and give no token, IP allowlist or private option. The changelog lists Preview URL ACLs (v0.2.5, 2026-05-01) and auth-aware sharing primitives (v0.3.5, 2026-05-20), but the current preview-URL docs do not document them. Apps get custom domains; DBs need TLS+password.",
+      "checked": "2026-11-08",
+      "source2": "https://www.pandastack.ai/changelog/"
     },
     "guest_firewall": {
       "value": true,
@@ -351,21 +359,21 @@
       "value": false,
       "source": "https://docs.pandastack.ai/docs/templates/overview/",
       "quote": "browser Ubuntu 24.04 + Chromium 8 4 GB 4 GB Headless Chromium + Playwright + crawl4ai. Scraping, RPA, screenshots, LLM-friendly web extraction.",
-      "note": "not offered: outside the product's scope. The only browser offering is a headless Chromium automated via Playwright/CDP (browser_control), not a screenshot+click computer-use API; there is no desktop/VNC template.",
-      "checked": "2026-09-30"
+      "note": "No screenshot+click computer-use API or desktop template is documented. The browser template gives headless Chromium driven through Playwright/CDP.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
       "source": "https://docs.pandastack.ai/docs/templates/overview/",
       "quote": "browser Ubuntu 24.04 + Chromium ... Headless Chromium + Playwright + crawl4ai. Scraping, RPA, screenshots, LLM-friendly web extraction.",
-      "note": "not offered: outside the product's scope. PandaStack is a general Firecracker sandbox/app/DB platform; its browser template is plain headless Chromium with no stated stealth/anti-fingerprinting features.",
+      "note": "The browser template is plain headless Chromium; the docs state no stealth or anti-fingerprinting feature.",
       "checked": "2026-09-30"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://www.pandastack.ai/pricing/",
       "quote": "Open-source Firecracker microVM platform for AI agents and code execution — sub-second sandboxes, git-driven app hosting, managed Postgres and serverless functions.",
-      "note": "not offered: outside the product's scope. No CAPTCHA-solving feature is mentioned anywhere in docs, pricing, or templates.",
+      "note": "No CAPTCHA-solving feature appears in the docs, pricing or templates.",
       "checked": "2026-09-30"
     },
     "egress_ip_type": {
@@ -394,13 +402,13 @@
       "source": "https://docs.pandastack.ai/docs/templates/overview/",
       "quote": "agent Ubuntu 24.04 + Node 24 8 2 GB 6 GB Every terminal coding agent with a public CLI, in one image: claude, codex, opencode, amp, grok, gemini, copilot. Pick one via its API key.",
       "note": "A first-party 'agent' template preinstalls multiple coding-agent CLIs (Claude Code, Codex, OpenCode, etc.); there's also a dedicated 'claude-agent' template.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
       "source": "https://docs.pandastack.ai/docs/agents/claude-managed-agents/",
       "quote": "run a self-hosted Claude Managed Agents worker",
-      "note": "not offered: outside the product's scope. PandaStack has no first-party browser/computer-use/research agent product of its own — 'pandastack cma' launches Anthropic's Claude Managed Agents worker inside a sandbox, but prompts/events flow through Anthropic's own API, not a PandaStack agent API.",
+      "note": "PandaStack has no first-party browser/computer-use/research agent API. pandastack cma runs Anthropic Claude Managed Agents worker inside a sandbox; prompts and events go through Anthropic API.",
       "checked": "2026-09-30"
     },
     "public_ipv4": {
@@ -421,21 +429,21 @@
       "value": false,
       "source": "https://www.pandastack.ai/pricing/",
       "quote": "Every sandbox and app gets 8 vCPUs — bursting to all of them on Pro and Team, up to 2 sustained cores on Free. CPU bills by the active seconds you actually burn, memory by resident working set.",
-      "note": "not offered: outside the product's scope. Pricing, templates, and rate card only describe vCPU/RAM meters; no GPU instance type, GPU template, or GPU rate exists anywhere in the docs.",
+      "note": "Pricing, templates and rate card list only vCPU/RAM meters; no GPU instance type, template or rate is published.",
       "checked": "2026-09-30"
     },
     "windows": {
       "value": false,
       "source": "https://docs.pandastack.ai/docs/templates/overview/",
       "quote": "PandaStack ships 8 production templates... base Ubuntu 24.04 + mise",
-      "note": "not offered: outside the product's scope. All templates are Linux (Ubuntu 24.04); there is no Windows guest option.",
+      "note": "All templates are Linux (Ubuntu 24.04); no Windows guest is documented.",
       "checked": "2026-09-30"
     },
     "macos": {
       "value": false,
       "source": "https://docs.pandastack.ai/docs/templates/overview/",
       "quote": "PandaStack ships 8 production templates... base Ubuntu 24.04 + mise",
-      "note": "not offered: outside the product's scope. Apple Silicon is only mentioned as a local self-hosting dev host (Lima VM); no macOS guest/sandbox product is offered.",
+      "note": "Apple Silicon appears only as a host for local self-hosted dev (Lima); no macOS guest is documented.",
       "checked": "2026-09-30"
     },
     "arm64": {
@@ -472,14 +480,14 @@
       "source": "https://docs.pandastack.ai/docs/sandboxes/terminal/",
       "quote": "Interactive PTY into a sandbox over WebSocket. ... The terminal endpoint hands you a real Linux PTY inside the sandbox over a WebSocket.",
       "note": "The only interactive shell access ('pandastack sandbox ssh <id>') is a WebSocket PTY, not the SSH protocol. Templates docs (docs/templates/overview/) confirm sshd is bundled purely as 'the host↔guest exec bridge' used internally by the orchestrator/API, not exposed for user SSH clients/keys - no documented way to `ssh`/`scp`/VS Code Remote-SSH into a sandbox with your own key.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
       "source": "https://docs.pandastack.ai/docs/templates/overview/",
       "quote": "browser Ubuntu 24.04 + Chromium 8 4 GB 4 GB Headless Chromium + Playwright + crawl4ai. Scraping, RPA, screenshots, LLM-friendly web extraction.",
-      "note": "Full template catalog (base, code-interpreter/agent, claude-agent, browser, postgres-16 x3) has no desktop/VNC/GUI template; the only browser-related template is explicitly headless Chromium. No streamed desktop/computer-use GUI is documented anywhere on the site.",
-      "checked": "2026-09-30"
+      "note": "No first-party desktop/VNC/GUI template; the browser template is headless Chromium. Custom templates are built from a Dockerfile, but PandaStack documents no desktop example, so this stays false (no documented path).",
+      "checked": "2026-11-08"
     },
     "soc2": {
       "value": false,
@@ -516,6 +524,13 @@
       "quote": "hibernate is the heavier sibling: it dumps the sandbox's memory + disk to a snapshot, then stops the Firecracker process entirely. Host RAM and vCPUs are freed. ... Hibernation is automatic for persistent sandboxes. The server-side idle sweeper hibernates any persistent: true sandbox that's been idle for 5 minutes. Wake is implicit on the next API request.",
       "note": "The whole disk survives a stop, installed packages included.",
       "checked": "2026-10-01"
+    },
+    "systemd": {
+      "value": true,
+      "source": "https://docs.pandastack.ai/docs/templates/overview/",
+      "quote": "Every template autostarts sshd and the pandastack-agent systemd unit.",
+      "note": "Templates boot systemd as init.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [],

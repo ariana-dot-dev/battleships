@@ -32,10 +32,10 @@ No blog post, changelog entry or dated announcement covers the switch. The blog 
 Other facts:
 - No region multipliers. The account is bound to one region, and PDX is closed to new accounts.
 - No creation fee.
-- No snapshots: `cp` is a copy-on-write disk clone, and retained state is simply disk.
+- Saved state is the VM disk. `cp` is a copy-on-write disk clone. VM backups (development preview) snapshot the disk to your own S3 bucket when you run them, and `backup restore` puts it on a new VM (docs/vm-backups.md, checked 2026-11-08). No scheduled backups.
 - No dedicated IPv4: VMs share an IPv4 pool per owner, with HTTPS proxy and SSH only.
 - No GPU.
-- Nested virtualisation is Enterprise-only.
+- Nested virtualisation is off by default. Support enables it on request; the FAQ names no plan (docs/faq/nested-virtualization.md, checked 2026-11-08).
 ## Gotchas
 - **The pool is flat. Your utilisation does not matter.** On a pool, 30% CPU utilisation saves you nothing, but idle or stopped VMs cost nothing extra, so 1,000 short sandboxes fit in one pool. You size the pool for **peak concurrent vCPU**. The legacy docs imply the sum of VM sizes is bounded by the pool ("run one VM at the full 16 vCPU, or split … 2×8 or 4×4"). Memory is soft-limited: exe.dev contacts you if active memory stays over the plan for a long time.
 - **The current Personal plan is half the RAM of the legacy one**: 2 vCPU / 4 GB for $15, against 2 vCPU / 8 GB for $20.

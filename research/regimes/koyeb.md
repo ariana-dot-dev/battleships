@@ -1,5 +1,5 @@
 # Koyeb: pricing regimes (as of 2026-09-28)
-Koyeb Sandboxes (public preview since 2025-11-19) are Koyeb services running on Koyeb Instances: Cloud Hypervisor microVMs on bare metal. They are billed **per second on a fixed instance type**, plus a monthly plan subscription whose fee only partly returns as included usage. Koyeb was acquired by Mistral AI (announced 2026-02-17). Since about 2026-02-26 new users must subscribe to Pro/Scale/Enterprise, because the free Starter plan was removed.
+Koyeb Sandboxes (public preview since 2025-11-19) are Koyeb services running on Koyeb Instances: Cloud Hypervisor microVMs on bare metal. They are billed **per second on a fixed instance type**, plus a monthly plan subscription whose fee only partly returns as included usage. Koyeb signed a definitive agreement with Mistral AI (changelog 2026-02-20). New users choose Pro, Scale or Enterprise. Starter is not on the live pricing page; existing accounts keep it.
 ## Regime table
 | # | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|---|
@@ -9,7 +9,7 @@ Koyeb Sandboxes (public preview since 2025-11-19) are Koyeb services running on 
 | 4 | Pro plan | Entry paid plan (required for new signups) | $29/month fee with **$10 included compute** (not a full credit) | 10 users, 100 services, CPU concurrency 100, GPU 20, 1 TB bandwidth, 5 builds. Light sleep window 5 min-3 h, deep sleep 5 min-6 h | https://www.koyeb.com/pricing, /docs/faqs/pricing, /docs/run-and-scale/scale-to-zero |
 | 5 | Scale plan | Needs more than 100 services/instances, AWS regions, SLA | $299/month with **$100 included** | 50 users, 1,000 services, CPU concurrency 1,000, GPU 40, 99.9% SLA. Sleep windows up to 6 h light / 12 h deep | same |
 | 6 | Enterprise | Sales | "Starting at $1,000/mo", $500 included usage | Custom CPU/RAM/GPU, 50 regions, BYOC, dedicated racks, SSO, ISO27001/SOC2, 99.99% SLA | https://www.koyeb.com/pricing |
-| 7 | Starter (legacy) | Accounts created before about 2026-02-26 only | Pay-as-you-go, no fee, no included usage | Light sleep fixed 5 min, deep sleep ≤ 1 h 05 | https://www.koyeb.com/blog/koyeb-is-joining-mistral-ai-to-build-the-future-of-ai-infrastructure, https://github.com/robhunter/agentdeals/issues/2180 |
+| 7 | Starter (legacy) | Existing accounts only; not on the live pricing page | Pay-as-you-go, no fee, no included usage | Light sleep fixed 5 min, deep sleep ≤ 1 h 05 | https://www.koyeb.com/blog/koyeb-is-joining-mistral-ai-to-build-the-future-of-ai-infrastructure, https://github.com/robhunter/agentdeals/issues/2180 |
 | 8 | Savings plans / long-term reservations | Contact sales | Committed capacity | "**up to 50% off** the on-demand price" | https://www.koyeb.com/pricing |
 | 9 | Running, idle before sleep | Between the last request and the idle period expiring | Full instance rate | Minimum idle period 5 min (all plans) | /docs/run-and-scale/scale-to-zero |
 | 10 | **Light Sleep** (snapshot-based, ~200 ms wake) | Scale-to-zero, first stage | **Free during public preview.** "Once it is Generally Available, there will be a cost associated" (amount unpublished) | $0 now, null later | /docs/run-and-scale/scale-to-zero |
@@ -17,11 +17,12 @@ Koyeb Sandboxes (public preview since 2025-11-19) are Koyeb services running on 
 | 12 | Auto-delete | `delete_after_delay` (60 s-24 h after create), `delete_after_inactivity_delay` (≤ 12 h after scale-to-zero) | Stops all billing | n/a | /docs/sandboxes/sandbox-lifecycle |
 | 13 | Instance disk | Local NVMe SSD included in the instance price, ephemeral | Included | 20 GB (eXLarge) / 80 GB (xlarge) | pricing tabs |
 | 14 | Volumes (preview) | was/fra only, 1-10 GB, single-instance services, **not on eco** | Price not published (the pricing page lists "NVMe Volumes and Snapshots" as a Pro feature) | null | /docs/reference/volumes |
-| 15 | Volume snapshots (preview) | Volumes only. There is **no sandbox snapshot API** | "Free during the public preview". A search-engine snippet claims 10 GB free then $0.08/GB-month, but no official page confirms it | $0 now; $0.08 unverified | https://www.koyeb.com/blog/snapshots-create-a-point-in-time-copy-of-your-high-performance-volumes |
+| 15 | Volume snapshots (preview) | Volumes only. Sandbox snapshots are a separate SDK feature (see row 20) | "Free during the public preview". A search-engine snippet claims 10 GB free then $0.08/GB-month, but no official page confirms it | $0 now; $0.08 unverified | https://www.koyeb.com/blog/snapshots-create-a-point-in-time-copy-of-your-high-performance-volumes |
 | 16 | Egress | Outbound to the internet | Pricing page: **1 TB/month included** (Pro and Scale), then $0.02/GB US/EU, $0.04/GB Asia. The older FAQ says 100 GB free then $0.04 | $0.02 / $0.04 | https://www.koyeb.com/pricing, /docs/faqs/pricing |
 | 17 | Custom domains | Beyond 100 (Pro) / 500 (Scale) | "not charged yet, but will be" | $0.20/month each | /docs/faqs/pricing |
 | 18 | Free instance | One per org: 0.1 vCPU/512 MB, fra/was | Free, sleeps after 1 h. Not a sandbox size. It is unclear whether it survives on paid plans only | $0 | /docs/reference/instances |
 | 19 | Startup program | Application | Credits | up to $30k | https://www.koyeb.com/pricing |
+| 20 | Sandbox snapshots | `Sandbox.snapshot()` FILESYSTEM (default) or FULL (with running processes); `Sandbox.create(snapshot=...)` starts new sandboxes from it. Not labelled experimental (checked 2026-11-08) | Price and retention not published | null | https://raw.githubusercontent.com/koyeb/koyeb-python-sdk/refs/heads/main/docs/sandbox.md |
 ## Gotchas
 1. **The plan fee is mostly not credit.** Pro's $29 returns only $10 of usage, and Scale's $299 only $100, so there is a $19 and a $199 dead-weight floor. Since Feb 2026 new users can't use Starter, so the floor is unavoidable.
 2. **Eco vs standard at the same price.** eXLarge (4 vCPU/8 GB, $0.0576/h) matches 4/8 exactly. On standard, 8 GB of RAM forces xlarge (8 vCPU/8 GB) at **twice** the price.
@@ -30,7 +31,7 @@ Koyeb Sandboxes (public preview since 2025-11-19) are Koyeb services running on 
    - Whether sandboxes may use eco types is **not documented**.
 3. **Light Sleep is free only "during public preview"** and will be charged at GA (rate unknown). Keeping sandboxes warm will get more expensive.
 4. **"CPU concurrency" of 100 (Pro) is ambiguous.** It could count instances or vCPUs. If it means vCPUs, 50 × 4-vCPU sandboxes need Scale. Every sandbox is also a *service*, capped at 100 (Pro) / 1,000 (Scale).
-5. **No sandbox snapshots or forks.** State survives only in (preview, 10 GB max, non-eco) volumes. The 50 GiB snapshot requirement can't really be met.
+5. **Local disk does not survive a stop.** Take an SDK snapshot (filesystem, or with processes) before the stop and start the next sandbox from it. Snapshot price and retention are not published. Volumes (preview, 10 GB max, not on eco) keep one folder. No shape keeps a 50 GB mounted disk.
 6. **CPU is not fully dedicated.** Per the docs, "at least 0.25 dedicated vCPU per GB memory, burstable to all cores". A standard 4 vCPU/4 GB large is guaranteed only 1 vCPU.
 7. **Bandwidth rules conflict.** The pricing page says 1 TB included then $0.02/GB. The FAQ says 100 GB then $0.04.
 8. "Billing is rounded up to the nearest unit" (FAQ): the unit is not defined.
@@ -40,7 +41,7 @@ Workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days = **8,800 sandbox-
 Assumptions:
 - Sandboxes scale to zero outside hours (deep sleep = $0).
 - 100 GiB egress is inside the 1 TB allowance.
-- Snapshots: none available for sandboxes, so $0 (the unverified $0.08 rate would add (50−10) × 0.08 = $3.20).
+- Snapshots: sandbox snapshot price is not published, so $0 here (the unverified volume-snapshot rate of $0.08 would add (50−10) × 0.08 = $3.20).
 | Regime | Compute | Idle tail (5 min/session) | Plan fee − included | Egress | **Monthly total** |
 |---|---|---|---|---|---|
 | Eco eXLarge (4/8), Pro | 8,800 × 0.0576 = $506.88 | 91.7 h × 0.0576 = $5.28 | 29 − 10 = $19 | $0 | **$531.16** |

@@ -1,13 +1,15 @@
 # Runta — billing regimes
-As of 2026-09-28. Prices are USD unless explicitly labelled otherwise. Source type: official published list/promo or unknown, never a fabricated quote.
-Public list rates. Prepaid billing with $5 minimum manual top-up, no subscription. Paused/suspended/shut-down runtime retains billed disk. Memory auto scaling can change the billed allocation; do not confuse that with active CPU billing.
+As of 2026-11-08 (rates re-checked on the pricing page). Prices are USD unless explicitly labelled otherwise. Source type: official published list/promo or unknown, never a fabricated quote.
+Public list rates. Prepaid billing with $5 minimum manual top-up, no subscription. A paused runtime pays for memory and disk. A suspended or shut-down runtime pays for disk only. Memory auto scaling can change the billed allocation; do not confuse that with active CPU billing.
 | Regime | When it applies | How billed / numbers | Source |
 |---|---|---|---|
 | Running | Until pause/stop/delete | CPU $0.0504/vCPU-h + RAM $0.0162/GiB-h + disk $0.000108/GiB-h. | https://runta.com/pricing/ |
-| Paused/suspended/shut down | Retained runtime | Disk only at same rate. | https://runta.com/pricing/ |
+| Paused | Paused runtime | Memory $0.0162/GiB-h + disk; no vCPU charge ("Memory and disk storage; no vCPU charges"). | https://runta.com/pricing/ |
+| Suspended/shut down | Retained runtime | Disk only at same rate ("Disk storage only"). | https://runta.com/pricing/ |
 | Deleted | After deletion | No runtime charges. | https://runta.com/pricing/ |
 ## Gotchas
-- Public list rates. Prepaid billing with $5 minimum manual top-up, no subscription. Paused/suspended/shut-down runtime retains billed disk. Memory auto scaling can change the billed allocation; do not confuse that with active CPU billing.
+- Public list rates. Prepaid billing with $5 minimum manual top-up, no subscription. A paused runtime pays for memory and disk; a suspended or shut-down runtime pays for disk only. Memory auto scaling can change the billed allocation; do not confuse that with active CPU billing.
+- Runtime disk is 32-256 GiB at creation (openapi.yaml), so each kept runtime pays for at least 32 GiB (about $2.52 a month).
 - Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.
 - A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.
 ## Worked workload

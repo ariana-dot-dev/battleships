@@ -3,9 +3,9 @@ CI runner product (job-scoped, ephemeral). Added by the missing-providers audit.
 | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|
 | On-demand EC2 | default | per build minute, rounded up | general1.small $0.005/min, medium $0.01, large $0.02, xlarge $0.0798, 2xlarge $0.20; arm1 $0.0034..$0.09 | https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/CodeBuild/current/us-east-1/index.csv |
-| On-demand Lambda | lambda compute types | per second | not encoded | https://aws.amazon.com/codebuild/pricing/ |
-| Reserved capacity | fleets | per minute, 60-min minimum | not encoded | https://aws.amazon.com/codebuild/pricing/ |
-| Free tier | always | 100 min/month general1.small/arm1.small | $0.50 | https://aws.amazon.com/codebuild/pricing/ |
+| On-demand Lambda | lambda compute types | per second | arm 1 GB $0.00001/s, x86-64 1 GB $0.00002/s, scaling with memory (encoded as lambda-arm / lambda-x86 modes) | https://aws.amazon.com/codebuild/pricing/ |
+| Reserved capacity | fleets | per minute, 60-min minimum, billed while provisioned | Linux x86 4cpu.8gib $0.36/h (encoded as reserved-* modes, always-on) | https://aws.amazon.com/codebuild/pricing/ |
+| Free tier | always, does not expire | 100 min/month general1.small/arm1.small + 6,000 Lambda 1 GB seconds/month; not Sandbox or reserved | $0.50 (Lambda part not encoded) | https://aws.amazon.com/codebuild/pricing/ |
 ## Gotchas
 - Per-minute rounding up per build.
 - Logs/artifacts billed separately.

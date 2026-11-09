@@ -243,6 +243,10 @@
     "open_source=true only in the loose sense: the nottelabs/notte repo is SSPL-1.0 (source-available, not OSI), and it is the agent/SDK framework, not the hosted browser platform (on-prem is Enterprise-only).",
     "API request rate limit: documented via X-RateLimit-* headers with an example limit of 100 requests per window (window length not published); 429 on excess; higher limits via sales ('Contact us ... enterprise options'). Per-plan start/creation rate limits are not published.",
     "Multi-region and static-IP docs are gone (checked 2026-10-14: docs.notte.cc/features/sessions/multi-region redirects to /features/sessions/proxies, /features/sessions/static-ip to the docs home; neither appears in llms.txt). The pricing page Enterprise column lists only \"BYO - Keys, Proxies, Cloud\" and \"More - SSO, SLAs, HIPAA\", so eu_data_residency and static_egress_ip are now null (unsourced), not confirmed absent. A fixed egress IP is possible only by routing through your own Tailscale exit node. Browser pools, on-prem/BYOC and approval-gated advanced_stealth are unaffected. Self-serve region is not published (features.regions left null).",
+    "Legacy Agents API is deprecated (homepage, checked 2026-11-08); the Anything API replaces it and turns a plain-English task into a deployed browser Function. Sources pointing at docs.notte.cc/features/agents/lifecycle are stale; use https://docs.notte.cc/concepts/anything.",
+    "Recurring web work does not need an always-on machine on Notte: Functions run on cron schedules and saved browser profiles keep logins between runs (https://docs.notte.cc/features/functions/invocations, https://docs.notte.cc/features/sessions/browser-profiles). Work that must run without a stop or keep files needs a machine.",
+    "Per-session file storage: up to 1 GiB per file and 10 GiB per session, tied to the session (not a persistent volume).",
+    "Bring-your-own proxy traffic bills $0.20/GB on the pricing page (checked 2026-11-08), separate from the $10/GB managed residential proxy.",
     "Functions gained an 'extended' runtime (SDK v1.8.41, 2026-09-09) for longer cloud execution; the pricing page only lists one $0.05/hour function rate, so extended-runtime pricing is unpublished.",
     "Session length: the API accepts max_duration_minutes up to 1440 (24 h, features.max_session_h), but plans cap it at 15 min (Free), 120 min (Developer) and 300 min (Startup); only Enterprise (\"Custom limits\") can reach the 24 h API ceiling."
   ],
@@ -251,7 +255,10 @@
     "https://docs.notte.cc/llms-full.txt",
     "https://docs.notte.cc/pricing",
     "https://docs.notte.cc/rate-limits",
-    "https://docs.notte.cc/features/sessions/proxies"
+    "https://docs.notte.cc/features/sessions/proxies",
+    "https://www.notte.cc/",
+    "https://docs.notte.cc/concepts/anything",
+    "https://docs.notte.cc/concepts/vaults"
   ],
   "fleet": {
     "default_max_instances": 5,
@@ -283,17 +290,17 @@
     },
     "own_agent_api": {
       "value": true,
-      "source": "https://docs.notte.cc/features/agents/lifecycle",
-      "quote": "Stream agent logs in real-time via WebSocket:",
-      "note": "Notte's own browser agent only: POST /agents/start with a task (plus session, vault, persona, max_steps, response format), GET status with steps, WebSocket log streaming, stop, list agents, MP4 replay, export run as workflow code. No follow-up/continue endpoint documented. Claude Code/Claude Managed Agents etc. use Notte from outside via CLI/MCP.",
-      "checked": "2026-09-29"
+      "source": "https://docs.notte.cc/concepts/anything",
+      "quote": "The Anything API lets you describe a task in plain English, and Notte will build, deploy, and run a web automation function for you",
+      "note": "Anything API: a plain-English task makes Notte build, deploy and run a reusable browser Function. It replaces the legacy Agents API, which the homepage lists as deprecated (\"the legacy Agents API is deprecated\"; \"The v1 backend is retired\"). Coding agents (Claude Code, Cursor) use Notte from outside through the official notte-browser skill, the CLI (brew install notte) or the MCP server.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
-      "source": "https://docs.notte.cc/features/agents/lifecycle",
-      "quote": "Stream agent logs in real-time via WebSocket:",
-      "note": "Notte's own browser agent only: POST /agents/start with a task (plus session, vault, persona, max_steps, response format), GET status with steps, WebSocket log streaming, stop, list agents, MP4 replay, export run as workflow code. No follow-up/continue endpoint documented. Claude Code/Claude Managed Agents etc. use Notte from outside via CLI/MCP.",
-      "checked": "2026-09-29"
+      "source": "https://www.notte.cc/",
+      "quote": "Official Agent Skill (notte-browser) for Claude Code, Cursor, Goose, OpenHands",
+      "note": "Notte drives coding agents' browsing from outside (skill, CLI, MCP); it does not host or run a third-party coding-agent harness inside its sessions. Its own task API is the Anything API (see own_agent_api).",
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": true,
@@ -313,9 +320,9 @@
     "secret_proxy": {
       "value": false,
       "source": "https://docs.notte.cc/concepts/vaults",
-      "quote": "The significant security benefit of this approach is that the LLM never actually sees the actual credentials.",
-      "note": "Not an outbound HTTP credential proxy. Vaults substitute real credentials for dummy values in the agent's fill actions (passwords, cards, MFA/TOTP), so the LLM never sees them, but the value is typed into the browser. Workspace /secrets store: 'llm_provider' keys used server-side by agents (BYOK) and 'function_env' values injected into function runs as env. The Claude Managed Agents guide's placeholder substitution is Anthropic's vault, not Notte's.",
-      "checked": "2026-09-29"
+      "quote": "Credential substitution happens outside the model context, but the browser still interacts with the destination website.",
+      "note": "Not an outbound HTTP credential proxy. Vaults store passwords, 2FA secrets and (per the API reference, vault-credit-card-set) cards, and supported fill actions resolve placeholders outside the model context; the real value is still typed into the browser, and the docs warn that placeholder substitution is not a guarantee that a website cannot reveal a submitted value. Workspace /secrets store: 'llm_provider' keys used server-side (BYOK) and 'function_env' values injected into function runs as env.",
+      "checked": "2026-11-08"
     },
     "isolation": {
       "value": "container",
@@ -546,12 +553,12 @@
       "value": 24,
       "source": "https://docs.notte.cc/api-reference/sessions/session-start",
       "quote": "max_duration_minutes: type: integer maximum: 1440",
-      "note": "API ceiling (24 h). Self-serve plans cap sessions lower (pricing page maxSessionDurationMinutes 15/120/300, mirrored in plans[].max_session_h); only Enterprise custom limits can reach 24 h.",
-      "checked": "2026-10-14"
+      "note": "API ceiling (24 h). Self-serve plans cap sessions lower (pricing page session duration 15/120/300 min, mirrored in plans[].max_session_h); only Enterprise custom limits can reach 24 h.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [],
   "locations_source": "https://www.notte.cc/pricing",
   "locations_quote": "For custom limits, compliance, and support.",
-  "locations_checked": "2026-10-14"
+  "locations_checked": "2026-11-08"
 }

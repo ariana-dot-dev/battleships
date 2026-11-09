@@ -119,7 +119,8 @@
     "snapshot": "fs",
     "pause_resume": false,
     "fork": true,
-    "persistent_disk": false,
+    "persistent_disk": "diy",
+    "persist_scope": "snapshot",
     "volumes": null,
     "auto_stop_idle": false,
     "max_session_h": 24,
@@ -128,7 +129,7 @@
     "nested_virt": false,
     "root": false,
     "systemd": null,
-    "browser": false,
+    "browser": null,
     "desktop": false,
     "computer_use": false,
     "code_interpreter": null,
@@ -228,6 +229,11 @@
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 3
   },
+  "audit_2026_11_08": {
+    "applied": 4,
+    "source": "fairness audit: prices, limits, snapshots, OS and browser re-checked on /pricing, /docs/sandboxes, /docs/execution",
+    "reviewed": 6
+  },
   "feature_evidence": {
     "snapshot_auto": {
       "value": false,
@@ -240,8 +246,8 @@
       "value": true,
       "source": "https://sandbox-as-a-service.com/docs/sandboxes",
       "quote": "A snapshot captures a running sandbox as a full-VM image that can be restored, filesystem included, into a new sandbox later",
-      "note": "POST /v1/sandboxes/{id}/snapshots (REST only, not in SDK/MCP yet), no reboot; restore via snapshot_id on POST /v1/sandboxes boots NEW sandboxes (template-style, same size). Filesystem only: 'Processes are not resumed'. Kept 7 days, max 3 per account, one capture in flight; storage billed. New since the 2026-09-28 card (card says snapshot none).",
-      "checked": "2026-09-29"
+      "note": "POST /v1/sandboxes/{id}/snapshots, REST only ('the Python SDK and MCP server do not expose snapshot operations yet'), no reboot; restore via snapshot_id on POST /v1/sandboxes boots NEW sandboxes (template-style, same size). Filesystem only: 'Processes are not resumed'. Kept 7 days, max 3 per account, one capture in flight; storage billed at an unpublished rate.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -324,22 +330,22 @@
       "value": false,
       "source": "https://sandbox-as-a-service.com/llms.txt",
       "quote": "Secure, disposable cloud sandboxes for AI agents and code execution. Each sandbox is a dedicated virtual machine, created with one API call and destroyed when you are done.",
-      "note": "not offered: outside the product's scope (headless code-execution VM; no VNC/RDP/desktop stream)",
-      "checked": "2026-09-30"
+      "note": "No desktop, VNC/RDP or desktop stream is preinstalled or documented. Software installs go to user space only ('No sudo and no root', docs/execution), so the system packages a virtual display usually needs cannot be installed with apt.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://sandbox-as-a-service.com/llms.txt",
-      "quote": "Pre-installed in every sandbox: Python 3.12 (with requests, numpy, pandas), Node.js 22, git, curl, wget, jq, unzip, gnupg, build-essential.",
-      "note": "not offered: outside the product's scope (no browser in the pre-installed software list; no browser automation API)",
-      "checked": "2026-09-30"
+      "value": null,
+      "source": "https://sandbox-as-a-service.com/docs/execution",
+      "quote": "Because there is no sudo, install into user space or a virtualenv.",
+      "note": "No browser is preinstalled (llms.txt list: Python 3.12, Node.js 22, git, curl, wget, jq, unzip, gnupg, build-essential) and no browser automation API exists. Outbound internet is open, so a headless browser (for example Playwright from npm/pip) can be tried in user space without root, but the docs neither show nor rule out this path. Not confirmed.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://sandbox-as-a-service.com/llms.txt",
       "quote": "Secure, disposable cloud sandboxes for AI agents and code execution.",
-      "note": "not offered: outside the product's scope (headless code-exec sandbox, no screenshot/click API)",
-      "checked": "2026-09-30"
+      "note": "No screenshot/click API and no documented desktop (see desktop).",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -477,9 +483,9 @@
     "windows": {
       "value": false,
       "source": "https://sandbox-as-a-service.com/docs/execution",
-      "quote": "Because there is no sudo, install into user space or a virtualenv. This is Ubuntu 24.04, so the...",
-      "note": "not offered: every sandbox is an Ubuntu 24.04 Linux VM; no Windows image option.",
-      "checked": "2026-09-30"
+      "quote": "This is Ubuntu 24.04, so the system Python is marked externally managed and a bare `pip install` is refused (PEP 668).",
+      "note": "Every sandbox is an Ubuntu 24.04 Linux VM; the create API has no Windows image option.",
+      "checked": "2026-11-08"
     },
     "macos": {
       "value": false,
@@ -555,15 +561,27 @@
       "value": "fs",
       "source": "https://sandbox-as-a-service.com/docs/sandboxes",
       "quote": "A snapshot captures a running sandbox as a full-VM image that can be restored, filesystem included, into a new sandbox later ... Processes are not resumed: the restored machine starts with nothing running, exactly as a rebooted machine would.",
-      "note": "On-demand only (no snapshot_auto). Restores disk/filesystem into a NEW sandbox; running processes/memory are not carried over, so this is filesystem-level snapshotting, not memory snapshotting -> 'fs'.",
-      "checked": "2026-09-30"
+      "note": "On-demand only (no snapshot_auto). Restores disk/filesystem into a NEW sandbox; running processes/memory are not carried over, so this is filesystem-level snapshotting, not memory snapshotting -> 'fs'. Kept 7 days, max 3 per account.",
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
-      "value": false,
+      "value": "diy",
       "source": "https://sandbox-as-a-service.com/docs/sandboxes",
-      "quote": "There is no persistent volume. When a sandbox is destroyed — by you, by expiry, or because your balance hit zero — the machine and its disk are destroyed with it.",
-      "note": "No stop/start with disk retained; the disk dies with the sandbox on any expiry/destroy. The only way to keep filesystem state across sandboxes is an explicit on-demand snapshot restored into a brand-new sandbox, which is not the same machine's disk persisting through a stop/start, so persistent_disk=false is correct.",
-      "checked": "2026-09-30"
+      "quote": "A snapshot captures a running sandbox as a full-VM image that can be restored, filesystem included, into a new sandbox later",
+      "how": "capture a snapshot over the REST API before the sandbox expires, then create the next sandbox with that snapshot_id",
+      "effort": "low",
+      "ttl_days": 7,
+      "note": "The disk itself dies with the sandbox ('There is no persistent volume'). A snapshot keeps the whole filesystem for 7 days, at most 3 per account, storage billed at an unpublished rate. REST only, not in the SDK or MCP server yet.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "snapshot",
+      "source": "https://sandbox-as-a-service.com/docs/sandboxes",
+      "quote": "A snapshot captures a running sandbox as a full-VM image that can be restored, filesystem included, into a new sandbox later",
+      "how": "capture a snapshot over the REST API before the sandbox expires, then create the next sandbox with that snapshot_id (kept 7 days, max 3 per account)",
+      "effort": "low",
+      "ttl_days": 7,
+      "checked": "2026-11-08"
     },
     "root": {
       "value": false,

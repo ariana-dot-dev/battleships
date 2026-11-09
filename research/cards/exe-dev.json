@@ -224,8 +224,7 @@
         "Enterprise"
       ],
       "features": {
-        "isolation": "cloud-hypervisor",
-        "nested_virt": false
+        "isolation": "cloud-hypervisor"
       }
     },
     {
@@ -278,8 +277,7 @@
         "Personal"
       ],
       "features": {
-        "isolation": "cloud-hypervisor",
-        "nested_virt": false
+        "isolation": "cloud-hypervisor"
       }
     },
     {
@@ -313,8 +311,7 @@
       "note": "$0.105 per 2 vCPU / 4 GiB unit-hour, RAM bundled (1 vCPU/2 GiB = 0.5 unit; default 2 vCPU/4 GiB; up to 2 GiB per vCPU; max 16/32 Personal, 32/64 Work). \"Time is measured by the second, with no minimum charge and no rounding up to the hour.\" Metering \"pauses while the VM is stopped\": a stopped standalone VM pays nothing for vCPU and memory, keeps its disk and still counts toward VM limits. Personal: any account, billed on top of the subscription. Work: enabled by a team admin setting; standalone capacity counts toward the included 2 vCPU + 4 GiB and each VM carries its own disk/bandwidth allowance while it runs. Legacy Individual/Team plans cannot create standalone VMs.",
       "flags": [],
       "features": {
-        "isolation": "cloud-hypervisor",
-        "nested_virt": false
+        "isolation": "cloud-hypervisor"
       }
     },
     {
@@ -519,7 +516,7 @@
     "arm64": false,
     "gpu": false,
     "gpu_types": [],
-    "snapshot": "none",
+    "snapshot": "fs",
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
@@ -528,7 +525,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": true,
+    "nested_virt": "diy",
     "root": true,
     "systemd": true,
     "browser": true,
@@ -541,7 +538,7 @@
     "inbound_https": true,
     "custom_domain": true,
     "raw_tcp_inbound": false,
-    "egress_allowlist": false,
+    "egress_allowlist": "diy",
     "static_egress_ip": false,
     "private_network": true,
     "self_host": false,
@@ -579,7 +576,7 @@
     "isolation": "cloud-hypervisor",
     "image_oci": true,
     "snapshot_auto": false,
-    "snapshot_on_demand": false,
+    "snapshot_on_demand": "diy",
     "harness_api": true,
     "ingress_rules": true,
     "guest_firewall": true,
@@ -610,7 +607,9 @@
     "Pools bill regardless of utilisation; engine should size by peak concurrent vCPU/RAM. Resizing pools off-hours can reduce cost (not modelled; hourly proration assumed but undocumented).",
     "Standalone VMs: metered by the second at the hourly rate, no minimum and no rounding up to the hour; metering pauses while stopped (no vCPU/memory charge, disk kept and billed as usage, still counts toward VM limits). Memory is capped at 2 GiB per vCPU (docs/standalone-vms.md).",
     "included_disk_gib (100) is POOLED per account/user (Work: 100 GB per 2 vCPU of pool), not per sandbox. Disk measured as time-averaged ext4 filesystem usage, not provisioned size. Default VM disk 25 GB, grow-only.",
-    "No snapshots: retained state = stopped VM disk (or cp clone), billed as disk at $0.08/GB-month beyond allowance.",
+    "Saved state: the stopped VM keeps its disk, billed as disk at $0.08/GB-month beyond the allowance. `cp` clones a VM. VM backups (development preview) snapshot the disk to your own S3 bucket when you run them, and `backup restore` puts the disk back on a new VM. No scheduled backups and no in-place rollback are documented (docs/vm-backups.md).",
+    "Nested virtualization: new VMs do not have it by default; you ask support@exe.dev to enable it. The FAQ names no plan (docs/faq/nested-virtualization.md, checked 2026-11-08).",
+    "Egress: open internet by default. The `integrations` egress policy blocks the public internet and keeps only attached integrations reachable (docs/internet-access.md).",
     "Egress allowance: 200 GB (Personal, any size; legacy Individual), 250 GB per user (legacy Team), Work 50 GB per vCPU of pool (100 GB at the included 2 vCPU). Overage $0.05/GiB billed at cycle end; inbound never billed.",
     "No free compute tier. Pricing page: Personal \"7-day trial with a paid ChatGPT subscription\" (served by a pricing-card experiment, may not show for everyone); Work intro $37.50/month for the first 3 months for a new team (base price only). Docs still describe 30-day trials via trial invites / invite-reward links; reward amounts unpublished. No 30-day trial on the pricing page.",
     "No dedicated IPv4 (shared per-owner IPv4 pool; HTTPS proxy + SSH only). Account bound to one region (Personal); Work pools in any region; no regional price differences found.",
@@ -638,7 +637,11 @@
     "https://boxd.sh/blog/boxd-vs-exe-dev/",
     "https://exe.dev/docs/billing/work.md",
     "https://exe.dev/docs/billing/personal.md",
-    "https://exe.dev/docs/standalone-vms.md"
+    "https://exe.dev/docs/standalone-vms.md",
+    "https://exe.dev/docs/vm-backups.md",
+    "https://exe.dev/docs/faq/nested-virtualization.md",
+    "https://exe.dev/docs/internet-access.md",
+    "https://exe.dev/docs/shelley/unique.md"
   ],
   "fleet": {
     "default_max_instances": 50,
@@ -647,13 +650,15 @@
     "raise": "self-serve",
     "raise_time_days": null,
     "verification": null,
-    "tiers": "Personal up to 50 VMs (shared 2-16 vCPU pool); Work 25 VMs per vCPU per pool, max 1,000 per pool (50 at the included 2 vCPU). Standalone sandboxes separately 50 Personal / 100 Work; Enterprise custom.",
+    "tiers": "Personal up to 50 VMs (shared 2-16 vCPU pool); Work 25 VMs per vCPU per pool, max 1,000 per pool (50 at the included 2 vCPU). Standalone VMs, stopped ones included, count toward your VM limits (docs/standalone-vms.md); the docs give no separate standalone allowance. Enterprise custom.",
     "notes": "Entry 50 is a VM-count allowance, not 50 full-size dedicated machines: a selected CPU/RAM pool is shared. New paid Personal pool starts 2 vCPU/4 GB; Work starts at 2 vCPU/4 GiB and its VM count scales with pool vCPU. Pools above 32 vCPU need support approval.",
     "sources": [
       "https://exe.dev/pricing",
-      "https://exe.dev/docs/billing/work.md"
+      "https://exe.dev/docs/billing/work.md",
+      "https://exe.dev/docs/billing/personal.md",
+      "https://exe.dev/docs/standalone-vms.md"
     ],
-    "researched": "2026-10-14"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 5,
@@ -665,15 +670,18 @@
       "value": false,
       "source": "https://exe.dev/docs/standalone-vms.md",
       "quote": "A stopped standalone VM is not billed for its vCPU and memory. It keeps its disk, and it still counts toward your VM limits.",
-      "note": "State = persistent disk only; no snapshot/checkpoint/suspend mechanism anywhere in llms-full.txt (0 hits for 'snapshot'/'checkpoint'). VMs are not auto-stopped on idle. Docs say disks are 'persisted and backed up' (backups, not this feature).",
-      "checked": "2026-09-29"
+      "note": "No scheduled or automatic user snapshots are documented. VM backups (docs/vm-backups.md, preview) run only when the user triggers them. The disk is replicated in the regional cluster for durability, but the user cannot roll back to that copy. VMs are not auto-stopped on idle.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
-      "value": false,
-      "source": "https://exe.dev/docs/cli-cp.md",
-      "quote": "cp <source-vm> [new-name] [--pool=<name>] [--memory=<size>] [--cpu=<count>] [--disk=<size>]",
-      "note": "No snapshot/restore command in the full CLI reference. Closest thing: `cp` = copy-on-write clone of a VM ('clone disk and config', /sandbox page) into a NEW VM, disk only, no memory. A stopped cp copy can serve as a manual disk checkpoint / template for further cp, but there is no restore-in-place or named snapshot.",
-      "checked": "2026-09-29"
+      "value": "diy",
+      "source": "https://exe.dev/docs/vm-backups.md",
+      "quote": "A backup syncs the VM's filesystem and snapshots its disk.",
+      "how": "connect your own S3 bucket, run a VM backup when you want a restore point, and `backup restore` it into a new VM (development preview)",
+      "effort": "low",
+      "beta": true,
+      "note": "Page says \"Development preview.\" Backups upload changed chunks to the user's S3 bucket and run only when triggered. Restore goes to a new VM (example: `backup restore web-20261008-1910 web-restored`). `cp` also clones a VM's disk and config into a new VM.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": true,
@@ -683,18 +691,20 @@
       "checked": "2026-09-29"
     },
     "egress_allowlist": {
-      "value": false,
-      "source": "https://exe.dev/llms-full.txt",
-      "quote": "On the networking side, we don't give your VM its own public IP. Instead, we terminate HTTPS/TLS requests, and proxy them securely to your VM's web servers.",
-      "note": "No firewall/allowlist/egress-rule/no-internet option appears on `new`, `share`, `team`, or `pool` in the full CLI/docs reference (only two unrelated hits for 'allowlist', about API-key scoping and a third-party Slack bot's own allowlist). VMs get unrestricted outbound internet by default; secrets are protected via the integrations proxy rather than by blocking egress.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://exe.dev/docs/internet-access.md",
+      "quote": "Set it to `integrations` to block public internet access",
+      "how": "set the VM egress policy to `integrations` (`ssh exe.dev egress my-vm integrations` or `new --egress=integrations`) and attach one integration per host the VM may reach",
+      "effort": "low",
+      "note": "Open internet by default. With the `integrations` policy only attached integrations stay reachable, each through its own integration hostname (explicit proxy, not a transparent per-domain rule).",
+      "checked": "2026-11-08"
     },
     "egress_http_rules": {
       "value": false,
       "source": null,
       "quote": null,
-      "note": "Not documented. The http-proxy integration only fixes a target host, injects headers and can strip a path prefix (`--strip-prefix`); it does not filter methods/paths, and direct internet egress is unrestricted anyway.",
-      "checked": "2026-09-29"
+      "note": "Not documented. The http-proxy integration fixes a target host, injects headers and can strip a path prefix (`--strip-prefix`); it does not filter methods or paths.",
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": true,
@@ -736,8 +746,15 @@
       "value": false,
       "source": "https://exe.dev/llms-full.txt",
       "quote": "It should be some kind of stock linux ... Just a computer.",
-      "note": "not offered: outside the product's scope — exe.dev is an SSH/terminal-accessed Linux VM product (root, systemd, Docker); no VNC/RDP/streamed graphical desktop is documented anywhere in the docs or CLI reference.",
-      "checked": "2026-09-30"
+      "note": "No built-in desktop or screen stream, and the docs show no desktop/VNC setup (searched llms-full.txt 2026-11-08). The VM has root, so a user can install one, but no documented path exists. Shelley's browser tool drives Chromium and takes screenshots (docs/shelley/unique.md).",
+      "checked": "2026-11-08"
+    },
+    "browser": {
+      "value": true,
+      "source": "https://exe.dev/docs/shelley/unique.md",
+      "quote": "Shelley's browser tool controls a Chromium and can navigate and take screenshots.",
+      "note": "Built into Shelley on the default image. Other agents need a browser you install.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -810,11 +827,12 @@
       "checked": "2026-10-14"
     },
     "snapshot": {
-      "value": "none",
-      "source": "https://exe.dev/llms-full.txt",
-      "quote": "cp <source-vm> [new-name] [--pool=<name>] [--memory=<size>] [--cpu=<count>] [--disk=<size>] ... Copy an existing VM",
-      "note": "No contradiction: exe.dev has no snapshot/checkpoint/restore mechanism. `cp` is a disk+config copy-on-write clone into a NEW VM (not a snapshot of the source that can be restored in place), and `--memory` there just sets the new VM's RAM allocation, not a captured memory image. 'snapshot' and 'checkpoint' do not appear anywhere in llms-full.txt. Card's existing feature_evidence.snapshot_auto/snapshot_on_demand (false/false) already document this; 'none' plus fork=true (disk clone) is consistent, not contradictory.",
-      "checked": "2026-09-30"
+      "value": "fs",
+      "source": "https://exe.dev/docs/vm-backups.md",
+      "quote": "A backup syncs the VM's filesystem and snapshots its disk.",
+      "note": "Disk-level backups to the user's own S3 bucket, restored into a new VM with `backup restore` (development preview). No memory state. `cp` also clones disk and config into a new VM.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
@@ -824,12 +842,13 @@
       "checked": "2026-09-30"
     },
     "nested_virt": {
-      "value": true,
-      "corrected_from": false,
-      "source": "https://exe.dev/pricing",
-      "quote": "Run nested VMs Not included Not included Included",
-      "note": "The live pricing comparison table row \"Run nested VMs\": Not included on Personal and Work, Included on Enterprise (custom/sales tier), so nested_virt is offered only on Enterprise. Personal/Work modes (pool, pool-personal, vm-tier) override nested_virt to false so KVM-needing workloads do not price on them.",
-      "checked": "2026-10-14"
+      "value": "diy",
+      "source": "https://exe.dev/docs/faq/nested-virtualization.md",
+      "quote": "By default, new VMs created on exe will not support nested virtualization.",
+      "how": "ask support@exe.dev to enable nested virtualization for your VMs",
+      "effort": "low",
+      "note": "The FAQ names no plan. The pricing page no longer mentions nested VMs (checked 2026-11-08), so the earlier Enterprise-only mode overrides were removed.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,

@@ -177,8 +177,8 @@
   ],
   "storage": {
     "included_disk_gib": null,
-    "disk_gib_month": null,
-    "disk_billed_when_stopped": null,
+    "disk_gib_month": 0.5,
+    "disk_billed_when_stopped": true,
     "snapshot_gib_month": null,
     "paused_ram_billed": null
   },
@@ -207,7 +207,7 @@
   "free": {
     "monthly_credit": null,
     "one_time_credit": null,
-    "conditions": "No credit card; first month only; unused minutes do not roll over."
+    "conditions": "2,000 free minutes for the first month; no credit card; one-time, no rollover (https://docs.starsling.dev/pricing). Free-trial organizations get no Disks storage."
   },
   "features": {
     "linux": true,
@@ -218,7 +218,7 @@
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": 6,
@@ -284,11 +284,13 @@
     "anti_bot": false,
     "captcha_solving": false,
     "egress_ip_type": "datacenter",
-    "volume_attach": false,
-    "volume_shared": false,
+    "volume_attach": true,
+    "volume_shared": true,
     "own_agent_api": false,
     "ingress_rules": false,
-    "usage_api": true
+    "usage_api": true,
+    "persist_scope": "folder",
+    "persist_path": "StarSling Disks mounts (published only by successful default-branch jobs)"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -303,9 +305,11 @@
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "2,000 free runner minutes in the first month (no card; no rollover).",
-    "Review Runner price conflict (2026-10-14): https://docs.starsling.dev/runners/compute-sizing.md lists starsling-review at \"$0.004\" per minute, \"half the price of the equivalent 4 vCPU CPU runner\", and https://starsling.dev/products/review-runners says \"at $0.004 a minute\"; https://starsling.dev/pricing says \"StarSling Review Runners bill at these same CPU rates\" (4 vCPU = $0.008/min). The card keeps $0.004 (two pages) and flags the mode alt, since it is a private-beta runner for code review jobs on cost-selected CPUs.",
+    "Review Runner price conflict (re-checked 2026-11-08): https://docs.starsling.dev/runners/compute-sizing lists starsling-review at $0.004 per minute, 'half the price of the equivalent 4 vCPU CPU runner', and https://starsling.dev/products/review-runners says '$0.004 a minute' (early access); https://starsling.dev/pricing says 'StarSling Review Runners bill at these same CPU rates' (4 vCPU = $0.008/min). The card keeps $0.004 (two product-specific pages) and flags the mode alt, so it never sets the default 4 vCPU price.",
     "Afterburner (private beta): during CPU/memory pressure a job may get up to 25% more CPU cores and 50% more RAM at no extra cost (https://docs.starsling.dev/runners/afterburner). Not modelled: billing is still the label's size, and the boost is automatic and not guaranteed.",
-    "Regions: control plane and logs are in the United States; runners run on sandbox providers 'in multiple regions' that are not named. A specific provider or region is pinned only on request (founders@starsling.dev)."
+    "Regions: control plane and logs are in the United States; runners run on sandbox providers 'in multiple regions' that are not named. A specific provider or region is pinned only on request (founders@starsling.dev).",
+    "Billing: per minute of job time, 'Rounded up to the nearest minute'; 'Queue time is not billed' (https://docs.starsling.dev/pricing).",
+    "StarSling Disks (enrollment, release in preparation, not on free trial): persistent directories mounted into runners, $0.50 per GB-month, no per-job attach fee, retired after 30 days without use. Only a successful default-branch job publishes; other jobs read the published generation and their writes are discarded. The rest of the machine is still destroyed after each job (https://docs.starsling.dev/runners/disks)."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/starsling",
@@ -313,10 +317,13 @@
     "https://docs.starsling.dev/runners/compute-sizing",
     "https://starsling.dev/",
     "https://starsling.dev/llms.txt",
-    "https://docs.starsling.dev/security/data-handling.md",
-    "https://docs.starsling.dev/runners/sandbox-router.md",
+    "https://docs.starsling.dev/security/data-handling",
+    "https://docs.starsling.dev/runners/sandbox-router",
     "https://docs.starsling.dev/runners/afterburner",
-    "https://starsling.dev/products/review-runners"
+    "https://starsling.dev/products/review-runners",
+    "https://docs.starsling.dev/runners/disks",
+    "https://docs.starsling.dev/pricing",
+    "https://docs.starsling.dev/security/faq"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -332,7 +339,8 @@
       "https://starsling.dev/pricing"
     ],
     "researched": "2026-09-28",
-    "concurrency": "unlimited (advertised; no numeric capacity guarantee)"
+    "concurrency": "unlimited (advertised; no numeric capacity guarantee)",
+    "checked": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 9,
@@ -342,21 +350,21 @@
   "feature_evidence": {
     "snapshot_auto": {
       "value": false,
-      "source": "https://docs.starsling.dev/security/faq.md",
-      "quote": "A machine is provisioned when your job is queued and destroyed when the job finishes. There is no reuse across jobs, no warm pool of shared runners, and nothing — filesystem, image cache, process, or credential — carries from one job to the next.",
-      "note": "These are single-use, ephemeral GitHub Actions runners: no state is saved.",
-      "checked": "2026-09-29"
+      "source": "https://docs.starsling.dev/security/faq",
+      "quote": "Its ephemeral filesystem, processes, and credentials do not carry over to another job.",
+      "note": "No machine snapshot. Only StarSling Disks directories are published (by successful default-branch jobs); see persist_scope.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
-      "source": "https://docs.starsling.dev/security/faq.md",
-      "quote": "Your job's filesystem, including the checkout — destroyed with the machine. Nothing is copied off it.",
-      "note": "The API and CLI are read-only CI analytics (runs, jobs, logs, why, time, usage, bill). There is no snapshot or checkpoint call. Caching is done through GitHub's actions/cache: 'StarSling operates no separate cache or artifact store.'",
-      "checked": "2026-09-29"
+      "source": "https://docs.starsling.dev/security/faq",
+      "quote": "Its ephemeral filesystem, processes, and credentials do not carry over to another job.",
+      "note": "No machine snapshot or checkpoint call. Files that must carry over go in StarSling Disks (see persist_scope).",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
-      "source": "https://docs.starsling.dev/api.md",
+      "source": "https://docs.starsling.dev/api",
       "quote": "The StarSling control plane exposes an HTTP API for everything the platform knows about your CI: which runs and jobs executed, why one failed, where the wall-clock went, and what it all cost.",
       "note": "StarSling's own 'AI agents' run on StarSling's side and open CI-optimization PRs; they are not a harness you drive inside the runner. The sling CLI is 'agent-first' only in the sense that coding agents can call it to read CI data. Nothing starts or streams Claude Code, Codex or similar inside a runner.",
       "checked": "2026-09-29"
@@ -371,7 +379,7 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": "https://docs.starsling.dev/security/faq.md",
+      "source": "https://docs.starsling.dev/security/faq",
       "quote": "The runner itself is our machine. Secrets are in memory and on disk on the VM while your job runs. What protects them there is that the machine is single-use and destroyed with the job, not that the values never arrived.",
       "note": "GitHub injects Actions secrets straight into the runner as env vars. There is no credential-injecting proxy.",
       "checked": "2026-09-29"
@@ -385,10 +393,10 @@
     },
     "image_oci": {
       "value": false,
-      "source": "https://docs.starsling.dev/runners/compute-sizing.md",
+      "source": "https://docs.starsling.dev/runners/compute-sizing",
       "quote": "All CPU sizes run Ubuntu 26.04 or Ubuntu 24.04 on 5th Gen AMD EPYC. Ubuntu 26.04 is the default shown here.",
-      "note": "not offered: runners are fixed Ubuntu 26.04 or 24.04 images selected by label (starsling-ubuntu-26.04-*, starsling-ubuntu-24.04-*, same prices); no documented way to boot from a customer-supplied Docker/OCI image.",
-      "checked": "2026-10-14"
+      "note": "Runners are fixed Ubuntu 26.04 or 24.04 images selected by label (same prices); the docs show no way to boot from a customer-supplied Docker/OCI image. Jobs can still run containers inside the runner.",
+      "checked": "2026-11-08"
     },
     "docker_inside": {
       "value": true,
@@ -449,16 +457,16 @@
     "snapshot": {
       "value": "none",
       "source": "https://docs.starsling.dev/security/faq",
-      "quote": "A machine is provisioned when your job is queued and destroyed when the job finishes. There is no reuse across jobs, no warm pool of shared runners, and nothing — filesystem, image cache, process, or credential — carries from one job to the next.",
-      "note": null,
-      "checked": "2026-09-30"
+      "quote": "A machine is provisioned when your job is queued and destroyed when the job finishes.",
+      "note": "No whole-machine snapshot. Persistent files go through StarSling Disks (one mounted folder, see persist_scope): 'Published Disks are stored separately and can be mounted by later authorized jobs of the same repository on fresh machines.'",
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
       "source": "https://docs.starsling.dev/security/faq",
-      "quote": "A machine is provisioned when your job is queued and destroyed when the job finishes. There is no reuse across jobs, no warm pool of shared runners, and nothing ... carries from one job to the next.",
-      "note": "not offered: outside the product's scope (ephemeral single-use CI runner with no clone/fork API).",
-      "checked": "2026-09-30"
+      "quote": "A machine is provisioned when your job is queued and destroyed when the job finishes.",
+      "note": "No machine fork. Many jobs can mount the same published StarSling Disks generation at once (see volume_shared).",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
@@ -489,29 +497,32 @@
       "checked": "2026-09-30"
     },
     "persistent_disk": {
-      "value": false,
-      "source": "https://docs.starsling.dev/security/faq",
-      "quote": "Your job's filesystem, including the checkout — destroyed with the machine. Nothing is copied off it.",
-      "note": null,
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://docs.starsling.dev/runners/disks",
+      "quote": "StarSling Disks are persistent filesystems mounted into StarSling Runners as ordinary directories.",
+      "note": "Only the mounted Disks directories persist; the machine's own filesystem is destroyed with the job (https://docs.starsling.dev/security/faq: 'Its ephemeral filesystem, processes, and credentials do not carry over to another job.'). Enrollment required, release in preparation. See persist_scope.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "volume_attach": {
-      "value": false,
-      "source": "https://docs.starsling.dev/security/faq",
-      "quote": "Your job's filesystem, including the checkout — destroyed with the machine. Nothing is copied off it.",
-      "note": "not offered: no attachable persistent-volume feature documented; caching goes through GitHub's actions/cache instead.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://docs.starsling.dev/runners/disks",
+      "quote": "StarSling Disks are persistent filesystems mounted into StarSling Runners as ordinary directories.",
+      "note": "Storage is $0.50 per GB-month, with no per-job attach fee. Enrollment required; the Disks action is being prepared for release.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "volume_shared": {
-      "value": false,
-      "source": "https://docs.starsling.dev/security/faq",
-      "quote": "There is no reuse across jobs, no warm pool of shared runners, and nothing ... carries from one job to the next.",
-      "note": "not offered: outside the product's scope.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://docs.starsling.dev/runners/disks",
+      "quote": "Many jobs can read the same published generation concurrently",
+      "note": "Read-shared: each job's own writes stay private until a successful default-branch publication. Pull requests and other branches can read but not publish.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
-      "source": "https://docs.starsling.dev/runners/afterburner.md",
+      "source": "https://docs.starsling.dev/runners/afterburner",
       "quote": "Afterburner is not overprovisioning. StarSling Runners resize resources live, every second, in response to the pressure each step puts on CPU and memory.",
       "note": "Kept false: Afterburner (private beta, 'Contact founders@starsling.dev to request access') is an automatic, provider-controlled boost of up to 25% more CPU cores and 50% more RAM during pressure, returning to the label's size afterwards. There is no API or label to choose or grow a running runner's size; the size is fixed by the runs-on label per job. See caveats.",
       "checked": "2026-10-14"
@@ -584,21 +595,21 @@
       "source": "https://starsling.dev/llms-full.txt",
       "quote": "Linux runners only today (no macOS or Windows runners). ... StarSling runners are Ubuntu/Linux only; macOS and Windows jobs stay on GitHub-hosted runners.",
       "note": null,
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "macos": {
       "value": false,
       "source": "https://starsling.dev/llms-full.txt",
       "quote": "Linux runners only today (no macOS or Windows runners). ... StarSling runners are Ubuntu/Linux only; macOS and Windows jobs stay on GitHub-hosted runners.",
       "note": null,
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": false,
-      "source": "https://docs.starsling.dev/runners/compute-sizing.md",
+      "source": "https://docs.starsling.dev/runners/compute-sizing",
       "quote": "All CPU sizes run Ubuntu 26.04 or Ubuntu 24.04 on 5th Gen AMD EPYC.",
       "note": "x64 only: every CPU size is on 5th Gen AMD EPYC; no arm64 label documented.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "self_host": {
       "value": false,
@@ -637,7 +648,7 @@
     },
     "mcp_server": {
       "value": false,
-      "source": "https://docs.starsling.dev/api.md",
+      "source": "https://docs.starsling.dev/api",
       "quote": "The StarSling control plane exposes an HTTP API for everything the platform knows about your CI: which runs and jobs executed, why one failed, where the wall-clock went, and what it all cost.",
       "note": "StarSling ships an HTTP API and the 'sling' CLI (agent-first, i.e. readable/callable by coding agents) but no MCP server. Checked the docs (llms-full.txt has no 'MCP'/'Model Context Protocol' mentions) and the starslingdev GitHub org (repos: openai-agents-python, skills, keep, terraform-aws-github-runner, hpc-sandbox-benchmarks — no mcp-server repo).",
       "checked": "2026-09-30"
@@ -651,14 +662,14 @@
     },
     "eu_data_residency": {
       "value": false,
-      "source": "https://docs.starsling.dev/security/data-handling.md",
+      "source": "https://docs.starsling.dev/security/data-handling",
       "quote": "Control plane | United States ... Runners | Multiple regions ... Logs | United States ... Runner compute runs in multiple regions. See Sandbox Router.",
       "note": "Control plane and logs are in the United States; runner regions are not named and not self-serve choosable (Sandbox Router FAQ: \"Can I pin a provider or region? Yes. If a workload needs a specific provider or region, contact founders@starsling.dev.\"). No documented EU data residency. The old compliance-page table ('US East ... (more regions coming)') no longer exists.",
       "checked": "2026-10-14"
     },
     "soc2": {
       "value": false,
-      "source": "https://docs.starsling.dev/security/compliance.md",
+      "source": "https://docs.starsling.dev/security/compliance",
       "quote": "SOC 2 Type II Status: In progress. We are actively working toward SOC 2 Type II certification. Expected completion: Q1 2027.",
       "note": "Not yet certified as of check date; compliance page explicitly states SOC 2 Type II is in progress, expected Q1 2027, so false is correct.",
       "checked": "2026-09-30"
@@ -666,17 +677,28 @@
     "max_session_h": {
       "value": 6,
       "source": "https://starsling.dev/llms-full.txt",
-      "quote": "Every GitHub Actions job carries a timeout: an explicit timeout-minutes you set, or the platform default of 360 minutes if you never set one. ... GitHub Actions - usage limits (a job can run up to 6 hours before it is terminated)",
+      "quote": "A job without `timeout-minutes` defaults to a 6-hour ceiling",
       "note": "StarSling Runners are a drop-in ubuntu-latest/ubuntu-24.04 GitHub Actions replacement; docs repeatedly cite GitHub's own job ceiling (360 minutes / 6 hours, the platform default and hard maximum for a job on a runner) as the operating limit, with no StarSling-specific higher or lower cap documented. No page states a StarSling override of this ceiling.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": true,
-      "source": "https://docs.starsling.dev/api/usage/get-usage.md",
+      "source": "https://docs.starsling.dev/api/usage/get-usage",
       "quote": "Runner-minute and cost attribution over a time window, grouped by label/workflow/job/repo/day. Scoped to the caller's orgs. The API returns cost_usd field with actual money values.",
       "note": "granularity: per-label; cost: yes; StarSling's /api/usage endpoint supports group_by parameter with options: label, workflow, job, repo, day. The response includes cost_usd (money, not quantities) and runner_minutes for each group. This enables per-label (per-runner-type) usage tracking, as well as per-workflow, per-job, and per-repo granularity.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "persist_scope": {
+      "value": "folder",
+      "source": "https://docs.starsling.dev/runners/disks",
+      "quote": "StarSling Disks are persistent filesystems mounted into StarSling Runners as ordinary directories.",
+      "how": "add the Disks step to a workflow to mount a directory; a successful default-branch job publishes it, later jobs of the same repo read it",
+      "effort": "low",
+      "ttl_days": 30,
+      "beta": true,
+      "note": "Enrollment required ('Your organization must be enrolled for Disks'); the action 'is being prepared for release' (planned starslingdev/disks@v0); free-trial organizations get no Disks storage. A disk retires after 30 days without any step naming it. The rest of the machine (processes, files outside the mount) is destroyed with the job. $0.50 per GB-month.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -689,8 +711,12 @@
       "choosable": false
     }
   ],
-  "locations_source": "https://docs.starsling.dev/security/data-handling.md",
+  "locations_source": "https://docs.starsling.dev/security/data-handling",
   "locations_quote": "Control plane | United States ... Runners | Multiple regions ... Logs | United States",
   "locations_checked": "2026-10-14",
-  "locations_note": "Only the United States is named (control plane and logs). Runners are spread by the Sandbox Router \"across high-performance sandbox providers in multiple regions\" (https://docs.starsling.dev/runners/sandbox-router.md), which are not listed; pinning a provider or region goes through founders@starsling.dev. The earlier 'us-east' region id came from a compliance-page table that has been removed."
+  "locations_note": "Only the United States is named (control plane and logs). Runners are spread by the Sandbox Router \"across high-performance sandbox providers in multiple regions\" (https://docs.starsling.dev/runners/sandbox-router), which are not listed; pinning a provider or region goes through founders@starsling.dev. The earlier 'us-east' region id came from a compliance-page table that has been removed.",
+  "audit_2026_11_08": {
+    "applied": 9,
+    "source": "findings/starsling.json checked against starsling.dev/pricing, docs.starsling.dev/pricing, /runners/disks, /runners/compute-sizing, /security/faq, /products/review-runners"
+  }
 }

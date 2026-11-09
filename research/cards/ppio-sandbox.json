@@ -104,10 +104,10 @@
     "persistent_disk": true,
     "volumes": true,
     "auto_stop_idle": true,
-    "max_session_h": 168,
+    "max_session_h": null,
     "custom_image": true,
-    "docker_inside": false,
-    "nested_virt": false,
+    "docker_inside": null,
+    "nested_virt": null,
     "root": null,
     "systemd": null,
     "browser": true,
@@ -122,7 +122,7 @@
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
     "static_egress_ip": true,
-    "private_network": null,
+    "private_network": "diy",
     "self_host": false,
     "byoc": false,
     "open_source": false,
@@ -168,7 +168,8 @@
     "egress_ip_type": "datacenter",
     "own_agent_api": false,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "whole"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -182,14 +183,17 @@
     "Volume beta has no independently published rate.",
     "Engine cannot subtract account-wide 60 GiB snapshot allowance; apply manually.",
     "Legal corporate relation to Novita remains unresolved.",
-    "Default lifetime is five minutes and timeout is capped at 1 h unless the sandbox is created with metadata long_running=\"true\" (sandbox-long-running.md, checked 2026-10-14); with it, timeout can exceed 1 h (docs example 7 days, no higher maximum stated). Idle timeout still pauses/kills inactive long-running sandboxes; long_running can only be set at create.",
+    "Default lifetime is five minutes and timeout is capped at 1 h unless the sandbox is created with metadata long_running=\"true\" (sandbox-long-running.md, checked 2026-11-08); with it, timeout can exceed 1 h. The docs show 24 h and 7-day examples and state no maximum, so max_session_h is null (not published), not 168. Idle timeout still pauses or kills inactive long-running sandboxes; long_running can only be set at create.",
     "Unknowns remain null, not free; generic infrastructure modes are opt-in alt.",
     "Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.",
     "VAT basis: Unknown: reviewed pricing source does not explicitly establish VAT/tax inclusion.",
     "Residency: cn-shanghai-1 v1 and cn-beijing-1 v2. Do not inherit Novita US regions. Volumes/secrets/new snapshots need v2.",
-    "SSH (verified 2026-09-28, docs/sandbox/sandbox-ssh-access.md): real OpenSSH server in a custom template, tunnelled over WSS through an exposed sandbox port (websocat ProxyCommand); needs template setup, no direct port 22. ssh = true.",
+    "SSH (verified 2026-09-28, docs/sandbox/sandbox-ssh-access.md): real OpenSSH server in a custom template, tunnelled over WSS through an exposed sandbox port (websocat ProxyCommand); needs template setup, no direct port 22. ssh = true. Tailscale and OpenVPN guides give private access (tailscale.md, openvpn.md; checked 2026-11-08).",
     "Egress (re-checked 2026-09-28): pricing.md and sandbox-internet-access.md publish no traffic/egress charge; egress_gib stays null (unknown, not free).",
-    "Disk (re-checked 2026-09-28): every sandbox gets a fixed 20 GB local disk, free ('本地存储免费'); no option to enlarge it or price for extra local disk is documented. Persistent storage has 60 GB free per account then ¥0.0005/GB-h (the snapshot rate). Workloads needing >20 GiB local disk must mount S3 (sandbox-mount-cloudstorage.md) or volumes (beta, unpriced).",
+    "Disk (re-checked 2026-11-08, source pricing.md, not quota-limits.md): every sandbox gets a 20 GB local disk, free ('本地存储免费，不产生费用'); no option to enlarge it is documented. More persistent space comes from Volumes (shared across sandboxes in a team, cn-beijing-1 only, closed beta, unpriced; volume-overview.md) or an S3 mount (sandbox-mount-cloudstorage.md). Persistent storage (templates, snapshots, paused sandboxes) has 60 GB free per account, then ¥0.0005/GB-h.",
+    "Docker and /dev/kvm inside a sandbox (checked 2026-11-08): the docs neither describe nor exclude them; docker_inside and nested_virt are null (not published), not false. RAM per sandbox is capped at 8 GiB.",
+    "Agents (checked 2026-11-08): a first-party 'codex' template driven through commands.run, plus guides to run OpenAI Agents API and Kimi Hosted Agents sessions in PPIO sandboxes (openai-agents-api.md, kimi-agents-api.md). The prompt API is OpenAI's or Kimi's, not PPIO's.",
+    "Fork (checked 2026-11-08): the clone doc is now under /archive/. The current path is a snapshot of a running sandbox with live memory, then many new sandboxes from it (snapshot-overview.md, v2 region only).",
     "Persistent storage (templates, snapshots, paused sandboxes) is billed per day (按天计费) at CNY 0.0005/GB-h above a 60 GB per-account free allowance; paused sandboxes are kept indefinitely until killed, so storage accrues. Pausing takes ~4 s per GB RAM (billing of that window not stated).",
     "Regions: cn-shanghai-1 (v1, default, sandbox.ppio.cn) and cn-beijing-1 (v2, added 2026-09-07; Snapshot, Secret, Volume only here). No international sandbox site: ppinfra.com redirects to ppio.com; ppio.ai/ppio.io are parked landers. International sibling = Novita (separate card)."
   ],
@@ -205,7 +209,13 @@
     "https://github.com/novitalabs/novita-gym",
     "https://ppio.com/docs/sandbox/sandbox-timeout.md",
     "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.cs.html",
-    "https://ppio.com/docs/sandbox/sandbox-long-running.md"
+    "https://ppio.com/docs/sandbox/sandbox-long-running.md",
+    "https://ppio.com/docs/sandbox/snapshot-overview.md",
+    "https://ppio.com/docs/sandbox/sandbox-mount-cloudstorage.md",
+    "https://ppio.com/docs/sandbox/tailscale.md",
+    "https://ppio.com/docs/sandbox/openvpn.md",
+    "https://ppio.com/docs/sandbox/openai-agents-api.md",
+    "https://ppio.com/docs/sandbox/kimi-agents-api.md"
   ],
   "fleet": {
     "default_max_instances": 50,
@@ -245,7 +255,7 @@
       "value": false,
       "source": "https://ppio.com/docs/sandbox/codex.md",
       "quote": "下面的示例使用统一的 `PPIO` 客户端，基于 `codex` 模板创建 Sandbox，通过 `commands.run` 运行 `codex` CLI、流式输出其结果，最后销毁 Sandbox。",
-      "note": "A preinstalled 'codex' template is driven only via the generic exec API (commands.run 'codex exec ...'). OpenAI Agents API page = OpenAI's hosted harness using a PPIO sandbox as self-hosted executor (third-party API). Archived 'PPIO Agent Runtime' lets you wrap YOUR OWN agent code as an HTTP entrypoint and invoke it with a prompt/session id (streaming) - a generic agent-hosting runtime, not a harness API. PPClaw/PPHermes CLIs deploy OpenClaw/Hermes gateways (lifecycle/config/Feishu pairing), not prompt/stream APIs.",
+      "note": "A preinstalled 'codex' template is driven via the generic exec API (commands.run 'codex exec ...'). Guides also run OpenAI Agents API and Kimi Hosted Agents sessions in PPIO sandboxes (https://ppio.com/docs/sandbox/kimi-agents-api.md, re-checked 2026-11-08); the prompt API there is OpenAI's or Kimi's. OpenAI Agents API page = OpenAI's hosted harness using a PPIO sandbox as self-hosted executor (third-party API). Archived 'PPIO Agent Runtime' lets you wrap YOUR OWN agent code as an HTTP entrypoint and invoke it with a prompt/session id (streaming) - a generic agent-hosting runtime, not a harness API. PPClaw/PPHermes CLIs deploy OpenClaw/Hermes gateways (lifecycle/config/Feishu pairing), not prompt/stream APIs.",
       "checked": "2026-09-29"
     },
     "egress_allowlist": {
@@ -282,8 +292,9 @@
       "value": true,
       "source": "https://ppio.com/docs/sandbox/volume-overview.md",
       "quote": "Volume 是一种独立于沙箱生命周期的持久化存储卷。挂载到沙箱后，它会以目录形式出现在文件系统中",
-      "note": "Beta (内测), v2 region only; quota in GiB, mount at create or at runtime (mount_volume/unmount_volume). Also first-party guide to mount S3 buckets. Volume price not published.",
-      "checked": "2026-09-29"
+      "note": "Closed beta (内测), v2 region (cn-beijing-1) only; quota in GiB, mount at create or at runtime (mount_volume/unmount_volume). Also a first-party guide to mount S3 storage (https://ppio.com/docs/sandbox/sandbox-mount-cloudstorage.md). Volume price not published.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -293,18 +304,36 @@
       "checked": "2026-09-29"
     },
     "docker_inside": {
-      "value": false,
+      "value": null,
       "source": "https://ppio.com/docs/sandbox/sandbox-template.md",
       "quote": "Template 在概念上与容器镜像非常接近: 它可以始于一个 Docker 镜像、Dockerfile 或已有 Template。",
-      "note": "Docker/Dockerfile is only used to BUILD the sandbox's rootfs/template (outside, at build time); no docs describe installing/running a Docker daemon or docker CLI inside a running sandbox to launch containers. Not offered: outside documented scope.",
-      "checked": "2026-09-30"
+      "note": "Not published. Docker/Dockerfile builds the template rootfs. The docs neither describe nor exclude a Docker daemon inside a running sandbox, and we have not tested it, so this is null, not false.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
-      "value": false,
+      "value": null,
       "source": "https://ppio.com/docs/sandbox/overview.md",
       "quote": "每个 Sandbox 都拥有自己的文件系统和运行时",
-      "note": "Sandboxes are Firecracker microVMs (per card isolation=firecracker); no docs mention /dev/kvm or nested virtualization support inside the guest. Derived, not offered: outside documented scope.",
-      "checked": "2026-09-30"
+      "note": "Not published. The docs neither describe nor exclude /dev/kvm inside a sandbox, and we have not tested it, so this is null, not false.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://ppio.com/docs/sandbox/sandbox-auto-persistence.md",
+      "quote": "当 Sandbox 被暂停时: Sandbox 中创建的文件会被保留。内存状态会被保留,包括正在运行的进程和变量。",
+      "how": "pause the sandbox, or set lifecycle on_timeout to 'pause' (the default is kill); files and memory come back on resume",
+      "effort": "low",
+      "note": "Pause is PPIO's stop. Paused sandboxes are kept until killed; storage above the 60 GB per-account allowance costs ¥0.0005/GB-h (pricing.md).",
+      "checked": "2026-11-08"
+    },
+    "private_network": {
+      "value": "diy",
+      "source": "https://ppio.com/docs/sandbox/tailscale.md",
+      "quote": "本指南介绍三种将 Sandbox 接入 tailnet 的方式。",
+      "how": "join the sandbox to your Tailscale tailnet or an OpenVPN network (official guides)",
+      "effort": "medium",
+      "note": "OpenVPN guide: https://ppio.com/docs/sandbox/openvpn.md",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -329,10 +358,10 @@
     },
     "fork_running": {
       "value": true,
-      "source": "https://ppio.com/docs/sandbox/archive/sandbox-clone.md",
-      "quote": "克隆运行中（Running）状态的沙箱 ... 在克隆执行期间，原始沙箱会被短暂挂起；挂起期间该沙箱实例不可用；挂起时长接近一次暂停（pause）操作所需的时间。 克隆完成后：原始沙箱：状态恢复为运行中（running）",
-      "note": "A running sandbox can be cloned into new running sandboxes without being killed; the original is only briefly suspended (~1 pause-op duration) then automatically returns to running.",
-      "checked": "2026-09-30"
+      "source": "https://ppio.com/docs/sandbox/snapshot-overview.md",
+      "quote": "Snapshot 是捕获出来的:从某一时刻正在运行的 Sandbox 中捕获,保留其文件系统和实时内存状态,包括运行时创建的任何内容。",
+      "note": "Snapshot a running sandbox with live memory, then start many sandboxes from it ('从同一份已捕获的环境启动多个 Sandbox'). v2 region (cn-beijing-1) only ('此功能仅支持 v2'). The older clone doc is archived (https://ppio.com/docs/sandbox/archive/sandbox-clone.md).",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": true,
@@ -476,11 +505,11 @@
       "checked": "2026-10-01"
     },
     "max_session_h": {
-      "value": 168,
+      "value": null,
       "source": "https://ppio.com/docs/sandbox/sandbox-long-running.md",
       "quote": "默认情况下,Sandbox 的 `timeout` 最长生效 **1 小时**——传入更大的值会被截断到该上限。长时间运行(long-running)模式可以解除这一上限:启用后,创建 Sandbox 时传入的 `timeout` 可以超过 1 小时。",
-      "note": "Default cap 1 h; opt-in metadata long_running=\"true\" (CLI --long-running) at create lifts it. Docs example: \"创建一个最长可存活 **7 天**的长时间运行 Sandbox\" (timeout=604_800); no higher maximum stated, so 168 h is the documented ceiling. Only create accepts long_running; resume/clone/reset inherit it. Idle timeout still applies. Default timeout when unset is 5 min.",
-      "checked": "2026-10-14"
+      "note": "Default cap 1 h; opt-in metadata long_running=\"true\" (CLI --long-running) at create lifts it ('启用后,创建 Sandbox 时传入的 `timeout` 可以超过 1 小时'). The docs show 24 h and 7-day examples and state no maximum, so 7 days is an example, not a cap; no weekly restart is documented. Idle timeout still applies ('长时间运行模式不会禁用空闲超时'). Default timeout when unset is 5 min.",
+      "checked": "2026-11-08"
     },
     "isolation": {
       "value": "firecracker",

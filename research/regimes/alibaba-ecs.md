@@ -30,6 +30,8 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 - ECS economical stop mode may stop vCPU/RAM/public-bandwidth charge, releases capacity/IP and restart may fail if stock exhausted. Ordinary stop can continue billing; disks/snapshots still cost.
 - Public bandwidth can be bought per Mbps or transferred GB; no double addition. $0.076/GB Virginia source is ECS bandwidth catalog; CDT tiers may differ; 200 GB free requires eligible CDT billing.
 - EIP ownership/idle charges and backup prices remain unknown, not zero.
+- Desktop: public Linux images ship without one; the official ECS guide installs XFCE or GNOME and connects over VNC (https://www.alibabacloud.com/help/en/ecs/installing-a-graphical-desktop-environment-for-a-linux-instance).
+- Alibaba Cloud also sells agent sandboxes on separate cards: Agent Sandbox (VM-isolated code, browser, desktop, mobile; hibernation, checkpoints, batch cloning; E2B-compatible) and AgentBay (browser use, computer use, code space, mobile use). This file covers raw ECS VMs (https://www.alibabacloud.com/help/en/agent-sandbox/agent-sandbox-overview).
 ## Worked example
 4 vCPU / 8 GiB; 50 concurrent × 8 h/day × 22 days = **8,800 guest-hours**; 30% CPU busy; **50 GiB-month total snapshots**, **100 GiB total egress**. 50 GiB retained state is total, not 50 GiB per VM. Compute-only subtotals below exclude unknown components and tax.
 | Mode | Delete/recreate / active-window compute | 50 retained hosts, 730-hour month |

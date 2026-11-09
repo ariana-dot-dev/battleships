@@ -519,11 +519,11 @@
     }
   ],
   "caveats": [
-    "All rates from the Azure Retail Prices API (prices.azure.com, serviceName \"Azure Container Apps\", fetched 2026-09-28).",
+    "All rates from the Azure Retail Prices API (prices.azure.com, serviceName \"Azure Container Apps\"). First fetched 2026-09-28; eastus meters re-checked 2026-11-08 with no change (vCPU active $0.000024/s, memory active $0.000003/GiB-s, idle $0.000003, Dynamic Sessions $0.03/h, Dedicated $0.057077/$0.004978 per h, T4 $0.000073/s, A100 $0.000529/s).",
     "Region tiers: base rate ($0.000024/$0.000003) in eastus, eastus2, centralus, westus, westus3, northeurope, swedencentral, germanywestcentral, francecentral, polandcentral, norwayeast, switzerlandnorth, japaneast, centralindia, eastasia, koreacentral, etc. Premium regions westeurope, uksouth, westus2, southeastasia, australia*, canada* are $0.000034/$0.000004 (+42% CPU). The engine uses base-rate regions for us/eu/asia.",
     "free.monthly_credit 5.40 (derived) = monthly per-subscription grant 180,000 vCPU-s x $0.000024 ($4.32) + 360,000 GiB-s x $0.000003 ($1.08); the 2M free requests ($0.80) are extra. The previous provider record listed serverless GPU T4 $0.324/h and A100 $2.3436/h; the Retail API shows $0.2628/h and $1.9044/h in eastus.",
     "Knob idle_share is an approximation; idle criteria are strict (any request or >0.01 vCPU makes the replica active).",
-    "Consumption replica max 4 vCPU/8 GiB with a fixed 1:2 ratio (docs knowledge, not re-verified this session).",
+    "Consumption replica max 4 vCPU / 8 GiB with a fixed 1:2 ratio (containers doc, re-checked 2026-11-08: the CPU/memory table ends at \"4.0 | 8.0Gi\"; \"Apps using the Consumption plan in a Consumption only environment are limited to a maximum of 2 cores and 4Gi of memory.\").",
     "Serverless GPU: NC T4 v3 $0.000073/s ($0.2628/h) and NC A100 v4 $0.000529/s ($1.9044/h) on top of vCPU/RAM (Retail API); dedicated GPU profile $4.4076/h. Not modelled per mode.",
     "Egress (Retail API, Bandwidth, Microsoft Global Network routing): first 100 GB/month free, then $0.087/GB NA/EU (10-50 TB $0.083, 50-150 TB $0.07, >150 TB $0.05); Asia (centralindia, japaneast) $0.12/GB first tier.",
     "Dedicated/custom-session modes carry a $73/month per-environment management fee that the resource rate does not include.",
@@ -536,7 +536,8 @@
     "KEDA default cool-down period is 300 s: a scale-to-zero app keeps its last replica billed at the active rate ~5 min after the last event (configurable). Not modelled.",
     "Flexible workload profile (preview): billed like Consumption plus the $0.10/h environment management fee, single-tenant pool, no scale to zero, limited regions. Not modelled as a mode.",
     "Environment fee: the new 'Environment Management Hour' / 'Environment Private Endpoint' / 'Environment Planned Maintenance Hour' meters (effective 2026-09-01) are region-priced: $0.10 eastus/eastus2/westus2/westus3/centralus, $0.13 westus/swedencentral/germanywestcentral, $0.143 northeurope/westeurope, $0.145 japaneast, $0.155 eastasia, up to $0.23 brazilsoutheast; the legacy 'Dedicated Plan Management' meter stays $0.10 in almost every region. So the $73/month dedicated fee is ~$104/month in North Europe if the new meter is the one charged (unclear which meter applies).",
-    "Session pool lifecycle (learn.microsoft.com/azure/container-apps/session-pool, 2026-10-14): 'Timed' (default, all pool types) deletes a session after cooldownPeriodInSeconds without requests; 'OnContainerExit' keeps a session 'active until the container exits on its own or the maximum alive period is reached' (maxAlivePeriodInSeconds). So custom container sessions can run long-lived, not only until the 300-3600 s cooldown. The 600-session cap is documented for code interpreter pools only."
+    "Session pool lifecycle (learn.microsoft.com/azure/container-apps/session-pool, 2026-10-14): 'Timed' (default, all pool types) deletes a session after cooldownPeriodInSeconds without requests; 'OnContainerExit' keeps a session 'active until the container exits on its own or the maximum alive period is reached' (maxAlivePeriodInSeconds). So custom container sessions can run long-lived, not only until the 300-3600 s cooldown. The 600-session cap is documented for code interpreter pools only.",
+    "This card covers apps, jobs and Dynamic Sessions. Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes) is a separate product on the same Consumption per-second meters: one microVM with its own kernel per sandbox, suspend with memory and disk, snapshots that clone new sandboxes, Data Disk or Blob volumes, Docker in the azure-dev image, an egress proxy that adds secrets to outbound headers, and tiers up to 16 cores / 32 GiB. Default quota 300 active cores per region per subscription. Sources: https://learn.microsoft.com/en-us/azure/container-apps/sandboxes-overview, https://sandboxes.azure.com/docs/sandboxes, https://mc.merill.net/message/AZ561262."
   ],
   "sources": [
     "https://azure.microsoft.com/en-us/pricing/details/container-apps/",
@@ -545,7 +546,9 @@
     "https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview",
     "https://learn.microsoft.com/en-us/azure/container-apps/session-pool",
     "https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Azure Container Apps'",
-    "https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Bandwidth'"
+    "https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Bandwidth'",
+    "https://learn.microsoft.com/en-us/azure/container-apps/containers",
+    "https://learn.microsoft.com/en-us/azure/container-apps/sandboxes-overview"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -573,15 +576,15 @@
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/sessions-usage",
       "quote": "Once there are no requests to the session after the cooldown period has elapsed, the session is automatically destroyed.",
-      "note": "Dynamic sessions are not snapshotted: with the default Timed lifecycle they are destroyed after the cooldown (300-3600 s); custom container pools can instead use the OnContainerExit lifecycle (session-pool doc, 2026-10-14: 'a session remains active until the container exits on its own or the maximum alive period is reached', set by maxAlivePeriodInSeconds), after which the session is deleted. App replicas scaling to zero lose container state (only EmptyDir/replica-scoped or Azure Files persist). Snapshots exist only in the separate ACA Sandboxes product (id azure-container-apps-sandboxes, sandboxes-snapshots-state-management).",
-      "checked": "2026-10-14"
+      "note": "Apps and Dynamic Sessions: no snapshot. With the default Timed lifecycle a session is deleted after the cooldown (300-3600 s). Custom container pools can use OnContainerExit with maxAlivePeriodInSeconds instead. App replicas that scale to zero lose container state; Azure Files mounts persist. Snapshots that save memory and disk at stop exist in Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes).",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
       "quote": "Container-scoped storage | Ephemeral storage available to a running container | Data is available until container shuts down",
-      "note": "No API/CLI operation to snapshot or checkpoint a container app, revision, or session at will; management surface is limited to Azure Files mounts (external, always-on storage) and revision/replica lifecycle, not point-in-time snapshots.",
-      "checked": "2026-09-30"
+      "note": "Apps, jobs and sessions have no snapshot or checkpoint API; persistence is through Azure Files mounts. On-demand snapshots of a running sandbox exist in Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes).",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -610,14 +613,14 @@
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
       "quote": "Azure Container Apps doesn't allow privileged containers mode with host-level access.",
       "note": "Containers (dynamic sessions: Hyper-V isolated); no privileged mode and no documented way to add CAP_NET_ADMIN, so in-container iptables should not be available. Not explicitly documented either way.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "secret_proxy": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/manage-secrets",
       "quote": "The value of each secret is specified directly or as a reference to a secret stored in Azure Key Vault.",
-      "note": "Secrets (optionally Key Vault references) are exposed to containers as env vars or secret volume mounts; managed identities issue tokens inside the container. Session-pool doc warns untrusted code has 'full access to the container, including its environment variables, secrets, and files'. No credential-injecting proxy.",
-      "checked": "2026-09-29"
+      "note": "Apps and sessions: secrets (optionally Key Vault references) reach the container as env vars or mounted files, and managed identities issue tokens inside it. The session-pool doc warns that untrusted code has access to the container's secrets. Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes) have egress Transform header rules that add a secret after the request leaves the sandbox (https://sandboxes.azure.com/docs/sandboxes/sandbox/egress).",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": true,
@@ -637,22 +640,22 @@
       "value": "container",
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
       "quote": "Azure Container Apps doesn't allow privileged containers mode with host-level access.",
-      "note": "Consumption/Dedicated plans (the modeled default) run standard Linux containers on a managed Kubernetes-based platform, shared kernel, no privileged/host access; this matches the card's already-resolved Dedicated-mode isolation ('container'). Only the separate Dynamic Sessions feature uses per-session Hyper-V isolation ('Secure isolation: Hyper-V isolation ... Sessions are isolated from each other and from the host environment', learn.microsoft.com/azure/container-apps/sessions), already captured per-mode in the card.",
-      "checked": "2026-09-30"
+      "note": "Apps and jobs (the priced default modes) run as standard Linux containers on a shared kernel with no privileged mode. Dynamic Sessions run each session in its own Hyper-V sandbox (per mode in this card). Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes) run one microVM with its own kernel per sandbox.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
       "quote": "Azure Container Apps enables you to build serverless microservices and jobs based on containers.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "note": "No anti-bot service is documented for Container Apps.",
+      "checked": "2026-11-08"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
       "quote": "Azure Container Apps enables you to build serverless microservices and jobs based on containers.",
-      "note": "not offered: outside the product's scope",
-      "checked": "2026-09-30"
+      "note": "No CAPTCHA service is documented for Container Apps.",
+      "checked": "2026-11-08"
     },
     "egress_ip_type": {
       "value": "static-datacenter",
@@ -672,8 +675,8 @@
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
       "quote": "Azure Container Apps enables you to build serverless microservices and jobs based on containers.",
-      "note": "not offered: outside the product's scope (Container Apps/Dynamic Sessions offer a code-interpreter execution API for your own agent to call, not a first-party browser/computer-use/research agent driven via API)",
-      "checked": "2026-09-30"
+      "note": "Container Apps and Dynamic Sessions give a code-execution API for your own agent to call. No first-party browser, computer-use or research agent API is documented.",
+      "checked": "2026-11-08"
     },
     "mcp_server": {
       "value": true,
@@ -693,8 +696,8 @@
       "value": "none",
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
       "quote": "Azure Container Apps enables you to build serverless microservices and jobs based on containers.",
-      "note": "Container Apps (Consumption/Dedicated) are long-running microservices with no maximum lifetime imposed by the provider; a replica runs until it's scaled down, updated, or you stop it. Dynamic Sessions instead use an idle cooldown (300-3600 s) that destroys an unused session, not a hard maximum active-duration cap.",
-      "checked": "2026-09-30"
+      "note": "Apps and jobs have no provider-imposed maximum lifetime; a replica runs until it scales down, updates or you stop it. Dynamic Sessions: the Timed lifecycle deletes a session after an idle cooldown (300-3600 s); OnContainerExit keeps a custom container session until it exits or reaches maxAlivePeriodInSeconds.",
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
       "value": true,
@@ -708,50 +711,50 @@
       "value": "none",
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
       "quote": "Container-scoped storage ... Replica-scoped storage ... Azure Files ... Permanent storage",
-      "note": "The doc enumerates exactly three storage types (container-scoped ephemeral, replica-scoped ephemeral EmptyDir, and permanent Azure Files) with no snapshot/checkpoint mechanism for either the filesystem or memory; Dynamic Sessions are destroyed (not snapshotted) after cooldown per sessions-usage. Confirms snapshot: none.",
-      "checked": "2026-09-30"
+      "note": "The storage doc lists three storage types for apps and jobs (container-scoped, replica-scoped, Azure Files) and no snapshot. Dynamic Sessions are deleted, not snapshotted, after the cooldown. Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes) snapshot memory and disk.",
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
       "quote": "The storage is temporary and disappears when the container shuts down or restarts.",
-      "note": "Only scale-to-zero exists, which is a stop (ephemeral state and running processes are discarded, new replica starts fresh), not a pause that preserves in-memory state for later resume. No pause/resume API found.",
-      "checked": "2026-09-30"
+      "note": "Apps: scale to zero stops the replica; the next replica starts fresh, and running processes are not kept. No pause API for apps or sessions. Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes) suspend with memory and disk and resume in under a second.",
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
       "quote": "Run multiple container revisions and manage the container app's application lifecycle.",
-      "note": "Container Apps' unit of duplication is a new revision/replica deployed from the same image+config, not a clone of an existing running instance's disk/memory state. No fork/clone-machine API documented; outside this managed-serverless-container product's scope.",
-      "checked": "2026-09-30"
+      "note": "Apps scale by starting new replicas from the same image and config, not by cloning a running replica. Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes) create new sandboxes from a snapshot of a running sandbox.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
       "quote": "Azure Container Apps is a serverless platform for running containerized applications without managing the underlying infrastructure.",
-      "note": "No documented API to clone a live running replica (with its memory/process state) into a new one; scaling creates fresh replicas from the image, not forks of a running one.",
-      "checked": "2026-09-30"
+      "note": "No API clones a running app replica or session. Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes) snapshot a running sandbox with its memory and clone it.",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts",
       "quote": "Container-scoped storage ... Replica-scoped storage ... Azure Files ...",
-      "note": "No memory-snapshot mechanism exists at all (see snapshot: none), so a memory-including fork is not possible; consistent with no fork/fork_running support.",
-      "checked": "2026-09-30"
+      "note": "Apps and sessions have no memory snapshot. Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes) snapshot memory and disk and clone from the snapshot.",
+      "checked": "2026-11-08"
     },
     "docker_inside": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
       "quote": "Privileged containers: Azure Container Apps doesn't allow privileged containers mode with host-level access.",
-      "note": "Running a Docker daemon (dind) inside a container normally requires privileged mode / extra capabilities, which ACA explicitly disallows.",
-      "checked": "2026-09-30"
+      "note": "Apps, jobs and sessions: no privileged mode, so no Docker daemon in the container (image builds without a daemon, such as Buildah or Kaniko, are not documented here either). Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes) ship Docker on systemd in the public azure-dev image (https://sandboxes.azure.com/docs/sandboxes/disk-images).",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
       "quote": "Privileged containers: Azure Container Apps doesn't allow privileged containers mode with host-level access.",
-      "note": "No privileged mode / host device access means no /dev/kvm passthrough for nested virtualization inside the container.",
-      "checked": "2026-09-30"
+      "note": "No privileged mode or host device access in apps, jobs or sessions, so no /dev/kvm. No Microsoft page documents /dev/kvm in Sandboxes either.",
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": false,
@@ -764,22 +767,22 @@
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
       "quote": "Azure Container Apps is a serverless platform for running containerized applications without managing the underlying infrastructure.",
-      "note": "Not offered: a headless serverless container/job/microservice/HTTP-ingress platform, outside the product's scope.",
-      "checked": "2026-09-30"
+      "note": "No desktop image or desktop example is documented for apps, jobs or sessions. Custom images are allowed, but Microsoft publishes no desktop path, so the value stays false.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
       "quote": "Common uses of Azure Container Apps include: Deploying API endpoints, Hosting background processing jobs, Handling event-driven processing, Running microservices",
-      "note": "No managed/pre-installed browser; not offered, outside the product's scope (users could run their own browser image, but none is provided).",
-      "checked": "2026-09-30"
+      "note": "No browser image or browser-automation example is documented for apps, jobs or sessions (searched learn.microsoft.com 2026-11-08). Custom images are allowed, but Microsoft publishes no browser path, so the value stays false.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
       "quote": "Azure Container Apps is a serverless platform for running containerized applications without managing the underlying infrastructure.",
-      "note": "No screenshot/click computer-use API; outside the product's scope (managed container hosting, not an agent-desktop product).",
-      "checked": "2026-09-30"
+      "note": "No screenshot or click API for apps, jobs or sessions.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -792,29 +795,29 @@
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/overview",
       "quote": "Common uses of Azure Container Apps include: Deploying API endpoints, Hosting background processing jobs, Handling event-driven processing, Running microservices",
-      "note": "No pre-installed coding-agent harnesses (Claude Code, Codex, etc.) or templates; Dynamic Sessions code-interpreter targets are aimed at running untrusted code for an external caller, not shipping a harness. Outside the product's scope.",
-      "checked": "2026-09-30"
+      "note": "Apps and sessions ship no coding-agent images. Dynamic Sessions give an execution API for an external agent. Container Apps Sandboxes (GA September 2026, card azure-container-apps-sandboxes) have Claude and Copilot agent images.",
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
       "quote": "Operating system: Linux-based (linux/amd64) container images are required.",
       "note": "Explicitly Linux/amd64 only; no Windows container support.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "macos": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
       "quote": "Operating system: Linux-based (linux/amd64) container images are required.",
       "note": "Linux-only container platform; macOS is not offered.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": false,
       "source": "https://learn.microsoft.com/en-us/azure/container-apps/containers",
       "quote": "Operating system: Linux-based (linux/amd64) container images are required.",
       "note": "Only linux/amd64 images are supported; no ARM64 architecture offered.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "self_host": {
       "value": false,
@@ -1208,5 +1211,10 @@
   ],
   "locations_source": "https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Azure Container Apps'",
   "locations_quote": "Retail Prices API serviceName eq 'Azure Container Apps' lists 40 regions. Consumption plan, Dedicated plan, and Dynamic Sessions (code-interpreter and custom container pools) are available across all listed regions with region-specific pricing tiers (base rate in eastus/northeurope/japaneast/central",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 9,
+    "source": "findings/azure-container-apps.json (2026-11-08 fairness audit): scoped every apps/sessions \"no\" to apps and sessions, named Container Apps Sandboxes as the way, re-checked Retail API rates and Consumption size limits",
+    "reviewed": 16
+  }
 }

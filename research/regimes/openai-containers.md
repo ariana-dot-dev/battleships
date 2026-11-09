@@ -9,7 +9,7 @@ OpenAI runs code for agents in several places. Only the API containers have a pu
 | Model tokens | always | per token | model-specific, usually more than the compute | https://developers.openai.com/api/docs/pricing |
 ## Gotchas
 - Memory is the only size setting for API containers; vCPU and disk per tier are not published (the Agents API sizes are the only official vCPU numbers).
-- A container expires 20 minutes after its last activity; any API call refreshes it, so long sessions are possible with keep-alive calls. Whether the idle minutes before expiry are billed is not published.
+- By default a container expires 20 minutes after its last activity; any API call refreshes it. `expires_after.minutes` on create sets a different idle expiry (no published maximum; https://developers.openai.com/api/reference/resources/containers/methods/create). Whether the idle minutes before expiry are billed is not published.
 - An Agents API sandbox is deleted after about 1 hour without activity (not configurable). No snapshots, no pause/resume, no custom images; setup reruns every session.
 - Outbound network is off by default and needs an org allowlist; secrets can be injected per allowed domain. No inbound access. Debian 12, no sudo.
 - The Agents API is US-only and has no Zero Data Retention; Code Interpreter runs in the US or EU.

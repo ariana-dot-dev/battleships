@@ -139,8 +139,9 @@
     "gpu_types": [],
     "snapshot": "fs",
     "pause_resume": false,
-    "fork": false,
-    "persistent_disk": false,
+    "fork": "diy",
+    "persistent_disk": "diy",
+    "persist_scope": "snapshot",
     "volumes": true,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -149,7 +150,7 @@
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
     "code_interpreter": true,
@@ -184,7 +185,7 @@
     "egress_http_rules": true,
     "wake_on_request": true,
     "live_resize": false,
-    "fork_running": false,
+    "fork_running": "diy",
     "memory_snapshot_fork": false,
     "webhooks": false,
     "scheduled_wakeups": null,
@@ -196,9 +197,9 @@
     "mcp_server": false,
     "isolation": "vm",
     "image_oci": true,
-    "snapshot_auto": false,
+    "snapshot_auto": "diy",
     "snapshot_on_demand": true,
-    "harness_api": true,
+    "harness_api": "diy",
     "egress_allowlist_level": "both",
     "ingress_rules": true,
     "guest_firewall": false,
@@ -217,10 +218,10 @@
   "perf": {
     "cpu_runs_s": null,
     "cold_start_ms": 2000.55,
-    "burst_tti_ms": 647.84,
-    "dax_s": null
+    "burst_tti_ms": 670.96,
+    "dax_s": 182.72
   },
-  "perf_source": "ComputeSDK (github.com/computesdk/benchmarks results/): cold 2,000.55 ms (seq TTI 2026-08-07), burst 647.84 ms (2026-09-25); instance type set by the benchmark's own deployed Worker (not in repo). DAX never succeeded; no HPC result.",
+  "perf_source": "ComputeSDK (each provider at its SDK default size and runtime): burst 671 ms median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 182.72 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86); one-at-a-time start 2.00 s (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [
     {
       "id": "sleep_after_tail",
@@ -241,13 +242,16 @@
     }
   ],
   "caveats": [
-    "4 vCPU / 8 GiB is not offered: >=3 GiB RAM per vCPU, so 4 vCPU always pays 12 GiB; max shape 4 vCPU/12 GiB/20 GB.",
+    "Instance types need at least 3 GiB RAM per vCPU, so a 4 vCPU sandbox pays for 12 GiB; max shape 4 vCPU/12 GiB/20 GB (any custom type can use the 20 GB disk since 2026-09-29).",
     "Idle tail: RAM+disk bill at full size while an idle instance waits out its inactivity timeout (~$0.113/h for standard-4). The Container class defaults sleepAfter to 10 min (https://developers.cloudflare.com/containers/faq/); the current Sandbox lifetime page sets no default (\"Without a timeout, Cloudflare stops the instance shortly after the Durable Object becomes inactive.\") and allows setInactivityTimeout() \"up to 6 hours\" (https://developers.cloudflare.com/sandbox/concepts/lifetime/, 2026-10-14). Code running inside the instance does not count as activity, so long jobs need a Durable Object alarm to stay up; keepAlive / alarms bill continuously with no cap.",
-    "A stop wipes the disk and processes (no paused state). Persistence options: Container snapshots, now public beta (\"Container snapshots are in public beta. The API and behavior may change.\"), save the writable root filesystem (not memory, processes or mounts), max 20 GB, and expire \"30 days after it is created or last restored\" (https://developers.cloudflare.com/sandbox/concepts/lifetime/, https://developers.cloudflare.com/containers/platform-details/limits/, 2026-10-14); snapshot pricing is not published. A guide saves a snapshot each time a sandbox stops for inactivity using a Durable Object alarm (https://developers.cloudflare.com/sandbox/files/save-a-sandbox-automatically/). Directory backups to your own R2 bucket are billed at R2 Standard $0.015/GB-month after 10 GB-month free (+ Class A $4.50/M, Class B $0.36/M after free tiers); backup TTL does not delete R2 objects. snapshot_gib_month models the R2 backup rate.",
+    "A stop resets the disk to the image and ends processes (no paused state). Four documented ways keep files (https://developers.cloudflare.com/sandbox/files/, 2026-11-08): (1) Container snapshots, public beta (\"Container snapshots are in public beta. The API and behavior may change.\"), save the writable root filesystem of a running instance (not memory, processes or mounts), max 20 GB, restore into a new instance on start(), and expire \"30 days after it is created or last restored\" (https://developers.cloudflare.com/sandbox/concepts/lifetime/); snapshot pricing is not published. (2) Automatic save: an official Durable Object alarm snapshots an idle sandbox before the stop and checkpoints it while in use (https://developers.cloudflare.com/sandbox/files/save-a-sandbox-automatically/). (3) R2 directory backups, kept past 30 days. (4) R2/S3 bucket mounts, whose files stay after every stop. Directory backups to your own R2 bucket are billed at R2 Standard $0.015/GB-month after 10 GB-month free (+ Class A $4.50/M, Class B $0.36/M after free tiers); backup TTL does not delete R2 objects. snapshot_gib_month models the R2 backup rate.",
     "Each sandbox is a Durable Object: $0.15/M requests after 1M, $12.50/M GB-s after 400k GB-s at 128 MB; if awake for the whole container run ~ $0.00576/h per sandbox (unverified). Worker requests $0.30/M after 10M; Workers Logs $0.60/M after 20M. Third-party estimate: +5-10%.",
     "Egress free allotment/rate vary by region: NA/EU 1 TB then $0.025/GB; Oceania/Korea/Taiwan 500 GB then $0.05/GB; elsewhere 500 GB then $0.04/GB. Card uses NA/EU.",
     "Instance type is per container class at deploy time, not per sandbox.",
-    "No guaranteed runtime: irregular host restarts stop instances (SIGTERM, 15 min grace) and wipe state.",
+    "No guaranteed runtime: irregular host restarts stop instances (SIGTERM, 15 min grace) and reset the disk; files since the last snapshot are lost (\"an instance can stop without warning\", https://developers.cloudflare.com/sandbox/concepts/lifetime/).",
+    "Desktop: the built-in desktop was removed in SDK 0.10.2 (https://developers.cloudflare.com/changelog/post/2026-06-09-deprecating-sandbox-sdk-features/); no official replacement guide. Headless browsers: the separate Browser Run service (https://developers.cloudflare.com/browser-run/), billed for browser time on top of the sandbox.",
+    "Coding agents: guides for Claude Code, Codex, OpenCode and Pi, plus Devin, Cursor Cloud Agents, Claude Managed Agents and OpenAI Agents API integrations (https://developers.cloudflare.com/sandbox/coding-agents/). The OpenCode SDK helper is no longer in the SDK repo (2026-11-08).",
+    "Fork: no one-call fork. Save a backup or a Container snapshot, then start new sandboxes from it (snapshots public beta, 30 days, disk only).",
     "Concurrency limited by account resource caps (1,500 vCPU / 6 TiB / 30 TB), not a sandbox count.",
     "perf.cpu_runs_s: no hpc benchmark for Cloudflare; dax never succeeded in ComputeSDK runs.",
     "open_source refers to the SDK/container server/bridge only; platform is proprietary and cannot be self-hosted.",
@@ -279,7 +283,10 @@
     "https://developers.cloudflare.com/sandbox/files/",
     "https://developers.cloudflare.com/sandbox/files/save-a-sandbox-automatically/",
     "https://developers.cloudflare.com/sandbox/concepts/security/",
-    "https://developers.cloudflare.com/sandbox/sdk/guides/outbound-traffic/"
+    "https://developers.cloudflare.com/sandbox/sdk/guides/outbound-traffic/",
+    "https://developers.cloudflare.com/sandbox/coding-agents/",
+    "https://developers.cloudflare.com/browser-run/",
+    "https://developers.cloudflare.com/changelog/post/2026-06-09-deprecating-sandbox-sdk-features/"
   ],
   "fleet": {
     "default_max_instances": 0,
@@ -304,25 +311,42 @@
   },
   "feature_evidence": {
     "snapshot_auto": {
-      "value": false,
+      "value": "diy",
+      "source": "https://developers.cloudflare.com/sandbox/files/save-a-sandbox-automatically/",
+      "quote": "An alarm in the Durable Object saves a Container snapshot of an idle sandbox and stops it. While the sandbox is in use, the alarm also saves checkpoints. The next request starts the sandbox from the last snapshot.",
+      "how": "add the official Durable Object alarm from the 'Save a sandbox automatically' guide; it snapshots an idle sandbox before the stop and on a schedule (Container snapshots are public beta, kept 30 days)",
+      "effort": "medium",
+      "beta": true,
+      "ttl_days": 30,
+      "note": "Not a platform default: 'Cloudflare does not restore a snapshot on its own.' (https://developers.cloudflare.com/sandbox/concepts/lifetime/). The files page lists the trade-off as 'Same as snapshots, plus an alarm in your Durable Object' (https://developers.cloudflare.com/sandbox/files/).",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "snapshot",
       "source": "https://developers.cloudflare.com/sandbox/concepts/lifetime/",
-      "quote": "Cloudflare does not restore a snapshot on its own. Your application decides when to save a snapshot.",
-      "note": "Platform wipes disk and processes when an instance stops. Auto-save-on-idle exists only as app code you write: the guide 'Save a sandbox automatically' (https://developers.cloudflare.com/sandbox/files/save-a-sandbox-automatically/) saves a public-beta Container snapshot before the sandbox stops for inactivity using a Durable Object alarm (files page: 'Same as snapshots, plus an alarm in your Durable Object'). Not a platform default.",
-      "checked": "2026-10-14"
+      "quote": "Starting with a snapshot creates a new instance with the saved files, and the new instance runs its entrypoint.",
+      "how": "call snapshotContainer() before the sandbox stops (or add the automatic-save alarm) and pass the snapshot to the next start(); or keep files in a mounted R2 bucket or an R2 directory backup",
+      "effort": "low",
+      "beta": true,
+      "ttl_days": 30,
+      "note": "The disk itself resets: 'Stopping the instance deletes the files on its disk.' (https://developers.cloudflare.com/sandbox/files/). A Container snapshot saves 'the writable root filesystem of a running instance' but 'does not save separately mounted filesystems, memory, or processes'; it is public beta ('The API and behavior may change.') and 'expires 30 days after it is created or last restored' (lifetime page, 2026-11-08). The files page lists four ways to keep files: snapshots, automatic save, R2 directory backups ('Keep a project across images, or beyond 30 days') and bucket mounts. Snapshot pricing is not published (containers pricing page, 2026-11-08).",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
       "source": "https://developers.cloudflare.com/sandbox/api/backups/",
       "quote": "Create point-in-time snapshots of sandbox directories and restore them from R2.",
-      "note": "GA (2026-02-23): createBackup({dir}) -> squashfs in your own R2 bucket; restoreBackup() mounts it as copy-on-write FUSE overlay (lost on sleep, re-restore each wake). Directory-level only (under /workspace, /home, /tmp, /var/tmp, /app), no memory/processes. Can seed other sandboxes: changelog says 'Usable across multiple instances - Fork a backup across many sandboxes for parallel work'. Whole-disk Container snapshots (snapshotContainer(), restore via start({containerSnapshot})) are now public beta: 'Container snapshots are in public beta. The API and behavior may change.' They save 'the writable root filesystem of a running instance' (no memory, processes or mounts) and expire '30 days after it is created or last restored' (https://developers.cloudflare.com/sandbox/concepts/lifetime/, 2026-10-14). Backups are now documented under the legacy Sandbox SDK 0.x section (the source URL redirects to /sandbox/sdk/api/backups/).",
-      "checked": "2026-10-14"
+      "note": "GA (2026-02-23): createBackup({dir}) -> squashfs in your own R2 bucket; restoreBackup() mounts it as copy-on-write FUSE overlay (lost on sleep, re-restore each wake). Directory-level only (under /workspace, /home, /tmp, /var/tmp, /app), no memory/processes. Can seed other sandboxes: changelog says 'Usable across multiple instances - Fork a backup across many sandboxes for parallel work'. Whole-disk Container snapshots (snapshotContainer(), restore via start({containerSnapshot})) are now public beta: 'Container snapshots are in public beta. The API and behavior may change.' They save 'the writable root filesystem of a running instance' (no memory, processes or mounts) and expire '30 days after it is created or last restored' (https://developers.cloudflare.com/sandbox/concepts/lifetime/, 2026-10-14). Backups are now documented under the legacy Sandbox SDK 0.x section (the source URL redirects to /sandbox/sdk/api/backups/). Re-checked 2026-11-08: lifetime page still says public beta and 30-day expiry.",
+      "checked": "2026-11-08"
     },
     "harness_api": {
-      "value": true,
-      "source": "https://github.com/cloudflare/sandbox-sdk/blob/main/packages/sandbox/src/opencode/opencode.ts",
-      "quote": "Starts an OpenCode server inside a Sandbox container.",
-      "note": "OpenCode only: first-party SDK export @cloudflare/sandbox/opencode (createOpencodeServer, createOpencode -> typed @opencode-ai/sdk client with session.create/session.prompt/events, proxyToOpencode for the web UI). Listed on docs as a first-party extension on the 1.0 preview ('OpenCode | @cloudflare/sandbox/opencode'). Claude Code tutorial just runs `claude --print` via exec (not a harness API). Codex via OpenAI Agents API and Claude Managed Agents: Cloudflare is only the self-hosted execution environment; the harness API belongs to OpenAI/Anthropic.",
-      "checked": "2026-09-29"
+      "value": "diy",
+      "source": "https://developers.cloudflare.com/sandbox/coding-agents/",
+      "quote": "Run by the vendor's agent loop, with sessions in your sandboxes: Devin, Cursor Cloud Agents, Claude Managed Agents, OpenAI Agents API",
+      "how": "follow a coding-agents guide: run Claude Code, Codex, OpenCode or Pi from your Worker, or connect Claude Managed Agents, OpenAI Agents API, Devin or Cursor Cloud Agents, whose own APIs drive sessions in your sandboxes",
+      "effort": "medium",
+      "note": "The first-party OpenCode helper (@cloudflare/sandbox/opencode) is gone: the earlier source file returns 404 and packages/sandbox/src on main now holds only directory-backup, files, s3-mount and shared (checked 2026-11-08). The coding-agents page names no SDK helper. Cloudflare ships guides and integrations, not its own harness API.",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": true,
@@ -364,8 +388,8 @@
       "value": true,
       "source": "https://developers.cloudflare.com/sandbox/guides/mount-buckets/",
       "quote": "Mount S3-compatible object storage buckets as local filesystem paths.",
-      "note": "Only S3-compatible bucket mounts via FUSE (s3fs): R2 by Worker binding (no credentials in container), or S3/GCS/B2/MinIO endpoints; prefix + readOnly options. No block or network volumes; disk fixed by instance type (max 20 GB).",
-      "checked": "2026-09-29"
+      "note": "S3-compatible bucket mounts via FUSE (s3fs): R2 by Worker binding (no credentials in container), or S3/GCS/B2/MinIO endpoints; prefix + readOnly options. Files in a mounted bucket stay after the sandbox stops. Trade-off per https://developers.cloudflare.com/sandbox/files/: 'Renames, locks, and permissions do not work as they do on a local disk'. Block volumes are not documented; the local disk is set by instance type (max 20 GB).",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -438,32 +462,44 @@
       "checked": "2026-10-14"
     },
     "persistent_disk": {
-      "value": false,
-      "source": "https://developers.cloudflare.com/containers/faq/",
-      "quote": "Is disk persistent? What happens to my disk when my container sleeps? All disk is ephemeral. When a Container instance goes to sleep, the next time it is started, it will have a fresh disk as defined by its container image. ... You can also use FUSE to persist disk to R2 or other object storage backends.",
-      "note": "reviewed: proposed correction rejected (Default is ephemeral (correctly false on its own), but that's not the whole picture: first-party opt-in persistence exists. mountBucket() ('Mount S3-compatible object storage buckets as local filesystem paths', https://developers.cloudflare.com/sandbox/guides/mount-buckets/) attaches a persistent volume that survives sleep/restart (an object store, remounted each start), and createBackup()/restoreBackup() (https://developers.cloudflare.com/sandbox/concepts/backup-restore/) let a directory's contents survive across sleeps by explicit save/restore. Card already carries volumes:true and snapshot_on_demand:true, which contradicted persistent_disk:false. Correct value: true, default-off (fresh/ephemeral disk unless you opt into a bucket mount or manual backup+restore).)",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://developers.cloudflare.com/sandbox/concepts/lifetime/",
+      "quote": "Starting with a snapshot creates a new instance with the saved files, and the new instance runs its entrypoint.",
+      "how": "save a Container snapshot before the stop and restore it on the next start (public beta, 30 days), or work in a mounted R2 bucket",
+      "effort": "low",
+      "beta": true,
+      "ttl_days": 30,
+      "note": "Default disk is ephemeral: 'Stopping the instance deletes the files on its disk.' (https://developers.cloudflare.com/sandbox/files/). Documented ways to keep files: snapshots, automatic save, R2 directory backups, bucket mounts (same page). See persist_scope.",
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": false,
-      "source": "https://developers.cloudflare.com/sandbox/concepts/sandboxes/",
-      "quote": "Lifecycle states Creation ... Active ... Idle After a period of inactivity (10 minutes by default, configurable via sleepAfter), the container stops to free resources. When the next request arrives, a fresh container starts. All previous state is lost and the environment resets to its initial state. ... Destruction",
-      "note": "Only lifecycle states are Creation/Active/Idle(stop)/Destruction; Idle wipes all state and there is no Paused state where billing is reduced and state is kept ready to resume from. keepAlive just prevents Idle entirely, it isn't a pause. No pause/resume API found anywhere in the Sandbox SDK or Containers docs.",
-      "checked": "2026-09-30"
+      "source": "https://developers.cloudflare.com/sandbox/concepts/lifetime/",
+      "quote": "Starting with a snapshot creates a new instance with the saved files, and the new instance runs its entrypoint. The processes that were running do not continue.",
+      "note": "No paused state that keeps memory and processes. A stop deletes the disk; a snapshot brings files back but not processes (see persist_scope). keepAlive prevents the stop; it is not a pause.",
+      "checked": "2026-11-08"
     },
     "fork": {
-      "value": false,
-      "source": "https://developers.cloudflare.com/sandbox/llms-full.txt",
-      "quote": "Lifecycle states Creation ... Active ... Idle ... Destruction",
-      "note": "No fork/clone API documented across the Sandbox SDK docs, Containers docs/FAQ, or the sandbox-sdk GitHub repo. Backups (createBackup/restoreBackup) can seed a fresh sandbox from a saved directory snapshot, but that is explicit save-then-restore-elsewhere, not a running-VM fork API, and it is not named 'fork' anywhere in the docs. No evidence of a clone-a-machine primitive.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://developers.cloudflare.com/changelog/product/containers/",
+      "quote": "Fork a backup across many sandboxes for parallel work",
+      "how": "save a directory backup or a Container snapshot (public beta, 30 days), then start or restore new sandboxes from it; two calls, no one-call fork",
+      "effort": "medium",
+      "beta": true,
+      "ttl_days": 30,
+      "note": "Changelog 2026-02-23 (directory backups to your R2 bucket). Container snapshots (2026-09-30) restore 'after container sleep, restart, or handoff to another Durable Object' and need the durable_object scheduling policy. Snapshots skip mounted directories, memory and processes. No page states a limit on how many sandboxes start from one snapshot.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
-      "value": false,
-      "source": "https://developers.cloudflare.com/sandbox/concepts/sandboxes/",
-      "quote": "Idle After a period of inactivity ... the container stops to free resources. When the next request arrives, a fresh container starts.",
-      "note": "No documented mechanism to clone a live/running sandbox without stopping it; consistent with fork=false (no fork API exists at all).",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://developers.cloudflare.com/sandbox/concepts/lifetime/",
+      "quote": "`snapshotContainer()` saves the writable root filesystem of a running instance. It does not save separately mounted filesystems, memory, or processes.",
+      "how": "call snapshotContainer() on the running sandbox (it keeps running), then start new sandboxes from that snapshot (public beta, disk only)",
+      "effort": "medium",
+      "beta": true,
+      "ttl_days": 30,
+      "note": "Disk-only copy of a live sandbox; processes and memory do not carry over (memory_snapshot_fork stays false).",
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
@@ -481,24 +517,26 @@
     },
     "desktop": {
       "value": false,
-      "source": "https://developers.cloudflare.com/sandbox/llms-full.txt",
-      "quote": "## Desktop\n\nThe desktop feature was removed in `0.10.2`. The feature ran a full Linux desktop inside the sandbox for computer-use style automation. If you still need that shape, rebuild it with extensions rather than a built-in desktop API.",
-      "note": "A built-in desktop feature existed but was explicitly removed; current SDK has no built-in desktop/VNC/RDP API.",
-      "checked": "2026-09-30"
+      "source": "https://developers.cloudflare.com/changelog/post/2026-06-09-deprecating-sandbox-sdk-features/",
+      "quote": "Adoption stayed low, and we removed it in `0.10.2`. ... If you need that capability again, you can build it on top of the sandbox with extensions rather than a built-in `sandbox.desktop` API.",
+      "note": "Built-in desktop removed in SDK 0.10.2. The post suggests extensions but no official desktop example or guide exists (sandbox llms.txt lists none, checked 2026-11-08), so this stays false, not diy. A custom image can still carry any desktop software you add.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://developers.cloudflare.com/sandbox/llms-full.txt",
-      "quote": "Browser terminals ... Connect browser-based terminal UIs to sandbox shells via WebSocket.",
-      "note": "The only 'browser' feature documented for Sandbox SDK is browser-based terminal UIs connecting to a shell over WebSocket, not a real/managed browser running for the agent. A real headless browser ('Browser Run tools ... headless browsers powered by Browser Run for web fetches, screenshots, and CDP control') appears only in the separate Claude Managed Agents integration template, which layers Cloudflare's separate Browser Run product on top - not a feature of the Sandbox SDK/Containers product this card models.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://developers.cloudflare.com/browser-run/",
+      "quote": "Run headless Chrome on Cloudflare's global network for browser automation, web scraping, testing, and content generation.",
+      "how": "drive headless Chrome through Cloudflare's separate Browser Run service from your Worker or over CDP (billed for browser time), or install a browser in your container image",
+      "effort": "medium",
+      "note": "Browser Run is a separate Cloudflare product, not part of the sandbox: 'Deploy within Cloudflare Workers or connect from any environment via CDP' (same page, 2026-11-08). The Sandbox SDK itself only documents browser terminals (xterm over WebSocket).",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
-      "source": "https://developers.cloudflare.com/sandbox/llms-full.txt",
-      "quote": "The desktop feature was removed in `0.10.2`. The feature ran a full Linux desktop inside the sandbox for computer-use style automation.",
-      "note": "Computer-use automation depended on the removed desktop feature; no current computer-use (screenshot+click) API is documented.",
-      "checked": "2026-09-30"
+      "source": "https://developers.cloudflare.com/changelog/post/2026-06-09-deprecating-sandbox-sdk-features/",
+      "quote": "Adoption stayed low, and we removed it in `0.10.2`.",
+      "note": "Computer-use (screenshot + click on a desktop) depended on the removed desktop feature; no current guide or API (checked 2026-11-08). Browser-only agents can use Browser Run (see browser).",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -576,5 +614,6 @@
   "locations_everywhere": true,
   "locations_source": "https://developers.cloudflare.com/containers/faq/",
   "locations_quote": "When initially deploying a Container, Cloudflare will select various locations across our network to deploy instances to. These locations will span multiple regions. When a Container instance is requested with this.ctx.container.start, the nearest free container instance will be selected from the pr",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-11-08",
+  "locations_note": "Cloudflare picks the nearest free instance by default. Since 2026-04-05 you can pin a container class with `regions` (\"Use `regions` to limit placement to specific geographic areas.\") or `jurisdiction` (\"Use `jurisdiction` to restrict containers to compliance boundaries\"), https://developers.cloudflare.com/changelog/product/containers/."
 }

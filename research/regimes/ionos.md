@@ -14,20 +14,22 @@ Use IONOS SE EUR catalog, not US USD tariff mixed with EUR billing. Basic Cube M
 | reserved-1y | Dedicated Core savings | See rule | EUR .034/core-h + .0038/GB-h under commitment; not for all vCPU Server modes. | https://docs.ionos.com/cloud/support/general-information/price-list/ionos-cloud-eur-en |
 | reserved-3y | Dedicated Core savings | See rule | EUR .024/core-h + .0027/GB-h under commitment. | https://docs.ionos.com/cloud/support/general-information/price-list/ionos-cloud-eur-en |
 | usd-list | US published Basic Cube M | See rule | USD .026/hour and 18.72/30 days; separate provider price, not EUR FX. | https://docs.ionos.com/cloud/support/general-information/price-list/ionos-cloud-eur-en |
-| suspend | Cubes via DCD | See rule | Suspend guide releases CPU/RAM/IP but bills storage. Overview says suspended Cubes still incur costs; no zero-total-stopped assumption. | https://docs.ionos.com/cloud/support/general-information/price-list/ionos-cloud-eur-en |
+| suspend | Cubes via DCD | See rule | Suspend releases CPU/RAM/IP; connected storage keeps billing. Overview says suspended Cubes still incur costs; no zero-total-stopped assumption. | https://docs.ionos.com/cloud/compute-services/cubes/dcd-how-tos/suspend-cube |
+| stop | vCPU / Dedicated Core servers via DCD/API | See rule | Stop and deallocate suspends CPU and RAM billing; volumes keep billing. An OS-level shutdown does not stop charges. | https://docs.ionos.com/cloud/compute-services/compute-engine/how-tos/set-up-vcpu.md |
 ## Gotchas
 - Snapshot EUR .04/GB/30 days normalized to 730 hours; disk storage differs by mode.
-- Stopped Cubes may retain reserved resources; stop/delete billing needs explicit confirmation.
+- Suspended Cubes bill their connected storage; stopped vCPU servers bill only their volumes. A $0 bill needs a snapshot and a delete.
+- Scheduled backups need the paid Backup Service (Acronis agent); block-volume snapshots are manual.
 - Unknowns remain null, not free; generic infrastructure modes are opt-in alt.
 - Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.
 - VAT basis: Net of applicable taxes/duties.
-- Residency: Cloud Cubes available EU and Newark US per price page; choose specific datacenter. Account contracting entity controls currency.
+- Residency: Cubes and vCPU servers in Berlin, Frankfurt, Paris, Logroño, London, Worcester, Newark and Lenexa (service catalog); choose specific datacenter. Account contracting entity controls currency.
 ## Required worked example
 4 vCPU / 8 GiB requested; 50 simultaneous workers × 8 hours/day × 22 days = **8,800 instance-hours**, 1,100 daily sessions. CPU utilization 30% does not reduce allocated-resource charges. Snapshot retention is **50 GiB total for 730 hours**, not 50 GiB per worker; egress is **100 GiB total**. Root disk size was not specified, so root/volume costs are not silently assigned zero.
 - cubes: USD 0.0273072/allocated hour × 8,800 = **USD 240.30 compute** (before quotas, fees, free buckets, storage and tax).
 - vcpu-server: USD 0.0728192/allocated hour × 8,800 = **USD 640.81 compute** (before quotas, fees, free buckets, storage and tax).
 - 50 GiB retained snapshots: 50 × USD 0.0461441111 = **USD 2.31/730 hours**. State-size and mode caveats above apply.
-- 100 GiB egress: **unknown**, not USD 0.
+- 100 GiB egress: **USD 0** (inside the first 2 TiB free per contract).
 - Full all-in bill: **null** where any required storage/network/fee or eligibility fact is unresolved. Quota raises may be necessary for 200 aggregate vCPU / 400 GiB RAM.
 ## Sources
 - https://docs.ionos.com/cloud/support/general-information/price-list/ionos-cloud-eur-en

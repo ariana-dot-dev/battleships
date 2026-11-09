@@ -28,7 +28,9 @@ Current Agent Sandbox has Flash and Container editions. Do not substitute old Ag
 ## Gotchas
 - New Agent Sandbox/FC quotas not transferred from legacy AIO. SDK compatibility is not full E2B feature parity.
 - CNY per-second versus printed per-hour discrepancies retained in raw capture.
-- Flash and Container have different isolation implementations; no unified VM isolation assigned.
+- Isolation: Flash second-generation runtime (beta) and Container Edition use MicroVM-level isolation; first-generation isolation is not documented.
+- Plans (checked 2026-11-08): Eco, Std, Pro, pay as you go. Active lifetime 24 h (Eco, Std) or 7 days (Pro). Pause retention none / 7 days / 30 days. Light hibernation is Pro only. Disk: first 15 GiB free, size set per template; 15 GiB is not a cap. Source: https://help.aliyun.com/en/functioncompute/feature-differences-in-the-multi-version-subscription-plan-for-cloud-sandboxes
+- Persistence: mounted OSS buckets keep data after release (up to 5, can be added to a running sandbox). Source: https://www.alibabacloud.com/help/en/agent-sandbox/append-mount-oss
 - Unknowns remain null, not free; generic infrastructure modes are opt-in alt.
 - Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.
 - VAT basis: Unknown: reviewed pricing source does not explicitly establish VAT/tax inclusion.

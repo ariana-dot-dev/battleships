@@ -6,7 +6,7 @@ As of 2026-09-28. International USD list prices effective May 18 2026; do not su
 | CPU | Native product usage | 0.027 USD/core-hour, per second; allocated running time. | [Primary pricing](https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions) |
 | Memory | Native product usage | 0.0113 USD/GB-hour, per second; running allocation. | [Primary pricing](https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions) |
 | Context storage | Native product usage | 0.000045 USD/GiB-hour after 100 GiB Basic or 1 TiB paid plan allowance; minimum MiB. | [Primary pricing](https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions) |
-| Premium bandwidth | Native product usage | 0.123 USD/GB INBOUND; separate from basic 10 Mbps. | [Primary pricing](https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions) |
+| Premium bandwidth | Pro and Ultra only | 0.123 USD/GB INBOUND, custom peak, SLA; separate from basic 10 Mbps. Not offered on Basic. | [Primary pricing](https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions) |
 | Model Credits | Native product usage | 0.0267 USD/Credit; Browser Use 16.8 input/134.4 output Credits per million tokens; Mobile Use 11.2/89.6. | [Primary pricing](https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions) |
 | Ultra concurrency scale-out | Native product usage | 1.50 USD/additional concurrent slot/month above 200. | [Primary pricing](https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions) |
 | Basic | Account plan | $0/month; 100 GiB Context/replay storage,10 Mbps basic bandwidth; compute extra. | [Primary pricing](https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions) |
@@ -15,7 +15,9 @@ As of 2026-09-28. International USD list prices effective May 18 2026; do not su
 ## Gotchas
 - CPU and RAM actual usage time wording does not mean CPU utilization: FAQ explicitly charges running idle sessions.
 - Premium bandwidth$0.123/GB is **inbound**, not generic outbound egress; do not swap directions.
-- Included 100 GiB/1 TiB storage is Context and recordings, not root disk or guaranteed full VM snapshot retention.
+- Included 100 GiB/1 TiB storage is Context and recordings. The billing page says it is separate from the system and data disks, which have no published price.
+- Pro has no concurrency scale-out. Only Ultra buys slots above 200 ($1.50 per slot per month), so 1,000 at once = Ultra + 800 slots.
+- Region lists differ: the GitHub SDK lists cn-hangzhou, ap-southeast-1, us-east-1; the help center lists China (Shanghai, default) and Singapore (checked 2026-11-08).
 - Eight-hour sessions and region/image capacity not confirmed by pricing page alone.
 - Credits 0.0267 USD/unit meter LLM tokens only; subscription fees are not converted into compute credits.
 - SDK source is open, not proof of self-hostable hosted runtime.

@@ -21,7 +21,7 @@
       "ram_gib_h": 0.009,
       "cpu_basis": "active",
       "ram_basis": "alloc",
-      "active_floor": 0,
+      "active_floor": 0.2,
       "ram_per_vcpu": [
         1,
         8
@@ -43,7 +43,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Rate set pro_gb_v1. CPU metered on active execution (idle/I-O wait free); falls back to allocated vCPU when active metering is unavailable. RAM and root disk ($0.0001/GB-h) are allocation-based while running. Usage pooled per org, billed in whole CUs. Idle timeout default 600 s; unlimited max on Pro. Quotes 2026-09-28: 'CPU tracks active runtime execution, not allocated vCPU time'; 'RAM and root disk are allocation-based while the sandbox is running.' (https://docs.tensorlake.ai/platform/billing). Idle: suspend (named) / terminate (ephemeral) after timeout_secs, default 600 s with no proxied traffic (SSH, PTY, exposed-port request, SDK/CLI call) (https://docs.tensorlake.ai/sandboxes/lifecycle).",
+      "note": "Rate set pro_gb_v1. CPU metered on active execution with a floor of 20% of allocated vCPU (pricing page 2026-11-08: 'CPU is billed on active execution, with a minimum of 20% of allocated vCPU.'); bills full allocation when active metering is unavailable. RAM and root disk ($0.0001/GB-h) are allocation-based while running. Usage pooled per org, billed in whole CUs. Idle timeout default 600 s; unlimited max on Pro. Quotes 2026-09-28: 'CPU tracks active runtime execution, not allocated vCPU time'; 'RAM and root disk are allocation-based while the sandbox is running.' (https://docs.tensorlake.ai/platform/billing). Idle: suspend (named) / terminate (ephemeral) after timeout_secs, default 600 s with no proxied traffic (SSH, PTY, exposed-port request, SDK/CLI call) (https://docs.tensorlake.ai/sandboxes/lifecycle).",
       "cpu_class": "shared"
     },
     {
@@ -106,13 +106,14 @@
       "ram_gib_h": 0.015,
       "cpu_basis": "active",
       "ram_basis": "alloc",
+      "active_floor": 0.2,
       "min_vcpu": 1,
       "max_vcpu": 4,
       "max_ram_gib": 16,
       "min_billed_seconds": 0,
       "granularity_s": 1,
       "start_fee": 0,
-      "note": "Disk $0.0002/GB-hour; snapshots $0.07/GB-month; $5 minimum initial pack; no postpaid overage.",
+      "note": "Active CPU with a 20% of allocated vCPU floor (https://www.tensorlake.ai/pricing, 2026-11-08). Disk $0.0002/GB-hour; snapshots $0.07/GB-month; $5 minimum initial pack; no postpaid overage.",
       "ram_per_vcpu": [
         1,
         8
@@ -237,7 +238,9 @@
     "macos": false,
     "arm64": false,
     "gpu": true,
-    "gpu_types": [],
+    "gpu_types": [
+      "H100"
+    ],
     "snapshot": "mem",
     "pause_resume": true,
     "fork": true,
@@ -247,7 +250,7 @@
     "max_session_h": null,
     "custom_image": true,
     "docker_inside": true,
-    "nested_virt": false,
+    "nested_virt": true,
     "root": true,
     "systemd": true,
     "browser": true,
@@ -282,7 +285,7 @@
     "credential_injection": null,
     "egress_http_rules": false,
     "wake_on_request": true,
-    "live_resize": false,
+    "live_resize": true,
     "fork_running": true,
     "memory_snapshot_fork": true,
     "webhooks": true,
@@ -319,10 +322,10 @@
   "perf": {
     "cpu_runs_s": null,
     "cold_start_ms": 706,
-    "burst_tti_ms": 1127.25,
-    "dax_s": 97.18
+    "burst_tti_ms": 1554.32,
+    "dax_s": 73.07
   },
-  "perf_source": "ComputeSDK (github.com/computesdk/benchmarks results/): cold 706 ms (2026-08-07), burst 1,127.25 ms (2026-09-25), dax 97.18 s (2026-09-25, 8 CPUs / 16 GiB). Rate sets differ, runtime is the same. No HPC result.",
+  "perf_source": "ComputeSDK (each provider at its SDK default size and runtime): burst 1.55 s median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 73.07 s (2026-11-06, one run; sandbox saw 8 CPUs / 15 GiB x86); one-at-a-time start 706 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [
     {
       "id": "idle_timeout_tail",
@@ -344,7 +347,8 @@
   ],
   "caveats": [
     "Engine encoding: rates are tied to plans (Pro rate set only on Pro, Usage Credits rate set only on the prepaid plan, Free unmetered only on Free) but the engine chooses modes independently of plans. The card therefore prices only the Pro path (mode pro + Pro plan = max($250, usage at Pro rates)); Free and Usage Credits are kept as trial_only plans with their rates in the notes. Workloads under ~$417/month at Credits rates (~$250 at Pro rates) are really cheaper on Usage Credits (min $5 pack) or Free; the estimate overstates them (floor $250). Root disk: Pro $0.0001/GB-h = storage.disk_gib_month $0.073; Usage Credits disk is 2x ($0.146).",
-    "Active CPU falls back to allocated vCPU time for any sandbox generation where active metering is unavailable or untrustworthy. Pricing page (https://www.tensorlake.ai/pricing, 2026-10-14): \"If an active CPU sample is unavailable or untrustworthy, we use allocated vCPU time for that sandbox generation.\" The docs billing page (https://docs.tensorlake.ai/platform/billing.md) does not repeat this clause. At 30% util that makes CPU 3.3x costlier. The engine assumes active metering works.",
+    "Active CPU has a floor: \"CPU is billed on active execution, with a minimum of 20% of allocated vCPU.\" (https://www.tensorlake.ai/pricing, 2026-11-08). The card sets active_floor 0.2 on Pro and Usage Credits. The docs billing page (https://docs.tensorlake.ai/platform/billing.md) does not state the floor.",
+    "Active CPU falls back to full allocation when metering is unavailable: \"If an active CPU sample is unavailable, that sandbox bills its full allocation.\" (https://www.tensorlake.ai/pricing FAQ, 2026-11-08). At 30% util that makes CPU 3.3x costlier. The engine assumes active metering works.",
     "RAM and root disk are billed on allocation while running, including the idle tail before timeout_secs (default 600 s, driven by proxied traffic).",
     "Snapshot storage $0.07/GB per fixed 30-day month, billed 'while suspended'. The price of snapshot artifacts and clones not tied to a suspended sandbox is not documented (assumed the same).",
     "Only named sandboxes can suspend. Ephemeral sandboxes terminate on idle (restartable for 48 h; billing in that window undocumented).",
@@ -352,12 +356,15 @@
     "Plan session caps (2 h / 24 h / unlimited) are maximum idle timeouts, not wall-clock lifetimes.",
     "Warm-pool (warm_containers) billing is undocumented. Cloud Volumes, managed Git and GitHub Actions runner pricing are not on the sandbox rate card.",
     "BYOC mode = your cloud bill + Tensorlake fee: the estimate includes an AWS reference rate (i7i.metal-24xl $9.06/h, 96 vCPU, from the 2026-07-28 blog) as a stand-in for the AWS invoice you pay directly, plus the 30% entry fee. The fee falls to 10% (CPU) and to 2% (GPU) at scale. Excludes EBS and AWS egress. Your actual AWS pricing (reserved/savings plans, other instance types) changes the total.",
-    "EU region (api.eu.tensorlake.ai): no price difference published.",
-    "GPU sandboxes on managed cloud are by request only, with no published GPU rate (not modelled): \"GPU sandboxes are available by request.\" They run on gVisor rather than Firecracker/Cloud Hypervisor, cannot mount Tensorlake filesystems and only work with CAS images (https://docs.tensorlake.ai/sandboxes/gpu.md, 2026-10-14; example uses --gpu H100). BYOC GPU sandboxes carry a 5% to 2% fee.",
+    "EU: the sandboxes introduction says Tensorlake \"supports EU data residency\" (https://docs.tensorlake.ai/sandboxes/introduction.md, 2026-11-08). The old EU data residency page (platform/eu-data-residency) returns 404, and no live page now names the EU endpoint or an EU price.",
+    "GPU sandboxes on managed cloud are by request: \"GPU sandboxes are available by request.\" (https://docs.tensorlake.ai/sandboxes/gpu.md). The pricing page lists \"The NVIDIA H100 is $3.95 per GPU-hour.\", billed on its own invoice (https://www.tensorlake.ai/pricing, 2026-11-08). Not modelled as a GPU mode. \"GPU sandboxes use gVisor while CPU-only sandboxes run in VMs.\" (https://docs.tensorlake.ai/sandboxes/introduction.md). GPU sandboxes cannot mount Tensorlake filesystems, have no nested virtualization and can only grow their root disk. BYOC GPU sandboxes carry a 5% to 2% fee.",
+    "Isolation: CPU sandboxes are microVMs. The homepage names Firecracker (\"drops any test run into a Firecracker microVM with one flag\", https://www.tensorlake.ai/, 2026-11-08). No live page names Cloud Hypervisor any more.",
+    "Raw TCP: \"Reach for a tunnel when you need a raw TCP connection into a sandbox.\" (https://docs.tensorlake.ai/sandboxes/tunnels.md, 2026-11-08). The tunnel forwards a client-side localhost port over an authenticated WebSocket, for example to Postgres. SSH also works. There is no public raw TCP endpoint and no dedicated IP, so raw_tcp_inbound stays false.",
     "Billed in whole CUs pooled per org (rounding at most $0.01). Pro CU rollover not stated.",
     "perf from benchmarks.json computesdk (cold start 706 ms, burst 1,127 ms, dax 97.2 s). No hpc CPU benchmark.",
-    "Verified 2026-09-28 against https://www.tensorlake.ai/pricing (\"UPDATED Q3 2026\"): all rates, limits, packs, Pro $250 = 25,000 CU included, $0.01/CU overage, egress free, active-CPU fallback clause confirmed.",
-    "nested_virt=false rests on the Harbor page, which sets SANDBOX_KVM_AVAILABLE=0 (\"No nested virtualization\") in each single-container Harbor sandbox (https://docs.tensorlake.ai/sandboxes/harbor.md). Whether a plain (non-Harbor) sandbox exposes /dev/kvm is not documented; sandboxes are \"MicroVMs backed by Firecracker and CloudHypervisor\" (https://docs.tensorlake.ai/sandboxes/introduction.md).",
+    "Re-verified 2026-11-08 against https://www.tensorlake.ai/pricing: Pro $0.042/core-h active CPU, $0.009/GB-h RAM, $0.0001/GB-h disk; Usage Credits $0.07 / $0.015 / $0.0002; snapshots $0.07/GB-month; \"Pro is $250 per billing cycle and includes 25,000 CU, which is $250 of usage at Pro's lower per-resource rates.\"; limits Free 1 / Credits 100 / Pro 1,000 concurrent.",
+    "Nested virtualization: \"Tensorlake Sandboxes have `/dev/kvm` devices, so you can run virtual machines inside them using any KVM-based hypervisor.\" \"GPU sandboxes don't support nested virtualisation.\" Snapshot and restore work with nested VMs inside (https://docs.tensorlake.ai/sandboxes/nested-virt.md, 2026-11-08). Harbor single-container eval sandboxes still set SANDBOX_KVM_AVAILABLE=0 (https://docs.tensorlake.ai/sandboxes/harbor.md).",
+    "Live resize: CPU goes \"up or down, in whole vCPUs, with a minimum of 1\"; memory goes up, and down no lower than the boot size, in 128 MiB steps; disk only grows. GPU sandboxes \"can only grow their root disk\" (https://docs.tensorlake.ai/sandboxes/live-resize.md, 2026-11-08).",
     "Docker: runs on tensorlake/ubuntu-systemd sandboxes (\"Required for workloads needing service management, such as Docker or Kubernetes\"), but Harbor single-container task sandboxes set SANDBOX_DOCKER_AVAILABLE=0 (\"No container runtime\"); Harbor Compose tasks boot a systemd Docker-in-Docker host instead (https://docs.tensorlake.ai/sandboxes/harbor.md, 2026-10-14).",
     "Free tier session cap depends on verification: the API reference gives 'Free unverified 3600 (1h), Free verified 7200 (2h)' as timeout_secs maximums. The pricing page shows only 'Up to 2 hours'.",
     "No create/start rate limit is published. Creates beyond host, pool or namespace capacity are queued in Pending (pending_reason no_resources_available / pool_at_capacity / max_capacity_reached) and wait indefinitely unless max_pending_secs is set. The docs don't say whether Pending time is billed. 'When the fleet has to add a host first, that can take minutes.'",
@@ -372,7 +379,10 @@
     "https://docs.tensorlake.ai/sandboxes/lifecycle",
     "https://docs.tensorlake.ai/sandboxes/snapshots",
     "https://docs.tensorlake.ai/sandboxes/pools",
-    "https://docs.tensorlake.ai/platform/eu-data-residency",
+    "https://docs.tensorlake.ai/sandboxes/introduction.md",
+    "https://docs.tensorlake.ai/sandboxes/nested-virt.md",
+    "https://docs.tensorlake.ai/sandboxes/live-resize.md",
+    "https://docs.tensorlake.ai/sandboxes/tunnels.md",
     "https://docs.tensorlake.ai/platform/self-hosted-compute/aws",
     "https://www.tensorlake.ai/blog/introducing-tensorlake-byoc"
   ],
@@ -533,11 +543,19 @@
       "checked": "2026-09-30"
     },
     "nested_virt": {
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.tensorlake.ai/sandboxes/nested-virt.md",
+      "quote": "Tensorlake Sandboxes have `/dev/kvm` devices, so you can run virtual machines inside them using any KVM-based hypervisor.",
+      "note": "CPU sandboxes only: 'GPU sandboxes don't support nested virtualisation.' Snapshot-restore works with nested VMs inside. Harbor single-container eval sandboxes set SANDBOX_KVM_AVAILABLE=0 (https://docs.tensorlake.ai/sandboxes/harbor.md); that applies to Harbor only.",
+      "checked": "2026-11-08"
+    },
+    "raw_tcp_inbound": {
       "value": false,
-      "source": "https://docs.tensorlake.ai/sandboxes/harbor.md",
-      "quote": "SANDBOX_KVM_AVAILABLE | 0 | No nested virtualization. For example, do not use `-enable-kvm` with QEMU.",
-      "note": "Harbor sets this env var in each single-container Harbor sandbox ('Harbor also sets these environment variables in each single-container sandbox'), not in every Tensorlake sandbox; plain sandboxes' /dev/kvm availability is undocumented. Matches Firecracker/Cloud Hypervisor microVM isolation with no exposed KVM to guests.",
-      "checked": "2026-10-14"
+      "source": "https://docs.tensorlake.ai/sandboxes/tunnels.md",
+      "quote": "Reach for a tunnel when you need a raw TCP connection into a sandbox.",
+      "note": "Raw TCP (for example Postgres) reaches a sandbox through an authenticated WebSocket tunnel to a localhost port on the client (SDK or CLI). SSH also works through the proxy. No public raw TCP endpoint or dedicated IP, so outside clients cannot connect directly.",
+      "checked": "2026-11-08"
     },
     "docker_inside": {
       "value": true,
@@ -565,7 +583,7 @@
       "source": "https://docs.tensorlake.ai/sandboxes/introduction.md",
       "quote": "Tensorlake is HIPAA and SOC 2 Type II compliant, supports EU data residency, and offers zero data retention.",
       "note": "Same sentence in the sandboxes FAQ (https://docs.tensorlake.ai/faqs/sandboxes-faq). Terms (which plan, how enabled) are not described.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -586,8 +604,8 @@
       "corrected_from": false,
       "source": "https://www.tensorlake.ai/blog/introducing-tensorlake-byoc",
       "quote": "GPU sandboxes | 5% of compute costs | As low as 2%",
-      "note": "BYOC pricing lists a GPU-sandbox fee tier, and managed cloud offers GPU sandboxes by request: 'GPU sandboxes are available by request.' (https://docs.tensorlake.ai/sandboxes/gpu.md, 2026-10-14). They run on gVisor, only with CAS images, no TLFS mounts; the example uses `--gpu H100`. No GPU rate is published.",
-      "checked": "2026-10-14"
+      "note": "BYOC pricing lists a GPU-sandbox fee tier, and managed cloud offers GPU sandboxes by request: 'GPU sandboxes are available by request.' (https://docs.tensorlake.ai/sandboxes/gpu.md). They run on gVisor, with no TLFS mounts. Rate: 'The NVIDIA H100 is $3.95 per GPU-hour.' on its own invoice (https://www.tensorlake.ai/pricing, 2026-11-08).",
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
@@ -618,11 +636,12 @@
       "checked": "2026-09-30"
     },
     "live_resize": {
-      "value": false,
-      "source": "https://docs.tensorlake.ai/sandboxes/lifecycle.md",
-      "quote": "Configure CPU, memory, and disk size per sandbox. These are fixed when the sandbox is created and cannot be changed afterwards. Create a new sandbox if you need different resources.",
-      "note": "Explicitly documented: resources are fixed at create time; even restoring from a memory snapshot keeps the original CPU/memory ('Image, resources (CPUs, memory), and entrypoint come from the snapshot and cannot be changed at restore time').",
-      "checked": "2026-09-30"
+      "value": true,
+      "corrected_from": false,
+      "source": "https://docs.tensorlake.ai/sandboxes/live-resize.md",
+      "quote": "up or down, in whole vCPUs, with a minimum of 1.",
+      "note": "On a running sandbox, without restart: CPU up or down (min 1 vCPU); memory up, and down no lower than the boot size, in 128 MiB steps; root disk grows only. GPU sandboxes can only grow their root disk.",
+      "checked": "2026-11-08"
     },
     "cpu_class": {
       "value": {
@@ -652,7 +671,7 @@
     }
   },
   "locations": [],
-  "locations_source": "https://docs.tensorlake.ai/platform/eu-data-residency",
-  "locations_quote": "Tensorlake APIs are available in the EU region to provide data residency and compute in Europe. EU HTTP Endpoint is https://api.eu.tensorlake.ai/",
-  "locations_checked": "2026-10-01"
+  "locations_source": "https://docs.tensorlake.ai/sandboxes/introduction.md",
+  "locations_quote": "Tensorlake is HIPAA and SOC 2 Type II compliant, supports EU data residency, and offers zero data retention.",
+  "locations_checked": "2026-11-08"
 }

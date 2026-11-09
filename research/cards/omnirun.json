@@ -109,6 +109,7 @@
     "pause_resume": true,
     "fork": false,
     "persistent_disk": false,
+    "persist_scope": "none",
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -187,10 +188,11 @@
   "knobs": [],
   "caveats": [
     "Unpriced since 2026-10-14: https://omnirun.io/pricing now shows only \"Managed OmniRun\" (\"Managed OmniRun is arranged per client or team. There is no public price list and no self-serve plan: we size limits with you.\"). The former Launch EUR 0.19 and Scale EUR 0.15 per standard sandbox-hour (up to 4 vCPU / 2 GB), the free Sandbox tier and Dedicated EUR 0.10/h (pricing page, 2026-09-28) are no longer used.",
-    "Self-hosting is free (Apache-2.0 licence announced, installer via omnictl) on your own x86_64 KVM host; you pay your own hardware. Not modelled as a priced regime.",
+    "Self-hosting has no OmniRun fee on your own x86_64 KVM host (installer via omnictl); you pay your own hardware. The server source is announced as Apache-2.0 but is not public on 2026-11-08. Not modelled as a priced regime.",
     "Hosting location conflict: security, pricing and open-source pages say Finland (Hetzner); llms-full.txt still says \"Hetzner data centers in Germany (EU)\". Finland kept.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
-    "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free."
+    "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
+    "Lifetime: default timeout 300 s, raisable at create; idle sandboxes are killed after 15 minutes unless created with vaultInject: true. The disk is deleted when the sandbox ends (https://omnirun.io/docs/sandboxes, 2026-11-08)."
   ],
   "sources": [
     "https://omnirun.io/pricing",
@@ -226,14 +228,14 @@
       "source": "https://omnirun.io/compare",
       "quote": "No fork, user snapshots or volumes yet. E2B, CubeSandbox, microsandbox and boxd all have some form of these.",
       "note": "Not a real contradiction with features.snapshot='fs': that field is the boot/restore mechanism (operator-built Firecracker filesystem snapshots give ~250ms sub-second boot restore, confirmed by llms-full.txt: 'Sub-second boot: Snapshot-based restore in ~250ms'), not a user-facing on-demand snapshot API. The compare page's capability matrix rows 'User snapshots and checkpoints' and 'Fork a running sandbox' are both explicitly 'No / Planned for v0.2' for OmniRun, and llms-full.txt roadmap confirms: 'v0.2 hibernate to disk, fork, user snapshots, template build API'. So users cannot take a snapshot/checkpoint on demand today; the false value is correct.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
       "source": "https://omnirun.io/llms-full.txt",
       "quote": "| `claude-code` | AI tool template for Claude Code |",
-      "note": "claude-code, codex, gemini-cli and openclaw templates come preinstalled, but the only way to drive them is the generic commands.run exec or PTY API. There is no prompt/stream/resume API. 'Claude Managed Agents backend' means Anthropic's API runs the agent loop and a self-hosted worker (ant beta:worker) runs the tool calls in OmniRun microVMs. That is Anthropic's harness API, not OmniRun's.",
-      "checked": "2026-09-29"
+      "note": "claude-code, codex, gemini-cli and openclaw templates come preinstalled; they are driven through the generic commands.run exec or PTY API. There is no OmniRun prompt/stream/resume API. OmniRun also ships a claude-agent template for Claude Managed Agents and an open self-hosted worker that runs Managed Agents tool calls in OmniRun microVMs (Anthropic runs the agent loop), plus LangChain and LlamaIndex integrations (github.com/a14a-org).",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": true,
@@ -247,8 +249,8 @@
       "value": true,
       "source": "https://www.npmjs.com/package/@omnirun/sdk",
       "quote": "@param opts.visibility - `\"public\"` (default) or `\"private\"` (requires auth token).",
-      "note": "Preview URLs are opt-in per port (POST /sandboxes/:id/exposures) and can be revoked. They have ttlSeconds and an optional slug. Private exposures return an accessUrl 'with embedded access token'. The docs pages only describe public HTTPS URLs; the private visibility comes from the SDK types. No IP allowlist. Traffic between sandboxes is blocked (security page). Self-hosted nodes have previews off until preview_domain is set.",
-      "checked": "2026-09-29"
+      "note": "Preview URLs are opt-in per port (POST /sandboxes/:id/exposures) and can be revoked, with ttlSeconds and an optional slug. The docs (llms-full.txt) describe public HTTPS URLs only; a private visibility with an embedded access token appears in the SDK types, not in the docs. No IP allowlist. Traffic between sandboxes is blocked (security page). Self-hosted nodes have previews off until preview_domain is set.",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
@@ -262,29 +264,29 @@
       "value": "ai-only",
       "source": "https://omnirun.io/docs/llm-proxy",
       "quote": "Use hundreds of AI models through a single API key with built-in spend tracking and rate limiting. OpenAI-compatible: just change your base URL.",
-      "note": "An LLM gateway at api.omnirun.io/llm/v1 that uses OmniRun's upstream keys. The sandbox authenticates with an OmniRun omr_ token, so provider keys stay outside the VM. BYOK keys and all other secrets go through the vault, which writes them INTO the VM ('all vault credentials are written to /tmp/.omnirun-env inside the sandbox'). The compare page lists 'Secrets that never enter the VM: No', and the roadmap has it under 'Later'. Nothing for non-HTTP protocols.",
-      "checked": "2026-09-29"
+      "note": "An OpenAI-compatible LLM proxy at api.omnirun.io/llm/v1. The sandbox calls it with an OmniRun omr_ key, so no model-provider key is needed inside the VM for proxied models. Vault secrets (BYOK keys included) are written INTO the VM at /tmp/.omnirun-env when vaultInject is on. The compare page marks OmniRun \"No\" for \"Secrets that never enter the VM\". Nothing for non-HTTP protocols.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": false,
       "source": "https://omnirun.io/compare",
       "quote": "No fork, user snapshots or volumes yet.",
       "note": "Capability matrix: 'Persistent volumes: No'. The roadmap lists persistent volumes under 'Later'. Each sandbox gets a copy-on-write LVM thin disk that is deleted on kill.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": false,
       "source": "https://omnirun.io/compare",
       "quote": "No fork, user snapshots or volumes yet.",
       "note": "No volumes of any kind, so no shared volumes.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": false,
       "source": "https://omnirun.io/compare",
       "quote": "Bring your own image ... Partial: Operator build scripts; API planned for v0.2",
       "note": "You cannot self-serve start a sandbox from your own Docker/OCI image today. Custom images require the operator to run build scripts on the host; a self-service template-build API is only planned for v0.2. Only a fixed list of built-in templates (playground, rust, python-3.11, node-20, desktop, etc.) are creatable via the API.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -347,28 +349,28 @@
       "source": "https://omnirun.io/compare",
       "quote": "No hibernate to disk yet: a paused OmniRun sandbox stays in memory and does not survive a restart.",
       "note": "A sandbox's copy-on-write disk is deleted when it is killed or its timeout expires; there is no automatic save-and-restore of state on stop/sleep. Hibernate-to-disk is only planned for v0.2.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
       "source": "https://omnirun.io/compare",
       "quote": "No fork, user snapshots or volumes yet. E2B, CubeSandbox, microsandbox and boxd all have some form of these.",
       "note": "Roadmap v0.2 lists 'Fork a running sandbox' and 'user snapshots' as planned, not shipped.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
       "source": "https://omnirun.io/compare",
       "quote": "Fork a running sandbox ... No Planned for v0.2",
       "note": null,
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
       "source": "https://omnirun.io/compare",
       "quote": "No fork, user snapshots or volumes yet.",
       "note": "No fork capability exists at all, so memory-preserving fork does not either.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "pause_resume": {
       "value": true,
@@ -389,7 +391,7 @@
       "source": "https://omnirun.io/security",
       "quote": "Separate disks. Each sandbox gets a copy-on-write LVM thin snapshot of its template, deleted when it is killed.",
       "note": "Files do not survive the sandbox being killed or timing out; there is no volume/persistent-disk feature (compare page: 'Persistent volumes No').",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
@@ -480,8 +482,8 @@
       "was": true,
       "source": "https://omnirun.io/open-source",
       "quote": "Source opens soon: Apache-2.0, public shortly.",
-      "note": "Announced as Apache-2.0 but the server source is not public yet. The linked org https://github.com/a14a-org has only omnirun-sdk, omnirun-cli, omnirun-examples and framework adapters (MIT) and an AGPL-3.0 Claude Managed Agents worker; no sandbox server repository (GitHub API, checked 2026-10-14). Self-host uses a downloaded omnictl installer. Flip to true once the repository is published.",
-      "checked": "2026-10-14"
+      "note": "Announced as Apache-2.0 but the server source is not public yet. The linked org https://github.com/a14a-org has only omnirun-sdk, omnirun-cli, omnirun-examples and framework adapters (MIT) and an AGPL-3.0 Claude Managed Agents worker; no sandbox server repository (re-checked 2026-11-08). Self-host uses a downloaded omnictl installer. Flip to true once the repository is published.",
+      "checked": "2026-11-08"
     },
     "soc2": {
       "value": false,
@@ -524,8 +526,8 @@
       "value": true,
       "source": "https://omnirun.io/docs/sandboxes",
       "quote": "Sandboxes with no activity for 15 minutes are automatically killed. Sandboxes created with vaultInject: true are exempt from idle auto-kill.",
-      "note": "Idle auto-kill destroys the sandbox (disk deleted), it is not a resumable stop. Separately, timeout (default 300 s, \"Max lifetime in seconds before auto-kill\", llms-full.txt) caps lifetime; no maximum timeout is published, so max_session_h stays null.",
-      "checked": "2026-10-14"
+      "note": "Idle auto-kill destroys the sandbox (disk deleted); it is not a resumable stop. Sandboxes created with vaultInject: true are exempt from the idle kill. Separately, timeout (default 300 s, \"Max lifetime in seconds before auto-kill\", llms-full.txt) caps lifetime and can be raised at create; no maximum timeout is published, so max_session_h stays null.",
+      "checked": "2026-11-08"
     },
     "spend_limits": {
       "value": true,
@@ -533,6 +535,13 @@
       "quote": "Accounts for everyone on your team, API tokens, per-user quotas, preview URLs for ports and an audit log of API calls.",
       "note": "The old EUR 50/300 default plan spend caps went with the plans. Usage caps now come from agreed per-user sandbox-hour quotas (dashboard example \"412.6 h of 600 h agreed quota\"); the LLM proxy also has a default EUR 5 per-account spend cap returning 402 (llms-full.txt).",
       "checked": "2026-10-14"
+    },
+    "persist_scope": {
+      "value": "none",
+      "source": "https://omnirun.io/security",
+      "quote": "Separate disks. Each sandbox gets a copy-on-write LVM thin snapshot of its template, deleted when it is killed.",
+      "note": "No user snapshots, volumes or hibernate to disk yet; the compare page lists hibernate to disk, fork, user snapshots and a template build API as planned for v0.2. A sandbox can be kept alive longer (raise timeout; vaultInject: true exempts it from the 15-minute idle kill), but its disk is deleted when it ends.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -549,5 +558,9 @@
   "locations_quote": "All hosts in Finland. Managed service hosted in the EU (Finland).",
   "locations_checked": "2026-10-14",
   "no_price_reason": "No public price: managed OmniRun is priced per client by agreement (omnirun.io/pricing)",
-  "locations_note": "Security page: \"The managed service runs in Hetzner data centers in Finland (EU).\" llms-full.txt still says \"Hetzner data centers in Germany (EU)\" (stale); Finland kept."
+  "locations_note": "Security page: \"The managed service runs in Hetzner data centers in Finland (EU).\" llms-full.txt still says \"Hetzner data centers in Germany (EU)\" (stale); Finland kept.",
+  "audit_2026_11_08": {
+    "applied": 3,
+    "source": "findings/omnirun.json (fairness audit), checked against omnirun.io docs, compare and security pages"
+  }
 }

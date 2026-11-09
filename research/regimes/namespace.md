@@ -5,7 +5,9 @@ Apple M4 Pro / M5 Max):
    1 unit = 1 vCPU + 2 GB RAM for 1 minute × platform multiplier (Linux 1, Windows 2, Linux on Apple Silicon 7, macOS 10).
    Plans (Team/Business) prepay a bucket of unit-minutes at $0.001; everything else is $0.0015 (Developer PAYG and overage).
 2. **Devboxes** (persistent dev environments for humans/agents) metered in **Devbox Minutes** at $0.004 each, plus
-   persistent storage $0.20/GB-month *used*. Devbox usage is **not** covered by plan unit-minutes.
+   persistent storage $0.20/GB-month *used*. Devbox usage is **not** covered by Team/Business unit-minutes; Devbox Plus
+   ($250/mo) prepays 50,000 Devbox Minutes. Devbox caps (2026-11-08): max duration Developer 3 h / Devbox Plus 3 h /
+   Team 5 h / Business 24 h; count per workspace 3 / 50 / 30 / 50.
 and https://namespace.so/docs/architecture/compute/resource-limits.md.
 4 vCPU / 8 GB Linux instance = 4 units: **$0.36/h** PAYG/overage, **$0.24/h** inside a plan's prepaid bucket.
 Devbox S (boost to 4 vCPU / 8 GB) = 1 Devbox Minute/min = **$0.24/h**.
@@ -27,6 +29,9 @@ Devbox S (boost to 4 vCPU / 8 GB) = 1 Devbox Minute/min = **$0.24/h**.
 | Devbox idle tail | Running devbox with no SSH/session/task | Keeps billing until idle auto-stop | default 15 min; presets 15 m/30 m/1 h/4 h/8 h or custom | pricing FAQ, docs/devbox/creating |
 | Devbox stopped | `stop` or idle | Compute $0; persistent storage keeps billing | $0.20/GB-month on **used** bytes (not provisioned) | pricing |
 | Ephemeral Devbox | `ephemeral` flag | Instance + storage deleted on stop; no storage bill after | $0 after stop | docs/devbox/creating |
+| Devbox Plus | $250/mo plan (added by 2026-11-08) | 50,000 Devbox Minutes + 400 GB-month storage included; other usage pay as you go | $250; max Devbox duration 3 h; 5 Devboxes per user / 50 per workspace | pricing, docs/devbox/lifecycle, billing-and-limits |
+| Devbox maximum duration | Per account plan | Devbox shuts down at the cap, even while in use; support can raise it up to 24 h | Developer 3 h, Devbox Plus 3 h, Team 5 h, Business 24 h | docs/devbox/lifecycle (2026-11-08) |
+| Devbox count limit | Per account plan | Running and stopped Devboxes both count | per user / per workspace: Developer 1/3, Team 3/30, Business 5/50, Devbox Plus 5/50 | billing-and-limits (2026-11-08) |
 | Custom Devbox plan | Sales | Included Devbox usage at a volume discount | null | pricing FAQ |
 | Cache volumes | Attached to instances | Storage $0.0048/GB-day (~$0.146/GB-mo) + "snapshot" $0.002/GB-h × volume size × instance runtime; storage accounted in 100 GB blocks | free allowances Team/Business above | pricing |
 | Registry / Turborepo / GitHub Artifacts / Gradle / Bazel CAS | Storage products | $0.20/GB-month | — | pricing |
@@ -55,6 +60,7 @@ Workload: 4 vCPU / 8 GiB Linux, 50 concurrent × 8 h/day × 22 days = 8,800 h, 3
   Business-style $250 + (2,112,000 − 250,000) × $0.0015 = **$3,043** (hypothetical, ignoring caps); pure PAYG $3,168.
   Instances are ephemeral, so "50 GiB snapshots" would have to be cache volumes (not comparable).
 - **Devbox S** (4 vCPU burst / 8 GB): 8,800 h × $0.24 = $2,112 + idle tail (default 15 min × 1,100 sessions = 275 h ×
-  $0.24 = $66) + storage 50 GB × $0.20 = $10 → **≈ $2,188/month**, no plan fee needed (Developer). CPU utilisation does
-  not matter (billed per running minute). Egress unknown (null). Devbox concurrency limits unpublished.
+  $0.24 = $66) + storage 50 GB × $0.20 = $10 → $2,188 of usage. 50 Devboxes and 8 h sessions need the Business account
+  (50 per workspace, 24 h cap; Developer allows 3 and 3 h, Team 30 and 5 h, Devbox Plus 50 but 3 h) → **≈ $2,438/month**.
+  CPU utilisation does not matter (billed per running minute). Egress unknown (null).
 - 30% CPU changes nothing in either product.

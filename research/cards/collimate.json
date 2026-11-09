@@ -105,7 +105,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Usage-based; 24-hour sessions. Concurrency conflict: the marketing pricing page says \"Up to 100 concurrent sandboxes, 24h sessions\" (rechecked 2026-10-14), while the docs say \"No concurrency limit; run at extreme width\" (docs.collimate.ai/pricing/), \"Concurrent sandboxes 2 | no limit | unlimited\" and \"Pro has no concurrent-sandbox cap either\" (docs.collimate.ai/reference/limits/), \"Pro and Enterprise have no concurrency limit\" (docs.collimate.ai/core/lifecycle/). Card keeps the published 100 as the conservative cap."
+      "note": "Usage-based; 24-hour sessions. Concurrency conflict: the marketing pricing page says \"Up to 100 concurrent sandboxes, 24h sessions\" (rechecked 2026-11-08), while the docs say \"No concurrency limit; run at extreme width\" (docs.collimate.ai/pricing/), \"Concurrent sandboxes 2 | no limit | unlimited\" and \"Pro has no concurrent-sandbox cap either\" (docs.collimate.ai/reference/limits/), \"Pro and Enterprise have no concurrency limit\" (docs.collimate.ai/core/lifecycle/). Card keeps the published 100 as the conservative cap."
     },
     {
       "name": "Enterprise",
@@ -147,11 +147,11 @@
     "root": null,
     "systemd": null,
     "browser": true,
-    "desktop": false,
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": true,
     "agent_harnesses": false,
-    "ssh": false,
+    "ssh": "diy",
     "public_ipv4": false,
     "inbound_https": false,
     "custom_domain": null,
@@ -200,7 +200,7 @@
     "volume_attach": false,
     "volume_shared": false,
     "own_agent_api": false,
-    "secret_proxy": false,
+    "secret_proxy": null,
     "open_internet": true,
     "usage_api": false
   },
@@ -215,13 +215,14 @@
     "Public list pricing. Demo is free; Pro pays allocated live resources per second. Live fork and spawn are free. Suspend retains full memory and filesystem state.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
-    "Re-checked 2026-09-28 (collimate.ai/pricing, docs llms.txt): only vCPU $0.040/h, RAM $0.012/GB-h and suspended storage $0.10/GB-month are published. Running-disk size/price, egress price, SSH and desktop/browser support are not documented (left null).",
+    "Re-checked 2026-09-28 (collimate.ai/pricing, docs llms.txt): only vCPU $0.040/h, RAM $0.012/GB-h and suspended storage $0.10/GB-month are published. Running-disk size/price and egress price are not published. Re-checked 2026-11-08: no built-in SSH or desktop; on Pro you can run sshd or a VNC desktop in your own OCI image and reach it over the signed TCP tunnel (feature_evidence.ssh / desktop). The browser template is headful Chromium driven over CDP.",
     "Running disk is metered (Disk-GB-hours while running) but no rate or per-sandbox disk size is published; estimate omits it.",
     "Request rate is 'per-tenant, high' on Pro (no number published); exceeding it returns 429 rate_limited. Live-fork per call capped at 32 children on Pro, 64 on Enterprise (chunk with fork_group). Exec timeout_seconds <= 3600.",
     "Sessions over the tier max (Demo 1 h, Pro 24 h) are reaped (deleted), not paused; suspend before the cap.",
     "Operator/billing: Collimate is operated by Gero Consulting (Israeli sole proprietorship); Paddle is Merchant of Record; prices may exclude tax; usage non-refundable; metered rates may change prospectively without the 30-day notice that applies to recurring fees.",
     "Docs pricing page, auth tiers table and Refund Policy mention a monthly Pro base fee (amount unpublished); the marketing pricing page says 'no platform fee'. Treat Pro fee as uncertain (possible hidden floor).",
-    "Pro concurrency (2026-10-14): the pricing page caps Pro at 100 concurrent sandboxes; the docs (pricing, limits, lifecycle) say Pro has no cap. Modelled at 100; above 100 on Pro is likely allowed but unconfirmed.",
+    "Pro concurrency (re-checked 2026-11-08): the pricing page still says 'Up to 100 concurrent sandboxes, 24h sessions'; the docs pricing page says 'No concurrency limit; run at extreme width' and the limits doc says 'Pro has no concurrent-sandbox cap either'. The two Collimate pages contradict each other. Modelled at 100; above 100 on Pro needs confirmation from Collimate.",
+    "Estimates count vCPU and RAM only. The docs also meter Disk-GB-hours while running (rate not published) and describe Pro as 'A monthly base plus metered usage', while collimate.ai/pricing says 'no platform fee' (both re-checked 2026-11-08). The real Pro bill is at least the estimate.",
     "Self-hosting (2026-10-14) is sales-only through Enterprise (\"Talk to us — for ... self-hosting, BYOC\"); the Helm self-hosting docs were removed (404)."
   ],
   "sources": [
@@ -234,6 +235,8 @@
     "https://docs.collimate.ai/start/authentication/",
     "https://docs.collimate.ai/core/templates/",
     "https://docs.collimate.ai/cookbook/access-models/",
+    "https://docs.collimate.ai/cookbook/live-browser/",
+    "https://docs.collimate.ai/cookbook/remote-browser/",
     "https://collimate.ai/refunds",
     "https://collimate.ai/terms"
   ],
@@ -252,7 +255,7 @@
       "https://docs.collimate.ai/pricing/",
       "https://docs.collimate.ai/reference/limits/"
     ],
-    "researched": "2026-10-14"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 13,
@@ -304,18 +307,20 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
-      "source": "https://docs.collimate.ai/cookbook/live-browser/",
-      "quote": "setsid \"$CH\" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --remote-debugging-port=9222 --remote-allow-origins=*",
-      "note": "not offered: the only GUI-adjacent surface is a headless Chromium reached via CDP; no VNC/RDP/streamed desktop is documented.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://docs.collimate.ai/core/templates/",
+      "quote": "Bringing your own OCI image is the Pro path.",
+      "how": "on Pro, bake a desktop (Xvfb + VNC) into your own OCI image and reach its port with port_forward or connect_url; no built-in desktop stream",
+      "effort": "high",
+      "note": "No built-in desktop: the browser template is 'A headful browser driven over CDP' (core/templates). The TCP path is in https://docs.collimate.ai/cookbook/access-models/ ('For a plain HTTP/WebSocket/TCP service ... forward the guest port to a local one instead'; Pro only). collimate.ai/pricing lists Pro 'Bring-your-own image (self-hosted today)', so on the managed cloud a custom image may need Collimate's help.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://docs.collimate.ai/cookbook/remote-browser/",
       "quote": "Point a local Playwright at that URL with connect_over_cdp. The script runs on your machine; every navigation and selector is executed by the browser inside the sandbox.",
-      "note": "not offered: browser control is via CDP/Playwright selectors, not a screenshot+click computer-use API; outside the product's scope.",
-      "checked": "2026-09-30"
+      "note": "No screenshot-and-click computer-use API is documented; browser control is CDP/Playwright from your own client.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -339,11 +344,13 @@
       "checked": "2026-09-30"
     },
     "ssh": {
-      "value": false,
+      "value": "diy",
       "source": "https://docs.collimate.ai/cookbook/access-models/",
-      "quote": "exec-in-guest ... you hand it a command ... connect-from-outside ... The SDK gives you a signed, per-sandbox URL to a port inside the guest.",
-      "note": "not offered: the two documented access models are the exec API and a signed connect-url/websocket tunnel to an exposed port (browser/CDP, DB, model server); no SSH endpoint or SSH key mechanism is documented.",
-      "checked": "2026-09-30"
+      "quote": "For a plain HTTP/WebSocket/TCP service (a preview server, Jupyter, an OpenEnv env-server) ... forward the guest port to a local one instead",
+      "how": "on Pro, run sshd in your own OCI image and reach port 22 through port_forward or connect_url (signed tunnel, not a public SSH endpoint)",
+      "effort": "medium",
+      "note": "No built-in SSH service or SSH key mechanism. connect_url / port_forward are Pro only and reach only the image's exposed ports. Own image: 'Bringing your own OCI image is the Pro path' (https://docs.collimate.ai/core/templates/); collimate.ai/pricing says Pro BYO image is 'self-hosted today'.",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": false,
@@ -416,11 +423,11 @@
       "checked": "2026-09-30"
     },
     "secret_proxy": {
-      "value": false,
+      "value": null,
       "source": "https://docs.collimate.ai/cookbook/live-browser/",
       "quote": "store it in Collimate's secret store and inject it at sandbox-create time, where it reaches the sandbox through the sealed credential proxy — never the artifact, never a log.",
-      "note": "This is a secret store that delivers/injects the credential into the sandbox at create time (so it isn't baked into a shared image/log) — the secret still enters the guest, unlike a proxy that keeps the secret out of the machine entirely for arbitrary HTTP APIs.",
-      "checked": "2026-09-30"
+      "note": "Collimate has a secret store and a 'sealed credential proxy', documented for browser login flows. The docs do not say whether the plaintext secret is visible inside the guest, or which APIs the proxy covers. Not confirmed either way.",
+      "checked": "2026-11-08"
     },
     "static_egress_ip": {
       "value": false,

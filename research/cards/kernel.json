@@ -31,6 +31,22 @@
           "disk_gib": null,
           "hour": 0.06000012,
           "month_cap": null
+        },
+        {
+          "name": "Headless 2 GiB",
+          "vcpu": null,
+          "ram_gib": 2,
+          "disk_gib": null,
+          "hour": 0.12000024,
+          "month_cap": null
+        },
+        {
+          "name": "Headless 4 GiB",
+          "vcpu": null,
+          "ram_gib": 4,
+          "disk_gib": null,
+          "hour": 0.24000048,
+          "month_cap": null
         }
       ],
       "requires_always_on": false,
@@ -43,7 +59,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "One GB active browser runtime; idle standby free."
+      "note": "1 GiB default; 2 or 4 GiB when `memory` is set on create (since 2026-10-16). 2 and 4 GiB prices are derived from $0.0000166667/GB-second; the docs table lists only the 1 GB headless rate. Idle standby free. No guaranteed CPU count."
     },
     {
       "key": "headful",
@@ -106,10 +122,18 @@
       "sizes": [
         {
           "name": "GPU",
-          "vcpu": null,
-          "ram_gib": null,
+          "vcpu": 4,
+          "ram_gib": 6,
           "disk_gib": null,
           "hour": 2.88000576,
+          "month_cap": null
+        },
+        {
+          "name": "GPU large",
+          "vcpu": 8,
+          "ram_gib": 12,
+          "disk_gib": null,
+          "hour": 5.76001152,
           "month_cap": null
         }
       ],
@@ -123,7 +147,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Start-Up+ only; USD 0.0008000016/s (48x the GB-second rate); no standby (billed until deleted); us-east only; not available in browser pools. GPU model unpublished."
+      "note": "Start-Up+ only; headful only. Default: 4 vCPU, 6 GiB RAM, 3 GiB video memory at USD 0.0008000016/s. Large (`video_memory: 6GiB`): 8 vCPU, 12 GiB RAM, 6 GiB video memory, 'bills at twice the standard GPU rate' (USD 5.76/h). No standby (billed until deleted); us-east only; not available in browser pools. GPU model unpublished. Source: https://kernel.sh/docs/browsers/gpu-acceleration"
     },
     {
       "key": "app-invocation",
@@ -172,6 +196,8 @@
       "max_ram_gib": null,
       "sizes_allowed": [
         "Headless",
+        "Headless 2 GiB",
+        "Headless 4 GiB",
         "Headful 8 GiB",
         "Headful 16 GiB"
       ],
@@ -190,6 +216,8 @@
       "max_ram_gib": null,
       "sizes_allowed": [
         "Headless",
+        "Headless 2 GiB",
+        "Headless 4 GiB",
         "Headful 8 GiB",
         "Headful 16 GiB"
       ],
@@ -240,6 +268,7 @@
     "pause_resume": true,
     "fork": false,
     "persistent_disk": false,
+    "persist_scope": "profile",
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -280,7 +309,7 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "datacenter+residential+mobile",
-    "ip_note": "Direct egress by default; Kernel-provided datacenter, ISP, residential and mobile proxies are unmetered (fair use); stealth mode adds a static ISP proxy + CAPTCHA solver; BYO proxy on Start-Up/Enterprise.",
+    "ip_note": "Direct egress by default; Kernel-provided ISP, residential and mobile proxies are unmetered (fair use); datacenter proxies are deprecated since 2026-10-16 (changelog); stealth mode adds a static ISP proxy + CAPTCHA solver; BYO proxy on Start-Up/Enterprise. Private browser networking (`network.private_hosts`, 2026-08-14) reaches named private hosts directly.",
     "spend_limits": true,
     "audit_logs": true,
     "zero_data_retention": true,
@@ -317,12 +346,12 @@
   "caveats": [
     "Storage, snapshot GiB-month and public IPv4 prices are not published in the reviewed sources; null is not free.",
     "No guaranteed vCPU allocation published; browser-hour is not a verified 4-vCPU/8-GiB VM equivalent. The sizes card keeps unknown hardware null; do not coerce it to zero or auto-rank against resource-guaranteed VMs.",
-    "Browser RAM is not published unless a specific mode overrides it.",
-    "The homepage GB-second rate and docs preset rates agree: 1 GB headless, 8 GB headful. 16 GB is a documented headful option. Do not charge CPU+RAM again on top.",
+    "Browser vCPU is not published for headless and headful browsers. GPU browsers publish 4 vCPU / 6 GiB (default) and 8 vCPU / 12 GiB (large).",
+    "The homepage GB-second rate and docs preset rates agree: 1 GB headless, 8 GB headful. 2 and 4 GiB headless (since 2026-10-16) and 16 GiB headful are documented options priced here from the GB-second rate. Memory is set on create and cannot change on a running browser. Do not charge CPU+RAM again on top.",
     "Standby billing is based on browser activity, not CPU utilization. An open active live view/CDP workload may prevent savings. Pool and standby browsers continue consuming concurrency.",
     "Pool availability conflicts internally: feature table says all tiers; FAQ says Start-Up and Enterprise. Fifty-browser example already needs Start-Up.",
     "Idle pool disks are free, but snapshot_gib_month stays null because general snapshot storage is not priced. Browser profiles are not general disks.",
-    "Headful = Chromium on a virtual display with Live View and a computer-controls API, not a full desktop environment; SSH into the browser VM is available (kernel browsers ssh). Headless has no Live View.",
+    "Headful = Chromium on a virtual display with Live View and a computer-controls API, not a full desktop environment. Each browser runs in 'a full linux environment' with root exec and SSH (kernel browsers ssh, -L/-R port forwarding); no container runtime or /dev/kvm is documented. Headless has no Live View.",
     "eu-west / ap-southeast browsers need the Start-Up or Enterprise plan. On Free and Hobbyist Kernel is US-only (us-east), so an EU/Asia workload must pay the USD 200 Start-Up plan. Model this as region-specific mode copies with plans:[\"Start-Up\",\"Enterprise\"], or as a plan gate.",
     "16 GiB headful price (USD 0.96/h) is derived from the GB-second definition; the docs pricing table lists only one headful rate (USD 0.0001333336/s = 8 GB).",
     "YC startups get a discount ('here's our yc deal'). Terms are behind a link and not published on the pricing page."
@@ -334,7 +363,12 @@
     "https://kernel.sh/docs/browsers/standby",
     "https://kernel.sh/docs/browsers/headless",
     "https://kernel.sh/docs/browsers/viewport",
-    "https://kernel.sh/docs/browsers/processes"
+    "https://kernel.sh/docs/browsers/processes",
+    "https://kernel.sh/docs/browsers/concurrency-and-limits",
+    "https://kernel.sh/docs/browsers/gpu-acceleration",
+    "https://kernel.sh/docs/browsers/process-execution",
+    "https://kernel.sh/docs/browsers/ssh",
+    "https://www.kernel.sh/docs/changelog"
   ],
   "knobs": [
     {
@@ -436,15 +470,15 @@
       "value": false,
       "source": "https://kernel.sh/docs/info/unikernels",
       "quote": "running Chromium browsers on lightweight unikernels. This architecture represents a significant departure from traditional solutions (warm pools / Kubernetes-orchestrated Docker containers)",
-      "note": "not offered: outside the product's scope. Machines are fixed Chromium-on-unikernel browser VMs or a code-deploy runtime (kernel deploy from source, no Dockerfile/config); there is no way to boot a custom OCI/Docker image.",
-      "checked": "2026-09-30"
+      "note": "Not documented. Machines are Chromium-on-unikernel browser VMs or a code-deploy runtime (kernel deploy from source, no Dockerfile/config). The docs show no way to boot a custom OCI/Docker image. You can upload a pinned binary with file I/O and run it next to the browser (https://kernel.sh/docs/browsers/process-execution.md).",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
-      "source": "https://kernel.sh/docs/info/unikernels",
-      "quote": "unikernels are specialized, single-purpose systems that include only the necessary components to run a specific application",
-      "note": "derived: a minimal single-purpose unikernel VM has no documented /dev/kvm passthrough or nested-virtualization support; not mentioned anywhere in the docs.",
-      "checked": "2026-09-30"
+      "source": "https://kernel.sh/docs/browsers/process-execution.md",
+      "quote": "every KERNEL browser runs in a full linux environment",
+      "note": "The browser is a unikernel VM built around Chromium, with a Linux shell and root exec. No /dev/kvm passthrough or nested virtualization is documented anywhere in the docs.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "mem",
@@ -485,15 +519,22 @@
       "value": false,
       "source": "https://kernel.sh/docs/browsers/termination",
       "quote": "it will be automatically deleted after a configurable timeout (default 60 seconds)",
-      "note": "The browser VM's writable filesystem is deleted with the browser; only cookies/local-storage/extensions persist across sessions via Browser Profiles, not arbitrary files on disk.",
-      "checked": "2026-09-30"
+      "note": "The browser VM's writable filesystem is deleted with the browser. Cookies, local storage and extensions persist across sessions via Browser Profiles (save_changes). Arbitrary files do not; download them with the File I/O API before deletion. No documented API restores a filesystem snapshot into a new browser.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "profile",
+      "source": "https://kernel.sh/docs/browsers/profiles.md",
+      "quote": "Each browser session loads its own profile snapshot. Profiles don't synchronize changes between running browsers",
+      "note": "Browser profiles (cookies, storage, browser state) survive a browser's deletion and load into new browsers. Standby memory snapshots resume the same browser only until its timeout (max 72 h).",
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
       "source": "https://www.kernel.sh/pricing",
       "quote": "8 GiB default ($0.48/h), 16 GiB when `memory` is set on create ($0.96/h)",
-      "note": "Memory tier is chosen at browser creation time; no documented API to change CPU/RAM of an already-running browser. 'Resize at any time' in the docs refers to browser-pool size (instance count), not per-machine resources.",
-      "checked": "2026-09-30"
+      "note": "Memory (1/2/4 GiB headless, 8/16 GiB headful) is chosen on create and 'can't be changed on a running browser' (https://kernel.sh/docs/browsers/concurrency-and-limits.md). 'Resize at any time' in the docs refers to browser-pool size (instance count), not per-machine resources.",
+      "checked": "2026-11-08"
     },
     "agent_harnesses": {
       "value": true,
@@ -525,17 +566,17 @@
     },
     "public_ipv4": {
       "value": false,
-      "source": "https://kernel.sh/docs/info/network-access",
-      "quote": "You don't need to open inbound ports.",
-      "note": "Browser VMs are not assigned a routable public IPv4; access is only via Kernel-hosted, per-session tokenized CDP/Live View URLs.",
-      "checked": "2026-09-30"
+      "source": "https://kernel.sh/docs/browsers/ssh.md",
+      "quote": "Forward a local port to a port on the VM.",
+      "note": "No public IPv4 or public URL for VM ports is documented. You reach VM services through tokenized CDP/Live View URLs, or through SSH -L (local to VM) and -R (VM to local) port forwarding.",
+      "checked": "2026-11-08"
     },
     "inbound_https": {
       "value": false,
       "source": "https://kernel.sh/docs/browsers/live-view",
       "quote": "https://api.onkernel.com/browser/live/<TOKEN>?readOnly=true",
-      "note": "Reachability is only through Kernel's own api.onkernel.com proxy endpoints (Live View/CDP tokens) or `kernel browsers ssh` port-forwarding; there is no way to expose an arbitrary app port on the machine over its own public HTTPS URL.",
-      "checked": "2026-09-30"
+      "note": "Reachability is through Kernel's api.onkernel.com proxy endpoints (Live View/CDP tokens) or `kernel browsers ssh` -L/-R port forwarding (https://kernel.sh/docs/browsers/ssh.md). The docs show no public HTTPS URL for an arbitrary app port on the VM.",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": true,
@@ -597,8 +638,8 @@
       "value": false,
       "source": "https://kernel.sh/docs/info/unikernels",
       "quote": "running Chromium browsers on lightweight unikernels. This architecture represents a significant departure from traditional solutions (warm pools / Kubernetes-orchestrated Docker containers)",
-      "note": "not offered: outside the product's scope. Machines are minimal, single-purpose Unikraft-based unikernel VMs ('unikernels typically lack internal security boundaries... include only the necessary components to run a specific application'); no dockerd/container runtime, systemd, or general-purpose OS is documented inside the browser VM or the app-invocation runtime. Consistent with nested_virt=false already recorded on this card.",
-      "checked": "2026-09-30"
+      "note": "Not documented. The browser is a Unikraft-based unikernel VM built around Chromium; the docs say it runs 'a full linux environment' with root exec and SSH (https://kernel.sh/docs/browsers/process-execution.md), but no dockerd/container runtime or systemd is documented inside the browser VM or the app-invocation runtime. Consistent with nested_virt=false on this card.",
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": "none",

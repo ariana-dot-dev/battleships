@@ -13,18 +13,18 @@ tied to a personal Docker account. It is not part of Docker Personal/Pro/Team/Bu
 | Running | Sandbox started | Allocated size, idle or busy | as above | https://docs.docker.com/agentic-platform/signup/ |
 | Stopped (memory + filesystem preserved) | `sbx stop` or TTL action `stop` | "Compute isn't billed while it is stopped"; storage free; frees the concurrency slot but counts toward 50 stored sandboxes | $0 | https://docs.docker.com/ai/sandboxes/cloud/usage/, /sandboxes-api/limits/ |
 | TTL expiry (default) | 1 h after creation unless renewed | Default on-timeout: **stop** if resumable, else **delete**; `restart` also available | billing continues until expiry | https://docs.docker.com/ai/sandboxes/cloud/usage/ |
-| Max lifetime | Any sandbox | Renewals cannot move expiry beyond 24 h from creation | 24 h cap | same |
+| Max lifetime | Any sandbox | Renewals cannot move expiry beyond 24 h from creation; with the always-on entitlement, TTL action `restart` stops and resumes at expiry with memory kept | 24 h per lifecycle | same, https://docs.docker.com/reference/api/sandboxes/latest/schemas/TimeoutAction/ |
 | Always-on sandbox | Configured always-on | Keeps its concurrency slot when "stopped"; no separate price published | null | https://docs.docker.com/ai/sandboxes-api/limits/ |
 | Volumes (experimental) | Persistent data outside a sandbox | Free; snapshot saved when the sandbox exits | $0; 100 volumes/account | Docker blog, /cloud/usage/ |
 | Egress / public HTTPS URL | All traffic / exposed ports | Free | $0 | Docker blog |
-| Quotas | Default account | 10 concurrent, 50 stored, 100 volumes, 100 secrets, 3 image preps | raise: unpublished | https://docs.docker.com/ai/sandboxes-api/limits/ |
+| Quotas | Default account | 10 concurrent, 50 stored, 100 volumes, 100 secrets, 3 image preps | raise: through Docker, not self-serve; no published price | https://docs.docker.com/ai/sandboxes-api/limits/ |
 | AI Governance | Org-wide policies | Separate paid subscription, contact sales | null | https://docs.docker.com/ai/sandboxes/ |
 | Docker Pro/Team/Business | Docker Hub/Desktop seats | $9–24/user/mo; **no** sandbox credit; not required | n/a | https://www.docker.com/products/docker-sandboxes/ |
 No dated price changes (product is 4 days old).
 ## Gotchas
 1. **The 1-hour default TTL is a billing floor if you never stop.** Sandboxes bill until explicitly stopped or until the TTL action fires.
-2. **24 h hard ceiling from creation.** Long-lived agents need stop/restart cycles or re-creation.
-3. **Only 10 concurrent by default**, and no published way or price to raise it.
+2. **24 h ceiling per lifecycle.** With the always-on entitlement, the `restart` TTL action resumes the sandbox at expiry with memory kept. Without it, resume or recreate the sandbox yourself.
+3. **10 concurrent by default.** Higher quotas go through Docker, not self-serve; no published price.
 4. Stopped state includes **memory**, and is free, so it is a cheap pause, limited only by the 50 stored-sandbox quota.
 5. Being a Docker Business customer gives you nothing here: the Agentic Platform is billed separately on a personal account (no org billing documented).
 6. Disk size per size tier is not published.
@@ -34,4 +34,4 @@ No dated price changes (product is 4 days old).
 |---|---|---|
 | PAYG, stopped between shifts | Only after a quota raise (default 10 concurrent) | 8,800 × $0.28 = **$2,464.00**; snapshots/volumes $0, egress $0; CPU util irrelevant (allocated) |
 | First month with promo credit | same | $2,464 − $250 = $2,214 |
-| Anti-pattern: left running 24 h/day | Not possible beyond 24 h from creation; recreate daily | 50 × 24 × 22 × 0.28 = $7,392 |
+| Anti-pattern: left running 24 h/day | Each lifecycle ends 24 h from creation; resume daily, or use `restart` with the always-on entitlement | 50 × 24 × 22 × 0.28 = $7,392 |

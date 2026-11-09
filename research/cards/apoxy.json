@@ -94,7 +94,7 @@
     },
     {
       "name": "Platform Standard",
-      "fee": 80,
+      "fee": 250,
       "flags": [],
       "fee_is_credit": false,
       "included_usd": null,
@@ -104,7 +104,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": ""
+      "note": "Pricing page 2026-11-08: Standard $250/month, 1 TB bandwidth then $0.05/GB, 10 GB logs then $0.25/GB, TCP/UDP gateways $20 each."
     },
     {
       "name": "Premium annual",
@@ -136,7 +136,7 @@
     },
     {
       "name": "CLRK Standard",
-      "fee": 80,
+      "fee": null,
       "flags": [
         "beta"
       ],
@@ -144,7 +144,7 @@
       "included_usd": 0,
       "per_seat": 0,
       "concurrency": null,
-      "note": "Coming soon. Unlimited Connected Workers; 1 TB bandwidth then $0.05/GB; 10 GB logs then $0.25/GB; dedicated egress IP +$20/mo. No per-vCPU/RAM rate published."
+      "note": "The 2026-11-08 pricing page no longer lists CLRK tiers (only Free, Standard $250/month, Premium). Earlier display: $80/month, coming soon."
     },
     {
       "name": "CLRK Enterprise",
@@ -168,7 +168,7 @@
     "snapshot": "none",
     "pause_resume": false,
     "fork": false,
-    "persistent_disk": false,
+    "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": false,
     "max_session_h": null,
@@ -235,7 +235,9 @@
     "volume_attach": false,
     "guest_firewall": false,
     "open_internet": true,
-    "usage_api": true
+    "usage_api": true,
+    "persist_scope": "folder",
+    "persist_path": "TaskAgent.spec.state mount (one worker only)"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -244,11 +246,11 @@
     "dax_s": null
   },
   "caveats": [
-    "Edge JS/TS/Wasm workers bundled with routing: Free 100GB traffic, Standard $80/mo including 1TB then $0.05/GB; TCP/UDP +$20/gateway. CLRK is gVisor-isolated agent runtime: free 1 connected worker; paid Standard $80 and Enterprise displayed coming-soon. BYOC Premium annual from $2k/mo, per-vCPU price unpublished. Do not treat edge traffic tariff as free 4/8 VM.",
+    "Edge JS/TS/Wasm workers bundled with routing: Free 100GB traffic, Standard $250/mo including 1TB then $0.05/GB; TCP/UDP +$20/gateway. CLRK is gVisor-isolated agent runtime: free 1 connected worker; CLRK tiers no longer on the pricing page (2026-11-08). BYOC Premium annual from $2k/mo, per-vCPU price unpublished. Do not treat edge traffic tariff as free 4/8 VM.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "Logs/traces: Free 1 GB (7-day), Standard 10 GB (30-day) then $0.25/GB; TCP/UDP gateways +$20/gateway/month on Standard; Free cannot exceed the included bucket (hard cap default, no overage).",
-    "Apoxy bandwidth is gateway/proxy traffic (max of client ingress/egress, origin traffic free), not sandbox VM egress: Free includes 100 GB/month (hard cap, no overage); Standard ($80/mo) includes 1 TB then $0.05/GB, volume tiered.",
+    "Apoxy bandwidth is gateway/proxy traffic (max of client ingress/egress, origin traffic free), not sandbox VM egress: Free includes 100 GB/month (hard cap, no overage); Standard ($250/mo) includes 1 TB then $0.05/GB, volume tiered.",
     "Nested virtualization set to no: every sandbox runs under gVisor, which gives the workload its own user-space kernel and no /dev/kvm device (no KVM-based emulators or VMs inside). Docker inside is a separate question."
   ],
   "sources": [
@@ -440,11 +442,11 @@
       "checked": "2026-09-30"
     },
     "persistent_disk": {
-      "value": false,
+      "value": true,
       "source": "https://apoxy.dev/docs/clrk/guides/persist-state-across-runs.md",
       "quote": "CLRK sandboxes have no durable cross-worker persistent storage by default. Each invocation starts from a fresh rootfs; `/tmp` and any image-baked filesystem state reset on every run.",
-      "note": null,
-      "checked": "2026-09-30"
+      "note": "Only the spec.state mount survives between runs, and only on the same worker (backend today: sqlite).",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": false,
@@ -572,6 +574,14 @@
       "note": "granularity: per-agent; cost: no; The metrics API (metrics.clrk.apoxy.dev) provides usage quantities (tokens, requests, bytes, invocations, errors, latencies) queryable per TaskAgent or DaemonAgent, but does not return cost/money values. Granularity is per-agent or per-gateway. Available metrics include gen_ai.tokens, gen_ai.duration, mcp.calls, egress.requests, egress.bytes, agent.invocations, agent.errors, budget.denied. Usage is a Kubernetes resource.Quantity serialized as a string for precision.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "persist_scope": {
+      "value": "folder",
+      "source": "https://apoxy.dev/docs/clrk/guides/persist-state-across-runs.md",
+      "quote": "TaskAgent.spec.state offers a worker-local mount shared across executions of the same agent on a worker",
+      "how": "set spec.state on the TaskAgent; the rest of the rootfs resets on every run, and state shared across workers goes to external storage such as Postgres",
+      "effort": "low",
+      "checked": "2026-11-08"
     }
   },
   "locations": [],

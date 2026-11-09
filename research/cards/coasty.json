@@ -38,7 +38,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Published default, per-minute rounded down. Starting/stopping/restarting also bill this rate."
+      "note": "Published default 5 credits/h ($0.01/credit), per-minute rounded down. Starting/stopping/restarting also bill this rate. Effective rates can differ; see authenticated GET /v1/machines/pricing."
     },
     {
       "key": "windows-running-default",
@@ -73,7 +73,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Published default; effective authenticated rate card may override."
+      "note": "Published default 9 credits/h ($0.01/credit); effective authenticated rate card may override."
     }
   ],
   "storage": {
@@ -120,7 +120,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "$25 monthly API credits; same $.05 managed step; consumer credits are separate."
+      "note": "$25 monthly API credits; same $.05 managed step; consumer credits are separate. Docs say live machines need room under a per-plan concurrent-machine cap but give no number for this plan."
     },
     {
       "name": "Enterprise API",
@@ -151,7 +151,7 @@
     "gpu": false,
     "snapshot": "fs",
     "pause_resume": true,
-    "fork": false,
+    "fork": "diy",
     "persistent_disk": true,
     "volumes": null,
     "auto_stop_idle": false,
@@ -177,8 +177,8 @@
     "self_host": false,
     "byoc": true,
     "open_source": false,
-    "soc2": true,
-    "hipaa": true,
+    "soc2": null,
+    "hipaa": null,
     "sso": true,
     "gpu_types": [],
     "regions": null,
@@ -221,7 +221,8 @@
     "secret_proxy": false,
     "max_session_unlimited": true,
     "open_internet": true,
-    "usage_api": true
+    "usage_api": true,
+    "persist_scope": "whole"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -239,11 +240,13 @@
     "Consumer subscription credits are quota units with variable dollar values, never the API wallet $.01 conversion. Parked-machine hourly charge cannot be encoded as per-GiB snapshot rate.",
     "Marketing claims of benchmark superiority and comparison prices are not used as pricing evidence.",
     "Machine size re-checked 2026-09-28: docs expose cpu_cores 1-16, memory_gb 1-64, storage_gb 8-500 (\"auto\" default, capped by tier) but no default size; public price feed (coasty.ai/api/pricing) lists a flat 5 credits/h Linux, 9 credits/h Windows ($0.01/credit), 1 credit/h stopped. Whether the rate varies with size is only in the authenticated /v1/machines/pricing feed, so sizes stay unpublished (vcpu/ram null).",
-    "Consumer subscriptions (separate consumer-credit balance, not the API wallet, and currently not offered for self-serve purchase): Starter $19/mo 200 credits, 1 machine; Plus $50/mo 600 credits, 2 machines; Unlimited $99/mo fair-use. Credit boosts (paid subscription required): 150/$19, 500/$49, 1,200/$99 (coasty.ai/api/pricing).",
+    "Consumer subscriptions (separate consumer-credit balance, not the API wallet): Starter $19/mo 200 credits, 1 machine included, 3 swarm agents; Plus $50/mo 600 credits, 2 machines, 6 swarm agents; Unlimited $99/mo fair-use, 2 machines, 5 swarm agents. Agent jobs cost 10 credits/min, 6 h max session, 20-credit minimum to start. Swarm mode splits one task across several machines at once. Credit boosts (paid subscription required): 150/$19, 500/$49, 1,200/$99 (coasty.ai/api/pricing, checked 2026-11-08).",
     "Agent inference meters are billed on top of machine runtime: predict $0.05, session create $0.10, session predict $0.04, ground $0.03, managed run step $0.05 (v1 $0.08). Surcharges: trajectory screenshot +$0.02 each, high-res image +$0.01, v1 engine +$0.03/request, prompt >500 chars +$0.01 (coasty.ai/docs pricing).",
     "Machine backend varies (checked 2026-10-14, coasty.ai/docs/llms.txt \"Choosing a backend\"): auto sends desktop/Windows tasks to Daytona (AWS fallback) and headless tasks to Azure containers; provider can be pinned to aws, daytona or azure. Isolation is therefore left unknown, against the pricing page's \"true VM-level isolation\" claim.",
     "macOS is supported only as a caller-operated external machine (POST /v1/machines/external); managed machines are linux or windows.",
-    "Positioning shift (checked 2026-10-14): the coasty.ai homepage now reads \"Models, environments, data and evaluation for frontier AI labs\" (title \"Coasty — Advancing computer use\") and links to CoArena; the YC listing is now CoArena (S26, ycombinator.com/companies/coarena). The \"Coasty AI Employee\" self-serve product survives only in coasty.ai/pricing structured data, while the machine API and rate card remain in the docs. The card stays agent-sandbox (a computer-use model API with rented machines); the self-serve offer may be winding down."
+    "Positioning shift (checked 2026-10-14): the coasty.ai homepage now reads \"Models, environments, data and evaluation for frontier AI labs\" (title \"Coasty — Advancing computer use\") and links to CoArena; the YC listing is now CoArena (S26, ycombinator.com/companies/coarena). The \"Coasty AI Employee\" self-serve product survives only in coasty.ai/pricing structured data, while the machine API and rate card remain in the docs. The card stays agent-sandbox (a computer-use model API with rented machines); the self-serve offer may be winding down.",
+    "Compliance (checked 2026-11-08): Enterprise lists SSO, SLA and dedicated VMs. No SOC 2 or HIPAA/BAA claim is published, so soc2 and hipaa are null, not false.",
+    "Positioning (checked 2026-11-08): the homepage leads with computer-use environments for RL training and evaluation for frontier labs; the machine API and rate card remain live at coasty.ai/api/pricing and coasty.ai/docs."
   ],
   "sources": [
     "https://coasty.ai/pricing",
@@ -262,12 +265,13 @@
     "raise_time_days": null,
     "verification": "API-key signup advertises no card/no subscription; provisioning needs $0.20 API-wallet balance.",
     "tiers": null,
-    "notes": "Consumer plans include machines/swarm agents, but this card is the separately billed API. API wallet minimum $0.20 is a provisioning gate, not concurrency. BYOK still retains concurrency and persistent-machine safeguards whose numeric default was not found.",
+    "notes": "API docs say live provisioning needs room under the plan's concurrent-machine cap, with no published number for the API plans. Consumer plans list machines included: Starter 1, Plus 2, Unlimited 2 (swarm agents 3/6/5); coasty.ai/api/pricing does not call this a concurrency cap. Larger fleets point to Enterprise (no public price). API wallet minimum $0.20 is a provisioning gate, not concurrency.",
     "sources": [
-      "https://coasty.ai/docs?section=pricing",
+      "https://coasty.ai/docs/llms.txt",
+      "https://coasty.ai/api/pricing",
       "https://coasty.ai/pricing"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 12,
@@ -279,8 +283,8 @@
       "value": true,
       "source": "https://coasty.ai/docs/llms.txt",
       "quote": "`POST /v1/machines/{id}/snapshot` — capture a restorable machine image. Needs `snapshots:write`; the default price is `$0.01` ... Boot a future machine from a confirmed image with `restore_from_snapshot: true`.",
-      "note": "Disk image only (no memory mentioned); Linux only ('Boot from your latest snapshot instead of a clean image (Linux only)'). New machines can boot from the LATEST snapshot only (no snapshot-id selection documented). $0.01 per snapshot. Managed machines only; external machines return 400 UNSUPPORTED_MACHINE_KIND.",
-      "checked": "2026-09-29"
+      "note": "Disk image only (no memory mentioned). Snapshot creation is for managed machines and is not stated as Linux-only; only restore (boot a new machine from the latest snapshot) is Linux-only. No snapshot-id selection documented. $0.01 (1 credit) per snapshot. External machines return 400 UNSUPPORTED_MACHINE_KIND.",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": true,
@@ -311,11 +315,13 @@
       "checked": "2026-09-30"
     },
     "fork": {
-      "value": false,
+      "value": "diy",
+      "was": false,
       "source": "https://coasty.ai/docs/llms.txt",
-      "quote": "Boot a future machine from a confirmed image with `restore_from_snapshot: true`.",
-      "note": "The only cloning-like mechanism is booting a brand-new machine from your LATEST disk snapshot (no memory, no snapshot-id selection, Linux only). No documented 'fork' endpoint that clones a machine directly. Treated as not offered as a first-class fork feature.",
-      "checked": "2026-09-30"
+      "quote": "`restore_from_snapshot` bool no `false` Boot from your latest snapshot instead of a clean image (Linux only).",
+      "how": "snapshot the machine ($0.01), then provision a new machine with restore_from_snapshot: true (Linux only, latest snapshot only, disk only)",
+      "effort": "low",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
@@ -474,18 +480,20 @@
       "checked": "2026-09-30"
     },
     "soc2": {
-      "value": true,
+      "value": null,
+      "was": true,
       "source": "https://coasty.ai/pricing",
-      "quote": "Custom credits, dedicated VMs, SLA, SSO, and priority support. ... points: {\"soc2\":\"SOC 2\",\"hipaa\":\"HIPAA, with a BAA\",\"sso\":\"SSO and SAML\",\"zdr\":\"Zero data retention\"} ... complianceNote: \"Ask us for our current attestations and BAA status.\"",
-      "note": "Listed as an Enterprise-tier deliverable on the pricing page, but the page's own complianceNote asks buyers to request 'current attestations' — i.e. it is offered/sold as part of the Enterprise plan rather than shown as an already-published, generally available attestation.",
-      "checked": "2026-09-30"
+      "quote": "Custom credits, dedicated VMs, SLA, SSO, and priority support.",
+      "note": "The Enterprise tier lists SSO, SLA and dedicated VMs. The pricing page, the API pricing page, the homepage and the docs publish no SOC 2 claim (re-checked 2026-11-08). Not published, so null.",
+      "checked": "2026-11-08"
     },
     "hipaa": {
-      "value": true,
-      "source": "https://coasty.ai/pricing",
-      "quote": "points: {\"hipaa\":\"HIPAA, with a BAA\",\"soc2\":\"SOC 2\"} ... complianceNote: \"Ask us for our current attestations and BAA status.\"",
-      "note": "HIPAA/BAA is explicitly listed as an Enterprise-tier offering on the pricing page; the same complianceNote caveats that current BAA status must be requested, so this is an available-on-request Enterprise deal term rather than a blanket self-serve guarantee.",
-      "checked": "2026-09-30"
+      "value": null,
+      "was": true,
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "Before sending patient, financial, or other regulated data, confirm that your Coasty agreement, selected model provider, region, logging settings, and retention configuration meet your requirements.",
+      "note": "No HIPAA or BAA claim on the pricing page, the API pricing page, the homepage or the docs (re-checked 2026-11-08). Not published, so null.",
+      "checked": "2026-11-08"
     },
     "eu_data_residency": {
       "value": false,
@@ -517,10 +525,22 @@
       "quote": "`os_type` | string | no | `linux` | `linux` or `windows`. Windows costs more to run. ... Enroll a caller-operated Windows, macOS, Linux, or other machine with:",
       "note": "Managed (rented) machines are Linux or Windows only. macOS appears only as a caller-operated external machine you enroll and run yourself (POST /v1/machines/external), which Coasty does not host or bill as runtime.",
       "checked": "2026-10-14"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://coasty.ai/docs/llms.txt",
+      "quote": "`stopped` Stopped rate Powered off, disk + snapshots preserved. Start it again.",
+      "note": "A stopped managed machine keeps its disk and bills the stopped rate (1 credit = $0.01 an hour, coasty.ai/api/pricing).",
+      "checked": "2026-11-08"
     }
   },
   "locations": [],
   "locations_source": "https://coasty.ai/docs/llms.txt",
   "locations_quote": "Before sending patient, financial, or other regulated data, confirm that your Coasty agreement, selected model provider, region, logging settings, and retention configuration meet your requirements.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "findings/coasty.json re-verified against coasty.ai/api/pricing and coasty.ai/docs/llms.txt",
+    "reviewed": 7
+  }
 }

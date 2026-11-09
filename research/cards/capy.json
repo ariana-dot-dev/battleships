@@ -85,7 +85,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Coding-agent VM (one per thread, Ubuntu 24.04, backed by Daytona per subprocessor list). Billed per hour by size only while awake (+2 min wind-down); sleeps ~2 min after the agent stops; asleep = free, disk kept (cold after 2 days, deleted after 30 days). Size is set per project. Cannot be kept awake arbitrarily (only +5 min prepaid extensions, up to 30 min ahead). Model tokens billed separately from the same credit balance. Size table (docs.capy.ai/models-and-pricing, verified 2026-09-29): Small 1/4/64 $0.10, Medium 2/8/64 $0.20, Large 4/16/64 $0.40 (default), Ultra 8/32/64 $0.80, Hyper 16/64/128 $1.60 per hour; Big Guy 16/128/256 $3.20 is Enterprise-only (not priced here). boot_overhead_s 120 = the 2-minute billed wind-down per awake period. Billing granularity not stated. Plans cap machine size and total concurrent RAM (capy.ai/pricing, checked 2026-10-14): Lite 4 CPU / 16 GB machines, 128 GB at once; Pro 8 CPU / 32 GB, 512 GB; Max 16 CPU / 64 GB, 1 TB."
+      "note": "Coding-agent VM (one per thread): a Firecracker microVM with its own Linux 6.1 kernel, Ubuntu 24.04, hosted on Latitude.sh bare metal in the United States since 2026-10-15 (was Daytona; capy.ai/subprocessors). Billed per hour by size only while awake (+2 min wind-down); sleeps ~2 min after the thread stops, unless a background command (up to 6 h), an open shell/desktop/preview tab, preview traffic (5 min per request, up to 4 h after the last thread use) or the manual 'Keep awake 4h' holds it; asleep = free, disk kept, deleted after 30 days asleep. Size is set per project. Model tokens billed separately from the same credit balance. Size table (docs.capy.ai/machines#specs, verified 2026-11-08): Small 1/4/64 $0.10, Medium 2/8/64 $0.20, Large 4/16/64 $0.40 (default), Ultra 8/32/64 $0.80, Hyper 16/64/128 $1.60 per hour; Big Guy 16/128/256 $3.20 is 'On request' (not priced here). boot_overhead_s 120 = the 2-minute billed wind-down per awake period. Billing granularity not stated. Plans cap machine size and total concurrent RAM (capy.ai/pricing, checked 2026-10-14): Lite 4 CPU / 16 GB machines, 128 GB at once; Pro 8 CPU / 32 GB, 512 GB; Max 16 CPU / 64 GB, 1 TB."
     }
   ],
   "storage": {
@@ -200,7 +200,7 @@
     "desktop": true,
     "computer_use": false,
     "code_interpreter": null,
-    "agent_harnesses": false,
+    "agent_harnesses": "diy",
     "ssh": false,
     "public_ipv4": false,
     "inbound_https": true,
@@ -244,7 +244,7 @@
     "secret_proxy": false,
     "volume_attach": false,
     "volume_shared": false,
-    "isolation": "qemu-kvm",
+    "isolation": "firecracker",
     "image_oci": false,
     "anti_bot": false,
     "captcha_solving": false,
@@ -267,8 +267,11 @@
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "Programs: approved OSS orgs get $50 free usage per UTC day; YC companies and eligible Solo Founders members get $1,000 credits (program-gated).",
     "Drive (formerly Volumes; org/project files outside git): \"1 GB on Free, 10 GB on Lite, 25 GB on Pro, and 50 GB on Max\"; 100 MiB per file, 2 GiB per saved version; no overage price published.",
-    "No always-on: a machine sleeps about two minutes after the thread stops working; \"detached processes (a dev server) do not\" hold it awake, and the only manual extension is +5 minutes, stackable up to 30 minutes ahead. A 24/7 service is not possible; only continuous agent work keeps a VM up.",
-    "Pro adds \"Mobile builds and devices\" and Max \"Priority support and Slack Connect\" (capy.ai/pricing); no docs page describes the mobile feature, so emulator/device support is not reflected in nested_virt."
+    "No always-on mode: a machine sleeps about 2 minutes after the thread stops, unless a background command (up to 6 h), an open shell/desktop/preview tab, preview traffic (5 min per request, up to 4 h after the last thread use) or the manual 'Keep awake 4h' holds it. \"A process the agent leaves running, such as a dev server, doesn't hold the machine awake\" (docs.capy.ai/machines).",
+    "No /dev/kvm, so no accelerated emulators or nested VMs inside the machine. Pro, Max and Enterprise can attach real iOS and Android cloud phones (via Revyl) to a thread: $5.40/h for iPhone or iPad, $3.60/h for Android, billed in credits while awake (docs.capy.ai/cloud-phones).",
+    "Agents: Capy runs its own agent, or Claude Code mode (Claude Agent SDK) when you connect a Claude Pro/Max plan. Codex, Copilot and SuperGrok subscriptions supply models to Capy's agent. No documented way to run another harness (docs.capy.ai/models-and-pricing).",
+    "Threads can also run on your own computer through the Capy desktop app and move to the cloud and back (docs.capy.ai/welcome).",
+    "OIDC federation gives machines short-lived Google Cloud, AWS, Azure or Vault tokens, with no stored keys (docs.capy.ai/cloud-credentials)."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/capy",
@@ -278,7 +281,11 @@
     "https://docs.capy.ai/models-and-pricing",
     "https://docs.capy.ai/machines",
     "https://docs.capy.ai/drive",
-    "https://docs.capy.ai/api-reference/overview"
+    "https://docs.capy.ai/api-reference/overview",
+    "https://capy.ai/subprocessors",
+    "https://docs.capy.ai/cloud-phones",
+    "https://docs.capy.ai/cloud-credentials",
+    "https://docs.capy.ai/welcome"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -305,8 +312,8 @@
       "value": false,
       "source": "https://docs.capy.ai/machines",
       "quote": "The filesystem survives sleep. Memory, processes, and network connections do not. Resume is a cold boot from disk: your checkout and installed packages are intact, but every process is gone.",
-      "note": "Machines auto-sleep ~2 min after the thread stops working and cold-boot from the persisted disk on wake (persistent_disk, not a state snapshot). Asleep 2 days -> colder storage; 30 days -> deleted.",
-      "checked": "2026-09-29"
+      "note": "Machines auto-sleep ~2 min after the thread stops working and cold-boot from the persisted disk on wake (persistent_disk, not a state snapshot). A machine asleep for 30 days is deleted ('A machine that sleeps for 30 days is deleted.').",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
@@ -319,23 +326,23 @@
       "value": true,
       "source": "https://docs.capy.ai/api-reference/overview",
       "quote": "The Capy API gives programmatic access to the same platform the app uses: create threads, send messages, watch the agent work, and read what it produced. ... A **thread** is a durable agent conversation on Capy's servers, with a VM attached for execution.",
-      "note": "Harness = Capy's own agent (Captain + subagents, formerly called tasks) only, with many models (Claude/GPT/Gemini/Grok/Kimi/GLM/Qwen). REST: create thread with prompt, send/interrupt messages, read transcript, list threads, observe subagent tree (read-only), and Server-Sent Events streams on a thread or subagent (docs.capy.ai/api-reference/overview: \"Hold a Server-Sent Events connection on a thread or subagent\"). Caveat: the agent loop runs on Capy's servers, not inside the VM ('The agent loop runs on Capy's servers; the machine is where execution happens'). No Claude Code/Codex harness driving.",
-      "checked": "2026-10-14"
+      "note": "Harness = Capy's own agent (Captain + subagents, formerly called tasks) only, with many models (Claude/GPT/Gemini/Grok/Kimi/GLM/Qwen). REST: create thread with prompt, send/interrupt messages, read transcript, list threads, observe subagent tree (read-only), and Server-Sent Events streams on a thread or subagent (docs.capy.ai/api-reference/overview: \"Hold a Server-Sent Events connection on a thread or subagent\"). Caveat: the agent loop runs on Capy's servers, not inside the VM ('The agent loop runs on Capy's servers; the machine is where execution happens'). With a connected Claude Pro/Max plan, threads run in Claude Code mode (Claude Agent SDK) through the same API; Codex CLI is not run.",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
       "source": null,
       "quote": null,
-      "note": "Each thread gets its own isolated Ubuntu 24.04 VM with passwordless sudo, and Docker Engine (which itself programs iptables) runs inside; hypervisor not stated.",
-      "checked": "2026-09-29",
+      "note": "Each thread gets its own Firecracker microVM (own Linux 6.1 kernel, Ubuntu 24.04) with passwordless sudo, and Docker Engine (which itself programs iptables) runs inside.",
+      "checked": "2026-11-08",
       "derived": true
     },
     "secret_proxy": {
       "value": false,
       "source": "https://docs.capy.ai/secrets",
       "quote": "Capy encrypts them at rest, injects them into the machine's process environment at boot ... the machine is the agent's execution environment, so code the agent runs can read anything on the machine, including your variables.",
-      "note": "User secrets are env vars on the machine. BUT a narrow first-party credential-injecting proxy exists for GitHub/git only: 'Every git operation routes through Capy's proxy, which injects credentials server-side; the machine holds only a bearer scoped to itself' (docs.capy.ai/secrets, /admin/security). Model-provider keys are never on the machine because the agent loop runs server-side. Not configurable for arbitrary hosts.",
-      "checked": "2026-09-29"
+      "note": "User secrets are env vars on the machine. BUT a narrow first-party credential-injecting proxy exists for GitHub/git only: 'Every git operation routes through Capy's proxy, which injects credentials server-side; the machine holds only a bearer scoped to itself' (docs.capy.ai/secrets, /admin/security). Model-provider keys are never on the machine because the agent loop runs server-side. Not configurable for arbitrary hosts. Separately, OIDC federation lets machines sign in to Google Cloud, AWS, Azure, Vault or any OIDC service 'with short-lived tokens Capy signs, with no stored keys' (docs.capy.ai/cloud-credentials).",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": false,
@@ -352,11 +359,11 @@
       "checked": "2026-10-14"
     },
     "isolation": {
-      "value": "qemu-kvm",
+      "value": "firecracker",
       "source": "https://docs.capy.ai/machines",
-      "quote": "Every thread runs on a machine: an isolated cloud VM where the agent clones your repositories, runs commands, and edits code. ... Every machine is an isolated Ubuntu 24.04 VM where the agent has full control",
-      "note": "Docs confirm a full VM per thread (backed by Daytona infra per subprocessors page) but never name the underlying hypervisor; 'qemu-kvm (full VM)' used as the generic full-VM label since no microVM/container tech is claimed.",
-      "checked": "2026-09-30"
+      "quote": "Firecracker microVM with its own Linux 6.1 kernel, isolated from every other machine",
+      "note": "Hosted on Latitude.sh bare metal in the United States: 'Latitude.sh replaces Daytona as the host for agent cloud machines' (capy.ai/subprocessors changelog, 2026-10-15).",
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": false,
@@ -368,9 +375,9 @@
     "nested_virt": {
       "value": false,
       "source": "https://docs.capy.ai/machines",
-      "quote": "Tasks can build images, run service dependencies, and test containerized apps directly inside the VM ... Docker's daemon is socket-activated, so it starts on first use rather than at boot.",
-      "note": "Docker/containers run inside the machine, but nested virtualization (/dev/kvm for VMs/emulators inside the VM) is never mentioned.",
-      "checked": "2026-09-30"
+      "quote": "There is no `/dev/kvm`, so the accelerated Android emulator, QEMU with KVM, Firecracker, and VirtualBox don't work or fall back to slow software emulation.",
+      "note": "Docker runs inside the machine. For mobile testing, Pro and above attach real iOS/Android cloud phones via Revyl ($5.40/h iPhone or iPad, $3.60/h Android; docs.capy.ai/cloud-phones), which is a separate device, not nested virtualization.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
@@ -397,15 +404,15 @@
       "value": "datacenter",
       "source": "https://capy.ai/blog/tailscale-integration",
       "quote": "Teams using Capy often ask us if we have static outbound IPs they can allow-list ... Since every Capy thread runs in its own isolated sandbox machine with dynamic addresses, it's hard for us to provide a static list of IP addresses.",
-      "note": "Machines run on AWS infrastructure (per subprocessors page) with dynamic, non-static outbound addresses — ordinary cloud datacenter egress, not residential/mobile.",
-      "checked": "2026-09-30"
+      "note": "Machines run on Latitude.sh bare metal in the United States (capy.ai/subprocessors, since 2026-10-15) with dynamic, non-static outbound addresses: datacenter egress, not residential/mobile.",
+      "checked": "2026-11-08"
     },
     "ssh": {
       "value": false,
       "source": "https://docs.capy.ai/machines",
-      "quote": "You never need SSH to see what's happening.",
-      "note": "All interaction (terminal sessions, file browser, live desktop) happens through the Capy app; no documented SSH access to machines.",
-      "checked": "2026-09-30"
+      "quote": "There is no SSH. Open a shell or the machine's desktop from the + menu in the thread pane.",
+      "note": "An interactive shell, desktop and file browser are in the app. Threads can also run on your own computer through the desktop app (docs.capy.ai/welcome).",
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
@@ -431,9 +438,9 @@
     "wake_on_request": {
       "value": false,
       "source": "https://docs.capy.ai/machines",
-      "quote": "The URL works only while the machine is awake. Traffic to an exposed URL does not keep the machine awake; use the +5 minutes button or keep the thread working while you click around.",
-      "note": "Docs explicitly say inbound traffic to an exposed port does not even keep an awake machine awake, and give no mechanism for an incoming request to wake a sleeping machine; the only wake path documented is the app's +5 minutes extension / starting new agent work.",
-      "checked": "2026-09-30"
+      "quote": "When the machine is asleep, the URL shows a Start the machine link that asks you to sign in and wakes it.",
+      "note": "An anonymous request does not wake a sleeping machine; a signed-in user clicks a link to wake it. While awake, 'Each request to the preview keeps the machine awake 5 more minutes, for up to 4 hours after you or the agent last used the thread.'",
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
@@ -443,11 +450,13 @@
       "checked": "2026-09-30"
     },
     "agent_harnesses": {
-      "value": false,
+      "value": "diy",
       "source": "https://docs.capy.ai/models-and-pricing",
-      "quote": "Capy uses a dual-agent architecture: Captain (the planner) ... and Build (the executor) implements them in isolated cloud VMs. ... Teams can run concurrent AI coding agents across supported Claude/GPT/Gemini/Grok/Kimi/GLM/Qwen models.",
-      "note": "Capy offers only its own proprietary Captain/Build agent (choice of underlying LLM), not preinstalled third-party coding-agent harnesses like Claude Code, Codex CLI, or OpenCode.",
-      "checked": "2026-09-30"
+      "quote": "A Claude Pro or Max plan runs Claude models in Claude Code mode. ... it runs on the Claude Agent SDK, and Capy's tools, machines, subagents, and pull requests work the same inside it.",
+      "how": "connect a Claude Pro or Max plan (paste a `claude setup-token` token) to run threads in Claude Code mode",
+      "effort": "low",
+      "note": "Claude Code (Agent SDK) is the one third-party harness. Codex, Copilot and SuperGrok subscriptions only supply models to Capy's own agent. No documented way to run another harness such as Codex CLI or OpenCode.",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": true,
@@ -516,8 +525,8 @@
       "value": false,
       "source": "https://capy.ai/enterprise",
       "quote": "Unlimited parallel agents, SSO, custom environments, and dedicated support. Everything your team needs to ship at scale.",
-      "note": "not offered: outside the product's scope — Capy is offered only as a hosted SaaS platform (backed by AWS/Daytona per the subprocessors page); no self-hosting option is documented, even on Enterprise.",
-      "checked": "2026-09-30"
+      "note": "Capy is a hosted service (machines on Latitude.sh, other services on AWS, per the subprocessors page); no documented way to self-host the platform, even on Enterprise. Threads can run on your own computer through the desktop app ('Run threads on your own computer, then move them to the cloud and back', docs.capy.ai/welcome), but the hosted service still runs the agent.",
+      "checked": "2026-11-08"
     },
     "byoc": {
       "value": false,
@@ -543,9 +552,9 @@
     "eu_data_residency": {
       "value": false,
       "source": "https://capy.ai/subprocessors",
-      "quote": "Amazon Web Services | Cloud infrastructure, storage, encryption, networking, and related services | Customer Content, files, logs, artifacts, operational metadata | United States and other AWS regions as configured",
-      "note": "Processing locations are described generically as 'United States and other regions as configured' with no customer-selectable EU-region residency option documented anywhere on the security, enterprise, or subprocessors pages.",
-      "checked": "2026-09-30"
+      "quote": "Latitude.sh | Bare-metal hosting and object storage for agent cloud machines | United States",
+      "note": "Agent machines run in the United States (Latitude.sh). AWS lists 'United States and other AWS regions as configured'. No customer-selectable EU region is documented on the security, enterprise or subprocessors pages.",
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": "none",
@@ -586,6 +595,6 @@
   },
   "locations": [],
   "locations_source": "https://capy.ai/subprocessors",
-  "locations_quote": "Amazon Web Services | Cloud infrastructure, storage, encryption, networking, and related services | Customer Content, files, logs, artifacts, operational metadata | United States and other AWS regions as configured",
-  "locations_checked": "2026-10-01"
+  "locations_quote": "Latitude.sh | Bare-metal hosting and object storage for agent cloud machines | United States",
+  "locations_checked": "2026-11-08"
 }

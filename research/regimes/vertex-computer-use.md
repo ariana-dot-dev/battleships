@@ -4,7 +4,9 @@ Agent Runtime idle-between-turns exception must not be generalized to sandbox CP
 | Regime | When it applies | How billed / numbers | Source |
 |---|---|---|---|
 | On-demand | Allocated sandbox resources | $0.085/vCPU-h + $0.009/GiB-h; nearest second. | https://cloud.google.com/products/gemini-enterprise-agent-platform/pricing |
-| Commitment discount | Consumption model eligibility | Displayed alternative Agent Compute $0.0765/$0.068; corresponding memory and commitment selection not verified, excluded from numeric modes. | https://cloud.google.com/products/gemini-enterprise-agent-platform/pricing |
+| Commitment discount | Flexible Savings Plan (opt-in, spend-based) | 1-year: 10% off, $0.0765/vCPU-h + $0.0081/GiB-h. 3-year: 20% off, $0.068/vCPU-h + $0.0072/GiB-h (re-checked 2026-11-08). Commitment minimum not stated. | https://cloud.google.com/products/gemini-enterprise-agent-platform/pricing |
+| Agent Storage | Scale products bill on Compute, Memory and Storage SKUs | $0.000410959/GiB-h on demand; $0.000328767 on the 3-year plan. The sandbox paragraph names only compute and memory, so how much storage a sandbox bills is not stated. Not in numeric modes. | https://cloud.google.com/products/gemini-enterprise-agent-platform/pricing |
+| GKE Agent Sandbox (separate product) | Self-managed on your own GKE cluster | Open source, no extra charge; GKE pricing applies to the resources you create. gVisor runtime, warm pools (starts under a second), Pod snapshots. Not priced on this card. | https://docs.cloud.google.com/kubernetes-engine/docs/how-to/agent-sandbox |
 ## Gotchas
 - Agent Runtime idle-between-turns exception must not be generalized to sandbox CPU utilization. Sandbox compute billed on allocated resources.
 - ENGINE_CARD cannot apply all independent free CPU/RAM/storage/request allowances exactly. Do not subtract them twice.
@@ -12,7 +14,7 @@ Agent Runtime idle-between-turns exception must not be generalized to sandbox CP
 - A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.
 ## Worked workload
 4 vCPU / 8 GiB; 50 simultaneous instances × 8 h/day × 22 days = **8,800 instance-hours**, **35,200 vCPU-hours**, **70,400 GiB-hours**. At 30% observed CPU:10,560 active-vCPU-hours only where the meter actually uses utilization. Assume one start/instance/day:1,100starts. Retain50GiB snapshots for a month;100GiB outbound. Active disk capacity was not specified.
-Assuming a 4-vCPU/8-GiB template is supported and C=50 granted: 8,800×(4×.085+8×.009) = $3,625.60. Fully available monthly free pools remove 50×.085+100×.009=$5.15 → $3,620.45, before storage, egress and model calls. Shape/session/snapshot feasibility must be confirmed; this is not a guaranteed bill.
+Assuming a 4-vCPU/8-GiB template is supported and C=50 granted: 8,800×(4×.085+8×.009) = $3,625.60. Fully available monthly free pools remove 50×.085+100×.009=$5.15 → $3,620.45, before storage (Agent Storage SKU, sandbox billing basis not stated), egress and model calls. Shape/session/snapshot feasibility must be confirmed; this is not a guaranteed bill.
 ## Sources
 - https://cloud.google.com/products/gemini-enterprise-agent-platform/pricing
 - https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox/computer-use

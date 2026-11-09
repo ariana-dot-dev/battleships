@@ -168,7 +168,7 @@
       "sizes_allowed": [
         "Tiny"
       ],
-      "note": "5 projects; 'Limited compute per service 0.25 vCPU / 512 MB memory'; 512 MB database storage; 1 GB file storage; no custom domains; 1-day retention. Whether free compute is unmetered/free of charge is implied ($0/month) but not stated as hours."
+      "note": "3 projects; 'Limited compute per service 0.25 vCPU / 512 MB memory'; 512 MB database storage; 1 GB file storage; no usage credits listed (specific.dev/pricing, 2026-11-08). Local `specific dev` runs free on your own machine. Free compute hours are not stated."
     }
   ],
   "free": {
@@ -189,7 +189,7 @@
     "auto_stop_idle": false,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": false,
+    "docker_inside": null,
     "nested_virt": false,
     "root": null,
     "systemd": null,
@@ -261,14 +261,17 @@
   },
   "caveats": [
     "Services (web/workers/cron) priced separately from managed Postgres, workflows and object storage; those are not interchangeable compute units. Pro $25 and Scale $299 are usage-credit fees.",
-    "Free service is only 0.25 vCPU/512 MB, not general 4/8. Raw usage card excludes database and workflow charges.",
+    "Free plan: $0, 3 projects, 0.25 vCPU / 512 MB per service, not a general 4/8 machine. Raw usage card excludes database and workflow charges.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "Referral: $100 usage credits per referred paid org, max 10 rewards, apply to metered usage only (not plan fees), expire after 12 months (ToS 2026-09-18). Startup credits up to $10,000 on request (funded startups only). Neither should be modelled as general free credit.",
     "Other metered products not in the card: Postgres $0.15/CU-h ($0.30 with real-time sync), $0.4/GB-month storage, $0.10/GB egress; Workflows $0.075/1000 actions, $0.07/GB-h active storage, $0.0016/GB-h retained; Object storage $0.03/GB-month, $0.005/1000 PUT, $0.0005/1000 GET, free egress.",
     "Pricing may change with 30 days notice, effective next monthly Subscription Period; auto-charged monthly.",
     "Spectest test environments are full Linux VMs (docs); no public pricing found, not modelled.",
-    "Services never idle-stop: they are long-running with no cold starts and scale horizontally, so idle hours bill at the full size rate. Only managed Postgres compute scales to zero (docs.specific.dev/llms-full.txt, specific.dev/pricing, 2026-10-14)."
+    "Services never idle-stop: they are long-running with no cold starts and scale horizontally, so idle hours bill at the full size rate. Only managed Postgres compute scales to zero (docs.specific.dev/llms-full.txt, specific.dev/pricing, 2026-10-14).",
+    "Docs do not say whether Docker can run inside a deployed service. docker_inside is unconfirmed (null), not false (docs.specific.dev/llms-full.txt, 2026-11-08).",
+    "Redis (Valkey) runs without persistence: 'a restart starts empty' and 'there are no snapshots'. This applies to Redis only, not to volumes (docs.specific.dev/llms-full.txt, 2026-11-08).",
+    "`specific login --agent` registers a temporary agent account. It is deleted after 48 hours unless a user claims it with `specific claim` (docs.specific.dev/llms-full.txt, 2026-11-08)."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/specific",
@@ -284,7 +287,7 @@
     "raise": "self-serve",
     "raise_time_days": null,
     "verification": null,
-    "tiers": "Free: 5 projects with limited compute per service. Pro: unlimited projects and autoscaling; Scale advertises no compute/storage limits.",
+    "tiers": "Free: 3 projects with limited compute per service (0.25 vCPU / 512 MB). Pro: unlimited projects and services. Scale: 'No limits on compute or storage'.",
     "notes": "Projects are not instances and 0.25 vCPU free service size is not aggregate vCPU quota. No public new-account concurrency/vCPU/GPU pool, verification or approval time established.",
     "sources": [
       "https://specific.dev/pricing"
@@ -295,6 +298,11 @@
     "applied": 17,
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 8
+  },
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "specific.dev/pricing and docs.specific.dev re-checked; service prices, volume and egress rates unchanged",
+    "reviewed": 3
   },
   "feature_evidence": {
     "ingress_rules": {
@@ -314,9 +322,9 @@
     "volume_attach": {
       "value": true,
       "source": "https://docs.specific.dev/guides/volumes",
-      "quote": "**In production**: each volume is backed by a persistent disk, and `path` resolves to `/volumes/{name}` inside the container.",
-      "note": "Declared per service (volume \"name\" {}), multiple per service, persist across deploys/restarts; $0.15/GB-month on card.",
-      "checked": "2026-09-29"
+      "quote": "Volumes provide a directory that persists across deployments and restarts",
+      "note": "Declared per service (volume \"name\" {}), multiple per service, persist across deploys/restarts; $0.15/GB-month on card (pricing re-checked 2026-11-08).",
+      "checked": "2026-11-08"
     },
     "isolation": {
       "value": "container",
@@ -398,17 +406,17 @@
     },
     "snapshot_auto": {
       "value": false,
-      "source": "https://docs.specific.dev/llms-full.txt",
-      "quote": "No. Each deploy can restart the instance, and there are no snapshots.",
-      "note": "derived from absence of any snapshot feature.",
-      "checked": "2026-09-30"
+      "source": "https://docs.specific.dev/guides/volumes",
+      "quote": "Volumes provide a directory that persists across deployments and restarts",
+      "note": "No automatic snapshot of a service is documented. Volumes persist on their own. Previews clone them copy-on-write on request (see snapshot, fork). The docs sentence 'there are no snapshots' is about the Redis cache only.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
-      "source": "https://docs.specific.dev/llms-full.txt",
-      "quote": "No. Each deploy can restart the instance, and there are no snapshots.",
-      "note": "derived from absence of any snapshot feature.",
-      "checked": "2026-09-30"
+      "source": "https://docs.specific.dev/guides/previews",
+      "quote": "Volumes are cloned - an instant, copy-on-write copy of the parent volume.",
+      "note": "No API snapshots a service and restores it later. A preview environment clones each volume and branches Postgres from its parent. That is counted under snapshot='fs' and fork=true, not as an on-demand snapshot.",
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": true,
@@ -419,10 +427,10 @@
     },
     "memory_snapshot_fork": {
       "value": false,
-      "source": "https://docs.specific.dev/llms-full.txt",
-      "quote": "No. Each deploy can restart the instance, and there are no snapshots.",
-      "note": "Preview forking is of data (Postgres branches, storage buckets), not of running process memory; no memory-snapshot-based cloning documented.",
-      "checked": "2026-09-30"
+      "source": "https://docs.specific.dev/guides/previews",
+      "quote": "Volumes are cloned - an instant, copy-on-write copy of the parent volume.",
+      "note": "Preview forking is of data (Postgres branches, storage buckets, volumes), not of running process memory; no memory-snapshot-based cloning documented.",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": false,
@@ -517,11 +525,12 @@
       "checked": "2026-09-30"
     },
     "docker_inside": {
-      "value": false,
+      "value": null,
+      "corrected_from": false,
       "source": "https://docs.specific.dev/guides/builds",
       "quote": "For full control over the build, provide your own Dockerfile instead of `base`",
-      "note": "not offered: outside the product's scope. Specific builds your service into a container image (via a managed base or your Dockerfile) and runs it as a single-process container (isolation: container); no docs describe a nested Docker/container runtime available inside the running service.",
-      "checked": "2026-09-30"
+      "note": "Not confirmed. Specific builds each service into a container image and runs it as a container. The docs neither offer nor deny Docker inside a running service; the only other Docker mention is that local `specific dev` runs without Docker.",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,

@@ -43,7 +43,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "$0.000014/vCPU-s and $0.0000045/GB-s (same as E2B). Same rates on Free and Pro. 1-8 vCPU, 256 MB-8 GB RAM (default 2 vCPU / 512 MB). No pause: VM bills until vm_lifetime_seconds expires or it is deleted; expiry destroys state unless snapshot_on_terminate. Minimum billed time unpublished."
+      "note": "$0.000014/vCPU-s and $0.0000045/GB-s (same as E2B). Same rates on Free and Pro. 1-8 vCPU, 256 MB-8 GB RAM (default 2 vCPU / 512 MB). A VM bills until it is suspended, deleted or its vm_lifetime_seconds expires. Suspend (explicit or auto_suspend) snapshots memory + disk and frees the host; expiry destroys state unless snapshot_on_terminate. Minimum billed time unpublished. Rates re-checked 2026-11-08."
     }
   ],
   "storage": {
@@ -159,7 +159,7 @@
     "desktop": true,
     "computer_use": true,
     "code_interpreter": true,
-    "agent_harnesses": false,
+    "agent_harnesses": "diy",
     "ssh": true,
     "public_ipv4": false,
     "inbound_https": true,
@@ -168,7 +168,7 @@
     "egress_allowlist": true,
     "static_egress_ip": false,
     "private_network": null,
-    "self_host": false,
+    "self_host": "diy",
     "byoc": false,
     "open_source": false,
     "regions": [
@@ -213,7 +213,8 @@
     "harness_api": false,
     "own_agent_api": true,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "whole"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -235,7 +236,11 @@
     "VM lifetime is capped per plan (vm_lifetime_seconds accepts \"max\" = plan cap); cap values unpublished, so max_session_h stays null.",
     "Pro advertises 'Increased usage quotas' and 'Higher rate limits' but no numbers are published (creation rate limits unknown on both plans).",
     "OCI-image VMs: the run-any-oci page advertises '3 GB Max disk', but the OpenAPI SnapshotBuildArgs.disk_size_gb says 'Root filesystem size in GB (1-16) ... minimum 3GB, maximum 16GB'. The two disagree and the engine has no per-VM root-disk cap field, so it is not modelled; more storage goes on volumes ($0.0002/GB-h after 10 GB).",
-    "Re-checked 2026-10-14: every instavm.io/docs page (including /docs and /docs/quickstart, still listed in llms.txt) returns 404; evidence now cites the /solutions pages, the pricing page, blog posts and the OpenAPI spec."
+    "Re-checked 2026-11-08: https://instavm.io/docs/concepts/sandboxes resolves again ('Each sandbox gets its own kernel, filesystem, and network stack.'; defaults 2 vCPU, range 1-8; 512 MB, range 256-8192 MB). On 2026-10-14 the docs pages returned 404, so most evidence cites the /solutions pages, the pricing page, blog posts and the OpenAPI spec.",
+    "Re-checked 2026-11-08: pricing unchanged ($0.000014/vCPU-s, $0.0000045/GB-s, volumes $0.0002/GB-h after 10 GB; Free $0 + $50 credit, 5 VMs; Pro $100/mo, 100 VMs; browser sessions 100 / 5,000 / unlimited).",
+    "VM lifetime: the current create call takes seconds or \"max\" (= plan cap, values unpublished); 30 days is the cap stated on the deprecated session endpoint (see feature_evidence.max_session_h).",
+    "Free plan: egress reaches package managers and AI APIs only, with 5 VMs at once. A job that needs only those runs on Free; open web access needs Pro.",
+    "Self-host: InstaVM's open-source Tarit (AGPL-3.0, released 2026-07-29) runs microVMs on your own KVM hosts with its own API; the hosted instavm.io platform itself is not self-hostable."
   ],
   "sources": [
     "https://instavm.io/pricing",
@@ -247,7 +252,11 @@
     "https://instavm.io/solutions/computer-use",
     "https://api.instavm.io/openapi.json",
     "https://instavm.io/privacy",
-    "https://instavm.io/blog/introducing-volumes-on-instavm-sandboxes"
+    "https://instavm.io/blog/introducing-volumes-on-instavm-sandboxes",
+    "https://instavm.io/docs/concepts/sandboxes",
+    "https://instavm.io/blog/introducing-tarit",
+    "https://github.com/instavm/tarit",
+    "https://instavm.io/blog/claude-code-sdk-on-instavm"
   ],
   "fleet": {
     "default_max_instances": 5,
@@ -261,7 +270,7 @@
     "sources": [
       "https://instavm.io/pricing"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 10,
@@ -274,7 +283,7 @@
       "source": "https://api.instavm.io/openapi.json",
       "quote": "Explicitly auto-suspend (Tier B) a running VM: snapshot to a managed\nsnapshot, free host resources, and park it as ``suspended``. It is restored\non the next request (share/execute/pty/ssh) only if the session opted into\n``auto_resume``",
       "note": "Two opt-in mechanisms. (1) auto_suspend / auto_resume flags on VM create/update (OpenAPI VMCreateRequest; SDK README 0.26.1: 'Suspend parks a running VM by snapshotting its **memory + disk** to a managed snapshot ... resume restores it (memory and filesystem intact). Resume mints a fresh vm_id'; 'Requires the auto-suspend feature to be enabled on your InstaVM deployment'). Memory included; auto_resume wakes it on execute/pty/ssh/share traffic. The idle trigger/timeout for automatic suspend is not documented publicly (workspace/devbox runs use auto_suspend=True). (2) snapshot_on_terminate=true (VMCreateRequest field in the OpenAPI spec; the docs/concepts/snapshots page that described it is now 404) snapshots state automatically when the VM terminates or its vm_lifetime_seconds expires; restore is NOT automatic (create a new VM with snapshot_id). Default is off for both: without them, lifetime expiry destroys all state.",
-      "checked": "2026-10-14"
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -370,11 +379,13 @@
       "checked": "2026-09-30"
     },
     "agent_harnesses": {
-      "value": false,
+      "value": "diy",
       "source": "https://instavm.io/blog/claude-code-sdk-on-instavm",
-      "quote": "InstaVM's philosophy is different: provide a clean, flexible, and full-featured Linux environment and let the developer build. You don't need a custom template... (No Templates Required)",
-      "note": "not offered: InstaVM's own marketing explicitly contrasts itself with providers that ship pre-configured coding-agent templates, and the base sandbox image (Python, Node.js, common CLI tools) does not include Claude Code, Codex, or OpenCode preinstalled. The instavm/skills GitHub repo instead ships an agent *skill* for driving InstaVM from Claude Code/Codex/Cursor/OpenCode running elsewhere.",
-      "checked": "2026-09-30"
+      "quote": "I was able to get the Claude Agent SDK running in seconds by simply installing the libraries directly.",
+      "how": "npm install @anthropic-ai/claude-code and the Claude Agent SDK in the VM, then set ANTHROPIC_API_KEY (InstaVM blog example)",
+      "effort": "low",
+      "note": "No coding agent is preinstalled: the blog says 'provide a clean, flexible, and full-featured Linux environment and let the developer build. You don't need a custom template'. Published 2025-12-31 on InstaVM's blog. Codex and OpenCode have no InstaVM example. InstaVM also has a managed-agents API for its own agent format (see own_agent_api).",
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -387,8 +398,8 @@
       "value": true,
       "source": "https://instavm.io/platform",
       "quote": "Build an agent. Sell it. Describe what your agent should do, refine it with prompts, and publish it as a paid product... instavm — agent builder // prompt \"Crawl a website, audit every page for SEO issues...\"",
-      "note": "InstaVM's 'Agent Builder' platform lets you describe/refine/invoke a first-party InstaVM-hosted agent. Confirmed by undocumented endpoints in https://api.instavm.io/openapi.json: /v1/agents-api/agent-builder/prompt, /agents, /agents/{id}/invoke, /agents/{id}/runs, /environments, /sessions/{id}/events — a first-party API driving InstaVM's own agent product, separate from the code-execution/browser SDK.",
-      "checked": "2026-09-30"
+      "note": "InstaVM's 'Agent Builder' platform lets you describe/refine/invoke a first-party InstaVM-hosted agent. The OpenAPI spec (https://api.instavm.io/openapi.json) has a managed-agents API under /v1/agents-api: agents (create, versions, invoke, runs), sessions with events, transitions and approvals, environments, vaults with credentials, skills, and agent usage. It drives InstaVM's own agent format, not Claude Code or Codex (see agent_harnesses).",
+      "checked": "2026-11-08"
     },
     "mcp_server": {
       "value": false,
@@ -419,11 +430,13 @@
       "checked": "2026-09-30"
     },
     "self_host": {
-      "value": false,
-      "source": "https://instavm.io/pricing",
-      "quote": "Enterprise ... Everything in Pro, plus: Unlimited executions Dedicated infrastructure 24/7 priority support Custom SLA & contracts SOC 2 Type II compliance Dedicated account manager",
-      "note": "not offered: outside the product's scope. Even the Enterprise tier offers 'Dedicated infrastructure' on InstaVM's own cloud, not a self-hosted/on-prem deployment of the InstaVM platform. (A separate, differently-architected open-source project by the same GitHub org, 'tarit', is a standalone KVM microVM platform, but it is not the Firecracker-based instavm.io SaaS this card models.)",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://instavm.io/blog/introducing-tarit",
+      "quote": "Today we're releasing Tarit, an open-source KVM microVM platform for running AI agents and isolated workloads.",
+      "how": "run Tarit, InstaVM's open-source (AGPL-3.0) microVM platform, on your own Linux KVM hosts; it has its own HTTP API, not the instavm.io SDK",
+      "effort": "high",
+      "note": "Released 2026-07-29. GitHub (https://github.com/instavm/tarit): 'A hypervisor and sandbox cloud for self-hosting AI agents and RL'; 'Self-hosting has been tested on AWS and GCP.' The taritd orchestrator runs VMs across one or more nodes with warm pools and memory + disk snapshots. Compatibility with the hosted instavm.io API is not stated. The hosted Enterprise tier offers 'Dedicated infrastructure' on InstaVM's cloud, not on-prem.",
+      "checked": "2026-11-08"
     },
     "byoc": {
       "value": false,
@@ -501,15 +514,29 @@
       "value": false,
       "source": "https://github.com/instavm",
       "quote": "Production control plane for AI agents",
-      "note": "InstaVM's GitHub org (github.com/instavm) hosts SDKs, cookbooks and example/demo repos (coderunner, clickclickclick, manim-studio, cookbooks) but not the core sandbox/VM orchestration platform itself, which is a closed proprietary SaaS ('Production control plane for AI agents', InstaVM org description) accessed only via API/dashboard sign-up (dashboard.instavm.io). No OSI license or self-host/source-available offering for the core product is published. Confirmed false, medium confidence.",
-      "checked": "2026-09-30"
+      "note": "InstaVM's GitHub org (github.com/instavm) hosts SDKs, cookbooks and example/demo repos (coderunner, clickclickclick, manim-studio, cookbooks) but not the core sandbox/VM orchestration platform itself, which is a closed proprietary SaaS ('Production control plane for AI agents', InstaVM org description) accessed only via API/dashboard sign-up (dashboard.instavm.io). No OSI license is published for the hosted instavm.io platform. InstaVM separately published Tarit (https://github.com/instavm/tarit, AGPL-3.0-or-later), an open-source self-hostable microVM platform with its own API; see feature_evidence.self_host. False here means the hosted product modelled by this card, medium confidence.",
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": 720,
       "source": "https://api.instavm.io/openapi.json",
       "quote": "vm_lifetime_seconds: How long the VM will live (in seconds) from spawn time. Min: 20s, Max: 2592000s (30d), Default: 300s (5min)",
-      "note": "Max: 2592000 seconds = 30 days = 720 hours, the API-enforced cap on vm_lifetime_seconds regardless of plan. This supersedes the card's caveat that plan-specific caps are unpublished: the hard ceiling is documented directly in the OpenAPI schema for session/VM creation, and no plan is described as raising it further. Lifetime expiry still destroys VM state unless snapshot_on_terminate/auto-suspend is used.",
-      "checked": "2026-09-30"
+      "note": "The 30-day (720 h) cap is stated on the older /v1/sessions/session endpoint, which the OpenAPI spec marks deprecated. The current VM create call (VMCreateRequest) says: 'VM lifetime in seconds, or \"max\" to use the caller plan cap'; the plan cap values are not published. Default lifetime is 5 minutes. Expiry destroys VM state unless snapshot_on_terminate, auto_suspend or a volume is used. Workspace tabs boot with vm_lifetime=\"max\" and auto_suspend=True.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://api.instavm.io/openapi.json",
+      "quote": "Explicitly auto-suspend (Tier B) a running VM: snapshot to a managed\nsnapshot, free host resources, and park it as ``suspended``. It is restored\non the next request (share/execute/pty/ssh) only if the session opted into\n``auto_resume``",
+      "note": "Suspend keeps memory + disk and resumes the VM (new vm_id); auto_resume wakes it on traffic, otherwise POST /v1/vms/{vm_id}/resume. Opt-in: without suspend, a volume or snapshot_on_terminate, lifetime expiry or delete loses state. Volumes (one mounted folder) also survive; see volume_attach. Retention and storage price of suspend snapshots are not published.",
+      "checked": "2026-11-08"
+    },
+    "desktop": {
+      "value": true,
+      "source": "https://instavm.io/solutions/computer-use",
+      "quote": "Full Linux desktop for agent automation. Each VM runs a Linux desktop accessible via noVNC viewer URL.",
+      "note": "OpenAPI /v1/computeruse/{session_id}/viewer-url returns 'the noVNC viewer URL and WebSocket URL so a frontend can embed the viewer'.",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": false,

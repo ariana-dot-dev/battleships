@@ -135,7 +135,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "$0.1/compute-hour beyond the plan's included hours (intunedhq.com/pricing, 2026-09-28); metered in minutes. Machine CPU/RAM not published. Large +$0.15/h and X-Large +$0.40/h surcharges not modelled.",
+      "note": "$0.10/compute-hour beyond 500 included hours (intunedhq.com/pricing); metered in minutes; idle pool machines, incl. minCount, are not billed. Large +$0.15/h ($0.25/h total) and X-Large +$0.40/h ($0.50/h total) surcharges are in the size rates. Sizes from intuned.json reference: Standard 6 shared vCPU/2 GB, Large 8 shared vCPU/4 GB, X-Large 1 performance vCPU/8 GB. Runs max 6 h.",
       "plans": [
         "Startup"
       ],
@@ -237,7 +237,7 @@
     "systemd": null,
     "browser": true,
     "desktop": false,
-    "computer_use": false,
+    "computer_use": "diy",
     "code_interpreter": null,
     "agent_harnesses": false,
     "ssh": false,
@@ -251,8 +251,8 @@
     "self_host": false,
     "byoc": false,
     "open_source": false,
-    "soc2": null,
-    "hipaa": null,
+    "soc2": true,
+    "hipaa": true,
     "sso": true,
     "gpu_types": [],
     "regions": [
@@ -294,7 +294,7 @@
     "anti_bot": true,
     "captcha_solving": true,
     "egress_ip_type": "residential+datacenter",
-    "ip_note": "Managed proxy via intuned://auto (pool type not stated) or bring your own residential/datacenter/ISP proxy; stealth and CAPTCHA solving are experimental, platform-only, CAPTCHA solver needs headful mode; no per-GB price published.",
+    "ip_note": "Managed proxy via intuned://auto (pool type not stated) or bring your own residential/datacenter/ISP proxy; stealth and CAPTCHA solving are experimental, platform-only, CAPTCHA solver needs headful mode. Listed CAPTCHAs: reCAPTCHA v2/Enterprise, Cloudflare Turnstile and interstitial, AWS WAF, GeeTest, FunCaptcha, Lemin, TikTok, DataDome, PerimeterX, custom image/text (hCaptcha not listed). No per-GB proxy price published.",
     "own_agent_api": true,
     "harness_api": false,
     "secret_proxy": false,
@@ -324,14 +324,21 @@
     "Per-project caps are tighter than the workspace total: max API machines per project/app 1 (Free), 5 (Developer), 15 (Startup); workspace 5/25/100. More needs support/Enterprise.",
     "Billing thresholds: on paid plans Intuned can invoice usage mid-cycle when accrued usage hits an internal threshold; a failed threshold charge can pause the account (Unpaid).",
     "AI usage billed through Intuned = model provider cost + 20% platform fee (BYOK avoids it). Plan fee is prorated at signup; billing anchored to the 1st; unused allowances do not roll over.",
-    "Re-checked 2026-10-14: intunedhq.com/pricing contradicts itself. Developer plan card says \"$10/mo AI credit\" but the comparison table says \"$5\"; Free plan card lists \"Advanced stealth mode\" but the table shows \"--\". AI credits are kept out of compute, so no priced number changes."
+    "Re-checked 2026-10-14: intunedhq.com/pricing contradicts itself. Developer plan card says \"$10/mo AI credit\" but the comparison table says \"$5\"; Free plan card lists \"Advanced stealth mode\" but the table shows \"--\". AI credits are kept out of compute, so no priced number changes.",
+    "Re-checked 2026-11-08: the pricing page lists a $40/mo Startup AI credit while the plans doc says $20. AI credits stay out of compute.",
+    "Re-checked 2026-11-08: each Run is picked up by one pool machine (scaled between minCount and maxCount; Runs queue when all are busy). Intuned does not document whether a machine resets between Runs, and documents no disk that persists between Runs. A key-value store (persistentStore) and AuthSessions carry data across Runs.",
+    "Projects run any Python or TypeScript code and libraries around a managed Playwright browser (Browser Use and Stagehand integrations documented). SSH, Docker and system-package install are not documented."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/intuned",
     "https://intunedhq.com/pricing",
     "https://intunedhq.com/docs/main/05-references/plans-and-billing",
     "https://intunedhq.com/",
-    "https://intunedhq.com/docs/main/00-getting-started/introduction"
+    "https://intunedhq.com/docs/main/00-getting-started/introduction",
+    "https://intunedhq.com/docs/main/05-references/intuned-json.md",
+    "https://intunedhq.com/docs/main/02-features/runs-single-executions.md",
+    "https://intunedhq.com/docs/main/00-getting-started/how-intuned-works.md",
+    "https://intunedhq.com/docs/main/02-features/stealth-mode-captcha-solving-proxies.md"
   ],
   "fleet": {
     "default_max_instances": 5,
@@ -378,15 +385,15 @@
       "value": false,
       "source": "https://intunedhq.com/docs/main/00-getting-started/how-intuned-works.md",
       "quote": "A Project contains your browser automation APIs and shared logic—written in Python or TypeScript using Playwright.",
-      "note": "not offered: outside the product's scope — you deploy code (Python/TypeScript) into managed browser machines, not a custom Docker/OCI image.",
-      "checked": "2026-09-30"
+      "note": "Not documented: you deploy a Python/TypeScript project (any code and libraries) to managed browser machines; no custom Docker/OCI image option is documented.",
+      "checked": "2026-11-08"
     },
     "docker_inside": {
       "value": false,
       "source": "https://intunedhq.com/docs/main/00-getting-started/how-intuned-works.md",
       "quote": "A Project is both your automation code and your runtime environment.",
-      "note": "not offered: outside the product's scope — a code-first browser automation platform; no documented ability to run Docker/containers inside the machine.",
-      "checked": "2026-09-30"
+      "note": "Not documented: the docs describe no way to run Docker or containers inside a machine.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -403,11 +410,27 @@
       "checked": "2026-09-30"
     },
     "computer_use": {
-      "value": false,
-      "source": "https://intunedhq.com/docs/main/07-web-tasks/overview.md",
-      "quote": "lets you describe a web task in plain English and have it executed for you.",
-      "note": "not offered: outside the product's scope — Web Tasks/Intuned Agent drive a browser via generated code/AI, not a screenshot+click computer-use API, and there is no desktop to drive.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://intunedhq.com/",
+      "quote": "Works with any AI browser library or API - Anthropic Computer Use, OpenAI CUA, Stagehand, Browser-use",
+      "how": "call Anthropic Computer Use or OpenAI CUA from your project code against Intuned's managed Chromium; browser only, no full desktop",
+      "effort": "medium",
+      "note": "Intuned ships no computer-use API of its own; the homepage says projects bring the model provider's computer-use API. Browser Use and Stagehand have documented integration guides (docs/main/04-integrations/).",
+      "checked": "2026-11-08"
+    },
+    "soc2": {
+      "value": true,
+      "source": "https://intunedhq.com/",
+      "quote": "SOC 2 - Security Controls compliance badge",
+      "note": "Badge on the homepage links to the trust center (trust.intunedhq.com). Report type not stated on the homepage.",
+      "checked": "2026-11-08"
+    },
+    "hipaa": {
+      "value": true,
+      "source": "https://intunedhq.com/",
+      "quote": "HIPAA compliance badge",
+      "note": "Badge on the homepage links to the trust center (trust.intunedhq.com).",
+      "checked": "2026-11-08"
     },
     "egress_ip_type": {
       "value": "residential+datacenter",
@@ -420,15 +443,15 @@
       "value": false,
       "source": "https://intunedhq.com/docs/main/00-getting-started/how-intuned-works.md",
       "quote": "Intuned handles the infrastructure: browser provisioning, execution queues, retries, and scaling.",
-      "note": "not offered: outside the product's scope — automations are invoked via API/CLI/online IDE; no SSH access into the browser machine is documented.",
-      "checked": "2026-09-30"
+      "note": "Not documented: automations are invoked via API/CLI/online IDE; the docs describe no SSH or shell access into a machine.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
       "source": "https://intunedhq.com/docs/main/00-getting-started/how-intuned-works.md",
       "quote": "Compute is billed only while a machine executes a Run/JobRun (idle pool machines, incl. minCount, are not billed).",
-      "note": "Browser machines are ephemeral per Run/JobRun; no snapshot/checkpoint (disk or memory) feature is documented.",
-      "checked": "2026-09-30"
+      "note": "No snapshot/checkpoint (disk or memory) feature is documented. Runs are picked up by pooled machines; data across Runs goes through persistentStore and AuthSessions.",
+      "checked": "2026-11-08"
     },
     "snapshot_auto": {
       "value": false,
@@ -469,29 +492,29 @@
       "value": false,
       "source": "https://intunedhq.com/docs/main/00-getting-started/how-intuned-works.md",
       "quote": "Compute is billed only while a machine executes a Run/JobRun (idle pool machines, incl. minCount, are not billed).",
-      "note": "not offered: outside the product's scope — machines are provisioned/torn down per Run/JobRun; no explicit pause/resume of a single machine is documented.",
-      "checked": "2026-09-30"
+      "note": "No pause/resume of a single machine is documented. A pool scales between minCount and maxCount; machines above minCount are removed when no longer needed.",
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": true,
       "source": "https://intunedhq.com/docs/main/02-features/runs-single-executions.md",
-      "quote": "Runs — On-demand execution via API. You trigger a Run, we handle queuing and concurrency.",
-      "note": "Calling the Run/Job API automatically provisions a browser machine on demand; there is no separate explicit start/wake call for a specific machine.",
-      "checked": "2026-09-30"
+      "quote": "Each Run is picked up by one machine.",
+      "note": "Each API call becomes a Run that a pool machine picks up; the pool scales up to maxCount and Runs queue when all machines are busy. No separate start/wake call for a specific machine.",
+      "checked": "2026-11-08"
     },
     "auto_stop_idle": {
       "value": true,
-      "source": "https://intunedhq.com/pricing",
-      "quote": "Compute is billed only while a machine executes a Run/JobRun (idle pool machines, incl. minCount, are not billed).",
-      "note": "Machines are torn down/idled automatically outside of active Run/JobRun execution.",
-      "checked": "2026-09-30"
+      "source": "https://intunedhq.com/docs/main/02-features/runs-single-executions.md",
+      "quote": "You're billed for active compute only",
+      "note": "Idle machines, incl. the minCount baseline, are not billed; machines above minCount are removed when no longer needed.",
+      "checked": "2026-11-08"
     },
     "persistent_disk": {
       "value": false,
       "source": "https://intunedhq.com/docs/main/05-references/runtime-sdk-typescript/persistent-store.md",
       "quote": "persistentStore",
-      "note": "not offered: outside the product's scope — browser machines are ephemeral per Run/JobRun; persistence is via an app-level KV store (persistentStore/attemptStore) and AuthSessions, not a filesystem/disk that survives stop/start.",
-      "checked": "2026-09-30"
+      "note": "Intuned documents no persistent disk. It does not say whether machines reset between Runs. A key-value store (persistentStore/attemptStore) and AuthSessions carry data across Runs.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": false,
@@ -531,16 +554,16 @@
     "lang_python": {
       "value": true,
       "source": "https://intunedhq.com/docs/main/00-getting-started/how-intuned-works.md",
-      "quote": "a Project contains your browser automation APIs and shared logic—written in Python or TypeScript using Playwright.",
-      "note": null,
-      "checked": "2026-09-30"
+      "quote": "use any library, pattern, or approach that fits your needs.",
+      "note": "Projects are Python or TypeScript; any code and libraries, run as Playwright-based APIs.",
+      "checked": "2026-11-08"
     },
     "lang_node": {
       "value": true,
       "source": "https://intunedhq.com/docs/main/00-getting-started/how-intuned-works.md",
-      "quote": "a Project contains your browser automation APIs and shared logic—written in Python or TypeScript using Playwright.",
-      "note": null,
-      "checked": "2026-09-30"
+      "quote": "use any library, pattern, or approach that fits your needs.",
+      "note": "Projects are Python or TypeScript; any code and libraries, run as Playwright-based APIs.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -637,7 +660,7 @@
       "value": "dedicated-vm",
       "source": "https://intunedhq.com/docs/llms-full.txt",
       "quote": "When you deploy a project, the code, dependencies, and configurations are built, packaged, and deployed on dedicated virtual machines.",
-      "note": "Docs describe per-project pools of dedicated VMs; each machine handles one Run at a time 'to ensure full isolation'. Underlying hypervisor (e.g. KVM/Firecracker) not disclosed, so mapped to the generic dedicated-vm category rather than a specific hypervisor.",
+      "note": "Quote found in llms-full.txt on 2026-09-30; not re-found on the shorter docs pages on 2026-11-08. The intuned.json reference says: 'Each machine handles one API request at a time' (https://intunedhq.com/docs/main/05-references/intuned-json.md). Hypervisor not disclosed, so mapped to the generic dedicated-vm category.",
       "checked": "2026-09-30"
     },
     "arm64": {
@@ -659,8 +682,8 @@
         "standard-developer": "shared",
         "standard-startup": "shared"
       },
-      "source": "https://intunedhq.com/docs/llms-full.txt",
-      "quote": "\"standard\": Standard machine size (6 shared vCPUs, 2GB RAM) ... \"large\": Large machine size (8 shared vCPUs, 4GB RAM) ... \"x-large\": Extra large machine size (1 performance vCPU, 8GB RAM)",
+      "source": "https://intunedhq.com/docs/main/05-references/intuned-json.md",
+      "quote": "Standard machine size (6 shared vCPUs, 2GB RAM) ... Large machine size (8 shared vCPUs, 4GB RAM) ... Extra large machine size (1 performance vCPU, 8GB RAM)",
       "note": "Both modes ('standard-developer' and 'standard-startup') model the same Standard/Large/X-Large machine sizes at different overage rates. Standard and Large machines are explicitly documented as shared vCPUs; X-Large uses 1 'performance vCPU' (likely dedicated/higher-guarantee, not explicitly labeled dedicated in docs). Value given here is for the Standard machine (the mode's base/named tier); the X-Large tier's class differs (performance, not confirmed shared) and is not separately keyed since the card's modes don't split by size.",
       "checked": "2026-09-30"
     },

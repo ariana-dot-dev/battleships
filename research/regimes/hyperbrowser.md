@@ -11,7 +11,7 @@ Launched: 2024-12-10 (Show HN "Hyperbrowser – Scalable Browser Infrastructure 
 | Free | Sign-up, no card | Credits only; must upgrade when exhausted | 5,000 credits ($5; ~50 browser-h); 1 concurrent; 7-day retention; no proxy/CAPTCHA | https://www.hyperbrowser.ai/pricing, https://hyperbrowser.ai/docs/sessions/parameters.md |
 | Startup | Up to 25 concurrent | $30/month -> 30,000 credits/month (fee = credit), extra credits at $0.001 | 25 concurrent; 30-day retention; auto CAPTCHA; basic stealth; residential proxies | https://www.hyperbrowser.ai/pricing |
 | Scale | Up to 100 concurrent | $100/month -> 100,000 credits/month (fee = credit) | 100 concurrent; premium residential proxies; 30-day retention | same |
-| Enterprise | >100 concurrent, compliance | Custom, volume discounts; 14-day trial; ACH/invoices | 1000+ concurrent; ultra stealth; custom proxy; asia-south; HIPAA/SOC 2; 180+ day retention | same + pricing FAQ |
+| Enterprise | >100 concurrent | Custom, volume discounts; 14-day trial; ACH/invoices | 1000+ concurrent; ultra stealth; custom proxy; asia-south; 180+ day retention (pricing page no longer lists HIPAA/SOC 2) | same + pricing FAQ |
 | Top-up credits | Beyond plan credits | Manual purchase or auto-reload, 1 credit = $0.001; expire after 12 months | $0.001/credit | https://hyperbrowser.ai/docs/pricing.md |
 | Browser session | Session running (create -> stop/timeout) | Per second, per active browser instance | $0.10/h | https://hyperbrowser.ai/docs/pricing.md |
 | Session lifetime | timeoutMinutes 1-720 (default = team setting); stops on CDP disconnect unless keepAlive | Billed until stopped/timeout | max 12 h | https://hyperbrowser.ai/docs/api-reference/create-new-session.md, https://hyperbrowser.ai/docs/sessions/lifecycle.md |
@@ -20,7 +20,10 @@ Launched: 2024-12-10 (Show HN "Hyperbrowser – Scalable Browser Infrastructure 
 | Agent tasks | HyperAgent / Browser Use / CUA models | Per step ($0.02) or per token + browser time | e.g. Claude Sonnet $3.15/$15.75 per M tokens | same |
 | Static IPs | Dedicated IPs | Separate static-IP plans | unpublished | https://hyperbrowser.ai/docs/sessions/static-ips.md |
 | Regions | us, us-central, us-east, us-west, europe-west; asia-south Enterprise/Select | No regional surcharge published | multiplier 1 (assumed) | https://hyperbrowser.ai/docs/sessions/regions.md |
-| Sandboxes | Firecracker VMs (default 2 vCPU/2 GiB/8 GiB) | Not published | null | https://hyperbrowser.ai/docs/sandboxes/create.md |
+| Sandboxes (CPU) | Firecracker VMs, 1-32 vCPU, 0.5-256 GiB RAM, 2-64 GiB disk (default 2 vCPU/2 GiB/8 GiB) | Per allocated vCPU-hour and GiB-hour while running | $0.045/vCPU-h + $0.015/GiB-h | https://hyperbrowser.ai/docs/pricing.md, https://hyperbrowser.ai/docs/api-reference/create-new-sandbox.md |
+| GPU sandboxes | 1-8 GPUs, us region, enabled per team on request; disk deleted on stop, no snapshots or volumes | Per allocated GPU-second plus vCPU and RAM; provisioning not billed | L4 $0.7992 ... H100 $3.9492 ... B300 $7.0992 per GPU-hour | https://hyperbrowser.ai/docs/pricing.md, https://hyperbrowser.ai/docs/sandboxes/gpu.md |
+| macOS sandboxes | Beta, us region, enabled per team on request; stop saves the disk | Not published | null | https://hyperbrowser.ai/docs/sandboxes/macos.md |
+| Sandbox persistence | A stopped CPU sandbox cannot be restarted | Snapshot (memory, processes, filesystem) or team volume | storage price unpublished | https://hyperbrowser.ai/docs/sandboxes/snapshots.md, https://hyperbrowser.ai/docs/sandboxes/volumes.md |
 ## Gotchas
 1. **Proxy dominates.** $10/GB proxy vs $0.10/h browser: 10 GB of proxy traffic costs as much as 1,000 browser-hours.
 2. **Session timeouts bill.** With keepAlive, a forgotten session runs (and bills) until its timeout — up to 12 h.

@@ -6,7 +6,7 @@ Fly Machines are general-purpose Firecracker microVMs, billed **per second while
 - 1-year **reservation blocks** (40% off CPU + extra RAM, region- and class-specific),
 - egress region, dedicated IPv4, volumes and snapshots,
 - legacy plans (Hobby/Launch/Scale) that some old orgs still carry.
-Base rates (docs): shared vCPU $0.00000075/s ($0.0027/h, incl. 256 MB), performance vCPU $0.00001196/s ($0.043056/h, incl. 2 GB), extra RAM $0.00000193/GB-s ($0.006948/GB-h = $5/GB-month), up to 128 GB.
+Base rates (docs): shared vCPU $0.00000075/s ($0.0027/h, incl. 256 MB), performance vCPU $0.00001196/s ($0.043056/h, incl. 2 GB), extra RAM $0.00000193/GB-s ($0.006948/GB-h = $5/GB-month), up to 128 GB. **Since 2026-10-01 extra RAM is $6/GB-month** (CPU unchanged): fly.io/pricing now lists performance-1x/2GB $33.00/mo, performance-4x/8GB $132.01/mo ($0.1833/h), shared-cpu-1x/256MB $2.19/mo; the card uses these rates, the worked example below still uses the older ones (checked 2026-11-08).
 ## Regime table
 | # | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|---|
@@ -27,7 +27,7 @@ Base rates (docs): shared vCPU $0.00000075/s ($0.0027/h, incl. 256 MB), performa
 | 15 | TLS certificates | Custom domains | Monthly | $0.10/mo per hostname (first 10 free per org), $1/mo wildcard | same |
 | 16 | Legacy Hobby plan | Orgs that signed up before 2024-10-07 and kept it | $5/mo fee converted into $5 of usage; plus legacy free allowances | Allowances: 3 shared-cpu-1x 256 MB VMs, 3 GB volumes, egress 100 GB NA/EU + 30 GB APAC/SA + 30 GB Africa/India | https://docs.fly.io/about/discontinued-plans/ |
 | 17 | Legacy Scale / Launch plans | Same (grandfathered) | Fee pro-rated and returned as included usage | Scale $29/mo (example on docs); Launch fee not shown | same |
-| 18 | Free trial | New org without card | 2 VM-hours total or 7 days (first reached); max 10 machines, 2 vCPU/4 GB each, 20 GB volumes, no performance CPUs, no dedicated IPv4; auto-stop 5 min. Adding a card ends it | no $ credit | https://docs.fly.io/about/free-trial/ |
+| 18 | Free trial | New org without card | $1 credit for 7 days or until used; max 10 Machines at a time (shared-cpu-2x / 4 GB), 20 GB volumes, 3 Sprites, no performance CPUs; auto-stop after 5 min (checked 2026-11-08) | $1 credit | https://docs.fly.io/about/free-trial/ |
 | 19 | Prepaid credits (no card) | Buy credits in dashboard | Consumed by usage | min purchase $25 | https://docs.fly.io/about/billing/ |
 | 20 | Support / compliance add-ons | Optional | Flat monthly, not usage credit | Standard $29, Premium $199, Enterprise from $2,500 (99.9% SLA); HIPAA package $99/mo | https://fly.io/pricing |
 | 21 | Custom plan | Contact sales | Committed spend, volume discounts, invoicing, dedicated capacity | unpublished | https://fly.io/pricing |
@@ -40,9 +40,9 @@ Base rates (docs): shared vCPU $0.00000075/s ($0.0027/h, incl. 256 MB), performa
 3. **Stopping is not free.** Stopped and suspended Machines bill rootfs at $0.15/GB-month until destroyed. Volumes bill on provisioned size even when nothing runs.
 4. **Suspend (memory snapshot) is effectively limited to ≤2 GB RAM Machines**, and the snapshot is thrown away on every deploy or host migration (cold boot fallback). A 4 vCPU/8 GB sandbox can only stop, not suspend.
 5. **Reservations are region- and class-locked monthly credits with no rollover.** They pay off only for steady monthly usage in one region; unused credit is lost each month. Annual prepaid, so they are a commitment.
-6. Rootfs is **ephemeral** (reset to image on restart) unless `persist_rootfs` is set; real persistence needs a Volume (one Machine per volume, local to one host).
+6. Rootfs resets to the image on restart by default. Opt-in `persist_rootfs` (`restart` or `always`) keeps it across restarts (and updates with `always`), but Fly staff say it can still be wiped for maintenance or recovery and is not backed up. Durable data goes on a Volume (one per Machine, local to one host, daily snapshots kept 5 days by default, 1-60 configurable). A clone gets an empty Volume unless you pass `--from-snapshot`; `fly volumes fork` copies a Volume. Sources: https://docs.fly.io/reference/configuration, https://community.fly.io/t/your-rootfs-reboot-resistant-try-persist-rootfs/26146, https://docs.fly.io/flyctl/cmd/fly_machine_clone
 7. Utilisation never reduces the bill: billing is per second on allocation while `started`. Fly Proxy autostop/autosuspend helps only for request-driven apps.
-8. No free allowance for new orgs (only the 2 VM-hour trial). Legacy orgs keep 3 free shared VMs + 160 GB egress.
+8. No free allowance for new orgs (only the $1, 7-day trial). Legacy orgs keep 3 free shared VMs + 160 GB egress.
 9. Pricing page per-month figures assume a 720 h month; stopped rootfs is "per 30 days".
 ## Worked example
 Workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days = **8,800 Machine-hours**, 30% CPU util, 50 GiB snapshots retained, 100 GiB egress.

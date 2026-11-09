@@ -3,6 +3,7 @@
   "name": "use.computer",
   "url": "https://use.computer/",
   "category": "macos",
+  "status": "discontinued",
   "isolation": "apple-vm",
   "modes": [
     {
@@ -110,7 +111,9 @@
     "snapshot": "fs",
     "pause_resume": false,
     "fork": true,
-    "persistent_disk": false,
+    "persistent_disk": "diy",
+    "whole_disk": "diy",
+    "persist_scope": "snapshot",
     "volumes": null,
     "auto_stop_idle": true,
     "max_session_h": null,
@@ -187,6 +190,7 @@
   },
   "knobs": [],
   "caveats": [
+    "DISCONTINUED as a standalone service (checked 2026-11-08): https://use.computer/, https://docs.use.computer/ and https://api.use.computer/openapi.yaml all return 301 to https://app.daytona.com/. Daytona documents macOS sandboxes 'running on dedicated Apple silicon hardware' (https://www.daytona.io/docs/en/sandboxes). The rates below are the last use.computer rates and are no longer bookable.",
     "Rate resolved 2026-09-29: the live API config that drives the dashboard price calculator returns hourly_rate_cents 90 ($0.90/h per Mac, matching the homepage); the dashboard computes total = Macs x hours x rate. The docs' $1.91/h (Quick start, Lifecycle, llms-full.txt) is stale text.",
     "Billing boundary is the Mac reservation, not the sandbox: you pay 24 h minimum per Mac even for a 10-minute session. Encoded as min_billed_seconds 86400 per VM slot; reserving continuously for the month (730 h) is cheaper than re-reserving daily only when sessions span >~20 h/day.",
     "VM slot price assumes both VM slots of each Mac are used; 1 VM per Mac costs $0.90/h.",
@@ -410,8 +414,19 @@
       "note": "A non-ephemeral sandbox runs until you delete it or the (extendable) reservation ends; there is no fixed per-session hour cap distinct from the reservation itself.",
       "checked": "2026-09-30"
     },
+    "persist_scope": {
+      "value": "snapshot",
+      "source": "https://docs.use.computer/docs/sdk",
+      "quote": "Preserves disk state",
+      "how": "call POST /v1/sandboxes/{id}/snapshots before the sandbox ends, then create the next sandbox from that snapshot",
+      "effort": "low",
+      "note": "Archived evidence: the use.computer docs now redirect to Daytona (2026-11-08). Disk only, no memory.",
+      "checked": "2026-09-30"
+    },
     "persistent_disk": {
-      "value": false,
+      "value": "diy",
+      "how": "snapshot the sandbox before it ends and create the next sandbox from the snapshot",
+      "effort": "low",
       "source": "https://docs.use.computer/docs/concepts",
       "quote": "When you `delete()` (or your sandbox times out), the gateway throws away the dirty VM and clones a fresh one in the background. The next caller already has a warm VM waiting.",
       "note": "Idle-reaped (~2 min idle) or timed-out sandboxes and all sandboxes at reservation end_at are destroyed; disk does not survive stop/pause automatically. Only an explicit snapshot (disk-only, via POST /v1/sandboxes/{id}/snapshots) preserves files, and restoring it creates a new sandbox rather than resuming the old one in place. Default on timeout/idle/end_at is delete; opt in to snapshot to keep files.",

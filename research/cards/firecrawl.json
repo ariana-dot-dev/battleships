@@ -529,7 +529,8 @@
     "Start-rate limits for browser sandbox sessions (POST /interact per minute): Free 2, Hobby 20, Standard 100, Growth 1,000, Scale 1,500; /interact/{id}/execute 10/100/500/5,000/7,500 per minute. Exceeding the concurrent-browser limit returns 429 for new sessions (no queue).",
     "Pay-as-you-go: credits are added in $5 increments until a monthly limit. A blank limit means no cap, and a limit of 0 means a hard 402 stop. While PAYG is on, an overage headroom of 1,500 / 30,000 / 150,000 / 600,000 credits (Hobby/Standard/Growth/Scale) lets bursts run while top-ups settle. Upgrades charge the full new-plan price immediately (no proration) and reset the cycle. Unused plan credits carry over on upgrade.",
     "Free plan: 1,000 credits/month = 500 code-only browser minutes (8.3 h) or ~143 prompted minutes (2.4 h), hard HTTP 402 at zero, no PAYG. The card's Free plan has sizes_allowed [] and included_usd 0, so the engine can never pick Free even for tiny workloads that fit.",
-    "Browser session concurrency is inconsistent across Firecrawl pages: docs.firecrawl.dev/features/browser says \"For the initial launch, we allow all plans up to have up to 20 concurrent browser sessions.\" while rate-limits and pricing.md list 2/5/25/50/100. The card keeps the plan table; on Growth and Scale the real cap on simultaneous sessions may be 20 (checked 2026-10-14).",
+    "Browser session concurrency is inconsistent across Firecrawl pages: docs.firecrawl.dev/features/browser says \"For the initial launch, we allow all plans up to have up to 20 concurrent browser sessions.\" while rate-limits and pricing.md list 2/5/25/50/100. The card keeps the plan table; on Growth and Scale the real cap on simultaneous sessions may be 20 (re-checked 2026-11-08: the browser docs still say 20).",
+    "Firecrawl's core scraping engine is open source (AGPL-3.0) and can be self-hosted. Browser, Interact, Agent and enterprise controls are Cloud only, so open_source and self_host stay false for this Interact/Browser card (docs.firecrawl.dev/contributing/open-source-or-cloud).",
     "Zero Data Retention is Enterprise-only and ZDR sessions bill +2 credits/browser-minute (4 code-only, 9 with a prompt; docs.firecrawl.dev/billing). Enterprise has no public price, so no ZDR mode is priced on this card."
   ],
   "sources": [
@@ -539,7 +540,9 @@
     "https://docs.firecrawl.dev/billing",
     "https://docs.firecrawl.dev/features/browser",
     "https://docs.firecrawl.dev/features/interact",
-    "https://docs.firecrawl.dev/rate-limits"
+    "https://docs.firecrawl.dev/rate-limits",
+    "https://docs.firecrawl.dev/mcp-server",
+    "https://docs.firecrawl.dev/contributing/open-source-or-cloud"
   ],
   "fleet": {
     "default_max_instances": 2,
@@ -608,15 +611,15 @@
       "value": false,
       "source": "https://docs.firecrawl.dev/features/browser",
       "quote": "A secure browser sandbox where agents can interact with the web. Fill out forms, click buttons, authenticate, and more. No local setup, no Chromium installs, no driver compatibility issues. Agent browser and playwright are pre-installed.",
-      "note": "not offered: outside the product's scope — Firecrawl provisions a fixed pre-built browser sandbox (Chromium + Playwright + agent-browser); there is no way to start a session from a customer-supplied Docker/OCI image.",
-      "checked": "2026-09-30"
+      "note": "Not documented: sessions start from Firecrawl's preset browser image (Chromium, Playwright, agent-browser); the docs show no option to start a session from a customer Docker/OCI image.",
+      "checked": "2026-11-08"
     },
     "docker_inside": {
       "value": false,
       "source": "https://docs.firecrawl.dev/features/browser",
       "quote": "Execute arbitrary bash in the sandbox: firecrawl browser execute --bash 'ls /tmp'",
-      "note": "not offered: outside the product's scope — the sandbox exposes a scoped bash/Playwright/Node execution surface for browser automation, not a general-purpose container host; no Docker/containerd runtime is documented inside it.",
-      "checked": "2026-09-30"
+      "note": "Not documented: sessions run a preset Chromium image with Playwright and agent-browser preinstalled; bash, Python and Node run in the session, and the docs do not mention Docker or a container runtime inside it.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -711,10 +714,10 @@
     },
     "mcp_server": {
       "value": true,
-      "source": "https://docs.firecrawl.dev/ai-onboarding",
-      "quote": "Firecrawl MCP Server ... The open-source Firecrawl MCP server supports search, scraping, browsing, crawling, mapping, structured extraction through Scrape JSON, and autonomous Agent jobs.",
-      "note": "Hosted at https://mcp.firecrawl.dev/v2/mcp (or mcp-oauth); open-source repo firecrawl/firecrawl-mcp-server.",
-      "checked": "2026-09-30"
+      "source": "https://docs.firecrawl.dev/mcp-server",
+      "quote": "Set up Firecrawl MCP with keyless access, account sign-in, or an API key.",
+      "note": "Dedicated MCP docs page (the Interact page does not mention MCP). Also described at https://docs.firecrawl.dev/ai-onboarding: 'The open-source Firecrawl MCP server supports search, scraping, browsing, crawling, mapping, structured extraction through Scrape JSON, and autonomous Agent jobs.' Hosted at https://mcp.firecrawl.dev/v2/mcp (or mcp-oauth); open-source repo firecrawl/firecrawl-mcp-server.",
+      "checked": "2026-11-08"
     },
     "public_ipv4": {
       "value": false,
@@ -804,8 +807,8 @@
       "value": false,
       "source": "https://docs.firecrawl.dev/features/browser",
       "quote": "The sandbox filesystem is ephemeral — downloaded files are lost when the session ends. To persist files, read their content within the session and save it to your own storage. Persistent profiles preserve browser state (cookies, localStorage) but not files on disk.",
-      "note": "Own official docs confirm no persistent disk: the only thing that survives a session close is an opt-in named browser profile (cookies/localStorage), not the filesystem. Default on session end is ephemeral/deleted; there is no opt-in persistent volume for files.",
-      "checked": "2026-09-30"
+      "note": "Files on disk end with the session. An opt-in named browser profile (cookies, localStorage) survives a session close. For files, the docs say to read them in the session and save them to your own storage.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
@@ -861,8 +864,8 @@
       "value": "profile",
       "source": "https://docs.firecrawl.dev/features/browser",
       "quote": "The sandbox filesystem is ephemeral — downloaded files are lost when the session ends. To persist files, read their content within the session and save it to your own storage. Persistent profiles preserve browser state (cookies, localStorage) but not files on disk.",
-      "note": "Only a saved browser profile (cookies, local storage, logins) carries over; no files survive.",
-      "checked": "2026-10-01"
+      "note": "A saved browser profile (cookies, local storage, logins) carries over to the next session. Files on disk end with the session; the docs say to copy them to your own storage during the session.",
+      "checked": "2026-11-08"
     },
     "zero_data_retention": {
       "value": true,

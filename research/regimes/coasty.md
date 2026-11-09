@@ -7,10 +7,10 @@ As of 2026-09-28. USD unless explicitly stated; public list prices unless a row 
 | Stopped/suspended | Machine parked | Runtime keep-alive | $0.01/hour; creating/error/terminated free | https://coasty.ai/api/pricing |
 | Snapshot | Managed VM | Per creation | $0.01, not $/GiB | https://coasty.ai/api/pricing |
 | BYOK | Inference with own key | Platform inference exempt | Provider tokens + managed runtime still charged | https://coasty.ai/docs?section=pricing |
-| Consumer subscriptions | Dashboard/schedules | Different credit balance | $19/200 cr; $50/600 cr; $99 Unlimited; boosts separate | https://coasty.ai/api/pricing |
+| Consumer subscriptions | Dashboard/schedules | Different credit balance | $19/200 cr, 1 machine; $50/600 cr, 2 machines; $99 Unlimited, 2 machines; agent jobs 10 cr/min, 6 h max; boosts separate (checked 2026-11-08) | https://coasty.ai/api/pricing |
 | Synthetic test keys | Mock API/VMs | Not real compute | $0; maximum 5 mock machines | https://coasty.ai/docs/llms.txt |
-| API pay as you go | Account plan | Monthly fee / commitment | $0; concurrency unpublished/custom; Prepaid USD wallet; $.20 provisioning balance gate, not fee. First $5 advertised. | https://coasty.ai/pricing |
-| Developer API | Account plan | Monthly fee / commitment | $19; concurrency unpublished/custom; $25 monthly API credits; same $.05 managed step; consumer credits are separate. | https://coasty.ai/pricing |
+| API pay as you go | Account plan | Monthly fee / commitment | $0; docs name a per-plan concurrent-machine cap but publish no number; Prepaid USD wallet; $.20 provisioning balance gate, not fee. First $5 advertised. | https://coasty.ai/pricing |
+| Developer API | Account plan | Monthly fee / commitment | $19; docs name a per-plan concurrent-machine cap but publish no number; $25 monthly API credits; same $.05 managed step; consumer credits are separate. | https://coasty.ai/pricing |
 ## Gotchas
 - Public pricing headline says managed machines included, but detailed API docs and machine rate card explicitly charge runtime. Use detailed meter and flag conflict; do not assume step price includes rented VM hours.
 - GET /v 1/machines/pricing requires authentication (401 observed); published-default card is available anonymously at /api/pricing. No actual account-specific tariff was verified.

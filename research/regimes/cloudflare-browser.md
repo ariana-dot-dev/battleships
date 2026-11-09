@@ -18,6 +18,7 @@ As of 2026-09-28. USD unless explicitly stated; public list prices unless a row 
 - Storage, snapshot GiB-month and public IPv4 prices are not published in the reviewed sources; null is not free.
 - No guaranteed vCPU allocation published; browser-hour is not a verified 4-vCPU/8-GiB VM equivalent. The sizes card keeps unknown hardware null; do not coerce it to zero or auto-rank against resource-guaranteed VMs.
 - Browser RAM is not published unless a specific mode overrides it.
+- Idle timeout is 60 s by default; keep_alive extends it to up to 20 min (limits page, checked 2026-11-08). Idle time until that timeout is billed.
 ## Browser and desktop dimensions
 ## Worked example
 Requested: 4 vCPU / 8 GiB; 50 concurrent × 8 hours/day × 22 days = **8,800 runtime hours**, 1,100 eight-hour starts if recreated daily; 30% CPU; 50 GiB-month snapshots; 100 GiB egress.

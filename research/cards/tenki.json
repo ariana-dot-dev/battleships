@@ -325,9 +325,9 @@
     "nested_virt": null,
     "root": true,
     "systemd": true,
-    "browser": false,
-    "desktop": false,
-    "computer_use": false,
+    "browser": "diy",
+    "desktop": "diy",
+    "computer_use": "diy",
     "code_interpreter": false,
     "agent_harnesses": true,
     "ssh": true,
@@ -337,7 +337,7 @@
     "raw_tcp_inbound": false,
     "egress_allowlist": true,
     "static_egress_ip": true,
-    "private_network": null,
+    "private_network": true,
     "self_host": false,
     "byoc": false,
     "open_source": false,
@@ -390,10 +390,10 @@
   "perf": {
     "cpu_runs_s": null,
     "cold_start_ms": 690.89,
-    "burst_tti_ms": 925,
-    "dax_s": 116.2
+    "burst_tti_ms": 876.63,
+    "dax_s": 67.92
   },
-  "perf_source": "benchmarks.json computesdk: cold_start_tti median 690.89 ms (2026-08-07), burst_tti median 925 ms at 100 concurrency (2026-09-25), DAX total 116.2 s (2026-09-25; env 8 logical CPUs / 15.8 GiB / x86_64). Measured the sandbox product, not runners. No hpc CPU run.",
+  "perf_source": "ComputeSDK (each provider at its SDK default size and runtime): burst 877 ms median at 100 at once, 100% succeeded (2026-11-06); DAX clone + install + typecheck 67.92 s (2026-11-06, one run; sandbox saw 8 CPUs / 16 GiB x86); one-at-a-time start 691 ms (sequential TTI, latest published run 2026-08-07 or older). https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [],
   "caveats": [
     "One credit pool per workspace is shared by sandboxes, CI runner minutes and code reviews ($1.00/review); plan concurrency (5 / 100) is also shared between runner jobs and sandbox sessions.",
@@ -405,7 +405,8 @@
     "Other one-time credits: $10 for sharing a Tenki Runners post (one per user); startup program up to $50K credits and grants.",
     "Runner modes are CI minutes (product class ci-runner, not flagged alt): they rank in CI questions and show as a different kind of product elsewhere. Runner RAM and disk are bundled in the per-core price, so $/h is higher than the sandbox rate for the same 4c/8g ($0.48 vs $0.3312).",
     "Egress/ingress pricing not published (null): re-checked 2026-09-28 on https://tenki.cloud/pricing and https://tenki.cloud/docs/pricing.md, neither lists any network/egress charge (not stated as free either). No public IPv4; HTTPS preview URLs (20 per workspace plan) and SSH.",
-    "Region: docs mention a default 'US region' for the SSH gateway; other regions not documented. Owned hardware (Luxor Technology); hypervisor not named.",
+    "Region: the changelog names a default 'US region' for legacy SSH gateway discovery; no other region is documented. Parent company Luxor Technology; compute runs in SOC 2-attested data-center facilities (https://tenki.cloud/company/security.md). Hypervisor not named.",
+    "Private TCP since 2026-10-30: a sandbox can join the customer's Tailscale tailnet (auth key at create, or a workspace default connection), and ports exposed at create take TCP from tailnet devices (https://tenki.cloud/docs/sandbox/tailscale.md). There is still no public IP, so raw_tcp_inbound stays false for public clients.",
     "Starter per-session limit 4 cores / 8 GB; Team 16 / 64 GB; runners on Team only up to 16c/32g.",
     "Outbound allowlists are on by default in every workspace since 2026-09-25 (changelog: 'Enabled outbound allowlists for sessions by default in all existing and new workspaces.'); docs/sandbox/sessions.md still carries the older 'Tenki must enable session egress policies for your workspace first' line. Named egress policies with HTTP method/path rules and HTTPS inspection added 2026-10-09.",
     "Named preview-URL slugs (a stable wildcard under *.sb.tenki.sh) are Team-plan only, one per workspace."
@@ -425,7 +426,10 @@
     "https://tenki.cloud/docs/sandbox/secrets.md",
     "https://tenki.cloud/docs/secrets/request-policies.md",
     "https://tenki.cloud/docs/account/free-credits.md",
-    "https://tenki.cloud/docs/sandbox/base-image.md"
+    "https://tenki.cloud/docs/sandbox/base-image.md",
+    "https://tenki.cloud/docs/sandbox/tailscale.md",
+    "https://tenki.cloud/docs/sandbox/recipes.md",
+    "https://tenki.cloud/company/security.md"
   ],
   "fleet": {
     "default_max_instances": 5,
@@ -452,8 +456,8 @@
       "value": true,
       "source": "https://tenki.cloud/docs/changelog.md",
       "quote": "Paused sandboxes at their maximum duration so their state is preserved.",
-      "note": "Changelog 2026-09-11. The only trigger is reaching max duration (non-sticky sessions). There is NO idle trigger: '--idle-timeout ... never had any effect' was removed 2026-09-18. Pause keeps memory and disk (concepts: 'Pause it to free compute while preserving files and memory'). A process started over exec keeps its PID across a pause. /tmp is cleared, and open TCP/SSH/preview connections close. Resume is an explicit call; there is no wake-on-request. pauseRetentionMs controls how long paused state is kept. Sticky sessions never auto-pause.",
-      "checked": "2026-09-29"
+      "note": "Changelog 2026-09-11. The only trigger is reaching max duration (non-sticky sessions). There is NO idle trigger: '--idle-timeout ... never had any effect' was removed 2026-09-18. Pause keeps memory and disk (concepts: 'Pause it to free compute while preserving files and memory'). A process started over exec keeps its PID across a pause. sessions.md: '/tmp is kept across a pause but cleared when you create a snapshot.' Open terminal, SSH, preview and other TCP connections close on pause. Resume is an explicit call; there is no wake-on-request. pauseRetentionMs controls how long paused state is kept. Sticky sessions never auto-pause.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": true,
@@ -488,8 +492,8 @@
       "value": true,
       "source": null,
       "quote": null,
-      "note": "Full VM ('Hardware-isolated VMs — Its own kernel, not a shared-kernel container'), with passwordless sudo, Docker and systemd. The hypervisor is not named. nftables/iptables are not mentioned in the docs.",
-      "checked": "2026-09-29",
+      "note": "Full VM ('Hardware-isolated VMs — Its own kernel, not a shared-kernel container'). Passwordless sudo: https://tenki.cloud/docs/sandbox/base-image.md. Docker: Harbor recipe, https://tenki.cloud/docs/sandbox/recipes.md. systemd: 'run Chrome as a systemd service', https://tenki.cloud/docs/sandbox/chrome.md. The hypervisor is not named. nftables/iptables are not mentioned in the docs.",
+      "checked": "2026-11-08",
       "derived": true
     },
     "secret_proxy": {
@@ -518,14 +522,14 @@
       "value": false,
       "source": "https://tenki.cloud/docs/sandbox/anchor.md",
       "quote": "Anchor Chromium: a hardened Chromium fork with humanized fingerprints and human-like mouse and keystroke behavior. Stealth mode, proxies, captcha solving, and Cloudflare Web Bot Auth are available as add-ons.",
-      "note": "Stealth/anti-fingerprinting is a third-party integration (Anchor Browser, a separate company/product) that Tenki's docs show how to connect to over CDP; it is not a Tenki-operated feature. Tenki itself ships a plain sandbox/CI VM with no built-in browser stealth. not offered: outside the product's scope.",
+      "note": "Stealth/anti-fingerprinting is a third-party integration (Anchor Browser, a separate company/product) that Tenki's docs show how to connect to over CDP; it is not a Tenki-operated feature. The stealth browser runs at Anchor (separate account), not inside the Tenki sandbox, so the value stays false for Tenki itself.",
       "checked": "2026-09-30"
     },
     "captcha_solving": {
       "value": false,
       "source": "https://tenki.cloud/docs/sandbox/anchor.md",
       "quote": "Stealth mode, proxies, captcha solving, and Cloudflare Web Bot Auth are available as add-ons.",
-      "note": "Captcha solving is offered only through the third-party Anchor Browser integration, not by Tenki itself. not offered: outside the product's scope.",
+      "note": "Captcha solving is available through the third-party Anchor Browser integration that Tenki documents (separate Anchor account); Tenki does not run it itself.",
       "checked": "2026-09-30"
     },
     "egress_ip_type": {
@@ -560,7 +564,7 @@
       "value": false,
       "source": "https://tenki.cloud/docs/sandbox/anchor.md",
       "quote": "Your sandbox gives agents a place to run. Anchor gives them a browser they can actually use once they get there.",
-      "note": "Tenki has no first-party browser/computer-use/research agent of its own to drive via API; browser-agent capability is provided entirely by the third-party Anchor Browser integration. not offered: outside the product's scope.",
+      "note": "Tenki has no first-party browser/computer-use/research agent of its own to drive via API; browser-agent capability comes from the third-party Anchor Browser integration that Tenki documents.",
       "checked": "2026-09-30"
     },
     "egress_http_rules": {
@@ -594,25 +598,38 @@
       "checked": "2026-09-30"
     },
     "desktop": {
-      "value": false,
+      "value": "diy",
       "source": "https://tenki.cloud/docs/sandbox/chrome.md",
-      "quote": "A visible browser needs a display and a way to see it from outside. A whole desktop environment is overkill for that, and so is a window manager: Chrome sizes and places its own window from its flags.",
-      "note": "No managed desktop/VNC/RDP product. The docs show a DIY tutorial where the customer installs Xvfb+x11vnc+noVNC themselves inside a plain Ubuntu VM to get a single browser window visible; there is no first-party desktop environment.",
-      "checked": "2026-09-30"
+      "quote": "Run Chrome-family browsers headless or headed in a Tenki Sandbox, connect over CDP, watch through noVNC",
+      "how": "install Xvfb, x11vnc and noVNC as systemd units in the session and snapshot it (official guide)",
+      "effort": "medium",
+      "note": "The guide shows a virtual display for one browser window, not a full desktop environment ('Xvfb runs an X server in memory, with no GPU or monitor.'). No managed desktop or RDP product.",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
+      "value": "diy",
       "source": "https://tenki.cloud/docs/sandbox/chrome.md",
-      "quote": "A sandbox session is a full Linux VM, so a browser runs in it the same way it runs on any Ubuntu box. This guide installs Google Chrome once, captures it in a snapshot...",
-      "note": "Chrome/Chromium is not preinstalled or managed; the customer must apt-install it and bake it into their own snapshot/template. No first-party managed browser is shipped.",
-      "checked": "2026-09-30"
+      "quote": "Installing the browser is the only slow step, so do it once.",
+      "how": "install Google Chrome with the guide's apt script, then start sessions from a snapshot (official guide)",
+      "effort": "low",
+      "note": "Chrome is not in the base image. Tenki also documents a third-party Anchor Browser integration over CDP (https://tenki.cloud/docs/sandbox/anchor.md).",
+      "checked": "2026-11-08"
     },
     "computer_use": {
-      "value": false,
+      "value": "diy",
       "source": "https://tenki.cloud/docs/sandbox/chrome.md",
       "quote": "Run Chrome-family browsers headless or headed in a Tenki Sandbox, connect over CDP, watch through noVNC, and give a computer-use agent control.",
-      "note": "This is a customer-built DIY guide (systemd units for Xvfb/x11vnc/noVNC + raw CDP), not a provider-hosted computer-use API/screenshot-and-click endpoint. No first-party computer-use product.",
-      "checked": "2026-09-30"
+      "how": "follow the Chrome guide (Xvfb, noVNC, CDP) and point your computer-use agent at it (official guide)",
+      "effort": "medium",
+      "note": "No provider-hosted screenshot-and-click API; the agent drives the browser over CDP or the virtual display.",
+      "checked": "2026-11-08"
+    },
+    "private_network": {
+      "value": true,
+      "source": "https://tenki.cloud/docs/sandbox/tailscale.md",
+      "quote": "Pass a Tailscale auth key when you create a sandbox, and the sandbox joins your tailnet as its own device.",
+      "note": "Added 2026-10-30 (changelog). 'Connections from your tailnet into the sandbox reach only the ports you expose at create.' Needs the customer's own Tailscale account; a saved connection can be the workspace default. Needs CLI 2.3.0+ or SDK 1.4.0+.",
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": false,

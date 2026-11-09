@@ -1,54 +1,28 @@
-# Deno Sandbox — pricing regimes (as of 2026-09-28)
-Deno Sandbox is a Firecracker microVM product billed **through the Deno Deploy account meters**. There is no
-separate sandbox SKU: sandbox CPU time, memory time and egress draw down the same monthly allowances as Deploy
-apps, then overage at one rate. Plans only change availability, concurrency (per region) and included volume storage.
-Current list rates: CPU time **$0.10/CPU-h** (active CPU, not wall clock), memory **$0.025/GiB-h** (configured
-allocation while the sandbox lives), volumes **$0.20/GiB-month**, egress **$0.20/GiB** over the plan allowance.
-Fixed shape: **2 vCPU**, 768 MB–4 GB RAM (default 1.2 GiB), 10 GB ephemeral disk. A 4 vCPU / 8 GiB sandbox cannot be bought.
-Max shape flat-out: 2×0.10 + 4×0.025 = **$0.30/h**; idle (0 CPU) at 4 GiB = **$0.10/h**.
+# Deno Sandbox — pricing regimes (as of 2026-11-08)
+**Closed to new customers.** "Update November 2026: Deno Sandbox is no longer included in Deno Deploy plans and is not
+available to new customers." (https://deno.com/blog/introducing-deno-sandbox). The card flags every mode and plan
+`legacy`, so the engine never prices it.
+
+Deno Sandbox is a Firecracker microVM product. Shape (https://docs.deno.com/sandbox/): **2 vCPU**, 768 MB to 4096 MB
+memory (1.2 GB default), 10 GB ephemeral disk, lifetime up to 30 minutes. No CPU option is documented.
 ## Regime table
 | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|
-| Free plan | Default Deploy account | Sandboxes **not included** at all; Deploy apps are hard-cut at limits | $0; 0 sandboxes | https://deno.com/deploy/pricing |
-| Pro | Cheapest plan with sandboxes | $20/mo **pure fee** that bundles meter allowances shared with Deploy apps; overage at list | $20/mo; 50 CPU-h, 750 GiB-h memory, 200 GiB egress, 5 GiB volumes included; 3 concurrent sandboxes **per region**; 10 team members | https://deno.com/deploy/pricing |
-| Builder | More concurrency / allowances | $200/mo pure fee + 10× allowances; overage at the same list rates | $200/mo; 500 CPU-h, 7,500 GiB-h, 2,000 GiB egress, 50 GiB volumes; 20 concurrent per region | https://deno.com/deploy/pricing |
-| Enterprise | >20 concurrent/region, SLA, SOC2 report/DPA, HIPAA BAA | Custom (contact sales) | null | https://deno.com/deploy/pricing, https://deno.com/sandbox (FAQ) |
-| Running sandbox – CPU | Any time code executes | Active CPU time only; I/O wait / idle not billed | $0.10/CPU-h (2 vCPU max → ≤$0.20/h) | https://deno.com/sandbox, https://deno.com/deploy/pricing |
-| Running sandbox – memory | Whole lifetime of the sandbox, idle or not | Configured memory × wall-clock seconds ("billed at that higher amount" when configured above default) | $0.025/GiB-h; 1.2 GiB default = $0.03/h | https://deno.com/deploy/pricing |
-| Lifetime: `session` (default) | Sandbox tied to client connection | Dies when the script/connection ends; billing stops | max 30 min per docs | https://docs.deno.com/sandbox/timeouts, https://docs.deno.com/sandbox/ |
-| Lifetime: duration timeout | e.g. `timeout: "5m"`, reconnect later | Keeps billing memory until the timer ends even if nobody is connected; `extendTimeout()` can extend | Docs limit "up to 30 minutes"; longer = promote to a Deploy app | https://docs.deno.com/sandbox/timeouts |
-| Promote to Deploy app | Need >30 min / long-running service | Becomes a Deploy app: same CPU/memory meters, but idle apps scale to zero after ~20–30 s | same rates | https://docs.deno.com/sandbox/promote, https://deno.com/deploy/pricing |
-| Volumes | Persistent block storage mounted into sandboxes | Per GiB-month beyond plan allowance; ord (Chicago) only; 300 MB–20 GB per volume | $0.20/GiB-mo; 5 GiB Pro / 50 GiB Builder free | https://deno.com/deploy/pricing, https://docs.deno.com/sandbox/volumes/ |
-| Snapshots (read-only images of volumes) | Custom boot images | Billing not stated anywhere; presumably volume storage meter (unverified) | null | https://docs.deno.com/sandbox/volumes/ |
-| Ephemeral disk | Every sandbox | Included | 10 GB, not billed | https://docs.deno.com/sandbox/ |
-| Egress | Outbound traffic (sandboxes + apps) | Shared Deploy egress meter | 200 GiB Pro / 2,000 GiB Builder, then $0.20/GiB | https://deno.com/deploy/pricing |
-| Regions | `ams` (Amsterdam), `ord` (Chicago) | No regional multiplier; concurrency limits are per region | ×1 | https://docs.deno.com/sandbox/ |
-| Spend limits | Paid plans | User-set cap; Free plans are cut off | — | https://deno.com/sandbox (FAQ) |
-### Dated price change
-At launch (**2026-02-03**, https://deno.com/blog/introducing-deno-sandbox) sandboxes cost **$0.05/CPU-h** (40 h
-included with Pro) and **$0.016/GB-h** memory (1,000 GB-h included with Pro), volumes $0.20/GiB-mo (5 GiB Pro).
-The current pricing page shows **$0.10/CPU-h** and **$0.025/GiB-h**, with Pro allowances folded into the shared
-Deploy meters (50 CPU-h, 750 GiB-h). That is a **2× CPU and 1.56× memory increase** with a smaller memory allowance;
-exact effective date not found. Separately the Free Deploy plan was cut (egress 100→20 GiB Mar–Apr 2026; CPU 15→10 h,
+| New customers | Any new organization | Not available | n/a | https://deno.com/blog/introducing-deno-sandbox |
+| Existing organizations – concurrency | Pre-release default | Per organization | 5 concurrent sandboxes; email deploy@deno.com for more | https://docs.deno.com/sandbox/ |
+| Launch rates (Feb 2026) | Only sandbox rates Deno ever published | CPU time used; memory allocated | $0.05/h CPU time (40 h with Pro); $0.016/GB-h memory (1,000 GB-h with Pro); $0.20/GiB-month volumes (5 GiB with Pro) | https://deno.com/blog/introducing-deno-sandbox |
+| Deno Deploy meters | Deploy apps only | Active CPU; memory time; egress | $0.10/CPU-h; $0.025/GiB-h; egress $0.20/GiB over allowance. The page does not name sandboxes, so the card does not use these rates. | https://deno.com/deploy/pricing |
+| Lifetime | Every sandbox | `session` (default) or a duration timeout; `extendTimeout()` | up to 30 minutes; longer = promote to a Deploy app | https://docs.deno.com/sandbox/, https://docs.deno.com/sandbox/timeouts/ |
+| Volumes | Persistent block storage | Mounted at a path, or a bootable volume (from `builtin:debian-13`) used as the writable root | 300 MB to 20 GB; Chicago (`ord`) only; one sandbox at a time | https://docs.deno.com/sandbox/volumes/ |
+| Snapshots | Read-only images of volumes | Boot many sandboxes; create new writable volumes from them | billing not published | https://docs.deno.com/sandbox/volumes/ |
+| Ephemeral disk | Every sandbox | Included; wiped when the sandbox ends | 10 GB | https://docs.deno.com/sandbox/ |
+| Regions | `ams` (Amsterdam), `ord` (Chicago) | Chosen at creation | volumes only in `ord` | https://docs.deno.com/sandbox/ |
 ## Gotchas
-1. **Hard 2 vCPU / 4 GB ceiling.** Anything larger is not purchasable; a 4 vCPU / 8 GiB workload is infeasible.
-2. **30-minute lifetime.** Long agent sessions need repeated re-creation (state only survives on volumes) or promotion to a Deploy app.
-3. **Memory is the real cost driver.** CPU is billed only when busy, but memory bills for every second of lifetime; a duration timeout left running idle still pays memory.
-4. **Concurrency is per region and tiny:** Pro 3, Builder 20 (docs still say 5/org "pre-release"). Using both ams + ord doubles the cap, but volumes exist only in ord.
-5. **Allowances are shared with your Deploy apps** — a busy Deploy site eats the sandbox allowance.
-6. **Plan fee is not credit**, but the included meters are worth $23.75 (Pro: 50×0.10 + 750×0.025) and $237.50 (Builder), plus 200 / 2,000 GiB egress.
-7. **Old blog/launch prices ($0.05 CPU-h, $0.016 GB-h) still circulate** in third-party comparisons (e.g. search snippets); they are stale.
-8. SOC2 Type 1 report/DPA listed as Enterprise-only on the pricing page, although the FAQ says Deno Deploy is SOC2 + ISO27001 certified.
+1. **Closed to new customers** since November 2026. A new team cannot choose it.
+2. **2 vCPU / 4 GB ceiling** in the docs. A 4 vCPU / 8 GiB workload does not fit.
+3. **30-minute lifetime.** Long work re-creates sandboxes or promotes to a Deploy app.
+4. **Persistence is opt-in.** The default root disk is wiped at the end. A mounted volume or a bootable root volume keeps files (Chicago only).
+5. **No current sandbox rate is published.** The earlier Pro 3 / Builder 20 per-region caps and the $0.10 / $0.025 sandbox attribution had no official source.
+6. **Compliance:** Deno publishes an ISO 27001 certificate (https://deno.com/deploy/deno-iso-certificate.pdf); its scope does not name Sandbox. No current page states SOC 2 or HIPAA for Sandbox.
 ## Worked example
-Standard workload: 4 vCPU / 8 GiB, 50 concurrent × 8 h/day × 22 days, 30% CPU, 50 GiB snapshots, 100 GiB egress.
-**Not feasible as specified** (max 2 vCPU / 4 GB; 30-min lifetime; 50 concurrent exceeds Builder's 20/region = 40 across both regions).
-Closest runnable shape: **2 vCPU / 4 GiB**, 8,800 sandbox-hours (re-created every 30 min, no start fee), 30% CPU,
-50 GiB kept on volumes, 100 GiB egress.
-- CPU: 8,800 × 2 × 0.30 = 5,280 CPU-h. Memory: 8,800 × 4 = 35,200 GiB-h.
-| Regime | Feasible? | Monthly total |
-|---|---|---|
-| Pro | No (3/region concurrency) | would be $20 + (5,280−50)×0.10 + (35,200−750)×0.025 + (50−5)×0.20 = **$1,413.25** |
-| Builder | No (20/region = 40 max) | $200 + (5,280−500)×0.10 + (35,200−7,500)×0.025 + 0 volumes + 0 egress = **$1,370.50** |
-| Enterprise | Yes (custom concurrency) | unpublished; ~$1,370 at list rates + negotiated fee |
-| At launch rates (Feb 2026, Pro) | historical | $20 + (5,280−40)×0.05 + (35,200−1,000)×0.016 + $9 = $838.20 |
-Egress 100 GiB is inside both plans' allowance. Snapshots-as-volumes billing assumed at the volume rate.
+Not computed. The product is closed to new customers and has no current published rate.

@@ -173,7 +173,7 @@
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": false,
+    "browser": "diy",
     "desktop": false,
     "computer_use": false,
     "code_interpreter": false,
@@ -208,7 +208,7 @@
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": false,
+    "eu_data_residency": null,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": null,
@@ -270,18 +270,19 @@
   ],
   "caveats": [
     "Launched 2026-09-24; only one published rate card. Enterprise/volume pricing not published.",
-    "Default quota 10 concurrent sandboxes; higher concurrency process and cost unpublished (worked example of 50 concurrent needs a quota raise).",
-    "Hard cap 24 h from creation per sandbox (renew-timeout cannot go beyond); long jobs must be stopped/restarted or recreated.",
+    "Default quota 10 concurrent sandboxes; higher quotas go through Docker (not self-serve), with no published price or turnaround (worked example of 50 concurrent needs a quota raise).",
+    "Each lifecycle ends at most 24 h after creation (renew-timeout cannot go beyond). With the always-on entitlement, timeout action restart stops and resumes the sandbox at expiry with memory kept; otherwise resume or recreate it yourself.",
     "Disk size per size tier not published (disk_gib null). Volumes are experimental and free; stopped-sandbox state storage free per 'Volumes, egress ... are free' and 'compute isn't billed while stopped'.",
     "'Always-on' sandbox configuration appears in quota docs but has no separate price; assumed same per-second rate.",
     "Standard one-time credit is $25 ($250 only for signups 2026-09-22..30). Credits expire 6 months after redemption; a valid credit card is required at signup. Credits cover sandbox compute only (setup, idle time and retries all count), not model-provider charges.",
-    "Isolation: product page says MicroVM; hypervisor unnamed. Region(s) unpublished (regions []).",
+    "Isolation: product page says MicroVM; hypervisor unnamed. Regions are not published (regions []).",
     "Docker Pro/Team/Business subscription fees are separate and not needed; they do not include cloud sandbox credit.",
     "No benchmark data in benchmarks.json.",
     "All snapshots, including the one created when a sandbox is paused/stopped, are deleted after 7 days of non-use; stopped state is free but not durable storage.",
     "Volume-backed sandboxes can't be stopped (TTL action must be delete); volume data is snapshotted only on exit, last writer wins.",
     "Request rate limits exist and 'can vary by operation' but no numbers are published.",
-    "24 h cap is per lifecycle: resuming a stopped sandbox starts a fresh lifecycle timer; accounts with always-on access can use the 'restart' timeout action (stop+resume cycles preserving memory) and keep their concurrency slot while stopped."
+    "24 h cap is per lifecycle: resuming a stopped sandbox starts a fresh lifecycle timer; accounts with always-on access can use the 'restart' timeout action (stop+resume cycles preserving memory) and keep their concurrency slot while stopped.",
+    "No desktop or display server. Headless Chromium is available through Docker's official Playwright kit (headed mode, UI mode and codegen do not work)."
   ],
   "sources": [
     "https://www.docker.com/blog/introducing-cloud-sandboxes-start-on-your-laptop-finish-in-the-cloud/",
@@ -293,21 +294,24 @@
     "https://docs.docker.com/subscription-billing/plans/docker-agentic-platform/",
     "https://forums.docker.com/t/docker-sandbox-pricing-unclear/151790",
     "https://docs.docker.com/ai/sandboxes-api/cookbook/expose-a-port-from-a-cloud-sandbox/",
-    "https://docs.docker.com/reference/api/sandboxes/latest/schemas/EffectiveCoreLifecycle/"
+    "https://docs.docker.com/reference/api/sandboxes/latest/schemas/EffectiveCoreLifecycle/",
+    "https://hub.docker.com/r/sbx/playwright-kit",
+    "https://docs.docker.com/reference/api/sandboxes/latest/schemas/TimeoutAction/"
   ],
   "fleet": {
     "default_max_instances": 10,
     "default_max_vcpu": null,
     "default_max_gpus": null,
-    "raise": null,
+    "raise": "sales",
     "raise_time_days": null,
     "verification": null,
     "tiers": "Default 10 concurrent, 50 stored; per-account overrides may differ.",
-    "notes": "Official API limits give default 10 concurrent, 50 stored sandboxes; stopped releases concurrency unless always-on, but retains stored count. Docs warn accounts can differ and instruct confirmation with Docker before capacity-dependent work. No explicit numeric higher tier or quota-increase procedure/turnaround found.",
+    "notes": "Official API limits give default 10 concurrent, 50 stored sandboxes; stopped releases concurrency unless always-on, but retains stored count. Docs say accounts can have different quotas and tell users to confirm limits with Docker: higher quotas go through Docker, not self-serve. No published numeric higher tier, price or turnaround.",
     "sources": [
       "https://docs.docker.com/ai/sandboxes-api/limits/"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-09-28",
+    "checked": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 11,
@@ -395,11 +399,13 @@
       "checked": "2026-09-29"
     },
     "browser": {
-      "value": false,
-      "source": "https://www.docker.com/products/docker-sandboxes/",
-      "quote": "Run Claude Code, Codex, and your other agents at full speed in MicroVM environments. Local or cloud. One CLI.",
-      "note": "not offered: outside the product's scope — Docker (Cloud) Sandboxes is a MicroVM sandbox for running coding agents/CLI workloads; no managed/real browser is documented anywhere in the sandbox, API, or agent-kit docs.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://hub.docker.com/r/sbx/playwright-kit",
+      "quote": "The sandbox has no display server, so --headed, --ui mode, and codegen won't work.",
+      "how": "add Docker's official Playwright kit (--kit docker.io/sbx/playwright-kit) for headless Chromium; no display server, so no headed mode",
+      "effort": "low",
+      "checked": "2026-11-08",
+      "note": "Kit published by Docker, Inc. (Verified Publisher); installs @playwright/test and Chromium with its system libraries. Cloud usage page: \"Cloud sandboxes also support sandbox kits and --kit mixins.\" Headless only."
     },
     "anti_bot": {
       "value": false,
@@ -493,11 +499,11 @@
       "checked": "2026-09-30"
     },
     "eu_data_residency": {
-      "value": false,
-      "source": "https://docs.docker.com/ai/sandboxes-api/limits/",
-      "quote": "Cloud Sandboxes supports these CPU and memory pairs ...",
-      "note": "not offered: no region selection, region list, or EU-residency option is documented anywhere in the cloud sandbox usage, limits, network-policy, or architecture pages; the card notes regions are unpublished ([]), consistent with a single (unstated) region rather than a chooseable EU location.",
-      "checked": "2026-09-30"
+      "value": null,
+      "source": null,
+      "quote": null,
+      "note": "Not published: no region selection, region list, or EU-residency option appears in the cloud sandbox usage, limits, network-policy, or architecture pages.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -508,17 +514,17 @@
     },
     "desktop": {
       "value": false,
-      "source": "https://docs.docker.com/ai/sandboxes/faq/",
-      "quote": "In local sandboxes, image paste is off by default. Text paste works because the terminal sends it directly.",
-      "note": "Docker (Cloud) Sandboxes are described throughout as terminal/TTY sessions you attach/detach from (sbx attach, Ctrl+\\ to detach) running CLI coding agents (Claude Code, Codex, Gemini CLI, etc.). No VNC/RDP/graphical desktop or streaming feature is documented anywhere in the sandboxes, sandboxes-api or reference API docs. Product is explicitly a coding-agent CLI/API sandbox, not a desktop-streaming product.",
-      "checked": "2026-09-30"
+      "source": "https://hub.docker.com/r/sbx/playwright-kit",
+      "quote": "The sandbox has no display server, so --headed, --ui mode, and codegen won't work.",
+      "note": "No display server: the official Playwright kit page says \"The sandbox has no display server, so --headed, --ui mode, and codegen won't work.\" No VNC/RDP or desktop kit or example is documented, so no documented path to a desktop.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
       "source": "https://docs.docker.com/ai/sandboxes-api/",
       "quote": "Create and manage cloud sandboxes from your applications.",
-      "note": "No screenshot+click 'computer use' style API exists; the API's process endpoints (CreateProcess/Interact/ReadOutput) are generic terminal/process I/O, and the product has no GUI to drive. Consistent with a headless, terminal-based coding-agent sandbox.",
-      "checked": "2026-09-30"
+      "note": "No screenshot+click computer-use API and no display server (see desktop). Headless browser automation is possible through the official Playwright kit (see browser).",
+      "checked": "2026-11-08"
     },
     "auto_stop_idle": {
       "value": false,
@@ -583,10 +589,17 @@
       "note": "granularity: account-only; cost: no; Docker Cloud Sandboxes bills compute per second while running, but billing is only available as a monthly invoice or account dashboard. No API endpoint is documented to query billable usage of individual sandboxes, groups of sandboxes, or costs. The Sandboxes API (CreateSandbox, CreateProcess, etc.) provides no usage or billing data endpoints.",
       "confidence": "high",
       "checked": "2026-10-01"
+    },
+    "max_session_h": {
+      "value": 24,
+      "source": "https://docs.docker.com/reference/api/sandboxes/latest/schemas/TimeoutAction/",
+      "quote": "Preserves memory through backend-managed stop/resume cycles at expiry. Requires memory preservation and the always-on entitlement.",
+      "note": "Each lifecycle ends at most 24 h after creation (\"Extensions cannot move expiration beyond 24 hours from creation.\"). With the always-on entitlement, timeout action restart stops and resumes the sandbox automatically at expiry with memory kept, so it keeps going past 24 h without your code. Self-serve access to always-on is not documented. Without it, resume the stopped sandbox yourself.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [],
-  "locations_source": "https://docs.docker.com/ai/sandboxes-api/limits/",
-  "locations_quote": "Cloud Sandboxes supports these CPU and memory pairs...",
-  "locations_checked": "2026-10-01"
+  "locations_source": null,
+  "locations_quote": null,
+  "locations_checked": "2026-11-08"
 }

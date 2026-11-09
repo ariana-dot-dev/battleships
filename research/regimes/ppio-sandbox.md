@@ -15,7 +15,8 @@ PPIO is separately priced from Novita: CNY domestic API, Shanghai v1 and Beijing
 - Exact VAT inclusion unknown.
 - Volume beta has no independently published rate.
 - Legal corporate relation to Novita remains unresolved.
-- Default lifetime is five minutes; explicit timeout/update needed for eight-hour work. Maximum accepted timeout not established in current docs.
+- Default lifetime is five minutes and timeout caps at 1 hour. Long-running mode (set at create) lifts the cap; the docs show 24-hour and 7-day examples and state no maximum (https://ppio.com/docs/sandbox/sandbox-long-running.md, checked 2026-11-08). Idle timeout still applies.
+- Local disk is 20 GB per sandbox, free (pricing.md). More persistent space: Volumes shared across sandboxes (cn-beijing-1, closed beta, unpriced) or an S3 mount (https://ppio.com/docs/sandbox/sandbox-mount-cloudstorage.md).
 - Unknowns remain null, not free; generic infrastructure modes are opt-in alt.
 - Worked example assumes resources are released between active windows unless a retained-instance scenario is explicitly discussed.
 - VAT basis: Unknown: reviewed pricing source does not explicitly establish VAT/tax inclusion.

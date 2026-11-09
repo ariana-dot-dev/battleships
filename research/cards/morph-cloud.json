@@ -151,7 +151,7 @@
       "pool_vcpu": 64,
       "pool_ram_gib": 256,
       "pool_disk_gib": 1024,
-      "note": "0 starting MCUs: must buy pay-as-you-go top-up credits ($0.05/MCU). Org-wide limits 64 vCPU / 256 GB RAM / 1,024 GB storage; devboxes 8 concurrent / 32 total. EFS $0.12/GiB-month, 5 filesystems."
+      "note": "Subscribe page header badge 'Free'. 0 starting MCUs: 'Purchase MCUs to use compute' ($0.05/MCU). Limits 'Up to 64 vCPU' / 256 GB RAM / 1,024 GB storage; the page does not say whether these apply per instance or per account (pool fields assume per account). Devboxes 8 concurrent / 32 total. EFS $0.12/GiB-month, 5 filesystems. Re-checked 2026-11-08."
     },
     {
       "name": "Team",
@@ -273,7 +273,7 @@
     "snapshot_on_demand": true,
     "ingress_rules": true,
     "guest_firewall": true,
-    "secret_proxy": "ai-only",
+    "secret_proxy": false,
     "volume_attach": true,
     "volume_shared": true,
     "harness_api": true,
@@ -329,7 +329,8 @@
   "caveats": [
     "Plan names corrected vs older research: subscribe-page columns are Developer ($0) / Team ($40) / Scale ($250) (badges Free / Popular / Enterprise), confirmed by sandbox.watch and the EFS plan table.",
     "MCU = max(vCPU, ceil(RAM/4), ceil(disk/16)); encoded via ram_per_vcpu max 4 at $0.05/vCPU-h. Disk above 16 GiB per MCU raises the price (e.g. 4 vCPU with 80 GiB disk = 5 MCU) and is not captured; storage.included_disk_gib=16 is the 1-vCPU allowance (really 16 GiB per billed MCU).",
-    "Plans carry non-spec pool_vcpu/pool_ram_gib/pool_disk_gib: org-wide resource ceilings (Developer 64 vCPU => max 16 concurrent 4-vCPU VMs). Devbox concurrency 8/32/128 applies to the Devbox product.",
+    "Plans carry non-spec pool_vcpu/pool_ram_gib/pool_disk_gib from the subscribe page ('Up to 64 vCPU' on the $0 plan, badge 'Free'). The page does not say whether these limits apply per instance or per account; the pool fields assume per account (a 64 vCPU account limit allows 16 VMs of 4 vCPU). Devbox limits 8/32/128 at once and 32/128/512 total (re-checked 2026-11-08).",
+    "Morph's Responses Proxy page returns 404 (2026-11-08) and is gone from docs/llms.txt; secret_proxy is now false. Its examples use API keys inside the VM.",
     "Team/Scale are prepaid MCU bundles worth more than the fee (fee 40 -> $50, 250 -> $375 at list). Rollover/expiry undocumented; org is restricted when credits are exhausted unless topped up.",
     "Paused instances bill only the snapshot (RAM+disk size) at $0.00001/GB-h (~$0.0073/GB-month); stopped instances are released and free. Snapshots have no default TTL.",
     "Billing granularity, egress, IPv4, regions, compliance and enterprise pricing unpublished.",
@@ -362,11 +363,11 @@
     "raise_time_days": null,
     "verification": "Prepaid MCU purchase required; Team/Scale subscriptions include MCU credits.",
     "tiers": "Developer 64 vCPU/256 GB RAM/1,024 GB storage; Team 256/1,024/4,096; Scale 1,024/4,096/16,384. Separate Devbox concurrency 8/32/128.",
-    "notes": "MorphVM fleet quota is aggregate resources, not Devbox count. At 4 vCPU/8 GiB the CPU pool allows 16/64/256 instances before other constraints; 300/1,000 that size not covered by published tiers. Developer has zero starting MCU allocation and must purchase credit.",
+    "notes": "The subscribe page lists 'Up to 64 / 256 / 1,024 vCPU' per plan without saying per instance or per account; this card reads it as an account limit. If so, at 4 vCPU/8 GiB that allows 16/64/256 instances; 300/1,000 of that size are not covered by published tiers. Devboxes 8/32/128 at once. The $0 plan (badge 'Free') has zero starting MCU and must purchase credit.",
     "sources": [
       "https://cloud.morph.so/web/subscribe"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 1,
@@ -392,8 +393,8 @@
       "value": true,
       "source": "https://cloud.morph.so/docs/documentation/instances/http-services",
       "quote": "When auth_mode=\"api_key\" is enabled, requests to the service URL must include the Authorization: Bearer YOUR_MORPH_API_KEY header:",
-      "note": "Only ports you explicitly expose as named HTTP services get a public URL; optional auth_mode api_key (Morph API key as bearer). No IP allowlist, no raw TCP ingress (SSH via Morph gateway).",
-      "checked": "2026-09-29"
+      "note": "Only ports you explicitly expose as named HTTP services get a public URL; optional auth_mode api_key (Morph API key as bearer). No IP allowlist and no public raw TCP ingress. SSH goes through Morph's gateway. A documented reverse SSH page (docs/documentation/instances/reverse-tunnel) shows 'ssh -R' from a laptop to a MorphVM, then exposes that VM port as an HTTP service.",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
@@ -404,11 +405,11 @@
       "derived": true
     },
     "secret_proxy": {
-      "value": "ai-only",
-      "source": "https://cloud.morph.so/docs/responses-proxy/getting-started",
-      "quote": "The data plane does not require a provider key such as an OpenAI key. Send your Responses Proxy key as the request bearer token; the proxy injects the selected provider credential after resolving the model alias.",
-      "note": "Responses Proxy is an LLM gateway (OpenAI Responses + Anthropic Messages for Claude Code/Codex): real provider keys stay in the proxy, clients hold an org-scoped proxy key (itself a bearer credential). No general-purpose HTTP credential injection; devbox secrets manager / user secrets API otherwise hand values to the machine. Managed CLI setup needs a 'private proxy plugin'.",
-      "checked": "2026-09-29"
+      "value": false,
+      "source": "https://cloud.morph.so/docs/examples/claude-code",
+      "quote": "# Install claude-code and dev tooling inside the devbox",
+      "note": "No documented key proxy. The former Responses Proxy page (cloud.morph.so/docs/responses-proxy/getting-started) returns 404 on 2026-11-08, and docs/llms.txt lists no proxy page. Morph's Claude Code example uses ANTHROPIC_API_KEY inside the VM. The user secrets API (POST /user/secret) stores values that the machine reads. Scoped Devbox agent tokens cover only Morph's own API.",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": true,
@@ -590,8 +591,8 @@
       "value": false,
       "source": "https://cloud.morph.so/docs/documentation/instances/resizing-instances",
       "quote": "Resize Morph Cloud instances by rebooting with new CPU, memory, and disk while keeping the same instance ID, filesystem, and URLs. ... Under the hood, Morph preserves your on‑disk changes and restarts with the new resources.",
-      "note": "Resize exists but is implemented as a reboot with new specs, not a hot/live resize of a running machine; confirms false for the strict 'without recreating/restarting it' definition.",
-      "checked": "2026-09-30"
+      "note": "CPU and memory resize is a reboot with new specs ('CPU and memory changes still use configurable reboot', docs/documentation/instances/resize-disk). Disk alone grows live: 'Live disk resize changes a supported native instance's usable ext4 root filesystem capacity without rebooting' (the instance pauses briefly and resumes its memory state). Kept false because vCPU and RAM need a reboot.",
+      "checked": "2026-11-08"
     },
     "usage_api": {
       "value": true,

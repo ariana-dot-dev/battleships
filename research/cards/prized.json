@@ -18,7 +18,8 @@
       ],
       "gpu_only": false,
       "features": {
-        "isolation": "vm"
+        "isolation": "vm",
+        "gpu": false
       },
       "pricing": "sizes",
       "vcpu_h": null,
@@ -124,15 +125,22 @@
       "features": {
         "isolation": "firecracker",
         "public_ipv4": false,
-        "inbound_https": false,
-        "ssh": false,
+        "inbound_https": true,
+        "ssh": true,
         "egress_allowlist": false,
-        "max_session_h": 24,
+        "max_session_h": 168,
         "max_session_unlimited": false,
         "harness_api": null,
         "agent_harnesses": null,
         "desktop": null,
-        "browser": null
+        "browser": null,
+        "docker_inside": false,
+        "root": false,
+        "gpu": false,
+        "pause_resume": true,
+        "fork": true,
+        "fork_running": true,
+        "memory_snapshot_fork": true
       },
       "pricing": "resource",
       "vcpu_h": 0.04,
@@ -147,8 +155,8 @@
       "ram_fixed_per_vcpu": null,
       "vcpu_options": null,
       "min_vcpu": 1,
-      "max_vcpu": 8,
-      "max_ram_gib": 16,
+      "max_vcpu": 32,
+      "max_ram_gib": 128,
       "sizes": null,
       "pool_tiers": null,
       "requires_always_on": false,
@@ -162,12 +170,62 @@
       "windows_vcpu_h": null,
       "gpu": null,
       "cpu_class": null,
-      "note": "Billing (https://prized.dev/docs/billing, 2026-10-14): sandboxes \"spend the same balance, metered per second with no minimum by the shape they hold\": \"$0.04 per vCPU-hour running; paused, not charged.\"; \"$0.0125 per GB-hour running; paused, $0.0001 per gb-hour, for the saved memory.\"; disk \"$0.0001 per GB-hour running; paused, $0.0001 per gb-hour.\" Disk (10-100 GB, about $0.001/h for 10 GB) is not in this mode's rate: the card-level storage fields describe boxes. Memory is priced per GB and entered here as per GiB. Shape 1-8 vCPU, 1-16 GB, 10-100 GB disk; lifetime \"24 hours: `maxRuntimeMin` up to 1,440\"; \"Each sandbox is its own Firecracker microVM, with its own kernel.\"; \"usually running in about five seconds\"; nothing reaches a sandbox from the internet (no SSH, terminals or preview links yet); outbound internet unrestricted. Runs in us-west-2 only (docs/security). Quotas (docs/limits): 20 not deleted, 80 running vCPU, 160 GB running memory, 200 GB disk per workspace. Free tier: 4 at once, each up to 2 vCPU / 4 GB and 60 minutes."
+      "note": "Billing (https://prized.dev/docs/billing and /pricing, re-checked 2026-11-08): \"$0.04 per vCPU-hour running; paused, not charged.\"; memory \"$0.0125 per GB-hour running\"; disk \"$0.0001 per GB-hour running\"; paused storage (saved memory and disk) \"First 20 GB included, then $0.05 per GB-month\" per workspace. Disk (about $0.001/h for 10 GB) is not in this mode's rate: the card-level storage fields describe boxes. Memory is priced per GB and entered here as per GiB. Shape (https://prized.dev/docs/sandboxes, 2026-11-08): 1-32 vCPU, 1-128 GB, 10-128 GB disk. \"Each sandbox is its own Firecracker microVM, with its own kernel.\" Lifetime 24 h by default, up to 7 days via `maxRuntimeMin`; the clock stops while paused. \"A paused sandbox keeps its memory as well as its disk\"; \"A single resume is usually back to `running` in under a second.\" Fork: up to 256 copies of a running or paused sandbox, as many as fit on the parent's machine, each with \"the parent's memory, disk, and every process\". \"A burst of creates can wait in `starting` a minute or two while capacity is added.\" Inbound: port URLs (token-gated unless made public) and SSH with a short-lived key (1-1,440 min). No Docker, no root (user `prized` without sudo), no GPU, us-west-2 only. Quotas (https://prized.dev/docs/limits, 2026-11-08): 50 not deleted and not paused, 500 paused, 200 running vCPU, 400 GB running memory, 500 GB disk per workspace. Free tier: 10 at once, 20 vCPU / 40 GB running, each up to 2 vCPU / 4 GB and 60 minutes of running; paused kept 30 days. The plan concurrency fields describe boxes, not these quotas."
+    },
+    {
+      "key": "gpu-box",
+      "label": "GPU box (beta, one NVIDIA L4)",
+      "flags": [
+        "beta"
+      ],
+      "os": [
+        "linux"
+      ],
+      "regions": [
+        "us"
+      ],
+      "gpu_only": true,
+      "features": {
+        "isolation": "vm",
+        "gpu": true
+      },
+      "pricing": "resource",
+      "vcpu_h": 0,
+      "ram_gib_h": 0,
+      "cpu_basis": "alloc",
+      "ram_basis": "alloc",
+      "active_floor": 0,
+      "ram_per_vcpu": [
+        null,
+        null
+      ],
+      "ram_fixed_per_vcpu": null,
+      "vcpu_options": null,
+      "min_vcpu": null,
+      "max_vcpu": 8,
+      "max_ram_gib": 32,
+      "sizes": null,
+      "pool_tiers": null,
+      "requires_always_on": false,
+      "always_on_month_per_instance": null,
+      "commit_note": "Needs a plan whose first invoice is paid; free credit or a top-up alone does not start one. Billed from the prepaid balance only, never on overage.",
+      "min_billed_seconds": null,
+      "granularity_s": null,
+      "start_fee": null,
+      "boot_overhead_s": null,
+      "multiplier": 1,
+      "windows_vcpu_h": null,
+      "gpu": {
+        "L4": 1.25
+      },
+      "cpu_class": "dedicated",
+      "note": "https://prized.dev/docs/gpu-boxes (2026-11-08): \"GPU boxes are in beta, open to every workspace on a paid plan.\" \"$1.25 an hour awake, $0.05 an hour asleep.\" \"8 vCPU / 32 GB, 1 × L4, 24 GB GPU, 500 GB disk\" on g6.2xlarge (docs/machines). \"Oregon only during the beta\" (us-west-2). \"One GPU box per workspace during the beta.\" Fixed disk, no infinite storage. The whole box price is entered as the GPU price; vCPU and memory are included."
     }
   ],
   "storage": {
     "included_disk_gib": null,
     "disk_gib_month": null,
+    "persistent_disk_gib_month": 0.05,
     "disk_billed_when_stopped": true,
     "snapshot_gib_month": null,
     "paused_ram_billed": false,
@@ -184,18 +242,99 @@
   },
   "plans": [
     {
-      "name": "Paid credit plan",
+      "name": "$10 plan",
       "fee": 10,
       "flags": [],
       "fee_is_credit": true,
       "included_usd": 0,
       "per_seat": null,
-      "concurrency": 100,
+      "concurrency": 10,
+      "max_gpus": 1,
       "max_session_h": null,
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "$10–$1,000/month standard ladder, with exact fleet-sized plans above $1,000. The whole payment lands as usage credit; unused paid credit rolls over only up to two months of the plan. Overage is off by default; $10–$250 one-time top-ups are separate.",
+      "note": "The whole payment lands as usage credit; \"Credit rolls over up to two months of your plan.\" Overage is off by default. Box count (docs/limits, 2026-11-08): \"10 on the $10 and $25 plans\", every box not deleted counts (paused and deep sleep included). Box creates, restores and forks: 50 in any rolling 24 hours under $100; wakes of existing boxes are not counted, so this is not a start cap. One GPU box per workspace during the beta.",
+      "overage_default": false
+    },
+    {
+      "name": "$25 plan",
+      "fee": 25,
+      "flags": [],
+      "fee_is_credit": true,
+      "included_usd": 0,
+      "per_seat": null,
+      "concurrency": 10,
+      "max_gpus": 1,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "Same credit rules as the $10 plan. 10 boxes; 50 creates in any rolling 24 hours (docs/limits, 2026-11-08).",
+      "overage_default": false
+    },
+    {
+      "name": "$50 plan",
+      "fee": 50,
+      "flags": [],
+      "fee_is_credit": true,
+      "included_usd": 0,
+      "per_seat": null,
+      "concurrency": 25,
+      "max_gpus": 1,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "Same credit rules as the $10 plan. \"25 on $50 and $100\" boxes; 50 creates in any rolling 24 hours (docs/limits, 2026-11-08).",
+      "overage_default": false
+    },
+    {
+      "name": "$100 plan",
+      "fee": 100,
+      "flags": [],
+      "fee_is_credit": true,
+      "included_usd": 0,
+      "per_seat": null,
+      "concurrency": 25,
+      "max_gpus": 1,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "Same credit rules as the $10 plan. 25 boxes; \"300 on plans of $100 to $999\" creates in any rolling 24 hours (docs/limits, 2026-11-08).",
+      "overage_default": false
+    },
+    {
+      "name": "$250 plan",
+      "fee": 250,
+      "flags": [],
+      "fee_is_credit": true,
+      "included_usd": 0,
+      "per_seat": null,
+      "concurrency": 100,
+      "max_gpus": 1,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "Same credit rules as the $10 plan. \"100 on $250 and up\" boxes; 300 creates in any rolling 24 hours (docs/limits, 2026-11-08). The $500 rung has the same limits.",
+      "overage_default": false
+    },
+    {
+      "name": "$1,000 plan",
+      "fee": 1000,
+      "flags": [],
+      "fee_is_credit": true,
+      "included_usd": 0,
+      "per_seat": null,
+      "concurrency": 100,
+      "max_gpus": 1,
+      "max_session_h": null,
+      "max_vcpu": null,
+      "max_ram_gib": null,
+      "sizes_allowed": null,
+      "note": "Same credit rules as the $10 plan. 100 boxes; \"1,000 on $1,000 and up\" creates in any rolling 24 hours (docs/limits, 2026-11-08). Plans past $1,000 are \"sized to your boxes\" (docs/billing); no higher box count is published.",
       "overage_default": false
     }
   ],
@@ -208,7 +347,7 @@
     "windows": false,
     "macos": false,
     "arm64": false,
-    "gpu": false,
+    "gpu": true,
     "snapshot": "fs",
     "pause_resume": true,
     "fork": true,
@@ -223,7 +362,7 @@
     "systemd": true,
     "browser": true,
     "desktop": true,
-    "computer_use": false,
+    "computer_use": "diy",
     "code_interpreter": null,
     "agent_harnesses": true,
     "ssh": true,
@@ -240,7 +379,9 @@
     "soc2": false,
     "hipaa": false,
     "sso": false,
-    "gpu_types": [],
+    "gpu_types": [
+      "L4"
+    ],
     "regions": [
       "us",
       "eu"
@@ -293,12 +434,14 @@
     "Plan is prepaid credit ($10–$1000 plus custom fleet-sized rungs), not an extra fee. Credit rollover capped at two months; long cycles receive proportional extra credit.",
     "Exact awake rate is monthly size price/730; visible hourly numbers are rounded. Monthly size cap is explicitly documented.",
     "Sleep charges the entire retained allocated disk at $0.0001/GB-hour; included running disk is NOT free while paused. Engine storage model cannot switch full-disk billing on only during sleep; worked example adds it manually.",
-    "Free $30 is once; trial permits 1 box, no auto-pause, max Small, and pauses workspace after >30 minutes full-CPU saturation. Paid workspace max 100 boxes.",
+    "Free $30 is once; trial permits 1 box, no auto-pause, max Small, and pauses workspace after >30 minutes full-CPU saturation. Paid workspace max 10 to 100 boxes by plan (100 from $250).",
     "Nano/Micro are burstable EC2 t3a; larger m6a VMs. No GPU/arm64/nested KVM. Port links: members-only by default; on a paid plan `--anyone`/`--public` links open a port to anyone, but they expire (7 days default, 5 min to 30 days) and a workspace holds at most 10 live at once, HTTP/websockets only (docs/ports, 2026-10-14). Not a fit for permanent public web hosting.",
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "Re-checked 2026-09-28: prized.dev/docs/billing, /docs/limits, /docs/snapshots, /pricing and llms.txt publish no egress/bandwidth price and no snapshot storage price (snapshots capped at 20 manual/template per workspace, auto-snapshots keep 1-10). egress_gib and snapshot_gib_month stay null (unknown, not free).",
-    "Sandboxes (beta, https://prized.dev/docs/sandboxes and /pricing, 2026-10-14) are modelled as a second mode at $0.04/vCPU-h + $0.0125/GB-h. Not expressed by the engine: their disk rate ($0.0001/GB-h, paused disk and saved memory $0.0001/GB-h), their quotas (20 sandboxes, 80 vCPU, 160 GB running per workspace; the plan concurrency of 100 is the box limit), the 24 h lifetime, the us-west-2-only region (mode tagged \"us\", so US East filters also pass it), and the free tier (4 at once, 2 vCPU / 4 GB, 60 min). Per hour they cost more than a box of the same or larger size, so boxes stay the priced regime."
+    "Sandboxes (beta, https://prized.dev/docs/sandboxes and /pricing, re-checked 2026-11-08) are modelled as a second mode at $0.04/vCPU-h + $0.0125/GB-h. They pause with memory, resume in under a second and fork a running or paused sandbox into up to 256 copies with memory and processes; they have no Docker, no root and no GPU. Not expressed by the engine: their disk rate ($0.0001/GB-h running; paused storage first 20 GB free, then $0.05/GB-month), their quotas (50 active, 500 paused, 200 vCPU and 400 GB running per workspace; the plan concurrency fields are box limits), the us-west-2-only region (mode tagged \"us\", so US East filters also pass it), and the free tier (10 at once, 2 vCPU / 4 GB each, 60 min of running). Per hour they cost more than a box of the same or larger size (4 vCPU / 8 GB = $0.26/h vs Small 4 vCPU / 16 GB = $0.137/h), so boxes stay the priced regime when both fit.",
+    "GPU box (beta, https://prized.dev/docs/gpu-boxes, 2026-11-08) is a third mode: one NVIDIA L4, 8 vCPU / 32 GB / 500 GB, $1.25/h awake, $0.05/h asleep, Oregon only, one per workspace, needs a paid plan invoice.",
+    "Box disk past the included size: \"$0.05 a GB-month, awake or asleep\" (https://prized.dev/pricing, 2026-11-08), via infinite storage; entered as persistent_disk_gib_month."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/prized",
@@ -313,7 +456,10 @@
     "https://prized.dev/docs/security",
     "https://prized.dev/docs/ports",
     "https://prized.dev/docs/remote-agents",
-    "https://prized.dev/docs/sandboxes"
+    "https://prized.dev/docs/sandboxes",
+    "https://prized.dev/docs/gpu-boxes",
+    "https://prized.dev/docs/desktop",
+    "https://prized.dev/docs/machines"
   ],
   "fleet": {
     "default_max_instances": 1,
@@ -322,13 +468,14 @@
     "raise": "self-serve",
     "raise_time_days": null,
     "verification": "Onboarding grants credit without card; paid credit plan afterwards.",
-    "tiers": "Introductory credit allows 1 retained box; paid workspace permits 100 nondeleted boxes.",
-    "notes": "All boxes count, including paused/deep-sleep; this is stricter than a running-only cap. 10/50 supported once paid, but no published increase path beyond 100 for 300/1,000. Larger custom-dollar plan does not by itself prove a higher box limit. Sandboxes (beta) have their own workspace quotas: \"20 not deleted; paused ones and ones in `error` count\", 80 running vCPU, 160 GB running memory, 200 GB disk (docs/limits, 2026-10-14).",
+    "tiers": "Free credit: 1 box. Paid: 10 boxes on $10/$25, 25 on $50/$100, 100 on $250 and up. Box creates, restores and forks: 50 per rolling 24 h under $100, 300 on $100-$999, 1,000 on $1,000 and up.",
+    "notes": "All boxes count, including paused/deep-sleep; this is stricter than a running-only cap. No published increase path beyond 100 boxes. Larger custom-dollar plan does not by itself prove a higher box limit. Sandboxes (beta) have their own workspace quotas: 50 not deleted and not paused, 500 paused, 200 running vCPU, 400 GB running memory, 500 GB disk (docs/limits, 2026-11-08). One GPU box per workspace during the beta.",
     "sources": [
       "https://prized.dev/docs/limits",
-      "https://prized.dev/docs/billing"
+      "https://prized.dev/docs/billing",
+      "https://prized.dev/docs/gpu-boxes"
     ],
-    "researched": "2026-09-28",
+    "researched": "2026-11-08",
     "balance_gate": "Enough balance to run the resulting whole fleet for four hours is required to create, wake or resize; it is a check, not a charge.",
     "request_rate": "20 requests/second sustained, burst 40, per token and per box; 8 concurrent requests per token and per box. Sandbox edge API: \"48 concurrent and 60 a second (bursts of 120) per API key\" and \"8 concurrent and 20 a second (bursts of 40) per sandbox\" (https://prized.dev/docs/limits, 2026-10-14)."
   },
@@ -409,11 +556,21 @@
       "checked": "2026-09-29"
     },
     "computer_use": {
-      "value": false,
+      "value": "diy",
       "source": "https://prized.dev/docs/desktop",
-      "quote": "No GUI automation agent. For scripts, `DISPLAY=:10 xdotool …` targets the desktop, `DISPLAY=:11` the browser window.",
-      "note": "The streamed VNC desktop exists, but there is no first-party API to drive it by screenshots+clicks; only local xdotool scripting inside the box.",
-      "checked": "2026-09-30"
+      "quote": "Agents and scripts drive the desktop, or a screen of their own, from a shell.",
+      "how": "run your agent on the box: it drives the XFCE desktop with xdotool, Chrome through `prized agents browser --cdp` (DevTools on loopback port 19222), or apps through agent-desktop",
+      "effort": "medium",
+      "note": "No hosted screenshot-and-click computer-use API. The docs give a browser tool for Codex and Claude Code (\"`prized agents browser --cdp` makes the browser window open Chrome's DevTools port on the box's loopback (19222)\") and point to agent-desktop for accessibility-tree control.",
+      "checked": "2026-11-08"
+    },
+    "gpu": {
+      "value": true,
+      "source": "https://prized.dev/docs/gpu-boxes",
+      "quote": "GPU boxes are in beta, open to every workspace on a paid plan.",
+      "note": "One NVIDIA L4 (24 GB) on 8 vCPU / 32 GB / 500 GB (g6.2xlarge), $1.25 an hour awake, $0.05 asleep, Oregon only, one GPU box per workspace during the beta. Ordinary box sizes and sandboxes have no GPU.",
+      "beta": true,
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -447,8 +604,8 @@
       "value": true,
       "source": "https://prized.dev/docs/machines",
       "quote": "Claude Code, Codex CLI | `claude`, `codex`; per user, each updates itself in place",
-      "note": "Claude Code and Codex CLI are preinstalled on every box image.",
-      "checked": "2026-09-30"
+      "note": "Claude Code and Codex CLI are preinstalled on every box image. The homepage also says one command installs OpenCode, pi or the Cursor CLI on the box (https://prized.dev/, 2026-11-08).",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
@@ -482,8 +639,8 @@
       "value": false,
       "source": "https://prized.dev/docs/machines",
       "quote": "Public IP: not stable. It changes on a pause and on a region move; `prized ssh` follows the box.",
-      "note": "The box's own public IP is explicitly documented as not stable.",
-      "checked": "2026-09-30"
+      "note": "The box's own public IP is explicitly documented as not stable: \"it changes on a pause and on a region move\".",
+      "checked": "2026-11-08"
     },
     "self_host": {
       "value": false,
@@ -538,8 +695,8 @@
       "value": false,
       "source": "https://prized.dev/docs/snapshots",
       "quote": "A snapshot is an image of the box's whole disk at one instant... Crash-consistent. It holds what had reached the disk at that instant, like a machine that lost power; anything still in memory (an editor buffer, a database's unflushed page) is not in it. ... A fork is a snapshot and a restore in one call, while the source keeps running.",
-      "note": "fork = disk snapshot + restore into a new box; memory/process state is explicitly excluded ('anything still in memory ... is not in it'), so the forked box boots fresh rather than resuming running processes. false confirmed.",
-      "checked": "2026-09-30"
+      "note": "Boxes: fork = disk snapshot + restore into a new box; memory/process state is explicitly excluded ('anything still in memory ... is not in it'). Sandboxes (beta, separate mode) do fork with memory: each child has \"the parent's memory, disk, and every process\", up to 256 copies (https://prized.dev/docs/sandboxes, 2026-11-08); set true on the sandboxes mode.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -562,13 +719,6 @@
       "quote": "Two wider audiences need a paying workspace: `--anyone` (whoever holds the link) and `--public` (anyone at all, owner only).",
       "note": "Sharing a port mints an HTTPS link through Prized's relay; it carries HTTP and websockets only (other traffic needs `prized proxy`). Members links are workspace-authenticated; on a paid plan anyone/public links reach the port with no Prized account, but they expire (7 days default, 30 days max) and a workspace holds at most 10 live at once.",
       "checked": "2026-10-14"
-    },
-    "gpu": {
-      "value": false,
-      "source": "https://prized.dev/docs/machines",
-      "quote": "GPU | None",
-      "note": "Architecture table states GPU: None for every size; desktop page separately notes 'no GPU' for the streamed desktop. false confirmed.",
-      "checked": "2026-09-30"
     },
     "windows": {
       "value": false,

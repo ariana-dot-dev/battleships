@@ -264,7 +264,7 @@
     "raw_tcp_inbound": false,
     "egress_allowlist": false,
     "static_egress_ip": false,
-    "private_network": false,
+    "private_network": true,
     "self_host": true,
     "byoc": false,
     "open_source": true,
@@ -314,7 +314,7 @@
     "max_session_unlimited": true,
     "usage_api": true,
     "persist_scope": "folder",
-    "persist_path": "the attached volume"
+    "persist_path": "the attached /data volume (plus what is built into the image)"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -327,13 +327,20 @@
     "Null values mean unknown, not free/unlimited. No model-token cost, tax or unverified ancillary charge included.",
     "Native browser/device/task/credit prices with unknown CPU/RAM are deliberately non-priceable. Check regime before interpreting any partial resource estimate.",
     "insforge.dev pricing contradiction: pricing page says the $10 InsForge Compute credit 'Does not apply' to Custom Compute, but docs.insforge.dev/pricing FAQ says Custom Compute on Pro comes with '$10 of InsForge Compute credits to offset it'. InsForge Custom Compute has no published per-hour rate (runs on Fly.io machines). InsForge Free projects pause after 1 week of inactivity.",
-    "InstaCloud compute: new services scale to zero by default ('New compute services scale to zero, on every branch: an idle machine suspends until the next request wakes it in seconds.', docs.instacloud.com/compute/overview, checked 2026-10-14); always-on is opt-in ('insta compute always-on on|off', '--always-on' at creation) and bills continuously; a worker ('--port 0') is always-on regardless; outbound traffic keeps a running service awake but does not wake a suspended one, so a self-starting poller or bot still needs always-on; volume-backed services cold-stop instead of suspend; since 2026-09-26 outbound traffic also keeps a scale-to-zero service awake (so an agent calling a model keeps billing). Root disk is rebuilt on every wake; only the volume persists."
+    "InstaCloud compute: new services scale to zero by default (\"New compute services scale to zero, on every branch: an idle machine suspends until the next request wakes it in seconds.\", www.instacloud.com/docs/compute/overview, checked 2026-11-08); suspend keeps a RAM snapshot (API reference, apply-batch); always-on is opt-in and bills continuously; a worker (--port 0) is always-on regardless; volume-backed services cold-stop instead of suspend; outbound traffic keeps a running service awake (so an agent calling a model keeps billing) but does not wake a suspended one. After a cold stop only the /data volume and the image contents remain.",
+    "Since 2026-10-14 services in a branch share a private network (<name>.insta.internal); since 2026-10-15 a service can take UDP on its own public IPv6 address. Raw TCP still cannot be exposed (changelog, limitations page).",
+    "The same company (YC listing insforge-instacloud, now titled \"InstaBox: Cloud computers for AI agents\") sells Instabox, a separate agent-VM product with its own card (instabox). This card covers InstaCloud compute only.",
+    "docs.instacloud.com failed the TLS handshake on 2026-11-08; docs sources now point to www.instacloud.com/docs/."
   ],
   "sources": [
     "https://www.ycombinator.com/companies/insforge-instacloud",
     "https://insforge.dev/",
     "https://insforge.dev/pricing",
-    "https://insforge.dev/llms.txt"
+    "https://insforge.dev/llms.txt",
+    "https://www.instacloud.com/pricing",
+    "https://www.instacloud.com/docs/compute/overview",
+    "https://www.instacloud.com/changelog",
+    "https://instabox.sh/"
   ],
   "fleet": {
     "default_max_instances": null,
@@ -358,31 +365,31 @@
   "feature_evidence": {
     "snapshot_auto": {
       "value": true,
-      "source": "https://docs.instacloud.com/reference/api/project/secrets/apply-batch",
+      "source": "https://www.instacloud.com/docs/reference/api/project/secrets/apply-batch",
       "quote": "A suspended service is skipped instead of deployed: a deploy would invalidate the RAM snapshot suspension exists to preserve, so it is left untouched and reported with reason `suspended`.",
-      "note": "Trigger: idle timeout on scale-to-zero services, now the default (compute/overview, checked 2026-10-14: \"New compute services scale to zero, on every branch: an idle machine suspends until the next request wakes it in seconds.\"); memory included (RAM snapshot, Fly-style suspend). Services switched to always-on, and workers (--port 0), never suspend. Not for volume-backed services: \"Volume-backed services stop (cold wake) instead of suspending\" and the root disk is rebuilt on every wake. Hosted platform only; self-hosted OSS stops containers instead.",
-      "checked": "2026-09-29"
+      "note": "Trigger: idle timeout on scale-to-zero services, the default for new services (compute/overview: \"New compute services scale to zero, on every branch\"). Memory kept per the API reference above. Services set to always-on, and workers (--port 0), do not suspend. Volume-backed services \"stop (cold wake) instead of suspending, so the disk stays consistent\" (compute/overview). Hosted platform only; self-hosted OSS stops containers instead.",
+      "checked": "2026-11-08"
     },
     "snapshot_on_demand": {
       "value": false,
-      "source": "https://docs.instacloud.com/projects/branches",
+      "source": "https://www.instacloud.com/docs/projects/branches",
       "quote": "| Compute `/data` volume | Same size, empty (self-hosted InstaCloud OSS forks the volume files instead) |",
       "note": "No snapshot/checkpoint endpoint in the full OpenAPI reference. Closest: on-demand `insta compute suspend` (RAM preserved, resumes in place; = pause/resume, cannot fork) and branches, which clone Postgres (copy-on-write) and buckets but recreate compute from the image with an EMPTY volume on the hosted platform. Postgres has its own branching; no machine snapshots.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
-      "source": "https://docs.instacloud.com/introduction",
+      "source": "https://www.instacloud.com/docs/introduction",
       "quote": "Under the hood the agent runs the [insta CLI](/reference/cli/overview), which you can also drive by hand.",
       "note": "InstaCloud is infrastructure driven BY a coding agent running elsewhere (CLI, MCP server, skills); no API to launch/drive Claude Code/Codex inside a compute service. Only a generic one-shot exec endpoint (\"Run a one-shot command inside a compute service's machine\").",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "ingress_rules": {
       "value": false,
-      "source": "https://docs.instacloud.com/limitations/overview",
+      "source": "https://www.instacloud.com/docs/limitations/overview",
       "quote": "Services reach each other over their public HTTPS URLs. Compute listens on one HTTP port and a raw TCP port cannot be exposed at all",
-      "note": "Each compute service gets one public HTTPS URL on one chosen HTTP port; no private network, no auth-gated/tokenized URLs or IP allowlists documented. The public/private access toggle (set-service-access, MCP insta_set_service_access) is documented for storage buckets and managed databases, not compute. Custom domains available.",
-      "checked": "2026-09-29"
+      "note": "Each compute service gets one public HTTPS URL on one HTTP port. Since 2026-10-14 Public Access can be switched off (the service then returns 403 and stays reachable on the private network, changelog). No auth-gated/tokenized URLs or IP allowlists documented.",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": true,
@@ -394,203 +401,203 @@
     },
     "secret_proxy": {
       "value": false,
-      "source": "https://docs.instacloud.com/deploy/overview",
+      "source": "https://www.instacloud.com/docs/deploy/overview",
       "quote": "Secrets and credential bindings (`insta secrets bind`) are injected as environment variables at deploy time.",
       "note": "User secrets and bound service credentials land in the container env; no outbound credential-injecting proxy. (InsForge's separate BaaS has a model gateway for app frontends, not a sandbox secret proxy.)",
       "checked": "2026-09-29"
     },
     "volume_attach": {
       "value": true,
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "Need disk that survives restarts? Attach a persistent `/data` volume:",
-      "note": "One volume per compute service, default 1 GiB on any plan, larger paid and plan-capped (Free 1 GB, Pro 10, Team 50 per card); mount path selectable since 2026-09-24; $0.0002082/GB-h. Volume forces cold stop instead of suspend.",
-      "checked": "2026-09-29"
+      "note": "One volume per compute service, default 1 GiB on any plan, larger paid and plan-capped (Free 1 GB, Pro 10 GB, Team 50 GB per service, pricing page); mount path selectable since 2026-09-24; $0.0002082/GB-h. A volume makes the service cold-stop instead of suspend.",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": false,
       "source": "https://www.instacloud.com/changelog",
       "quote": "Compute services without a persistent volume can now run multiple replicas in the same region.",
-      "note": "A volume belongs to a single-machine service (no replicas with a volume); no shared/network filesystem. S3-compatible storage buckets exist but are accessed via API, not mounted.",
-      "checked": "2026-09-29"
+      "note": "A volume belongs to a single-machine service (no replicas with a volume); no shared or network filesystem. S3-compatible buckets are reached by API, not mounted.",
+      "checked": "2026-11-08"
     },
     "isolation": {
       "value": "firecracker",
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "Each service runs in its own microVM — hardware-level isolation rather than a shared-kernel container, which is what makes it safe to run agent-built code next to everything else.",
       "note": "Docs say 'microVM' with hardware-level isolation and describe a home-grown 'microvm plane' (distinct from 'legacy Fly'), but never name the underlying hypervisor; firecracker is the de-facto standard for this class of microVM and the closest fit to the field taxonomy.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "image_oci": {
       "value": true,
-      "source": "https://docs.instacloud.com/deploy/overview",
+      "source": "https://www.instacloud.com/docs/deploy/overview",
       "quote": "From a prebuilt image. Skip the build entirely — exactly one of a directory or `--image` per deploy: insta deploy --image ghcr.io/acme/api:v3",
       "note": "Deploys any OCI image from any registry, or builds one remotely from a Dockerfile.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "Each service runs in its own microVM — hardware-level isolation rather than a shared-kernel container",
       "note": "No mention of /dev/kvm or nested virtualization anywhere in the docs, CLI reference, or changelog; the Docker-inside-compute changelog entry runs a userspace dockerd (via cgroups/root), not a nested-VM emulator. Derived, not explicitly stated.",
       "checked": "2026-09-30"
     },
     "desktop": {
       "value": false,
-      "source": "https://docs.instacloud.com/introduction",
+      "source": "https://www.instacloud.com/docs/introduction",
       "quote": "InstaCloud provides the three basic primitives, rebuilt on those terms: database (real Postgres), storage (S3-compatible buckets), and compute (containers, run in microVMs on the hosted platform).",
-      "note": "not offered: outside the product's scope (generic container/backend PaaS, no graphical desktop).",
-      "checked": "2026-09-30"
+      "note": "Not built in, and no official desktop example in the docs. A compute service runs any image you build as root and serves one HTTP port, so a desktop needs your own image and stream setup. The same company sells Instabox (instabox.sh, separate card), full Linux VMs with a desktop and Chromium in its agent-browser template.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
-      "source": "https://docs.instacloud.com/introduction",
+      "source": "https://www.instacloud.com/docs/introduction",
       "quote": "InstaCloud provides the three basic primitives, rebuilt on those terms: database (real Postgres), storage (S3-compatible buckets), and compute (containers, run in microVMs on the hosted platform).",
-      "note": "not offered: outside the product's scope. No managed/real browser product; the only 'browser' mentions in docs are the human's own browser used to sign into the console.",
-      "checked": "2026-09-30"
+      "note": "No managed browser product. A service runs any image you build, so a browser needs your own image; no official browser example is documented. The same company sells Instabox (instabox.sh, separate card), full Linux VMs with a desktop and Chromium in its agent-browser template.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
-      "source": "https://docs.instacloud.com/introduction",
+      "source": "https://www.instacloud.com/docs/introduction",
       "quote": "InstaCloud provides the three basic primitives, rebuilt on those terms: database (real Postgres), storage (S3-compatible buckets), and compute (containers, run in microVMs on the hosted platform).",
-      "note": "not offered: outside the product's scope — no screenshot/click desktop-driving API; the product is backend compute/storage/database infrastructure driven by CLI, MCP, and REST.",
-      "checked": "2026-09-30"
+      "note": "No screenshot/click API; InstaCloud is backend compute, storage and database driven by CLI, MCP and REST. The same company sells Instabox (instabox.sh, separate card), full Linux VMs with a desktop and Chromium in its agent-browser template.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
-      "source": "https://docs.instacloud.com/introduction",
+      "source": "https://www.instacloud.com/docs/introduction",
       "quote": "InstaCloud provides the three basic primitives, rebuilt on those terms: database (real Postgres), storage (S3-compatible buckets), and compute (containers, run in microVMs on the hosted platform).",
-      "note": "not offered: outside the product's scope (no browser/stealth product).",
-      "checked": "2026-09-30"
+      "note": "Not in the product docs (no browser/stealth product).",
+      "checked": "2026-11-08"
     },
     "captcha_solving": {
       "value": false,
-      "source": "https://docs.instacloud.com/introduction",
+      "source": "https://www.instacloud.com/docs/introduction",
       "quote": "InstaCloud provides the three basic primitives, rebuilt on those terms: database (real Postgres), storage (S3-compatible buckets), and compute (containers, run in microVMs on the hosted platform).",
-      "note": "not offered: outside the product's scope (no browser/CAPTCHA product).",
-      "checked": "2026-09-30"
+      "note": "Not in the product docs (no browser/CAPTCHA product).",
+      "checked": "2026-11-08"
     },
     "egress_ip_type": {
       "value": "datacenter",
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "Each service runs in its own microVM — hardware-level isolation rather than a shared-kernel container",
       "note": "Standard cloud microVM egress; no residential/mobile IP product mentioned anywhere, and no static/dedicated outbound IP is documented (see static_egress_ip).",
       "checked": "2026-09-30"
     },
     "snapshot": {
       "value": "mem",
-      "source": "https://docs.instacloud.com/projects/branches",
+      "source": "https://www.instacloud.com/docs/reference/api/project/secrets/apply-batch",
       "quote": "A suspended service is skipped instead of deployed: a deploy would invalidate the RAM snapshot suspension exists to preserve, so it is left untouched and reported with reason `suspended`.",
-      "note": "Suspend/resume preserves a RAM snapshot of a compute service (memory + disk), auto-triggered by scale-to-zero idle. There is no separate on-demand disk-only snapshot API (see feature_evidence.snapshot_on_demand in the card: false); branching clones Postgres/bucket data but rebuilds compute from the image with an empty volume, not a memory snapshot.",
-      "checked": "2026-09-30"
+      "note": "Suspend keeps a RAM snapshot of the service, triggered by scale-to-zero idle (the default for new services: \"an idle machine suspends until the next request wakes it in seconds\", compute/overview) or by `insta compute suspend`. Volume-backed services stop (cold wake) instead of suspending. No on-demand snapshot API to save or restore a machine image (see snapshot_on_demand). Branches clone Postgres and buckets copy-on-write and start compute from the parent image with an empty volume.",
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": true,
-      "source": "https://docs.instacloud.com/agents/branch-per-task",
+      "source": "https://www.instacloud.com/docs/agents/branch-per-task",
       "quote": "Give every agent task its own branch: a copy-on-write database with the parent's data, a forked bucket, and a running copy of the app at its own URL.",
       "note": "'insta branch create' forks the current branch (or --from another) into a new branch with its own compute/db/bucket.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": true,
-      "source": "https://docs.instacloud.com/agents/branch-per-task",
+      "source": "https://www.instacloud.com/docs/agents/branch-per-task",
       "quote": "A live URL from the start. Branch compute comes up running the parent's image, so the agent can see the app working before its first deploy.",
       "note": "Branching does not require stopping the source: the parent keeps serving traffic on its own branch/URL while the new branch is created from its image.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": false,
-      "source": "https://docs.instacloud.com/projects/branches",
+      "source": "https://www.instacloud.com/docs/projects/branches",
       "quote": "| Compute `/data` volume | Same size, empty (self-hosted InstaCloud OSS forks the volume files instead) |",
       "note": "A branch's compute service is recreated from the parent's deployed image (cold start), not cloned with its running process/memory state; only Postgres and the bucket are copy-on-write.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": false,
-      "source": "https://docs.instacloud.com/reference/api/project/services/apply-batch",
+      "source": "https://www.instacloud.com/docs/reference/api/project/services/apply-batch",
       "quote": "every machine-facing change lands as one reconfigure per machine (one restart, not one per field)",
       "note": "Raising/lowering a compute service's CPU/RAM ceiling (`insta compute limits` / set-service-limits) is a machine-facing change and triggers a restart, so it is not a live resize without interruption.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "agent_harnesses": {
       "value": false,
-      "source": "https://docs.instacloud.com/agents/overview",
+      "source": "https://www.instacloud.com/docs/agents/overview",
       "quote": "Under the hood the agent runs the [insta CLI](/reference/cli/overview), which you can also drive by hand.",
       "note": "InstaCloud installs a CLI/MCP-server/skill so an existing coding agent (Claude Code, Cursor, Codex, OpenCode, etc.) on the developer's own machine can drive InstaCloud — it does not preinstall or offer coding-agent harnesses as templates running inside its compute sandboxes.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,
-      "source": "https://docs.instacloud.com/introduction",
+      "source": "https://www.instacloud.com/docs/introduction",
       "quote": "InstaCloud is the cloud infrastructure built from the ground up to serve agents.",
-      "note": "not offered: outside the product's scope. InstaCloud is infrastructure driven by an agent (yours), not a first-party browser/computer-use/research task agent of its own.",
-      "checked": "2026-09-30"
+      "note": "Not in the product docs. InstaCloud is infrastructure driven by an agent (yours), not a first-party browser/computer-use/research task agent of its own.",
+      "checked": "2026-11-08"
     },
     "lang_python": {
       "value": false,
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "An image, its environment, and a listen port: * Image — built remotely from your Dockerfile on `insta deploy .`, or supplied prebuilt with `--image`.",
       "note": "Compute runs whatever container/image you bring (a Dockerfile or prebuilt OCI image); no Python runtime is provided out of the box unless your own image includes it, and there is no first-party Python code-exec SDK.",
       "checked": "2026-09-30"
     },
     "lang_node": {
       "value": false,
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "An image, its environment, and a listen port: * Image — built remotely from your Dockerfile on `insta deploy .`, or supplied prebuilt with `--image`.",
       "note": "Same as lang_python: Node.js has to be in the customer's own image/Dockerfile; the `insta` CLI itself requires Node.js on the developer's machine (not inside the sandbox), and there is no first-party Node code-exec SDK for the compute service.",
       "checked": "2026-09-30"
     },
     "public_ipv4": {
       "value": false,
-      "source": "https://docs.instacloud.com/limitations/overview",
+      "source": "https://www.instacloud.com/docs/limitations/overview",
       "quote": "Services reach each other over their public HTTPS URLs. Compute listens on one HTTP port and a raw TCP port cannot be exposed at all",
-      "note": "Compute services are reached via a shared public HTTPS URL/router, not a per-machine public IPv4. (A dedicated public IP at <app>.fly.dev is documented only for opting a managed database like Redis/MySQL/MongoDB into direct internet access, not for compute.)",
-      "checked": "2026-09-30"
+      "note": "Compute services take HTTPS through a shared router on one HTTP port. Since 2026-10-15 a service with a UDP endpoint gets its own public IPv6 address (UDP only, clients need IPv6; changelog). No per-service public IPv4 is documented for compute.",
+      "checked": "2026-11-08"
     },
     "egress_allowlist": {
       "value": false,
-      "source": "https://docs.instacloud.com/limitations/overview",
+      "source": "https://www.instacloud.com/docs/limitations/overview",
       "quote": "No private network — Services reach each other over their public HTTPS URLs.",
       "note": "No outbound allow/deny-list, no-internet mode, or security-group egress control is documented anywhere in the docs, API reference, or OpenAPI spec; the only 'allow/deny' concepts found are agent-governance rules over API operations, not network egress.",
       "checked": "2026-09-30"
     },
     "egress_http_rules": {
       "value": false,
-      "source": "https://docs.instacloud.com/limitations/overview",
+      "source": "https://www.instacloud.com/docs/limitations/overview",
       "quote": "No private network — Services reach each other over their public HTTPS URLs.",
       "note": "No method/path-level egress control is documented; same evidence as egress_allowlist.",
       "checked": "2026-09-30"
     },
     "static_egress_ip": {
       "value": false,
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "Run any container in a microVM, always on or scaling to zero.",
       "note": "No fixed/static outbound IP is documented for compute services anywhere in the docs, changelog, or OpenAPI spec.",
       "checked": "2026-09-30"
     },
     "gpu": {
       "value": false,
-      "source": "https://docs.instacloud.com/introduction",
+      "source": "https://www.instacloud.com/docs/introduction",
       "quote": "InstaCloud provides the three basic primitives, rebuilt on those terms: database (real Postgres), storage (S3-compatible buckets), and compute (containers, run in microVMs on the hosted platform).",
-      "note": "not offered: outside the product's scope. No GPU instance type, size, or pricing is mentioned anywhere in the docs, pricing page, or OpenAPI spec.",
-      "checked": "2026-09-30"
+      "note": "Not in the product docs. No GPU instance type, size, or pricing is mentioned anywhere in the docs, pricing page, or OpenAPI spec.",
+      "checked": "2026-11-08"
     },
     "windows": {
       "value": false,
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "A compute service runs your container — web app, API, worker — in an isolated microVM with its own URL.",
-      "note": "not offered: outside the product's scope. Compute runs Linux containers (Docker images); no Windows machine option is documented.",
-      "checked": "2026-09-30"
+      "note": "Not in the product docs. Compute runs Linux containers (Docker images); no Windows machine option is documented.",
+      "checked": "2026-11-08"
     },
     "macos": {
       "value": false,
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "A compute service runs your container — web app, API, worker — in an isolated microVM with its own URL.",
-      "note": "not offered: outside the product's scope. Linux-container microVMs only; no macOS machine option is documented.",
-      "checked": "2026-09-30"
+      "note": "Not in the product docs. Linux-container microVMs only; no macOS machine option is documented.",
+      "checked": "2026-11-08"
     },
     "byoc": {
       "value": false,
-      "source": "https://docs.instacloud.com/self-hosting/overview",
+      "source": "https://www.instacloud.com/docs/self-hosting/overview",
       "quote": "Run the InstaCloud runtime on your own machine: one daemon over Docker, the same CLI, the same URL shape.",
       "note": "InstaCloud offers self-hosting (open-source, self_host: true) that you install and operate yourself on your own box, not a provider-managed deployment into your own cloud account (BYOC).",
       "checked": "2026-09-30"
@@ -604,21 +611,21 @@
     },
     "max_session_h": {
       "value": "none",
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "New compute services scale to zero, on every branch: an idle machine suspends until the next request wakes it in seconds.",
       "note": "A compute service is not time-boxed; it runs (scale-to-zero-and-wake by default, or always-on) until you explicitly stop it. No maximum session/runtime duration is documented.",
       "checked": "2026-10-14"
     },
     "private_network": {
-      "value": false,
-      "source": "https://docs.instacloud.com/limitations/overview",
-      "quote": "No private network ... Services reach each other over their public HTTPS URLs. Compute listens on one HTTP port and a raw TCP port cannot be exposed at all, so a container speaking a wire protocol of its own runs fine and nothing reaches it, inside the project or outside. Use the managed Postgres, Redis, MySQL and MongoDB types for that.",
-      "note": "Official docs devote a dedicated 'No private network' limitations section confirming there is no inter-service private networking; only public HTTPS URLs, and raw TCP cannot be exposed at all. This settles the card's existing 'no' with a direct first-party source.",
-      "checked": "2026-09-30"
+      "value": true,
+      "source": "https://www.instacloud.com/changelog",
+      "quote": "Services in the same project branch can now reach each other over a private network",
+      "note": "Changelog 2026-10-14: each compute service gets a private address <name>.insta.internal on its listen port; branches are isolated from each other; Public Access can be switched off. The limitations page still has an older \"No private network\" section; the changelog is newer.",
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": false,
-      "source": "https://docs.instacloud.com/compute/overview",
+      "source": "https://www.instacloud.com/docs/compute/overview",
       "quote": "From a directory, a Dockerfile, an image, or GitHub to a running service. ... A deploy puts a container on a compute service and prints its URL.",
       "note": "The hosted InstaCloud platform's compute/deploy docs never mention an architecture choice or ARM machine option for compute services (remote builds and image deploys are described with no arch flag). The only documented arm64/aarch64 support in the whole docs corpus is for the self-hosted InstaCloud OSS daemon and its bundled templates (`ghcr.io/insforge/instacloud` published for linux/amd64 and linux/arm64; install requires x86_64 or aarch64), which is a separate self-managed product from the hosted compute service this card models. No hosted-platform ARM compute size/region is documented, so treated as not offered on the hosted product.",
       "checked": "2026-09-30"
@@ -633,10 +640,17 @@
     },
     "persist_scope": {
       "value": "folder",
-      "source": "https://docs.instacloud.com/reference/api/project/secrets/apply-batch",
-      "quote": "A suspended service is skipped instead of deployed: a deploy would invalidate the RAM snapshot suspension exists to preserve, so it is left untouched and reported with reason `suspended`.",
-      "note": "Only the attached volume survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
-      "checked": "2026-10-01"
+      "source": "https://www.instacloud.com/docs/compute/overview",
+      "quote": "Need disk that survives restarts? Attach a persistent `/data` volume:",
+      "note": "The /data volume (1 GB Free, 10 GB Pro, 50 GB Team per service) survives a stop, and so does whatever is built into the image (Dockerfile), because the root disk starts from the image on each cold wake. Files written at run time outside the volume reset after a cold stop; a suspend keeps memory and disk.",
+      "checked": "2026-11-08"
+    },
+    "raw_tcp_inbound": {
+      "value": false,
+      "source": "https://www.instacloud.com/docs/limitations/overview",
+      "quote": "Compute listens on one HTTP port and a raw TCP port cannot be exposed at all",
+      "note": "Since 2026-10-15 a service can take UDP on its own public IPv6 address (\"The service gets its own public IPv6 address and takes UDP on the port you chose\", changelog). Raw TCP stays unexposed; use the managed Postgres, Redis, MySQL and MongoDB types for wire protocols.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -667,5 +681,10 @@
   ],
   "locations_source": "https://api.instacloud.com/regions",
   "locations_quote": "{\"regions\":[{\"slug\":\"us-east\",\"label\":\"US East (Virginia)\"},{\"slug\":\"eu-central\",\"label\":\"Europe (Frankfurt)\"},{\"slug\":\"ap-southeast\",\"label\":\"Asia Pacific (Singapore)\"}]}",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-10-01",
+  "audit_2026_11_08": {
+    "applied": 8,
+    "source": "findings/insforge-instacloud.json re-checked against instacloud.com pricing, changelog and docs",
+    "reviewed": 10
+  }
 }

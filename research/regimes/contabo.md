@@ -9,13 +9,14 @@ Prices below are public list prices unless a row explicitly says promotion/commi
 ## Billing details
 - **granularity_seconds**: Unknown; not assumed zero.
 - **minimum_billed_seconds**: Unknown; not assumed zero.
-- **setup_fee_usd**: Unknown; not assumed zero.
-- **api**: True
-- **cli**: True
+- **setup_fee_usd**: Unknown; not assumed zero. The VPS page (checked 2026-11-08) says a one-time setup fee applies to new Cloud VPS 4 instances on monthly contracts; no amount published.
+- **api**: True. RESTful Contabo API (api.contabo.com, OAuth2) creates, starts, stops and snapshots instances; cloud-init user-data runs at boot.
+- **cli**: True. Open-source cntb CLI (github.com/contabo/cntb).
+- **firewall**: Network-level inbound firewall listed as "Included" for VPS, VDS and GPU VPS; outbound unrestricted (checked 2026-11-08).
 - **ipv 6**: True
 - **ingress_usd**: 0
 - **minimum_term**: 1 month minimum; quarterly/6/12/24-month alternatives. No pay-by-hour rental.
-- **backup**: Core snapshot slots 1-3; Performance 5; retained 30 days. Auto Backup optional daily off-server 10-day retention, price varies. VDS has no managed snapshots/Auto Backup.
+- **backup**: Core snapshot slots 1-3; Performance 5; retained 30 days; taken by panel, API or CLI. Auto Backup optional daily off-server 10-day retention, price varies. VDS has no managed snapshots/Auto Backup.
 - **snapshot_retention_days**: 30
 - **provisioning**: Typically a few minutes, provider documentation claim.
 - **cpu**: Core and Performance are shared vCPU; VDS dedicated v Cores are SMT threads, two per physical core.

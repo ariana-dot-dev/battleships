@@ -5,6 +5,7 @@ const R = path.join(__dirname, '..', 'research');
 const readDir = (d, ext) => fs.existsSync(d) ? fs.readdirSync(d).filter(f => f.endsWith(ext)) : [];
 const readMdDir = sub => Object.fromEntries(readDir(path.join(R, sub), '.md').map(f => [f.replace(/\.md$/, ''), fs.readFileSync(path.join(R, sub, f), 'utf8')]));
 const readIf = p => fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
+require('./engine.js'); const PM = globalThis.PM, TODAY = new Date().toISOString().slice(0, 10);
 
 const cards = [], problems = [];
 // numbers for the methodology section, counted from the data itself
@@ -13,8 +14,13 @@ for (const f of readDir(path.join(R, 'cards'), '.json')) {
   try {
     const c = JSON.parse(fs.readFileSync(path.join(R, 'cards', f), 'utf8'));
     if (!c.id || !Array.isArray(c.modes)) { problems.push(`${f}: missing id or modes`); continue; }
+    // a provider that shut down or stopped selling (status_source says so) stays in research but leaves the page
+    if (c.status === 'discontinued') continue;
     stats.providers++; stats.tiers += c.modes.filter(m => m && !(m.flags || []).includes('legacy')).length;
     for (const e of Object.values(c.feature_evidence || {})) if (e && e.quote && e.source) { stats.quoted++; try { stats.sources.add(new URL(e.source).href.split('#')[0]); } catch {} }
+    // fairness (FAIRNESS.md): when the card was last checked, and how to get each 'diy' feature (the page shows both)
+    c.checked = PM.cardChecked(c); c.stale = PM.isStale(c.checked, TODAY);
+    const dh = PM.diyHow(c); if (dh) c.diy_how = dh;
     // quoted evidence per feature stays in the cards (and the public repo); the page doesn't show it, so it doesn't ship
     delete c.feature_evidence;
     // who is behind it: ownership, stage, accelerators, money raised, revenue (research/funding/<id>.json), compacted

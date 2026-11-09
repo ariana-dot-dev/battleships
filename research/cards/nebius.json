@@ -648,7 +648,7 @@
       ],
       "max_vcpu": 256,
       "max_ram_gib": 1024,
-      "note": "Non-GPU AMD Epyc Genoa: $0.015 per CPU-hour + $0.0045 per GiB-hour from 2026-10-01 (was $0.012 + $0.0032). Presets 2vcpu-8gb ... 128vcpu-512gb in all regions, 160-256 vCPU presets outside eu-north1/eu-south1 (1:4 vCPU:GiB). Verified 2026-10-14 at https://docs.nebius.com/compute/resources/pricing and https://docs.nebius.com/compute/virtual-machines/types. Docs say \"CPU hour\" without defining CPU vs vCPU; presets are named in vCPU, so treated as vCPU. No preemptible rate listed for non-GPU. Default non-GPU vCPU quota is 0 in eu-north1 and us-central1 (200 elsewhere), see caveats."
+      "note": "Non-GPU AMD Epyc Genoa: $0.015 per CPU-hour + $0.0045 per GiB-hour from 2026-10-01 (was $0.012 + $0.0032). Presets 2vcpu-8gb ... 128vcpu-512gb in all regions, 160-256 vCPU presets outside eu-north1/eu-south1 (1:4 vCPU:GiB). Verified 2026-10-14 at https://docs.nebius.com/compute/resources/pricing and https://docs.nebius.com/compute/virtual-machines/types. Docs say \"CPU hour\" without defining CPU vs vCPU; presets are named in vCPU, so treated as vCPU. No preemptible rate listed for non-GPU. Default non-GPU vCPU quota is 0 in eu-north1, us-central1 and eu-north2 (200 elsewhere), and the default is 2 VMs per region, see caveats."
     },
     {
       "os": [
@@ -849,7 +849,9 @@
     "Serverless AI (Devlabs, jobs, endpoints: container workloads on Compute VMs) has no own pricing; it bills Compute VM + disk rates and counts toward Compute quotas. A stopped Devlab still pays its whole container disk.",
     "Preemptible: fixed prices ($2.15 H100, $2.45 H200, $3.95 B200, $4.30 B300, $0.95 RTX PRO 6000) applied until 2026-10-07; since 2026-10-08 a dynamic spot price updated every 15 min, floor \"From $0.79\" (H100/H200/RTX) / \"From $0.99\" (B200/B300), ceiling one cent below on-demand. L40S preemptible stays flat ($0.65 GPU + CPU/RAM). Spot modes remain unpriced.",
     "Commitment discounts: up to 35% below on-demand for multi-month reservations of large clusters (prepaid, sales, company accounts); rates unpublished.",
-    "Default non-GPU quota is per region: 12 VMs and 200 total vCPUs across non-GPU VMs in me-west1, uk-south1, uk-south2, eu-west1, eu-west2, eu-south1, us-north1, but 0 vCPUs in eu-north1 and us-central1 (and 0 in private eu-north2). cpu-e2 runs only in eu-north1, so it needs a quota raise before the first VM; the fleet block carries the 200 vCPU figure of the other regions. Source: https://docs.nebius.com/compute/resources/quotas-limits (checked 2026-10-14)."
+    "Default quota is per region: 2 regular VMs and 2 preemptible VMs, and 200 total vCPUs across non-GPU VMs in me-west1, uk-south1, uk-south2, eu-west1, eu-west2, eu-south1, us-north1. eu-north1 and us-central1 have 0 non-GPU vCPUs; private eu-north2 has 0 VMs. cpu-e2 runs only in eu-north1, so it needs a quota raise before the first VM. Default GPU quota is 8 per type per region. Quotas can rise to the full tier automatically from usage history, or on request. Source: https://docs.nebius.com/compute/resources/quotas-limits (checked 2026-11-08).",
+    "nebius.com/prices also lists GB300 NVL72 and GB200 NVL72 racks at a contact-sales price. They are not self-serve and not priced here.",
+    "Serverless AI Devlabs run a container image (templates: code-server, JupyterLab, ComfyUI, Open WebUI, or a custom image) as a browser-based development environment on a Compute VM that Serverless AI manages, at Compute VM rates. Devlabs ship no coding agent and no desktop. Source: https://docs.nebius.com/compute/virtual-machines/containers (checked 2026-11-08)."
   ],
   "sources": [
     "https://docs.nebius.com/compute/resources/pricing",
@@ -858,22 +860,27 @@
     "https://docs.nebius.com/compute/resources/quotas-limits"
   ],
   "fleet": {
-    "default_max_instances": 12,
+    "default_max_instances": 2,
     "default_max_vcpu": 200,
     "default_max_gpus": null,
     "raise": "ticket",
     "raise_time_days": null,
     "verification": null,
-    "tiers": "Default GPU quotas (regular VMs without reservations, per region): B300 32 (uk-south1, eu-west2, us-north1); B200 0 (me-west1, us-central1); H200 32 eu-north1, 8 eu-west1, 0 us-central1; H100 32 (eu-north1); RTX PRO 6000 32 (uk-south2, eu-south1), 0 us-central1; L40S 32 (eu-north1). 12 regular + 8 preemptible GPU VMs per region. Non-GPU: 12 VMs per region; total vCPUs across non-GPU VMs 200 in most regions, 0 in eu-north1 and us-central1.",
-    "notes": "No single current aggregate GPU quota asserted: historical published per-type allowances are not additive and current project/region quota must be checked. Blog describes quota approval friction; no standard review time.",
+    "tiers": "Default tier per region: 2 regular VMs and 2 preemptible VMs (0 in private eu-north2). Total vCPUs across non-GPU VMs: 200 in most regions, 0 in eu-north1, us-central1 and eu-north2. Default GPU quota (regular VMs without reservations): 8 per type per region: B300 (uk-south1, eu-west2, us-north1), B200 (me-west1, us-central1), H200 (eu-north1, eu-west1, us-central1; 0 in eu-north2), H100 (eu-north1), RTX PRO 6000 (us-central1, uk-south2, eu-south1), L40S (eu-north1).",
+    "notes": "Nebius can move an account to the higher full-tier quota automatically from usage history, without notice. You can also request an increase for a single quota. No standard review time is published. GPU per-type quotas are not additive into one account-wide GPU figure.",
     "sources": [
       "https://docs.nebius.com/compute/resources/quotas-limits",
       "https://nebius.com/blog/posts/extending-immediate-access-to-nvidia-hopper-gpus",
       "https://nebius.com/blog/posts/ai-cloud-aether-3-1"
     ],
-    "researched": "2026-10-14"
+    "researched": "2026-11-08"
   },
   "price_expires": null,
+  "audit_2026_11_08": {
+    "applied": 6,
+    "source": "findings/nebius.json checked against docs.nebius.com quotas-limits and containers pages",
+    "reviewed": 12
+  },
   "audit_2026_09_29": {
     "applied": 14,
     "source": "checked against the provider's live pricing and docs pages",
@@ -962,23 +969,23 @@
     "image_oci": {
       "value": true,
       "source": "https://docs.nebius.com/compute/virtual-machines/containers.md",
-      "quote": "A container virtual machine (VM) is a VM with a container image deployed. You can use containers provided by Nebius AI Cloud or containers with custom Docker images from public registries.",
-      "note": "Container VMs can be created directly from a custom Docker image pulled from a public registry.",
-      "checked": "2026-09-30"
+      "quote": "Serverless AI Devlabs run container images as interactive development environments.",
+      "note": "Serverless AI (Devlabs, jobs, endpoints) runs a container image on a Compute VM that Serverless AI manages. Plain Compute VMs give root, so you can also install Docker and run any image yourself.",
+      "checked": "2026-11-08"
     },
     "desktop": {
       "value": false,
       "source": "https://docs.nebius.com/overview/services.md",
       "quote": "Compute allows you to create and manage virtual machines (VMs). They are like your local machine, but in the cloud.",
-      "note": "not offered: outside the product's scope — IaaS GPU/CPU VM cloud, no managed graphical desktop/VNC/RDP product (only a text-only serial console).",
-      "checked": "2026-09-30"
+      "note": "Nebius docs show no desktop, VNC or RDP product, guide or template (only a text serial console; Devlab templates are code-server, JupyterLab, ComfyUI and Open WebUI). A Compute VM gives root, so you can install a desktop yourself, but Nebius documents no path for it.",
+      "checked": "2026-11-08"
     },
     "browser": {
       "value": false,
       "source": "https://docs.nebius.com/overview/services.md",
       "quote": "Compute allows you to create and manage virtual machines (VMs). They are like your local machine, but in the cloud.",
-      "note": "not offered: outside the product's scope — no managed/real browser product; a user could install one themselves inside a VM but that is not a shipped feature.",
-      "checked": "2026-09-30"
+      "note": "Nebius docs show no browser product, guide or template. A Compute VM gives root, so you can install a browser yourself, but Nebius documents no path for it.",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
@@ -1061,8 +1068,8 @@
       "value": false,
       "source": "https://docs.nebius.com/overview/services.md",
       "quote": "Compute allows you to create and manage virtual machines (VMs). They are like your local machine, but in the cloud.",
-      "note": "not offered: outside the product's scope — no coding-agent (Claude Code/Codex/etc.) templates or preinstalled harnesses; only application container images like Jupyter Notebook.",
-      "checked": "2026-09-30"
+      "note": "No coding-agent (Claude Code, Codex) template or preinstalled harness in the docs. Serverless AI Devlabs give browser IDE templates (code-server, JupyterLab) with no agent built in.",
+      "checked": "2026-11-08"
     },
     "own_agent_api": {
       "value": false,

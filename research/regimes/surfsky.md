@@ -1,5 +1,5 @@
 # Surfsky — pricing regimes
-As of 2026-09-28. USD unless explicitly stated; public list prices unless a row is marked promotion, historical, or quote-only.
+As of 2026-11-08 (rates unchanged since 2026-09-28). USD unless explicitly stated; public list prices unless a row is marked promotion, historical, or quote-only.
 ## Regime table
 | Regime | When it applies | How billed | Numbers / terms | Source |
 |---|---|---|---|---|
@@ -7,7 +7,7 @@ As of 2026-09-28. USD unless explicitly stated; public list prices unless a row 
 | Premium proxy | Residential/mobile | GB | $10/$9/$8/$7 by tier | https://surfsky.io/pricing |
 | Shared proxy traffic | Paid tiers | Monthly allowance | 5/15/50 GB Starter/Base/Advanced; not the premium allowance | https://surfsky.io/pricing |
 | Reserved capacity | Sustained fleet | Custom commitment | From $.03/hour; Custom plans from $399/month | https://surfsky.io/pricing |
-| CAPTCHA / human emulation | All plans | Included per current price page | Separate docs overview still mentions usage billing; confirm | https://surfsky.io/pricing |
+| CAPTCHA solving | All plans | Per solve, charged whatever the outcome | Typical: reCAPTCHA ~$0.0002, GeeTest/AWS WAF ~$0.0015, image-to-text ~$0.0003; Turnstile and PerimeterX free; nothing charged when the challenge passes on its own | https://docs.surfsky.io/captcha-solving |
 | PAYG | Account plan | Monthly fee / commitment | $0; concurrency 10; Monthly fee converts to usage credit. 0 GB shared proxy traffic;0 persistent profiles, or one-time only on PAYG. | https://surfsky.io/pricing |
 | Starter | Account plan | Monthly fee / commitment | $29; concurrency 15; Monthly fee converts to usage credit. 5 GB shared proxy traffic;10 persistent profiles, or one-time only on PAYG. | https://surfsky.io/pricing |
 | Base | Account plan | Monthly fee / commitment | $99; concurrency 50; Monthly fee converts to usage credit. 15 GB shared proxy traffic;100 persistent profiles, or one-time only on PAYG. | https://surfsky.io/pricing |
@@ -16,7 +16,8 @@ As of 2026-09-28. USD unless explicitly stated; public list prices unless a row 
 ## Gotchas
 - Quoted up-to 90/390/990 hours do not precisely equal fee divided by rate (29/.30=96.67 etc.). Use explicit fee and dollar rates; do not invent a second included-hours allowance.
 - Fingerprint cpu/ram/OS/GPU values are browser identity fields, not server hardware or actual Windows/macOS guests.
-- CAPTCHA is included on pricing page, but docs overview mentions usage-billed solving. Record conflict rather than silently guaranteeing unlimited solves. Shared and premium proxies are distinct.
+- CAPTCHA solves are billed per solve (docs captcha-solving, checked 2026-11-08). Costs per solve are typical, not fixed. Shared and premium proxies are distinct.
+- Operator legal name on the pricing page: Cyberfinity FZE LLC, Ajman, AE.
 - Storage, snapshot GiB-month and public IPv 4 prices are not published in the reviewed sources; null is not free.
 - No guaranteed vCPU allocation published; browser-hour is not a verified 4-vCPU/8-GiB VM equivalent. The sizes card keeps unknown hardware null; do not coerce it to zero or auto-rank against resource-guaranteed VMs.
 - Browser RAM is not published unless a specific mode overrides it.
@@ -30,3 +31,4 @@ Requested: 4 vCPU / 8 GiB; 50 concurrent × 8 hours/day × 22 days = **8,800 run
 - https://docs.surfsky.io/intro-to-surfsky.md
 - https://docs.surfsky.io/sessions.md
 - https://docs.surfsky.io/proxies.md
+- https://docs.surfsky.io/captcha-solving

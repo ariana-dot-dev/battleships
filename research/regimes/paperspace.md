@@ -16,6 +16,9 @@ Paperspace Core and Gradient
 3. Windows templates unavailable to new users since 2024-07-01, so card windows=false for new buyers; legacy users may retain Windows access. Marketing Standard $35 Windows offer must not be ranked as current public availability.
 4. Pro $8 personal vs $12/team user is resolved by current docs; Gradient subscriptions are not required Core subscription.
 5. Current multi-GPU table and prose conflict for V100×8 and A6000×8; verify actual SKU before extrapolating single GPU rates.
+6. Billing granularity (checked 2026-11-08): "All Paperspace resources are billed on a per-hour basis." The page does not say whether a partial hour rounds up, and it does not promise per-second billing. Do not claim that a short run is billed as a full hour.
+7. Product status (checked 2026-11-08): DigitalOcean says "New users should sign up for DigitalOcean's AI/ML offerings" and "core Paperspace products are still available". No shutdown date is published. Source: https://www.digitalocean.com/solutions/paperspace-joins-digitalocean
+8. Custom templates are region-specific (limits page). H100 needs a support request and runs in NY2 only (https://docs.digitalocean.com/products/paperspace/machines/details/h100/).
 ## Worked example
 Requested: 4 vCPU/8 GiB, 50 simultaneous × 8 h/day × 22 days = **8,800 instance-hours**, 30% CPU; 50 GiB snapshots and 100 GiB egress. A month is 730 hours only when explicitly used in rate conversion.
 Current C5 4/8 hourly: 8,800×$0.08=$704. Fifty minimum 50GB block disks retained all month add 50×$5=$250; one 50GB snapshot adds $1; 100GB egress $0. Subtotal $955, or $1,105 with fifty retained public IPs ($3 each). Fifty machines require account quota approval; price is not availability guarantee.

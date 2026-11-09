@@ -123,7 +123,7 @@
           "vcpu": 4,
           "ram_gib": 8,
           "disk_gib": null,
-          "hour": 0.18,
+          "hour": 0.144,
           "month_cap": null
         },
         {
@@ -131,7 +131,7 @@
           "vcpu": 16,
           "ram_gib": 32,
           "disk_gib": null,
-          "hour": 0.72,
+          "hour": 0.576,
           "month_cap": null
         }
       ],
@@ -146,12 +146,12 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "cpu-2 = 2 reserved PHYSICAL cores + 8 GiB ($0.003/min = $0.18/h); cpu-8 = 8 physical cores on one NUMA node + 32 GiB ($0.012/min = $0.72/h; the earlier \"33% off (CPU node launch pricing)\" $0.00804/min rate is gone from the live table, checked 2026-10-14). vcpu encoded as 2 x physical cores (assumption). A node keeps billing through a 15-min idle window after its last command unless stopped ($0.045 / $0.18 at most); stopped nodes park their disk and cost nothing. Friday 32% (cpu-2) / 33% (cpu-8), weekend 20% off per calendar knob. Container nodes for batch/ingest work, not a sandbox API.",
+      "note": "cpu-2 = 2 reserved PHYSICAL cores + 8 GiB ($0.0024/min = $0.144/h); cpu-8 = 8 physical cores on one NUMA node + 32 GiB ($0.0096/min = $0.576/h). [live table checked 2026-11-08: \"cpu-2 | $0.0024/min ($0.144/hr)\", \"cpu-8 | $0.0096/min ($0.576/hr)\"] vcpu encoded as 2 x physical cores (assumption). A node keeps billing through a 15-min idle window after its last command unless stopped ($0.036 / $0.144 at most); stopped nodes park their disk and cost nothing. Fridays 33% off, weekends 20% off (calendar knob). Container nodes for batch/ingest work, not a sandbox API.",
       "cpu_class": "dedicated"
     },
     {
       "key": "h100-node",
-      "label": "Autoresearch interactive H100 node, on demand (h100-1 = 1 GPU $5.04/h; h100-8 = 8 GPUs)",
+      "label": "Autoresearch interactive GPU node, on demand (h100-1 / b300-1 = 1 GPU; h100-8 / b300-8 = 8 GPUs)",
       "flags": [
         "stock"
       ],
@@ -196,15 +196,16 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {
-        "H100": 5.04
+        "H100": 4.032,
+        "B300": 9.792
       },
-      "note": "Per GPU: h100-1 $0.084/min = $5.04/h; h100-8 $0.672/min = $40.32/h (= $5.04/GPU-h). CPU/RAM included. Idle window keeps billing 15 min (1x, $1.26 max) / 20 min (8x, $13.44 max) after the last command unless stopped; no minimum charge. Stopped node parks its encrypted disk at $0. Friday 33% / weekend 20% off (calendar knob), applied to minutes run on those days (US Pacific). [live table checked 2026-10-14: \"h100-1 $0.084/min ($5.04/hr)\", \"h100-8 $0.672/min ($40.32/hr)\"]",
+      "note": "Per GPU: h100-1 $0.0672/min = $4.032/h; h100-8 $0.5376/min = $32.256/h (= $4.032/GPU-h). b300-1 $0.1632/min = $9.792/h; b300-8 $1.3056/min = $78.336/h (= $9.792/GPU-h). CPU/RAM included. Idle window keeps billing 15 min (1x: $1.008 H100 / $2.448 B300 max) or 20 min (8x: $10.752 / $26.112 max) after the last command unless stopped; no minimum charge. Stopped node parks its encrypted disk at $0. Fridays 33% / weekends 20% off (calendar knob), applied to minutes run on those days (US Pacific). [live table checked 2026-11-08: \"h100-1 | $0.0672/min ($4.032/hr)\", \"b300-1 | $0.1632/min ($9.792/hr)\"]",
       "stock_note": "queued provisioning: create_node joins a queue and quotes an ETA; not an instant-capacity guarantee",
       "cpu_class": "shared"
     },
     {
       "key": "batch-h100",
-      "label": "Autoresearch batch jobs on H100 (queued, preemptible)",
+      "label": "Autoresearch batch jobs on H100 / B300 (queued, preemptible)",
       "flags": [
         "alt",
         "spot"
@@ -244,9 +245,10 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": {
-        "H100": 3.78
+        "H100": 3.78,
+        "B300": 9.18
       },
-      "note": "$0.063/min per GPU = $3.78/GPU-h, \"25% below interactive\" (live table, checked 2026-10-14). Queued time free; checkpoints survive preemption. Calendar discount reaches jobs only when cheaper still (Friday interactive $3.38 < $3.78 moves jobs; weekends $4.03 do not - matches llms.txt \"At today's numbers Friday moves a job and the weekend does not\"). Batch jobs capped at 85% of fleet.",
+      "note": "H100 $0.063/min per GPU = $3.78/GPU-h; B300 $0.153/min per GPU = $9.18/GPU-h; \"25% below interactive\" (live table, checked 2026-11-08). Queued time free; checkpoints survive preemption. At today's interactive H100 rate ($4.032/h) the Friday ($2.70) and weekend ($3.23) node rates are both below the $3.78 job rate (not modeled; batch-h100 not in the calendar knob). Batch jobs capped at 85% of fleet.",
       "cpu_class": "shared"
     },
     {
@@ -306,8 +308,7 @@
       "windows_vcpu_h": null,
       "gpu": {
         "H100": null,
-        "H200": null,
-        "B200": null
+        "H200": null
       },
       "note": "No fixed list price: price per node-hour is set by the orderbook per SKU and delivery window, so GPU rates are null. Illustrative official figures only: homepage resale widget \"Reserved price $3.00/gpu/hr\" (3-month example); docs orderbook example ~$17.42/node-h (~$2.18/GPU-h); old.sfcompute.com/prices \"H100 nodes from $1.50/gpu/hr\". Billed per node-minute including boot/idle. VMs (bare metal / managed Slurm via sales). No ingress/egress fees. Instances have no persistent storage.",
       "gpu_min_count": 8,
@@ -373,8 +374,7 @@
       "windows_vcpu_h": null,
       "gpu": {
         "H100": null,
-        "H200": null,
-        "B200": null
+        "H200": null
       },
       "note": "Spot is a buying strategy on the same orderbook (immediate-or-cancel buys at or below --max-rate $/node-hour); you pay the matched seller price per node-minute for the whole contract block (min runtime 1 min-24 h), including boot/idle minutes. 2-minute preemption notice via metadata endpoint (none if min runtime <= 2 min); preemption adds no charge. Spot deployments are in public preview (available to everyone, best-effort support, no SLA). Prices market-set, so null.",
       "gpu_min_count": 8,
@@ -483,7 +483,6 @@
     "gpu_types": [
       "H100",
       "H200",
-      "B200",
       "B300"
     ],
     "snapshot": "mem",
@@ -494,12 +493,12 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": false,
+    "docker_inside": null,
     "nested_virt": false,
     "root": true,
     "systemd": null,
-    "browser": false,
-    "desktop": false,
+    "browser": "diy",
+    "desktop": "diy",
     "computer_use": false,
     "code_interpreter": false,
     "agent_harnesses": false,
@@ -565,10 +564,10 @@
   "perf": {
     "cpu_runs_s": null,
     "cold_start_ms": null,
-    "burst_tti_ms": 362.87,
-    "dax_s": 44.36
+    "burst_tti_ms": 334.72,
+    "dax_s": null
   },
-  "perf_source": "computesdk (repo key \"givemeanode\" = Autoresearch sandboxes): burst_tti median 362.87 ms at 100 concurrent (2026-09-25), DAX total 44.36 s (2026-09-25, 8 vCPU / 31.4 GiB x86_64 env). No cold_start_tti row, no hpc CPU run. GPU VM boot (up to ~10 min) not benchmarked.",
+  "perf_source": "ComputeSDK repo key \"givemeanode\" = Autoresearch sandboxes. ComputeSDK (each provider at its SDK default size and runtime): burst 335 ms median at 100 at once, 100% succeeded (2026-11-06); DAX failed in the 2026-11-06 run, so no value. https://github.com/computesdk/benchmarks/tree/main/results",
   "knobs": [
     {
       "id": "sandbox_running_share",
@@ -622,18 +621,18 @@
         "cpu-node",
         "h100-node"
       ],
-      "why": "Autoresearch nodes: Fridays 33% off (cpu-2: 32%), Sat/Sun 20% off, applied to the minutes that run on those days. Not applied to sandboxes. Batch jobs only move on Fridays at current rates (not modeled; batch-h100 not in this knob)."
+      "why": "Autoresearch nodes: Fridays 33% off, Sat/Sun 20% off (US Pacific), applied to the minutes that run on those days (live billing note, checked 2026-11-08). Not applied to sandboxes. Batch jobs are not in this knob."
     }
   ],
   "caveats": [
     "Two products under one card: (1) the SF Compute GPU market (8-GPU node-hours bought/resold on an orderbook; reserved or spot; no list price, so GPU rates are null), and (2) Autoresearch/givemeanode (fixed per-minute list prices for sandboxes, CPU and H100 nodes, batch jobs). Benchmarks measured the Autoresearch sandboxes.",
     "Sandbox rate is per GiB of RAM; vCPU is priced implicitly via a 4 GiB/core floor, so CPU-heavy/low-RAM shapes are expensive (4 vCPU/8 GiB bills as 16 GiB = $0.73/h flat-out). Parking can cut this by up to ~99% for idle-heavy agent loops (knob).",
-    "Autoresearch H100 list rate rose to $5.04/GPU-h ($0.084/min) on the live pricing table (was $3.96, $0.066/min); batch jobs to $3.78 ($0.063/min) and cpu-8 to $0.72/h ($0.012/min, launch discount ended). llms.txt now agrees (\"$13.44 at the H100 list rate\" for the h100-8 20-min window) and the home-page CLI sample shows \"tulip running, $0.084/min\". (checked 2026-10-14)",
+    "Autoresearch live table (checked 2026-11-08): h100-1 $0.0672/min ($4.032/h), h100-8 $0.5376/min ($32.256/h), batch H100 $0.063/min per GPU ($3.78/h); B300 nodes $0.1632/min per GPU ($9.792/h), batch B300 $0.153/min ($9.18/h); cpu-2 $0.144/h, cpu-8 $0.576/h. H100 node rates fell from $5.04/h (2026-10-14).",
     "cpu-node vcpu = 2 x physical cores (assumption).",
     "Sandbox egress price unpublished; SF Compute specs page says \"No ingress/egress fees\" for GPU clusters, applied card-wide (egress_gib 0). Public IPv4 on market VMs is optional at create; price unpublished.",
     "Sandbox snapshots: $0.10/GiB-month resident (deduplicated), $0.05/GiB-month cold in object store (first fork after cold pays a one-time rehydrate delay); live until deleted unless an expiry is set. Encoded at $0.10.",
     "Market VMs: no persistent storage (terminate deletes data), boot up to ~10 min, billed per node-minute including boot; compute limits in node-hours per account. Market prices vary by SKU, zone and window; third-party reports ~$1.49-1.68/GPU-h H100 averages in Feb-Mar 2026 (spheron.network) - not official.",
-    "No free credit found (promotional credit exists but amount unpublished).",
+    "No free credit: new accounts start with $0 of credit (live page, checked 2026-11-08). Referral credit exists (see free.note).",
     "Billing migration is date-gated: the prepaid-credit model was announced 2026-09-22 for new accounts; existing monthly-invoice accounts move on 2026-10-01, and pre-October usage stays invoiced under the old rules. The July 29 $10-$10,000 prepayment option was optional. Cold $0.05 snapshot tier introduced 2026-08-22; node snapshot cut $0.11 -> $0.10 on 2026-07-29. (patch v8-history, 2026-09-28)",
     "SSH: Autoresearch docs say \"There is no SSH. Commands run in the node's container\" and \"Nodes have no public address and no open ports\"; sandboxes are exec-over-API only, so features.ssh=false. The SF Compute market VMs (reserved/spot modes) keep their ssh:true override. (verified 2026-09-28, autoresearch.sfcompute.com/docs)",
     "Sandbox disk: no included sandbox disk size and no running-disk rate are published (only the parked rate ~$0.000139/GiB-h on what a parked sandbox holds). included_disk_gib / disk_gib_month stay null. Nodes (cpu/h100) have a 250 GiB persistent volume (node_volume_gib default), parked at $0 when stopped. (2026-09-28)",
@@ -642,7 +641,8 @@
     "Market buy orders hold credit for the worst case (limit price x full window x node count) until filled; unused hold released after fill/cancel.",
     "Elastic InfiniBand Partitions for market VMs entered public preview 2026-09-25 (opt-in 'sf preview set infiniband-preview=true'); specs page still says IB on VMs 'in Q3 2026'. No separate price published.",
     "Autoresearch queue has paid priority tiers ('folks who buy priority are ordered as if they had been waiting a while'); tier prices are not published. Every account's first node gets the largest head start.",
-    "Fork fan-out: the home page says \"One fork per sample, up to a thousand at once. Forking is free. 50ms per fork, 100ms per delete.\", while llms.txt still documents fork_sandbox as \"clone 1..=256 running sandboxes\" per call - likely ~1000 concurrent forks reached over several calls. Not a priced field. (checked 2026-10-14)"
+    "Fork fan-out: the home page says \"One fork per sample, up to a thousand at once. Forking is free. 50ms per fork, 100ms per delete.\", while llms.txt still documents fork_sandbox as \"clone 1..=256 running sandboxes\" per call - likely ~1000 concurrent forks reached over several calls. Not a priced field. (checked 2026-10-14)",
+    "Docker inside, a desktop and a browser are not documented. Sandboxes are root microVMs and nodes accept your own container image, so you can install Chromium or Xvfb yourself; only HTTPS ports can be exposed, not raw TCP. (checked 2026-11-08)"
   ],
   "sources": [
     "https://autoresearch.sfcompute.com/",
@@ -660,18 +660,18 @@
     "https://www.spheron.network/blog/spheron-vs-sf-compute/"
   ],
   "fleet": {
-    "default_max_instances": null,
+    "default_max_instances": 4096,
     "default_max_vcpu": null,
     "default_max_gpus": null,
     "raise": "self-serve",
     "raise_time_days": 1,
     "verification": "Billing by saved card or prepaid credits; org admin must submit limit increase with reason.",
-    "tiers": "Autoresearch live limits are readable through list_limits/autor limits. Docs illustrate default 64 GPU nodes and 256 CPU nodes per member, not aggregate organization entitlement.",
-    "notes": "Requests up to raisable_to apply immediately; larger requests require explicit escalation and operator review, usually within one business day, no SLA. Scalar time describes human review, not self-serve. Organization spending cap and hard_max also apply; GPU node count is not GPU count.",
+    "tiers": "Autoresearch defaults: 4,096 sandboxes at once per workspace; 256 live CPU nodes and 64 GPU nodes per member; sandbox_vcpus starts at 4; sandbox RAM 8 GiB per workspace, raised on request up to 64 GiB. list_limits shows the values that apply to you. Market limits are in node-hours.",
+    "notes": "default_max_instances = the 4,096 sandbox default; nodes stop at 256 CPU / 64 GPU per member by default, so 300+ node fleets need a raise. Requests up to raisable_to apply immediately; larger requests need operator review, usually within one business day, no SLA. Organization spending cap and hard_max also apply; GPU node count is not GPU count.",
     "sources": [
       "https://autoresearch.sfcompute.com/docs"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 6,
@@ -769,14 +769,14 @@
       "source": "https://autoresearch.sfcompute.com/llms.txt",
       "quote": "from_image takes a container image of YOUR own instead of a curated name - an RL task image, a framework's official image, a SWE-bench instance - so an environment that already exists as a Docker image is imported rather than re-expressed as a warm script. Digest-pinned (\"ghcr.io/acme/task@sha256:<64 hex>\")",
       "note": "Applies to sandboxes (from_image) and nodes (image takes 'YOUR OWN container image as a registry ref'). linux/amd64 only.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "docker_inside": {
-      "value": false,
-      "source": "https://autoresearch.sfcompute.com/llms.txt",
-      "quote": "A node is a container on an H100 with a persistent, encrypted disk... Commands run as the dev user with passwordless sudo",
-      "note": "not offered: nodes are themselves containers (shared kernel) and sandboxes are microVMs where commands run as root through your own shell; nowhere does the 3000+ line API/CLI reference mention a Docker/container runtime, privileged mode, or dockerd available inside a node or sandbox. Derived from the absence of any such capability in an otherwise exhaustive doc.",
-      "checked": "2026-09-30"
+      "value": null,
+      "source": "https://autoresearch.sfcompute.com/docs",
+      "quote": "Nodes run one image from the catalog, or your own container image",
+      "note": "Not published. The docs neither show nor rule out Docker or docker compose inside a node or sandbox. Nodes are containers; sandboxes are root microVMs with their own guest kernel.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
       "value": false,
@@ -811,14 +811,14 @@
       "source": "https://autoresearch.sfcompute.com/llms.txt",
       "quote": "fork_sandbox(from, count?): clone 1..=256 running sandboxes from a snapshot, each resuming its exact state. Forks are FREE (copy-on-write)",
       "note": "Applies to the Autoresearch sandbox product; the sandbox that is forked continues running unaffected while forks are created (snapshot_sandbox captures a RUNNING sandbox 'without stopping it'). Node and market-VM modes already carry fork_running:false in the card (no fork capability there).",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "memory_snapshot_fork": {
       "value": true,
       "source": "https://autoresearch.sfcompute.com/llms.txt",
       "quote": "snapshots the fully initialized machine - memory, processes, page cache, disk. Returns a snapshot id to fork forever... fork_sandbox(from, count?): clone 1..=256 running sandboxes from a snapshot, each resuming its exact state.",
       "note": "Sandbox snapshots/forks include memory and running processes, resuming exact state - a true memory-snapshot fork. Node/market-VM modes are disk-only snapshots (already false in the card for those modes).",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "wake_on_request": {
       "value": true,
@@ -853,7 +853,7 @@
       "source": "https://autoresearch.sfcompute.com/llms.txt",
       "quote": "expose_sandbox_port(sandbox, port, auth?)... a PUBLIC HTTPS URL for a server running inside a sandbox - the preview link for a dev server... auth: \"bearer\" for a token on top",
       "note": "Sandboxes and nodes both support expose_port giving an unguessable HTTPS URL (optionally bearer-token protected) to reach a listening port; streaming/SSE/WebSocket pass through.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "static_egress_ip": {
       "value": false,
@@ -888,21 +888,23 @@
       "source": "https://autoresearch.sfcompute.com/docs",
       "quote": "No inbound by default. Nodes have no public address and no open ports. There is no SSH. The one way in is an exposed port: HTTPS at our edge, per port, with the URL or a bearer token as the credential.",
       "note": "Confirmed for the Autoresearch nodes/sandboxes (the card's flagship 'stock' mode, h100-node): exec is run_command over the API only, no SSH. The separate SF Compute GPU-market VMs (reserved/spot modes) DO offer SSH (docs.sfcompute.com: 'sf instances ssh <instance-name>') and already carry ssh:true on those two modes; the top-level features.ssh models the primary Autoresearch product, so false stands.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "desktop": {
-      "value": false,
-      "source": "https://autoresearch.sfcompute.com/llms.txt",
-      "quote": "You want an interactive shell to sit in. Exec runs through run_command over the API and logs are the interface; if the work cannot be expressed as commands, this is the wrong platform.",
-      "note": "not offered: outside the product's scope. Autoresearch nodes/sandboxes and the SF Compute GPU-market VMs are headless API/CLI compute for training, RL sandboxes and batch jobs; no VNC/RDP/streamed desktop is documented anywhere on autoresearch.sfcompute.com, sfcompute.com or docs.sfcompute.com.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://autoresearch.sfcompute.com/docs",
+      "quote": "GLX through Xvfb stays a software renderer.",
+      "how": "run Xvfb and a VNC/noVNC server in your own image and reach it through an exposed HTTPS port (no official desktop example; no raw TCP)",
+      "effort": "high",
+      "checked": "2026-11-08"
     },
     "browser": {
-      "value": false,
-      "source": "https://sfcompute.com/",
-      "quote": "We build data centers, the GPU clusters inside them, & the cloud on top. Get VMs, Bare Metal, & managed Slurm from the only cloud designed to let you sublease your reserved capacity when plans change.",
-      "note": "not offered: outside the product's scope. The product is bare GPU VMs/bare-metal/nodes and coding-agent sandboxes for training/inference workloads; no managed/preinstalled browser is documented. The only 'browser' mentions in the docs are the human's own browser used for OAuth sign-in, not a machine feature.",
-      "checked": "2026-09-30"
+      "value": "diy",
+      "source": "https://autoresearch.sfcompute.com/llms.txt",
+      "quote": "from_image takes a container image of YOUR own instead of a curated name",
+      "how": "install Chromium in your own container image (no official browser example)",
+      "effort": "medium",
+      "checked": "2026-11-08"
     },
     "computer_use": {
       "value": false,
@@ -1015,7 +1017,7 @@
       "source": "https://autoresearch.sfcompute.com/llms.txt",
       "quote": "your persistent disk mounts at the `home` parameter (an absolute path; default the image's WORKDIR, else /root), and ONLY that path survives stops",
       "note": "Only the home folder survives a stop; the rest of the filesystem (packages installed elsewhere) resets.",
-      "checked": "2026-10-01"
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -1030,18 +1032,23 @@
     {
       "country": "SE",
       "state": null,
-      "city": "Stockholm",
+      "city": null,
       "provider_region": "europe-north1",
       "self_serve": true,
       "choosable": true
     }
   ],
   "locations_source": "https://docs.sfcompute.com/llms-full.txt",
-  "locations_quote": "SF Compute market VMs/reserved capacity are offered in an EU region (europe-north1 / EU North)",
-  "locations_checked": "2026-10-01",
+  "locations_quote": "sf infiniband-partitions create --name training --fabric europe-north1-a.fab1",
+  "locations_checked": "2026-11-08",
   "audit_2026_10_14": {
     "applied": 4,
     "source": "checked against https://autoresearch.sfcompute.com/ live pricing table and llms.txt",
     "reviewed": 4
+  },
+  "audit_2026_11_08": {
+    "applied": 7,
+    "source": "findings/sfcompute.json + live https://autoresearch.sfcompute.com/ pricing table and /docs",
+    "reviewed": 9
   }
 }

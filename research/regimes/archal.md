@@ -11,7 +11,8 @@ Stateful API simulation sandboxes
 | Egress / GiB | Lifecycle/scope must be checked | Native add-on | unverified, not $0 | https://www.archal.ai/ |
 | IPv4 / month | Lifecycle/scope must be checked | Native add-on | unverified, not $0 | https://www.archal.ai/ |
 ## Verified billing facts and gotchas
-1. Simulated API environments, not established arbitrary Linux execution. $0.10 per environment-minute, second prorated; a sandbox with several environments pays each. $5 signup+$15 first ready sandbox. Paid continuation explicitly not available while safety rollout disabled; cannot sustain benchmark from $20 trial.
+1. Simulated API environments; Archal documents no shell, exec or code runtime. $0.10 per active environment-minute, prorated by the second from ready to teardown; a sandbox with several environments pays for each. Failed provisioning and cold-start time are free. Verified workspaces get $5 at signup and $15 after the first ready sandbox, once. Paid continuation is not yet available to self-serve workspaces, so the $20 credit cannot sustain a benchmark. Source: https://docs.archal.ai/pricing-usage (checked 2026-11-08).
+2. Environments are hosted, Archal-managed simulations. The docs mention runtime containers only in a billing context: customers pay per ready environment, not per container.
 ## Worked example
 Requested: 4 vCPU/8 GiB, 50 simultaneous × 8 h/day × 22 days = **8,800 instance-hours**, 30% CPU; 50 GiB snapshots and 100 GiB egress. A month is 730 hours only when explicitly used in rate conversion.
 **Total: unknown.** This product does not publish a verified complete 4-vCPU/8-GiB tariff and/or the service bills a different unit. Fifty concurrent instances and eight-hour sessions are not automatically supported. Neither 30% utilization nor retained snapshots can be converted into free resources. Use the native plan terms above and request the missing CPU/RAM, retention, egress and concurrency quote.

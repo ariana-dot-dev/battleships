@@ -44,7 +44,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "Pricing page: usage-based, CPU Time $0.07/CPU-h, Memory $0.04375/GB-h. Whether memory is billed on allocation or on use is not published (ram_basis null; engine then bills allocation, the conservative case)."
+      "note": "Pricing page (re-checked 2026-11-08): 'Pay-as-you-go pricing based on actual resource usage'. CPU Time $0.07 per CPU-hour (billed on CPU time used), Memory $0.04375 per GB-hour. Docs: 'runtime CPU/RAM, hot storage, and cold storage are billed separately', so memory is most likely billed while the computer runs. Neither page says whether memory is billed on the set size or on use (ram_basis null; the engine bills the set size, the worst case). No plan fee and no start fee."
     },
     {
       "key": "macos-on-demand",
@@ -137,6 +137,7 @@
     "pause_resume": true,
     "fork": true,
     "persistent_disk": true,
+    "persist_scope": "whole",
     "volumes": null,
     "auto_stop_idle": false,
     "max_session_h": null,
@@ -181,7 +182,7 @@
     "webhooks": null,
     "scheduled_wakeups": null,
     "audit_logs": null,
-    "eu_data_residency": false,
+    "eu_data_residency": null,
     "zero_data_retention": null,
     "scoped_api_keys": null,
     "spend_limits": true,
@@ -215,7 +216,9 @@
   },
   "knobs": [],
   "caveats": [
-    "Public PAYG pricing says actual resource usage and CPU Time: $0.07/CPU-hour, RAM $0.04375/GB-hour; hot running storage $0.000683/GB-hour, cold stopped storage $0.000027/GB-hour. Exact observed-versus-reserved RAM and CPU minimums unverified.",
+    "Public PAYG pricing (re-checked 2026-11-08, unchanged since 2026-09-28) says 'Pay-as-you-go pricing based on actual resource usage': CPU Time $0.07/CPU-hour, Memory $0.04375/GB-hour; hot running storage $0.000683/GB-hour, cold stopped storage $0.000027/GB-hour. No plan fee, no free tier listed, no start caps or start fees published. Memory basis (set vs used) is not published; the engine bills the set size, the worst case, so real bills for idle-heavy work can be lower. RAM and CPU minimums are not published.",
+    "Share links and email shares let other users open the same computer in the browser without raw credentials (agentcomputer.ai/docs/computers, checked 2026-11-08).",
+    "Runs as Firecracker microVMs on bare-metal hosts (homepage: 'provisioned on bare metal hosts'); the homepage claims ~1 GB/s network and ~3 GB/s NVMe file transfer. Regions are not published.",
     "Features set to null were not verified. No sandbox was purchased or tested; feature/performance statements are documentation claims. Null maximums are unknown unless a cited note explicitly states unlimited.",
     "A complete monthly bill requires known snapshot/egress/plan limits; do not silently treat missing ancillary charges as free.",
     "Storage: hot $0.000683/GB-h while running (=$0.4986/GiB-month), cold $0.000027/GB-h while stopped (=$0.0197/GiB-month, modelled as snapshot_gib_month) per agentcomputer.ai/pricing 2026-09-28.",
@@ -233,13 +236,18 @@
     "source": "checked against the provider's live pricing and docs pages",
     "reviewed": 4
   },
+  "audit_2026_11_08": {
+    "applied": 4,
+    "source": "findings/agentcomputer.json; re-checked agentcomputer.ai/pricing, /docs, /docs/computers",
+    "reviewed": 8
+  },
   "feature_evidence": {
     "snapshot_on_demand": {
       "value": true,
       "source": "https://agentcomputer.ai/docs/api",
       "quote": "POST\t/v1/computers/<id>/snapshots\tCreate a snapshot. ... POST\t/v1/snapshots/<snapshotId>/restore\tRestore a snapshot into a new computer.",
       "note": "CLI 'computer snapshot create' / 'snapshot restore <id> restored-computer'; POST /v1/computers can also 'Create a computer from an image or snapshot' (source.kind=snapshot), so new machines boot from it (fork/template). OpenAPI SnapshotResponse has capture_scope enum [filesystem, computer] and runtime_state enum [absent, included], suggesting some snapshots include runtime (memory) state, but docs do not say so explicitly; computer-host README says 'disk snapshots'. Linux only (not on macOS computers).",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "harness_api": {
       "value": false,
@@ -253,7 +261,7 @@
       "source": "https://agentcomputer.ai/docs",
       "quote": "Network speeds up to ~1 Gb/s down and ~1.2 Gb/s up over shared NAT.",
       "note": "No egress/firewall/network settings anywhere in docs or the complete OpenAPI spec (CreateComputerRequest has additionalProperties:false and no network field). Host uses nftables internally (computer-host README) but no user-facing control.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08"
     },
     "egress_http_rules": {
       "value": false,
@@ -288,8 +296,8 @@
       "value": false,
       "source": "https://agentcomputer.ai/docs/computers",
       "quote": "The current limits are 2-64 GiB RAM in 1 GiB steps and 5-250 GiB storage in 1 GiB steps.",
-      "note": "Storage is a single resizable disk (actions/resize); no block/network volume resource in the complete OpenAPI spec. Only BYO-bucket FUSE mounts (see volume_shared).",
-      "checked": "2026-09-29"
+      "note": "Storage is a single resizable disk (actions/resize); no block/network volume resource in the complete OpenAPI spec. Bucket FUSE mounts (R2/S3/GCS/WebDAV) cover shared files (see volume_shared).",
+      "checked": "2026-11-08"
     },
     "volume_shared": {
       "value": true,
@@ -316,8 +324,8 @@
       "value": false,
       "source": "https://agentcomputer.ai/openapi.json",
       "quote": "Agent Computer runs on computer-host, a Firecracker-based hypervisor... Every computer boots from the computer-guest image ... pre-configured with browser access, SSH",
-      "note": "not offered: the public API/CLI/SDK expose exec, files, ports, VNC/browser connect and snapshots, but no screenshot+click 'computer use' style action API. VNC (computer open --vnc) gives raw remote-desktop pixels/input only, driven by a human or a third-party computer-use agent, not a first-party API.",
-      "checked": "2026-09-30"
+      "note": "The public API/CLI/SDK expose exec, files, ports, VNC/browser connect and snapshots, but no first-party screenshot+click action API. The desktop is reachable over VNC (computer open --vnc), so a third-party computer-use agent can drive it; no official example of that is published.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": false,
@@ -338,7 +346,7 @@
       "source": "https://agentcomputer.ai/docs",
       "quote": "Network speeds up to ~1 Gb/s down and ~1.2 Gb/s up over shared NAT.",
       "note": "Computers share host NAT egress on bare-metal datacenter hosts; no residential/mobile proxy product is offered and no static IP is documented (public_ipv4_available: false).",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "fs",
@@ -351,8 +359,8 @@
       "value": false,
       "source": "https://agentcomputer.ai/docs/computers",
       "quote": "Use snapshots when you want a saved computer state you can return to later. computer snapshot create my-computer",
-      "note": "not offered: snapshots are explicitly user-triggered via CLI/API (computer snapshot create / POST /v1/computers/<id>/snapshots); no documented automatic snapshot-on-stop/sleep behavior.",
-      "checked": "2026-09-30"
+      "note": "Snapshots are user-triggered via CLI/API (computer snapshot create / POST /v1/computers/<id>/snapshots); no automatic snapshot schedule is documented. A stopped computer keeps its whole disk anyway (see persist_scope).",
+      "checked": "2026-11-08"
     },
     "fork_running": {
       "value": false,
@@ -422,7 +430,7 @@
       "source": "https://agentcomputer.ai/docs",
       "quote": "Network speeds up to ~1 Gb/s down and ~1.2 Gb/s up over shared NAT.",
       "note": "not offered: computers egress through shared host NAT; no static/dedicated egress IP option is documented, and public_ipv4 is explicitly unavailable.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "gpu": {
       "value": false,
@@ -460,11 +468,18 @@
       "checked": "2026-09-30"
     },
     "eu_data_residency": {
-      "value": false,
+      "value": null,
       "source": "https://agentcomputer.ai/openapi.json",
       "quote": "ComputerCapacityCheckRequest/Response have no region field; no /v1/regions endpoint exists",
-      "note": "not offered: the public API has no region parameter or region-listing endpoint anywhere, and no region/EU mention appears in the docs; the product is described only as bare-metal hosts with no location selection.",
-      "checked": "2026-09-30"
+      "note": "Not published: the public API has no region parameter, and the docs and pricing pages do not name a region or data location. Unknown, not a known absence.",
+      "checked": "2026-11-08"
+    },
+    "persist_scope": {
+      "value": "whole",
+      "source": "https://agentcomputer.ai/pricing",
+      "quote": "Hot Storage $0.000683 per GB-hour (running) ... Cold Storage $0.000027 per GB-hour (stopped)",
+      "note": "A stopped computer keeps its whole disk and pays cold storage. Docs/computers CLI: 'computer power-off my-computer  Stop a computer without deleting its stored state.' Docs: 'runtime CPU/RAM, hot storage, and cold storage are billed separately.'",
+      "checked": "2026-11-08"
     },
     "max_session_h": {
       "value": "none",
@@ -485,7 +500,7 @@
       "source": "https://agentcomputer.ai/docs",
       "quote": "Network speeds up to ~1 Gb/s down and ~1.2 Gb/s up over shared NAT.",
       "note": "Docs explicitly describe networking as 'shared NAT', i.e. computers do not get a dedicated public IPv4 address; inbound access is instead via provider-issued hostnames for published ports (docs/computers: 'Ports are public by default: the resulting URL is reachable from the open internet ... derive the final URL from the computer handle and the published port name'), not a raw IP. The complete OpenAPI spec (CreateComputerRequest/ComputerResponse) has no ip/ipv4/address field. Confirms the card's false.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "live_resize": {
       "value": true,
@@ -513,5 +528,5 @@
   "locations": [],
   "locations_source": "https://agentcomputer.ai/docs",
   "locations_quote": "Network speeds up to ~1 Gb/s down and ~1.2 Gb/s up over shared NAT. Computers can be configured up to 64 GiB RAM and 250 GiB storage, subject to currently available host capacity.",
-  "locations_checked": "2026-10-01"
+  "locations_checked": "2026-11-08"
 }

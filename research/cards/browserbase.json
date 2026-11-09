@@ -213,7 +213,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "Custom pricing. '250+' concurrent and '6+ hrs' sessions (lower bounds encoded). HIPAA BAA, DPA, SSO, Verified, zero data retention, BYO S3."
+      "note": "Custom pricing. '250+' concurrent and '6+ hrs' sessions (lower bounds encoded). DPA, SSO, Verified, zero data retention, BYO S3. HIPAA BAAs are available (the security page does not tie them to a plan)."
     }
   ],
   "free": {
@@ -269,7 +269,7 @@
     "lang_rust": null,
     "lang_java": null,
     "gpu_desktop": false,
-    "credential_injection": null,
+    "credential_injection": true,
     "egress_http_rules": false,
     "wake_on_request": false,
     "live_resize": false,
@@ -391,7 +391,9 @@
     "Free plan has no overage path (hard 1 browser-hour/month); paid plans say 'No caps. No cut-offs.'",
     "Search/Fetch/Extract/Agents/Model Gateway are separate metered APIs, not modelled. Functions runtime is free on all plans (browser time still billed).",
     "Regions us-west-2 (default), us-east-1, eu-central-1, ap-southeast-1; no regional price differences published.",
-    "Isolation: docs say each browser runs in a dedicated VM destroyed after each session (VMM unnamed). No benchmark data available (perf null)."
+    "Isolation: docs say each browser runs in a dedicated VM destroyed after each session (VMM unnamed). No benchmark data available (perf null).",
+    "Products beyond browser sessions (not modelled): Runtime (sandboxed environments for agent deployments; backs the Agent shell, https://www.browserbase.com/runtime), Authenticated Fetch (2026-10-27, fetches logged-in pages with a Context and no browser session), Navigation Policies (2026-11-04), Secrets in Functions (2026-09-30), 1Password for Agents (2026-10-22). Source: https://www.browserbase.com/changelog. Prices re-checked 2026-11-08: unchanged.",
+    "Concurrency is 3/25/100/250+ by plan: 300 or 1,000 browsers at once need the Scale plan, which has no public price; Startup rates do not price those scenarios."
   ],
   "sources": [
     "https://www.browserbase.com/pricing",
@@ -401,7 +403,12 @@
     "https://docs.browserbase.com/platform/identity/proxies",
     "https://docs.browserbase.com/optimizations/latency/multi-region.md",
     "https://docs.browserbase.com/platform/functions/limits",
-    "https://docs.browserbase.com/account/enterprise/security"
+    "https://docs.browserbase.com/account/enterprise/security",
+    "https://browserbase.com/changelog/navigation-policies",
+    "https://browserbase.com/changelog/secrets-are-now-in-functions",
+    "https://www.browserbase.com/changelog/1password-for-agents",
+    "https://www.browserbase.com/runtime",
+    "https://www.browserbase.com/changelog"
   ],
   "fleet": {
     "default_max_instances": 3,
@@ -449,10 +456,10 @@
     },
     "egress_allowlist": {
       "value": true,
-      "source": "https://docs.browserbase.com/platform/browser/security/allowed-domains",
-      "quote": "If you pass one or more domains, Browserbase blocks top-level page navigations to any domain not on the list.",
-      "note": "browserSettings.allowedDomains per session; experimental; subdomains included; top-frame navigations only - does NOT block iframes, images, scripts, XHR. Security page also says each browser runs in an isolated subnet with strict firewalls (not user-configurable). 'IP allowlisting' page is about routing via your own proxy so targets can allowlist you, not egress control.",
-      "checked": "2026-09-29",
+      "source": "https://browserbase.com/changelog/navigation-policies",
+      "quote": "Browserbase checks page loads, iframe navigations, popups, and each redirect hop against that policy.",
+      "note": "Navigation Policies (2026-11-04) allow or block site categories and domains, reusable across sessions; support enables them per project (\"Contact support@browserbase.com to enable Navigation Policies for your project.\"). The older experimental browserSettings.allowedDomains checks top-level navigations only (https://docs.browserbase.com/platform/browser/security/allowed-domains). Neither filters by HTTP method or path.",
+      "checked": "2026-11-08",
       "level": "domain"
     },
     "ingress_rules": {
@@ -474,8 +481,8 @@
       "value": "ai-only",
       "source": "https://docs.browserbase.com/platform/model-gateway/overview",
       "quote": "Instead of managing separate API keys for OpenAI, Anthropic, and Google, just use your Browserbase API key and pick a model. Browserbase routes the request to the upstream provider for you.",
-      "note": "Model Gateway = platform-key LLM gateway (Stagehand/Agents). No credential-injecting egress proxy for arbitrary hosts. Agent 'variables' are %placeholders% the LLM never sees but the values are still typed into the browser; 1Password integration fetches credentials client-side; Contexts store logged-in cookies (encrypted at rest). No non-HTTP coverage.",
-      "checked": "2026-09-29"
+      "note": "Model Gateway = platform-key LLM gateway (Stagehand/Agents). No credential-injecting egress proxy for arbitrary hosts. Other ways to keep keys out of code: Secrets in Functions (2026-09-30, read at runtime via context.secrets) and 1Password for Agents (2026-10-22, fills logins without the password reaching the app, model or logs). Contexts store logged-in cookies (encrypted at rest).",
+      "checked": "2026-11-08"
     },
     "volume_attach": {
       "value": false,
@@ -502,28 +509,28 @@
       "value": false,
       "source": "https://www.browserbase.com/pricing",
       "quote": "Browserbase is the Browser Agent Platform: one API key gives your agent everything it needs to browse and interact with the web like a human: Browsers, Fetch, Search, Agent Identity, Functions, and the Model Gateway.",
-      "note": "not offered: outside the product's scope. Browserbase provisions fixed, provider-managed Chrome browser VMs (and a fixed TypeScript Functions runtime); there is no way to start a machine from a customer-supplied Docker/OCI image.",
+      "note": "Outside the product scope: Browserbase provisions fixed, provider-managed Chrome browser VMs (and a fixed TypeScript Functions runtime); there is no way to start a machine from a customer-supplied Docker/OCI image.",
       "checked": "2026-09-30"
     },
     "computer_use": {
       "value": false,
       "source": "https://docs.browserbase.com/platform/agents/how-it-works",
       "quote": "The Agent uses Stagehand, the SDK for browser agents, to interact with web pages. It navigates to URLs, clicks elements, types into forms, extracts structured data, and waits for page state to settle.",
-      "note": "not offered: outside the product's scope. Browserbase is browser-only (no general desktop/GUI); its Agents drive the browser via Stagehand's DOM/accessibility-based actions and CDP, not a screenshot+click computer-use API against a desktop.",
+      "note": "Outside the product scope: Browserbase is browser-only (no general desktop/GUI); its Agents drive the browser via Stagehand's DOM/accessibility-based actions and CDP, not a screenshot+click computer-use API against a desktop.",
       "checked": "2026-09-30"
     },
     "wake_on_request": {
       "value": false,
       "source": "https://docs.browserbase.com/account/enterprise/security",
       "quote": "No browser reuse: After each session, the virtual machine is killed and recreated from scratch, ensuring every browser session is completely fresh.",
-      "note": "not offered: outside the product's scope. There is no persistent/sleeping machine to wake — every session's VM is created fresh on request and destroyed at session end, so there is no stop/sleep-then-wake lifecycle.",
+      "note": "Outside the product scope: There is no persistent/sleeping machine to wake — every session's VM is created fresh on request and destroyed at session end, so there is no stop/sleep-then-wake lifecycle.",
       "checked": "2026-09-30"
     },
     "live_resize": {
       "value": false,
       "source": "https://www.browserbase.com/pricing",
       "quote": "Each browser runs in a dedicated VM destroyed after the session; vCPU/RAM not published.",
-      "note": "not offered: outside the product's scope. Browser VMs are ephemeral (one per session, unsized/unpublished specs) with no documented API to change CPU/RAM of a running session.",
+      "note": "Outside the product scope: Browser VMs are ephemeral (one per session, unsized/unpublished specs) with no documented API to change CPU/RAM of a running session.",
       "checked": "2026-09-30"
     },
     "lang_python": {
@@ -544,14 +551,14 @@
       "value": false,
       "source": "https://docs.browserbase.com/platform/browser/security/allowed-domains",
       "quote": "If you pass one or more domains, Browserbase blocks top-level page navigations to any domain not on the list.",
-      "note": "Egress control is domain-level only (allowedDomains blocks top-level navigation to non-listed domains, and only for top-frame navigations, not iframes/XHR/scripts). No HTTP method/path-level egress rules are documented.",
-      "checked": "2026-09-30"
+      "note": "Egress control is by domain and site category (Navigation Policies: page loads, iframes, popups, redirects; enabled by support). No HTTP method/path-level egress rules are documented.",
+      "checked": "2026-11-08"
     },
     "arm64": {
       "value": false,
       "source": "https://www.browserbase.com/pricing",
       "quote": "Each browser runs in a dedicated VM destroyed after the session; vCPU/RAM not published.",
-      "note": "not offered: outside the product's scope. Browserbase sells browser-hours in a managed Chrome VM, not selectable machine architectures; no ARM/arm64 option is documented anywhere in the docs or pricing pages.",
+      "note": "Outside the product scope: Browserbase sells browser-hours in a managed Chrome VM, not selectable machine architectures; no ARM/arm64 option is documented anywhere in the docs or pricing pages.",
       "checked": "2026-09-30"
     },
     "persistent_disk": {
@@ -573,8 +580,8 @@
       "value": false,
       "source": "https://docs.browserbase.com/platform/browser/long-sessions/overview",
       "quote": "By default, Browserbase sessions automatically terminate in two scenarios: 1. When a session disconnects 2. When the session reaches its timeout... Browserbase offers session keep alive and custom timeout to address this need.",
-      "note": "Long-session tooling is keepAlive (session stays running/billed across client disconnects) and extended timeouts, not a pause primitive; sessions are running or terminated, never suspended.",
-      "checked": "2026-09-30"
+      "note": "Sessions are running or terminated, never suspended; keepAlive keeps a session running (and billed) across disconnects, and Stagehand 4.4 (2026-11-05) can disconnect and reattach to a live browser. Agent runs (not browser VMs) can pause for human steps such as MFA since 2026-09-24.",
+      "checked": "2026-11-08"
     },
     "fork": {
       "value": false,
@@ -601,21 +608,21 @@
       "value": false,
       "source": "https://docs.browserbase.com/account/enterprise/security",
       "quote": "Browser isolation: Each browser runs in a dedicated VM, providing strong isolation at the hardware virtualization layer.",
-      "note": "Users get CDP/browser access only (no shell, root, or general-purpose OS access on the VM); there is no documented way to run Docker/containers inside a session or Function. Not offered: outside the product's scope (browser-as-a-service, not a general compute sandbox).",
+      "note": "Users get CDP/browser access only (no shell, root, or general-purpose OS access on the VM); there is no documented way to run Docker/containers inside a session or Function. Outside the product scope (browser-as-a-service, not a general compute sandbox).",
       "checked": "2026-09-30"
     },
     "nested_virt": {
       "value": false,
       "source": "https://docs.browserbase.com/account/enterprise/security",
       "quote": "Browser isolation: Each browser runs in a dedicated VM, providing strong isolation at the hardware virtualization layer.",
-      "note": "No shell/root access is exposed to customers, so /dev/kvm is not reachable; nested virtualization is not documented anywhere. Not offered: outside the product's scope.",
+      "note": "No shell/root access is exposed to customers, so /dev/kvm is not reachable; nested virtualization is not documented anywhere. Outside the product scope.",
       "checked": "2026-09-30"
     },
     "root": {
       "value": false,
       "source": "https://docs.browserbase.com/platform/functions/limits",
       "quote": "Persistent storage | None ... Sandbox directories such as /tmp aren't guaranteed to be empty or unique for each invocation.",
-      "note": "Customer access to the VM is limited to the browser via CDP (connectUrl) and to a sandboxed Functions runtime; no root/sudo shell is documented anywhere. Not offered: outside the product's scope.",
+      "note": "Customer access to the VM is limited to the browser via CDP (connectUrl) and to a sandboxed Functions runtime; no root/sudo shell is documented anywhere. Outside the product scope.",
       "checked": "2026-09-30"
     },
     "ssh": {
@@ -629,7 +636,7 @@
       "value": false,
       "source": "https://docs.browserbase.com/welcome/what-is-browserbase.md",
       "quote": "Browserbase is the Browser Agent Platform: one API key gives your agent everything it needs to browse and interact with the web like a human: Browsers, Fetch, Search, Agent Identity, Functions, and the Model Gateway.",
-      "note": "Product surface is a managed Chrome browser (plus Live View/session-replay of that browser), not a general graphical OS desktop (no VNC/RDP to a full desktop environment). Not offered: outside the product's scope.",
+      "note": "Product surface is a managed Chrome browser (plus Live View/session-replay of that browser), not a general graphical OS desktop (no VNC/RDP to a full desktop environment). Outside the product scope.",
       "checked": "2026-09-30"
     },
     "custom_image": {
@@ -671,14 +678,14 @@
       "value": false,
       "source": "https://www.browserbase.com/pricing",
       "quote": "Browser session, Developer overage rate ($0.12/browser-hour)",
-      "note": "Product is a managed Chrome/Chromium browser service (headless/headful Chrome); no Windows machines or Windows-only browser are offered. Not offered: outside the product's scope.",
+      "note": "Product is a managed Chrome/Chromium browser service (headless/headful Chrome); no Windows machines or Windows-only browser are offered. Outside the product scope.",
       "checked": "2026-09-30"
     },
     "macos": {
       "value": false,
       "source": "https://www.browserbase.com/pricing",
       "quote": "Browser session, Developer overage rate ($0.12/browser-hour)",
-      "note": "No macOS machines/browsers are offered; sessions run Browserbase's Linux-hosted Chromium build. Not offered: outside the product's scope.",
+      "note": "No macOS machines/browsers are offered; sessions run Browserbase's Linux-hosted Chromium build. Outside the product scope.",
       "checked": "2026-09-30"
     },
     "self_host": {
@@ -715,7 +722,14 @@
       "source": "https://docs.browserbase.com/platform/browser/core-features/contexts",
       "quote": "Contexts allow you to persist user data across multiple browser sessions... A Context persists the contents of the Chromium user data directory, including: Cookies... localStorage... IndexedDB... Session Storage... Service Workers... Web Data... Browser preferences",
       "note": "Only a saved browser profile (cookies, local storage, logins) carries over; no files survive.",
-      "checked": "2026-10-01"
+      "checked": "2026-11-08"
+    },
+    "credential_injection": {
+      "value": true,
+      "source": "https://www.browserbase.com/changelog/1password-for-agents",
+      "quote": "Credentials never pass through your application, models, or logs.",
+      "note": "Since 2026-10-22, 1Password for Agents fills site logins in the browser after the user approves. Since 2026-09-30, Functions read stored secrets at runtime from context.secrets (https://browserbase.com/changelog/secrets-are-now-in-functions); that path is not an egress proxy. Scope: browser logins, not arbitrary outbound HTTP.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [

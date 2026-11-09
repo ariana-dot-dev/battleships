@@ -1,27 +1,26 @@
-# Rivet — regimes (2026-09-28)
-YC: Winter 2023; directory status **Active**. Research scope: public-product-researched. Source: https://www.ycombinator.com/companies/rivet
-Rivet Actors are the primitive for stateful workloads
+# Rivet — regimes (2026-11-08)
+YC: Winter 2023 (company facts not re-verified on 2026-11-08). Source: https://www.ycombinator.com/companies/rivet
+Rivet Actors are the primitive for stateful workloads. agentOS runs on Actors.
 ## Regime table
 | Regime | When it applies | How billed | Numbers | Source |
 |---|---|---|---|---|
-| Managed actor execution | alt | resource; CPU alloc, memory alloc | $0.1188/vCPU-h + $0.01044/GiB-h; multiplier 1 | https://rivet.dev/pricing/ |
-| Hobby | Plan limits apply | Monthly fee; credits only as stated | fee=20; included usage=$0; concurrent=None; max session h=None | https://rivet.dev/pricing/ |
-| Team | Plan limits apply | Monthly fee; credits only as stated | fee=200; included usage=$0; concurrent=None; max session h=None | https://rivet.dev/pricing/ |
-| Enterprise | Plan limits apply | Monthly fee; credits only as stated | fee=None; included usage=$None; concurrent=None; max session h=None | https://rivet.dev/pricing/ |
-| Retained disk / GiB-month | Lifecycle/scope must be checked | Native add-on | $0.4 | https://rivet.dev/pricing/ |
-| Snapshots / GiB-month | Lifecycle/scope must be checked | Native add-on | unverified, not $0 | https://rivet.dev/pricing/ |
-| Egress / GiB | Lifecycle/scope must be checked | Native add-on | $0.15 | https://rivet.dev/pricing/ |
-| IPv4 / month | Lifecycle/scope must be checked | Native add-on | unverified, not $0 | https://rivet.dev/pricing/ |
+| Actor Nodes (agentOS and Actors) | always | flat monthly per node | R-5 1/4 vCPU 1 GB $4.20; R-10 1/2 vCPU 2 GB $8.40; R-20 1 vCPU 4 GB $16.80; R-40 4 vCPU 8 GB $27.30; R-160 8 vCPU 16 GB $94.50 | https://rivet.dev/pricing/ |
+| Free | prototyping | control plane $0 | 1 node (R-5 or R-10) at no charge | https://rivet.dev/pricing/ |
+| Hobby | Plan limits apply | control plane $10/mo + nodes | up to 3 nodes, R-5 to R-20 | https://rivet.dev/pricing/ |
+| Team | Plan limits apply | control plane $120/mo + nodes | up to 10 nodes, all sizes; YC / a16z Speedrun 50% off for 12 months | https://rivet.dev/pricing/ |
+| Enterprise | Plan limits apply | control plane $900/mo + nodes | up to 50 nodes; more: contact sales | https://rivet.dev/pricing/ |
+| Storage, egress | n/a | not listed on the pricing page | unknown | https://rivet.dev/pricing/ |
 ## Verified billing facts and gotchas
-1. Compute from $0.1188/vCPU-hour +$0.01044/GiB-hour, billed active execution lifetime, not CPU utilization. Awake actor-hours are a separate coordination meter $0.05/1000. Paid Hobby $20 or Team $200 includes no compute credit.
-2. Calculator caps memory at 4 GiB, so requested 8 GiB instance is unsupported by published limits. Persistence $0.40/GB-month beyond 5GB; 1TB paid egress then $0.15/GB; reads/writes charge separately.
+1. "Your monthly cost is the control plane price for your plan plus your Actor Nodes." Actors are paid "Only through the Actor Nodes in your cluster." No per-second, storage or egress rates are listed.
+2. Many actors share one node. Actors per node and proration are not published, so the model prices one node per machine for the whole month.
+3. Node caps per cluster: Free 1, Hobby 3, Team 10, Enterprise 50. R-40 and R-160 need Team or higher.
+4. agentOS runs no Docker, apt or arbitrary binaries. Rivet documents mounting an external sandbox (E2B, Daytona, Freestyle, own Docker); that provider bills it.
+5. Clusters run on Google Cloud: us-east4, us-central1, europe-west1, europe-west3, asia-southeast1, asia-east1.
 ## Worked example
-Requested: 4 vCPU/8 GiB, 50 simultaneous × 8 h/day × 22 days = **8,800 instance-hours**, 30% CPU; 50 GiB snapshots and 100 GiB egress. A month is 730 hours only when explicitly used in rate conversion.
-Published 4GiB maximum prevents the requested 8GiB per instance; no feasible normalized total. Algebraic 4/8 $0.55872/h is not a purchasable 4/8 configuration. Actor-hours, reads and writes also require workload inputs.
+Requested: 4 vCPU/8 GiB, 50 at once. 50 × R-40 = $1,365/mo plus Enterprise $900 = $2,265/mo, flat. 300 or 1,000 at once exceed the published 50-node cap (contact sales).
 ## Sources and coverage
-- https://www.ycombinator.com/companies/rivet
 - https://rivet.dev/pricing/
-- https://rivet.dev/
-- https://rivet.dev/docs/
-- https://rivet.dev/llms.txt
-HN query results were captured separately as `<id>--hn.txt`; they are discovery leads, not current tariff authority. Downloaded docs do not imply every feature was verified; unsupported assertions remain null.
+- https://rivet.dev/agentos/docs/limitations.md
+- https://rivet.dev/agentos/docs/versus-sandbox.md
+- https://rivet.dev/guides/run-claude-code/
+- https://rivet.dev/agents/docs/sandboxes/

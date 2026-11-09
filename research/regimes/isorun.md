@@ -1,4 +1,4 @@
-# Isorun: pricing regimes (as of 2026-09-28)
+# Isorun: pricing regimes (as of 2026-09-28, rates re-checked 2026-11-08)
 Isorun (public beta since v1.0.0, 2026-06-16) has one of the simplest price sheets in the set. There is one per-second
 rate on allocated vCPU and RAM, no plan fee and no minimums. Hibernation costs $0, and persistent disks are the only
 separately billed storage. Egress, TLS and platform fees are "included in compute".
@@ -21,7 +21,7 @@ isorun.com/pricing and isorun.ai/pricing return 404. Pricing lives on the homepa
 | Custom / enterprise | "Talk to us" | Unpublished | null | https://isorun.ai/ |
 Dated changes: public launch with these rates on 2026-06-16 (changelog v1.0.0). No change since.
 ## Gotchas
-1. **The default timeout destroys the sandbox.** Idle sandboxes are *destroyed* after 300 s, not hibernated. To keep state for free you have to call `hibernate()` yourself.
+1. **The default timeout destroys the sandbox.** Idle sandboxes are *destroyed* after 300 s, not hibernated. The destroy removes memory, processes and scratch-disk files. Files on an attached persistent disk at `/workspace` survive and reattach to a new sandbox. A `snapshot()` taken before the destroy restores later in the same region. To keep the whole sandbox for free, call `hibernate()` yourself.
 2. **Idle running time is billed at full price** (allocation billing). The only $0 idle state is hibernation.
 3. **Hibernation really is $0**, with no hibernation-storage fee published. This is rare: E2B is also $0, while MIOSA and Daytona charge disk.
 4. **Resume changes the guest IP.** Established outbound TCP connections reset after resume. This is a correctness cost, not a price.
@@ -40,4 +40,4 @@ Sandboxes are hibernated between shifts.
 | Same, state on persistent disks | Yes | $1,937.00 |
 | First month with $50 credit | Yes | $1,886.00 |
 | Anti-pattern: never hibernated or destroyed (24 h/day) | Yes | 50 × 24 × 22 × 0.22 = **$5,808.00** |
-| Anti-pattern: default 300 s timeout | Same $ | State is destroyed after 5 idle minutes |
+| Anti-pattern: default 300 s timeout | Same $ | Memory, processes and scratch files are destroyed after 5 idle minutes; a /workspace persistent disk and snapshots survive |

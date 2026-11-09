@@ -1,4 +1,4 @@
-# Anchor Browser — pricing regimes (as of 2026-09-28)
+# Anchor Browser — pricing regimes (as of 2026-09-28, re-checked 2026-11-08)
 Anchor Browser sells cloud Chromium sessions for AI agents plus agentic "tasks" and managed authentication
 (OmniConnect). Everything is paid in **dollar-denominated credits (1 credit = $1)**. The "Infrastructure plan"
 (browser use without tasks) costs **$0.01 per browser created + $0.05 per browser-hour** (active time, nearest full
@@ -30,6 +30,8 @@ launch date unverified.
 4. **Idle tail**: a session with no connection lingers `idle_timeout` (5 min default) before termination; likely billed.
 5. **Per-browser fee** ($0.01) matters for many short sessions: 100k one-minute sessions = $1,000 in creation fees vs $83 of browser time.
 6. **Proxy $8/GB** dominates scraping bills; proxyless egress is also metered ($0.20/GB) — unusual among browser vendors.
+7. **Free is a hard cap.** Free gives $5 of credits a month with no overage. Any use above $5 a month needs Starter ($50).
+8. **Price label mismatch.** The calculator on anchorbrowser.io/pricing labels browser time "$0.09/hour", but its own total uses $0.05/hour, the docs rate. This file uses $0.05.
 ## Worked example (closest browser analogue)
 Mapped to **50 concurrent browsers x 8 h/day x 22 days = 8,800 browser-hours/month**, one 8-hour session per slot per
 day = 1,100 sessions (max_duration raised). "30% CPU" has no billing effect. 50 GiB "snapshots": no equivalent

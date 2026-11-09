@@ -44,7 +44,7 @@
       "multiplier": 1,
       "windows_vcpu_h": null,
       "gpu": null,
-      "note": "FAQbills idle running sessions;8-hourlifetimeneedsimage-specificverification. OS-specificpremiumrates unverified; normalizedmodeLinuxCodeSpaceonly."
+      "note": "The FAQ bills a running session while it is idle. OS-specific premium rates are not verified. The priced mode is Linux CodeSpace only."
     }
   ],
   "storage": {
@@ -92,7 +92,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "100 GiB Context/replay storage,10 Mbps basic bandwidth; compute extra."
+      "note": "100 GiB Context and session-replay storage; 10 Mbps basic bandwidth; premium bandwidth not offered on Basic; compute extra."
     },
     {
       "name": "Pro",
@@ -106,7 +106,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "1 TiB Context/replay storage; custom images;10 Mbps basic bandwidth; compute extra."
+      "note": "1 TiB Context and session-replay storage; custom images; 10 Mbps basic bandwidth, or premium bandwidth with a custom peak at $0.123/GB inbound; compute extra; no concurrency scale-out."
     },
     {
       "name": "Ultra",
@@ -120,7 +120,7 @@
       "max_vcpu": null,
       "max_ram_gib": null,
       "sizes_allowed": null,
-      "note": "1 TiB Context/replay storage; expand concurrency above 200 at 1.50 USD/slot/month; compute extra."
+      "note": "1 TiB Context and session-replay storage; concurrency above 200 at $1.50 per session per month; premium bandwidth at $0.123/GB inbound; compute extra."
     }
   ],
   "free": {
@@ -142,8 +142,8 @@
     "auto_stop_idle": true,
     "max_session_h": null,
     "custom_image": true,
-    "docker_inside": false,
-    "nested_virt": false,
+    "docker_inside": null,
+    "nested_virt": null,
     "root": null,
     "systemd": null,
     "browser": true,
@@ -179,7 +179,7 @@
     "credential_injection": null,
     "egress_http_rules": false,
     "wake_on_request": false,
-    "live_resize": false,
+    "live_resize": null,
     "fork_running": false,
     "memory_snapshot_fork": false,
     "webhooks": null,
@@ -196,7 +196,7 @@
     "snapshot_on_demand": false,
     "own_agent_api": true,
     "harness_api": false,
-    "egress_allowlist_level": "both",
+    "egress_allowlist_level": "domain",
     "ingress_rules": true,
     "secret_proxy": false,
     "volume_attach": true,
@@ -207,7 +207,9 @@
     "guest_firewall": null,
     "max_session_unlimited": true,
     "open_internet": true,
-    "usage_api": false
+    "usage_api": false,
+    "persist_scope": "folder",
+    "persist_path": "Context folders (OSS-backed sync or mount)"
   },
   "perf": {
     "cpu_runs_s": null,
@@ -219,17 +221,19 @@
   "caveats": [
     "CPU and RAM actual usage time wording does not mean CPU utilization: FAQ explicitly charges running idle sessions.",
     "Premium bandwidth$0.123/GB is **inbound**, not generic outbound egress; do not swap directions.",
-    "Included 100 GiB/1 TiB storage is Context and recordings, not root disk or guaranteed full VM snapshot retention.",
+    "Included 100 GiB/1 TiB storage is Context data and session replays. The billing page says it is separate from the system and data disks of compute resources; those disks have no published price.",
     "Eight-hour sessions and region/image capacity not confirmed by pricing page alone.",
     "Credits 0.0267 USD/unit meter LLM tokens only; subscription fees are not converted into compute credits.",
     "SDK source is open, not proof of self-hostable hosted runtime.",
     "Original public product launch date unverified here; public 2026 pricing update and SDK establish presence, not founding.",
     "State retention priced at the Context storage overage $0.000045/GiB-h (= $0.0329/GiB-month) beyond the plan quota (100 GiB Basic, 1 TiB Pro/Ultra; engine uses the Basic 100 GiB). Context storage persists context data and session replays; full-VM snapshot semantics are not documented.",
-    "Egress set to 0: each instance gets free basic bandwidth (10 Mbps peak, no SLA); premium SLA bandwidth $0.123/GB is billed on inbound traffic. Throughput-capped, not unlimited.",
+    "Egress set to 0: each instance gets free basic bandwidth (10 Mbps peak, measured on inbound traffic, no SLA). Pro and Ultra can buy premium bandwidth with a custom peak and an SLA at $0.123/GB, billed on inbound traffic. Basic cannot buy premium bandwidth.",
     "Sandbox system-disk size and price not published (billing page and CodeSpace docs, 2026-09-28); disk beyond 0 GiB shows as unknown. SSH access not documented.",
     "Pro and Ultra plans: up to 50 custom images, 5 enabled concurrently. Pro can upgrade to Ultra (prorated difference over remaining days/30); Ultra cannot downgrade to Pro. New users get 100 free trial points for environment compute (USD value of a point not published).",
-    "Domain-name egress rules are Windows-only (\"This feature is currently only supported for sandboxes with a Windows operating system.\", security white paper, 2026-10-14). Linux sandboxes, including the priced CodeSpace mode, can only filter egress by IP/CIDR/port security-group rules.",
-    "Session Link (HTTPS URLs to ports in the sandbox) is Pro/Ultra only: \"The Session Link feature is an exclusive premium feature for paid subscription users (Pro/Ultra).\" Only ports 30100-30199 are open by default; others need a whitelist request. On Basic ($0) there is no inbound access to services in the sandbox (session-link-access.md, 2026-10-14)."
+    "Outbound rules are domain allow/deny rules, up to 300, on Windows sandboxes only (\"This feature is currently only supported for sandboxes with a Windows operating system.\", security white paper, 2026-11-08). The white paper documents no outbound IP/CIDR/port rule, and the default security group cannot be modified. No outbound filter is documented for Linux sandboxes, including the priced CodeSpace mode.",
+    "Session Link (HTTPS URLs to ports in the sandbox) is Pro/Ultra only: \"The Session Link feature is an exclusive premium feature for paid subscription users (Pro/Ultra).\" Only ports 30100-30199 are open by default; others need a whitelist request. On Basic ($0) there is no inbound access to services in the sandbox (session-link-access.md, 2026-10-14).",
+    "Two official region lists differ: the GitHub SDK lists cn-hangzhou, ap-southeast-1 and us-east-1 (agentbay.* endpoints); the help-center configuration page lists China (Shanghai, default) and Singapore (wuyingai.* endpoints), 2026-11-08.",
+    "Files survive a session only in Context folders: Context Sync uploads a chosen folder at session end; Context Mount (beta, aio-ubuntu-2404 image only) writes through to OSS at once. Everything else in the session is lost when it ends."
   ],
   "sources": [
     "https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions",
@@ -238,7 +242,9 @@
     "https://github.com/aliyun/wuying-agentbay-sdk",
     "https://www.alibabacloud.com/help/en/agentbay/agentbay-codespace",
     "https://www.alibabacloud.com/help/en/agentbay/computeruse",
-    "https://www.alibabacloud.com/help/en/agentbay/agentbay-mobile-use"
+    "https://www.alibabacloud.com/help/en/agentbay/agentbay-mobile-use",
+    "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
+    "https://www.alibabacloud.com/help/en/agentbay/developer-reference/advanced-configuration"
   ],
   "fleet": {
     "default_max_instances": 10,
@@ -247,12 +253,12 @@
     "raise": "self-serve",
     "raise_time_days": null,
     "verification": null,
-    "tiers": "Basic PAYG 10; Pro 200; Ultra 200 plus purchasable scale-out at $1.50/concurrent session/month.",
+    "tiers": "Basic 10; Pro 200, no scale-out; Ultra 200 plus scale-out at $1.50 per concurrent session per month (1,000 at once = Ultra + 800 slots).",
     "notes": "Slot licenses are distinct from compute charges. 10 fits Basic, 50 Pro, 300/1,000 require Ultra scale-out; no published upper expansion ceiling or approval turnaround. Account payment/identity prerequisites not resolved for all jurisdictions.",
     "sources": [
       "https://www.alibabacloud.com/help/en/agentbay/product-overview/agentbay-billing-instructions"
     ],
-    "researched": "2026-09-28"
+    "researched": "2026-11-08"
   },
   "audit_2026_09_29": {
     "applied": 3,
@@ -291,17 +297,17 @@
     "egress_allowlist": {
       "value": true,
       "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
-      "quote": "It supports configuring the direction (inbound or outbound), action (allow or deny), priority, protocol type, port range, authorization object (IP address or CIDR block), and rule description. By combining rules with different scopes and priorities, administrators can achieve fine-grained, whitelist-based network access control.",
-      "note": "Admin/org-level security-group policies (IP/CIDR/port) plus domain-name control policies ('add a rule that denies access to \"*\" with the lowest priority' for allowlist mode, up to 300 rules). Domain rules: 'This feature is currently only supported for sandboxes with a Windows operating system.' Aliyun domains (*.aliyun.com, *.aliyuncs.com, ...) are always allowed. Source is the security white paper, not a how-to page; per-session API control not in SDK. SDK 'Network (Beta)' is local-egress redirection, not a filter. Level 'both' is product-wide; on Linux (the priced mode) only IP/CIDR/port rules apply.",
-      "checked": "2026-10-14",
-      "level": "both"
+      "quote": "This feature is currently only supported for sandboxes with a Windows operating system.",
+      "note": "Admins control network scope with security-group policies and domain name control policies (wildcard *, up to 300 rules, allow or deny by priority). Domain rules are Windows-only. The white paper documents no outbound IP/CIDR/port rule, and the default security group cannot be modified. No outbound filter is documented for Linux sandboxes (the priced mode).",
+      "checked": "2026-11-08",
+      "level": "domain"
     },
     "ingress_rules": {
       "value": true,
       "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
-      "quote": "Sandbox instances are not assigned public IP addresses and have no network ports open to the public. By default, the security group only allows ASP protocol communication from the stream gateway, blocking all other inbound external traffic.",
-      "note": "Services are reached only via session.get_link() gateway URLs (Pro/Ultra only; 'Default open range: [30100, 30199]; other ports require whitelist approval'); whether the link URL itself is tokenized is not documented. Security-group inbound rules and custom-VPC sessions (vpc_ip/vpc_id) exist; inter-sandbox traffic denied by default.",
-      "checked": "2026-09-29"
+      "quote": "By default, the security group only allows ASP protocol communication from the stream gateway, blocking all other inbound external traffic.",
+      "note": "The default security group 'cannot be modified'. Services are reached only via session.get_link() gateway URLs (Pro/Ultra only; default ports 30100-30199, others need a whitelist request). Admins can set inter-sandbox access rules within a workspace; inter-sandbox traffic is denied by default.",
+      "checked": "2026-11-08"
     },
     "secret_proxy": {
       "value": false,
@@ -315,28 +321,32 @@
       "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/basics/data-persistence.md",
       "quote": "Context Mount presents the context's storage as a **live mounted filesystem** — writes are persisted immediately, and reads always reflect the latest state.",
       "note": "BetaContextMount (SDK v0.21.0, beta): OSS-backed FUSE (ossfs 1.0 STANDARD / ossfs 2.0 PERFORMANCE) mounted at create or dynamically; requires image aio-ubuntu-2404. Older Context Sync = download on start / upload on end (not a live volume). Context storage billed per GiB-h beyond plan quota.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08",
+      "beta": true
     },
     "volume_shared": {
       "value": true,
       "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/basics/data-persistence.md",
       "quote": "When the same context is mounted in multiple active sessions simultaneously, changes made in one session are **immediately visible** in the other sessions — no sync or refresh needed",
       "note": "Read-write (default) or READ_ONLY access modes. No reliable cross-session file locks; object-store FUSE semantics. Beta, aio-ubuntu-2404 image only.",
-      "checked": "2026-09-29"
+      "checked": "2026-11-08",
+      "beta": true
     },
     "docker_inside": {
-      "value": false,
+      "value": null,
+      "corrected_from": false,
       "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/basics/command-execution.md",
       "quote": "The `session.command` module provides programmatic access to execute shell commands in cloud sessions.",
-      "note": "not offered: no mention of a Docker/container runtime available inside the guest OS anywhere in the SDK docs (command execution, custom images built via console/Dockerfile happen server-side, not inside a running session). Derived from absence of any docker/containerd API.",
-      "checked": "2026-09-30"
+      "note": "Not published: the docs neither offer nor exclude Docker inside a session, and sudo for the wuying user is undocumented. The earlier false rested only on absence.",
+      "checked": "2026-11-08"
     },
     "nested_virt": {
-      "value": false,
+      "value": null,
+      "corrected_from": false,
       "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
       "quote": "Each sandbox instance runs in a virtual machine with an independent guest operating system kernel.",
-      "note": "not offered: no mention of /dev/kvm or nested virtualization anywhere in the docs; sandboxes are themselves guest VMs on Alibaba Cloud's hypervisor, and nested virtualization is not exposed to tenants. Derived.",
-      "checked": "2026-09-30"
+      "note": "Not published: the white paper does not mention /dev/kvm or nested virtualization. The earlier false rested only on absence.",
+      "checked": "2026-11-08"
     },
     "anti_bot": {
       "value": true,
@@ -362,9 +372,9 @@
     "ssh": {
       "value": false,
       "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
-      "quote": "Sandbox instances are not assigned public IP addresses and have no network ports open to the public. By default, the security group only allows ASP protocol communication from the stream gateway, blocking all other inbound external traffic.",
-      "note": "not offered: no SSH documented anywhere; access is via the SDK's command/file APIs, the ASP streaming protocol, or session.get_link() gateway URLs, not SSH.",
-      "checked": "2026-09-30"
+      "quote": "This configuration is the default security baseline for the sandbox and cannot be modified.",
+      "note": "Sandboxes have no public IP. The default security group allows only ASP traffic from the stream gateway and cannot be modified, so no inbound SSH path exists. Access is via SDK command/file APIs, the stream, or session.get_link() URLs.",
+      "checked": "2026-11-08"
     },
     "snapshot": {
       "value": "none",
@@ -413,7 +423,7 @@
       "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/quickstart/basic-concepts.md",
       "quote": "Persistent Data (Context): Data that survives across sessions. Must be explicitly configured.",
       "note": "Persistence requires explicitly configuring a Context (OSS-backed) and mounting/syncing it; it is not automatic full-disk persistence across stop/start of the same session (default data is temporary and lost when a session ends).",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "auto_stop_idle": {
       "value": true,
@@ -423,11 +433,12 @@
       "checked": "2026-09-30"
     },
     "live_resize": {
-      "value": false,
+      "value": null,
+      "corrected_from": false,
       "source": "https://www.alibabacloud.com/help/en/agentbay/product-overview/what-is-eds-agentbay",
-      "quote": "AgentBay is a cloud-native execution platform for AI agents. Developers can use it to automate browsers, desktop applications, mobile devices, and code runtimes.",
-      "note": "not offered: no API or docs mention changing a running session's CPU/RAM; sessions are created with a fixed image/resource profile and released when no longer needed.",
-      "checked": "2026-09-30"
+      "quote": "AgentBay is a cloud-native execution platform for AI agents.",
+      "note": "Not published: no doc offers or excludes changing a running session's CPU/RAM.",
+      "checked": "2026-11-08"
     },
     "agent_harnesses": {
       "value": false,
@@ -455,7 +466,7 @@
       "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
       "quote": "Sandbox instances are not assigned public IP addresses and have no network ports open to the public.",
       "note": "Sandboxes are only reachable via the provider's stream/access gateway and session.get_link() URLs, never a direct public IPv4.",
-      "checked": "2026-09-30"
+      "checked": "2026-11-08"
     },
     "inbound_https": {
       "value": true,
@@ -467,9 +478,9 @@
     "egress_http_rules": {
       "value": false,
       "source": "https://www.alibabacloud.com/help/en/agentbay/agentbay-security-white-paper",
-      "quote": "It supports configuring the direction (inbound or outbound), action (allow or deny), priority, protocol type, port range, authorization object (IP address or CIDR block), and rule description.",
-      "note": "Egress control is at security-group (IP/CIDR/port) and domain-name (wildcard hostname) granularity, not HTTP method/path level. Domain-name control policies are also documented as Windows-sandbox-only.",
-      "checked": "2026-09-30"
+      "quote": "This feature is currently only supported for sandboxes with a Windows operating system.",
+      "note": "Egress control is domain-name (wildcard hostname) granularity on Windows sandboxes only, not HTTP method/path level.",
+      "checked": "2026-11-08"
     },
     "guest_firewall": {
       "value": null,
@@ -593,6 +604,15 @@
       "note": "granularity: account-only; cost: no; Billing information is available only via Alibaba Cloud console dashboard, not through REST API, SDK, or CLI. No per-sandbox, per-tag, or per-project usage query capability exposed.",
       "confidence": "high",
       "checked": "2026-01-01"
+    },
+    "persist_scope": {
+      "value": "folder",
+      "source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/basics/data-persistence.md",
+      "quote": "Context Mount presents the context's storage as a **live mounted filesystem** — writes are persisted immediately, and reads always reflect the latest state.",
+      "how": "configure a Context and sync or mount it at a path; only that folder survives the session",
+      "effort": "low",
+      "note": "Context Sync = download on start, upload on end. Context Mount is beta and needs image aio-ubuntu-2404. Sessions are temporary and destroyed when they end; no whole-disk persistence or snapshot is documented.",
+      "checked": "2026-11-08"
     }
   },
   "locations": [
@@ -601,6 +621,14 @@
       "state": null,
       "city": "Hangzhou",
       "provider_region": "cn-hangzhou",
+      "self_serve": true,
+      "choosable": true
+    },
+    {
+      "country": "CN",
+      "state": null,
+      "city": "Shanghai",
+      "provider_region": "cn-shanghai",
       "self_serve": true,
       "choosable": true
     },
@@ -622,6 +650,6 @@
     }
   ],
   "locations_source": "https://github.com/aliyun/wuying-agentbay-sdk/blob/main/docs/guides/common-features/configuration/sdk-configuration.md",
-  "locations_quote": "| Region ID | Derived Endpoint | Notes | | `cn-hangzhou` | ... Default | | `ap-southeast-1` | ... | | `us-east-1` | ... |",
-  "locations_checked": "2026-10-01"
+  "locations_quote": "SDK guide: cn-hangzhou (default), ap-southeast-1, us-east-1. Help center (https://www.alibabacloud.com/help/en/agentbay/developer-reference/advanced-configuration): \"China (Shanghai) (Default)\" wuyingai.cn-shanghai.aliyuncs.com; \"Singapore\" wuyingai.ap-southeast-1.aliyuncs.com.",
+  "locations_checked": "2026-11-08"
 }
